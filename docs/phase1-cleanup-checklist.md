@@ -100,7 +100,134 @@ if (versionTitle) versionTitle.textContent = '成本要素版本管理';
 
 Delete all `?.replaceChildren(...)` calls at lines ~450-460 (the block after `ensureDashboardUiScaffold()` call), since the `.textContent` assignments above already set the correct values.
 
-## 5. Verification
+---
+
+## 5. 🔴 Engine JS: Duplicate Function Definitions (`g281_engine.js`)
+
+### Problem
+
+`numberOr` and `approxEqual` are defined **twice** within the same IIFE:
+
+```js
+// First definition (~line 30)
+function numberOr(value, fallback) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function approxEqual(left, right, epsilon) {
+  return Math.abs(numberOr(left, 0) - numberOr(right, 0)) <= (epsilon || 1e-6);
+}
+
+// Second definition (~line 330) — OVERWRITES the first
+function numberOr(value, fallback) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function approxEqual(left, right, tolerance) {  // different param name!
+  const nextTolerance = Number.isFinite(Number(tolerance)) ? Number(tolerance) : 1e-6;
+  return Math.abs(numberOr(left, 0) - numberOr(right, 0)) <= nextTolerance;
+}
+```
+
+The second `approxEqual` has a different parameter name (`tolerance` vs `epsilon`) and slightly different default handling. Due to JS hoisting, the second definition wins, but `arraysClose()` (defined near the first) works with either version only by coincidence.
+
+### Fix
+
+- Delete the first `numberOr` and `approxEqual` definitions (keep the second, more defensive versions)
+- Also delete the duplicate `arrayApproxEqual` / `arraysClose` pair (they do the same thing with different names)
+- Search for all call sites to verify parameter usage
+
+## 6. 🔴 Engine JS: annualDrop.yearRows Potential Out-of-Bounds (`g281_engine.js`)
+
+### Problem
+
+In `computeModel`, the annual loop:
+
+```js
+const annualDropFactor = numberOr(annualDrop.yearRows[index] && annualDrop.yearRows[index].factor, 1);
+```
+
+If `annualDrop.yearRows.length < lifecycleYearSeries.length`, `yearRows[index]` is `undefined`, and `undefined.factor` throws `TypeError`.
+
+### Fix
+
+```js
+const annualDropFactor = numberOr(annualDrop.yearRows?.[index]?.factor, 1);
+```
+
+Same pattern for `rebate.yearRows[index]` and `oneTimeCustomer.revenueByYear[index]`.
+
+## 7. 🔴 Shapley: No Dimension Upper Bound (`g281_profit_shapley.js`)
+
+### Problem
+
+`computeShapley` iterates over all `2^n` subsets where `n = FACTOR_DEFS.length` (currently 12 → 4096 iterations). Each iteration calls `computeModel`. If factors grow to 16+ (65536 iterations), the browser will freeze.
+
+### Fix
+
+```js
+const dimension = factors.length;
+if (dimension > 15) {
+  throw new Error(`Shapley: factor count ${dimension} exceeds maximum 15 (would require ${2**dimension} evaluations).`);
+}
+```
+
+## 8. Engine JS: Garbled Strings in `buildExactFinancialModel` (`g281_engine.js`)
+
+### Problem
+
+Near the end of `buildExactFinancialModel`:
+
+```js
+dataLayer: 'JSON 鏁版嵁灞?+ financialVersions',   // garbled
+engineLayer: '璁＄畻寮曟搸',                         // garbled
+```
+
+Compare with the non-exact path which correctly outputs:
+
+```js
+dataLayer: 'JSON 数据层',
+engineLayer: '计算引擎',
+```
+
+### Fix
+
+```js
+dataLayer: 'JSON 数据层 + financialVersions',
+engineLayer: '计算引擎 (financial exact)',
+```
+
+## 9. Engine JS: Placeholder Strings in `legacyAnnualDropRows` (`g281_engine.js`)
+
+### Problem
+
+```js
+return { year, rate: 0, note: index === 0 ? '????' : '' };
+// ...
+return { year, rate: derivedRate, note: '????????' };
+```
+
+These `'????'` and `'????????'` are likely emoji or Chinese text that was corrupted during encoding. They appear in the `note` field which may surface in the UI.
+
+### Fix
+
+Replace with meaningful text or empty string:
+
+```js
+return { year, rate: 0, note: index === 0 ? '基准年' : '' };
+// ...
+return { year, rate: derivedRate, note: '由整体年降率换算' };
+```
+
+Or if original intent is unknown, use empty string:
+
+```js
+note: ''
+```
+
+## 10. Verification
 
 After applying all fixes:
 1. Open `g281_profit_dashboard.html` in browser
@@ -108,3 +235,6 @@ After applying all fixes:
 3. Verify `document.querySelectorAll('#profitInsightsMount').length === 1`
 4. Verify timeline strip renders correctly
 5. Verify all buttons still have correct labels
+6. **NEW**: Verify Shapley computation still produces correct contributions (no change in behavior for n=12)
+7. **NEW**: Test with mismatched yearRows/lifecycleYears lengths — no crash
+8. **NEW**: Check `model.dataLayer` and `model.engineLayer` output correct Chinese in both exact and computed paths
