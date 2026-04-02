@@ -175,6 +175,14 @@
       throw new Error('[ProjectRegistry] changeRequest.reason is required');
     }
 
+    // 变更管控：锁定项目必须通过正式变更流程（提供 requestedBy 标识审批责任人）
+    if (registry[projectCode]._locked && !changeRequest.requestedBy) {
+      throw new Error(
+        `[ProjectRegistry] Project '${projectCode}' is locked. ` +
+        'Provide changeRequest.requestedBy to proceed through the change management process.'
+      );
+    }
+
     const changeLog = registry[projectCode]._changeLog || [];
     const changeRecord = {
       id: `CHG-${Date.now().toString(36)}`,
@@ -185,6 +193,7 @@
       newValues: changeRequest.newValues || {},
       requestedBy: changeRequest.requestedBy || 'unknown',
       status: 'applied',
+      wasLocked: !!registry[projectCode]._locked,
     };
 
     // 记录旧值

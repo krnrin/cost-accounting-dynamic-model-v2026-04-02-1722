@@ -17,14 +17,14 @@
  *
  * Issue #4 — 计算路径系数
  */
-;(function (root) {
+;(function (global) {
   'use strict';
 
   var ComputationPath = {
     /**
      * 从模型结果判断计算路径
      * @param {Object} model - computeModel 的输出
-     * @returns  path: string, label: string, description: string, warning: string|null 
+     * @returns  path: string, label: string, description: string, warning: string|null
      */
     detect: function (model) {
       if (!model) {
@@ -48,7 +48,7 @@
       }
 
       // 否则 → estimatedPath
-      var mc = root.ConfigBridge ? root.ConfigBridge.materialComposition() : null;
+      var mc = global.ConfigBridge ? global.ConfigBridge.materialComposition() : null;
       var coeffDesc = mc
         ? '连接器 ' + mc.connector + ' + 铜 ' + mc.copper + ' + 铝 ' + mc.aluminum + ' + 其他 ' + mc.other
         : '0.24 + 0.38 + 0.18 + 0.20';
@@ -64,7 +64,7 @@
     /**
      * 生成路径对比摘要（用于 UI 卡片）
      * @param {Object} model
-     * @returns  badge: string, color: string, tooltip: string 
+     * @returns  badge: string, color: string, tooltip: string
      */
     badge: function (model) {
       var info = ComputationPath.detect(model);
@@ -83,5 +83,5 @@
     },
   };
 
-  root.ComputationPath = ComputationPath;
+  global.ComputationPath = ComputationPath;
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

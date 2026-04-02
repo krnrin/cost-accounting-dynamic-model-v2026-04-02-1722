@@ -3,7 +3,7 @@
  * Issue #12: 计算结果缓存层
  *
  * 职责：
- * 1. 基于 draft+state 的 JSON hash 做 memoize
+ * 1. 基于 draft+state 的 JSON 序列化做 memoize
  * 2. wireCatalog 索引缓存（避免重复遍历）
  * 3. LRU 淘汰策略，防止内存泄漏
  */
@@ -51,27 +51,25 @@
     };
   }
 
-  // ── 计算 Hash ─────────────────────────────────
+  // ── 计算 Key ──────────────────────────────────
 
-  function hashInputs(draft, state) {
+  /**
+   * 生成稳定的缓存 key（使用完整 JSON 序列化，Map 对长字符串 key 高效）
+   * 旧版 simpleHash 为 32-bit DJB2，碰撞风险高，已弃用。
+   */
+  function buildCacheKey(draft, state) {
     try {
-      // 稳定序列化：排序 key
       const draftStr = JSON.stringify(draft, Object.keys(draft || {}).sort());
       const stateStr = JSON.stringify(state, Object.keys(state || {}).sort());
-      return simpleHash(draftStr + '||' + stateStr);
+      return draftStr + '||' + stateStr;
     } catch (_) {
-      return null; // 无法 hash，不缓存
+      return null; // 无法序列化，不缓存
     }
   }
 
-  function simpleHash(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const chr = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + chr;
-      hash |= 0;
-    }
-    return 'h' + (hash >>> 0).toString(36);
+  /** @deprecated 使用 buildCacheKey 替代，保留仅为向后兼容 */
+  function hashInputs(draft, state) {
+    return buildCacheKey(draft, state);
   }
 
   // ── 模型计算缓存 ──────────────────────────────
@@ -87,7 +85,7 @@
    * @returns {Object} model result
    */
   function cachedCompute(computeFn, runtime, draft, state) {
-    const key = hashInputs(draft, state);
+    const key = buildCacheKey(draft, state);
     if (key) {
       const cached = modelCache.get(key);
       if (cached !== undefined) return cached;
@@ -148,7 +146,8 @@
     cachedCompute,
     getWireCatalogIndex,
     invalidateAll,
-    hashInputs,
+    buildCacheKey,
+    hashInputs,       // deprecated, 保留向后兼容
     _modelCache: modelCache,  // 测试用
   };
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
