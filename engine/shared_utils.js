@@ -1,7 +1,8 @@
 /**
  * engine/shared_utils.js
  * Issue #9: 共享工具函数与常量
- * 被所有 engine 子模块引用，必须最先加载
+ * Issue #10: 重复函数委托给 G281Shared (utils/shared.js)
+ * 被所有 engine 子模块引用，必须在 utils/shared.js 之后加载
  */
 (function (global) {
   'use strict';
@@ -20,9 +21,14 @@
     mix: { quote: 'quote', fixed: 'fixed' },
   };
 
-  // ── 基础工具 ──────────────────────────────────
-  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  // ── Issue #10: 委托给 G281Shared ──────────────
+  const _S = global.G281Shared || {};
+  const clamp = _S.clamp || ((value, min, max) => Math.min(max, Math.max(min, value)));
+  const numberOr = _S.numberOr || function (value, fallback) { const n = Number(value); return Number.isFinite(n) ? n : fallback; };
+  const safeArray = _S.safeArray || function (value) { return Array.isArray(value) ? value : []; };
+  const clonePlain = _S.clonePlain || function (value, fallback) { try { return JSON.parse(JSON.stringify(value)); } catch (_) { return fallback; } };
 
+  // ── 本模块独有 ────────────────────────────────
   const weighted = (shares, indexes) =>
     shares.reduce((sum, value, index) => sum + (Number(value) || 0) / 100 * indexes[index], 0);
 
@@ -31,20 +37,6 @@
     const total = series.reduce((s, v) => s + v, 0) || 1;
     return series.map((v) => v / total * 100);
   };
-
-  function numberOr(value, fallback) {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : fallback;
-  }
-
-  function safeArray(value) {
-    return Array.isArray(value) ? value : [];
-  }
-
-  function clonePlain(value, fallback) {
-    try { return JSON.parse(JSON.stringify(value)); }
-    catch (_) { return fallback; }
-  }
 
   function approxEqual(left, right, epsilon) {
     return Math.abs(numberOr(left, 0) - numberOr(right, 0)) <= (epsilon || 1e-6);

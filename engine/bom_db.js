@@ -119,13 +119,9 @@
   const getSchema = () => global.G281BomSchema || null;
   const hasIndexedDB = typeof global.indexedDB !== 'undefined' && global.indexedDB;
 
-  const clonePlain = (value, fallback = null) => {
-    try {
-      return JSON.parse(JSON.stringify(value));
-    } catch (error) {
-      return fallback;
-    }
-  };
+  // Issue #10: 委托给 G281Shared
+  const clonePlain = (typeof G281Shared !== 'undefined' && G281Shared.clonePlain)
+    || ((value, fallback = null) => { try { return JSON.parse(JSON.stringify(value)); } catch (e) { return fallback; } });
 
   const requestToPromise = (request) =>
     new Promise((resolve, reject) => {

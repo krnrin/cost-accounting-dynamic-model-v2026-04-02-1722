@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>核算 — 报价工作台</title>
   <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
   <link rel="stylesheet" href="../ui/dashboard.css">
   <style>
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
@@ -26,36 +27,31 @@
   </div>
 
   <div class="accounting-content">
-    <!-- 报价版本选择 -->
     <div class="acc-section" id="accVersionSelector">
       <h2>报价版本</h2>
       <p style="color:#666; font-size:13px;">选择 BOM 版本 → 自动加载对应材料/工时/设备快照</p>
     </div>
-
-    <!-- 成本拆解表 -->
     <div class="acc-section" id="accCostBreakdown">
       <h2>成本拆解</h2>
       <p style="color:#666; font-size:13px;">材料 · 人工 · 制造 · 包装 · 设备 · R&D</p>
     </div>
-
-    <!-- 线束级利润拆解 -->
     <div class="acc-section" id="accHarnessProfit">
       <h2>线束级利润</h2>
       <p style="color:#666; font-size:13px;">按线束号拆解收入/成本/利润</p>
     </div>
-
-    <!-- 变更报价对比 -->
     <div class="acc-section" id="accChangeQuote">
       <h2>变更报价</h2>
       <p style="color:#666; font-size:13px;">BOM 变更影响 · 替换/新增/取消 · 呆滞料</p>
     </div>
-
-    <!-- 目标价求解 -->
     <div class="acc-section" id="accTargetPrice">
       <h2>目标价求解</h2>
       <p style="color:#666; font-size:13px;">二分法反算 ASP → 满足目标利润率</p>
     </div>
   </div>
+
+  <!-- 统一工具函数 -->
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
 
   <!-- Engine -->
   <script src="../engine/shared_utils.js"></script>
@@ -73,15 +69,47 @@
   <script src="../engine/bom_db.js"></script>
   <script src="../engine/align_key_enhancer.js"></script>
 
+  <!-- 性能与健壮性 (Issue #12) -->
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+
+  <!-- Schema 迁移 (Issue #11) -->
+  <script src="../engine/schema_migrator.js"></script>
+
   <!-- Core -->
   <script src="../core/config_loader.js"></script>
   <script src="../core/repo.js"></script>
   <script src="../core/storage_adapter.js"></script>
 
+  <!-- 多项目 (Issue #14) -->
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       G281Nav.mountNavBar();
-      console.log('[核算页] 骨架已加载，等待 dashboard.js 拆分后集成报价渲染器');
+
+      // 项目注册 + IDB 初始化 + Schema 迁移
+      try {
+        const resp = await fetch('../config/g281.project.json');
+        const config = await resp.json();
+        if (typeof G281ProjectRegistry !== 'undefined') {
+          G281ProjectRegistry.registerProject('G281', config);
+          G281ProjectRegistry.switchProject('G281');
+          G281ProjectRegistry.lockProject('G281');
+        }
+      } catch (e) { console.warn('[项目注册]', e); }
+
+      if (typeof G281BomDb !== 'undefined') {
+        try {
+          await G281BomDb.init();
+          if (typeof G281SchemaMigrator !== 'undefined') {
+            await G281SchemaMigrator.runPending(G281BomDb);
+          }
+        } catch (e) { console.warn('[Schema迁移]', e); }
+      }
+
+      console.log('[核算页] 新模块已集成，等待报价渲染器接入');
     });
   </script>
 </body>
