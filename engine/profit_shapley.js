@@ -64,8 +64,8 @@
     },
   ];
 
-  // Issue #10: 委托给 G281Shared
-  const clonePlain = (typeof G281Shared !== 'undefined' && G281Shared.clonePlain)
+  // Issue #10: 委托给 G281Shared（通过 global 安全引用，避免裸变量 ReferenceError）
+  const clonePlain = (global.G281Shared && global.G281Shared.clonePlain)
     || function (value, fallback) { try { return JSON.parse(JSON.stringify(value)); } catch (e) { return fallback; } };
 
   function factorialTable(size) {
@@ -88,7 +88,7 @@
 
   function resolveSolver() {
     if (!global.G281TargetPriceSolver) {
-      throw new Error('G281ProfitShapley requires window.G281TargetPriceSolver.');
+      throw new Error('G281ProfitShapley requires G281TargetPriceSolver.');
     }
     return global.G281TargetPriceSolver;
   }
@@ -196,7 +196,7 @@
       scenarioDraft: scenarios.scenarioDraft,
     };
 
-      // dimension already declared above
+    // dimension already declared above
     const maxMask = (1 << dimension) - 1;
     const factorials = factorialTable(dimension);
     const cache = new Map();
@@ -264,4 +264,4 @@
     },
     defaultFactors: FACTOR_DEFS,
   };
-})(window);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
