@@ -7,7 +7,7 @@
  * 2. 记录错误日志（可选上报）
  * 3. 防止单个模块崩溃导致整个 Dashboard 白屏
  */
-;(function (root) {
+;(function (global) {
   'use strict';
 
   const errorLog = [];
@@ -100,7 +100,7 @@
     errorLog.length = 0;
   }
 
-  root.G281ErrorBoundary = {
+  global.G281ErrorBoundary = {
     wrapSync,
     wrapAsync,
     withTimeout,
