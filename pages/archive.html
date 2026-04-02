@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>归档 — 数据存档管理</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../ui/dashboard.css">
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
+    .page-header { padding: 20px 24px 12px; }
+    .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .page-header p { margin: 4px 0 0; font-size: 13px; color: #888; }
+    .archive-content { padding: 0 24px 24px; }
+    .arc-section { margin-top: 16px; background: #1a1a2e; border-radius: 8px; padding: 16px; }
+    .arc-section h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+
+  <div class="page-header">
+    <h1>🗄️ 归档</h1>
+    <p>数据存档 · 版本时间线 · Excel 工作簿查看</p>
+  </div>
+
+  <div class="archive-content">
+    <!-- 版本时间线 -->
+    <div class="arc-section" id="arcTimeline">
+      <h2>版本时间线</h2>
+      <p style="color:#666; font-size:13px;">JSON 版本 · 提交历史 · 对比差异</p>
+    </div>
+
+    <!-- Excel 工作簿查看器 -->
+    <div class="arc-section" id="arcWorkbook">
+      <h2>Excel 工作簿</h2>
+      <p style="color:#666; font-size:13px;">原始 Excel Sheet 浏览 · 数据验证 · 导出</p>
+    </div>
+
+    <!-- 数据仓库浏览 -->
+    <div class="arc-section" id="arcRepo">
+      <h2>数据仓库</h2>
+      <p style="color:#666; font-size:13px;">GitHub 仓库文件结构 · JSON 数据浏览 · 原始数据下载</p>
+    </div>
+
+    <!-- BOM 版本对比 -->
+    <div class="arc-section" id="arcBomCompare">
+      <h2>BOM 版本对比</h2>
+      <p style="color:#666; font-size:13px;">冻结版 vs 定点版 · 按线束/分组/料号对比</p>
+    </div>
+  </div>
+
+  <!-- Engine (归档页只需轻量引擎) -->
+  <script src="../engine/shared_utils.js"></script>
+  <script src="../engine/bom_parser.js"></script>
+  <script src="../engine/bom_schema.js"></script>
+  <script src="../engine/bom_db.js"></script>
+  <script src="../engine/align_key_enhancer.js"></script>
+
+  <!-- Core -->
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../core/storage_adapter.js"></script>
+
+  <!-- UI (归档页专属) -->
+  <script src="../ui/workbook_viewer.js"></script>
+  <script src="../ui/version_timeline.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      G281Nav.mountNavBar();
+      console.log('[归档页] 骨架已加载，等待 dashboard.js 拆分后集成归档渲染器');
+    });
+  </script>
+</body>
+</html>
