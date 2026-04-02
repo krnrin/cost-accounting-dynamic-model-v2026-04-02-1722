@@ -10,11 +10,13 @@
  * 与 bom_db.js 配合使用：
  *   bom_db.js 管理 IndexedDB 的物理 store 结构
  *   schema_migrator.js 管理 store 内的数据格式/字段级迁移
+ *
+ * 多项目隔离：schema 版本号按项目独立存储，避免切换项目时迁移被跳过。
  */
 ;(function (root) {
   'use strict';
 
-  const STORAGE_KEY = 'g281_schema_version';
+  const STORAGE_KEY_BASE = 'g281_schema_version';
   const MIGRATION_LOG_KEY = 'g281_migration_log';
 
   // ── 迁移注册表 ────────────────────────────────
@@ -43,11 +45,26 @@
     migrations.push({ version, label: label || `Migration to v${version}`, up });
   }
 
-  // ── 版本读写 ──────────────────────────────────
+  // ── 版本读写（按项目隔离）───────────────────────
+
+  /**
+   * 获取当前项目的 schema 版本存储 key
+   * 多项目隔离：每个项目使用独立的 localStorage key
+   */
+  function getStorageKey() {
+    try {
+      var registry = (typeof globalThis !== 'undefined' ? globalThis : root).G281ProjectRegistry;
+      var activeCode = registry && typeof registry.getActiveCode === 'function'
+        ? registry.getActiveCode() : null;
+      return activeCode ? STORAGE_KEY_BASE + '_' + activeCode : STORAGE_KEY_BASE;
+    } catch (_) {
+      return STORAGE_KEY_BASE;
+    }
+  }
 
   function getCurrentVersion() {
     try {
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(getStorageKey());
       const parsed = Number(stored);
       return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
     } catch (_) {
@@ -57,7 +74,7 @@
 
   function setCurrentVersion(version) {
     try {
-      localStorage.setItem(STORAGE_KEY, String(version));
+      localStorage.setItem(getStorageKey(), String(version));
     } catch (_) {
       console.warn('[SchemaMigrator] Failed to persist schema version to localStorage');
     }
@@ -126,6 +143,7 @@
           status: 'success',
           timestamp: new Date().toISOString(),
           durationMs: Date.now() - startTime,
+          projectCode: getStorageKey().replace(STORAGE_KEY_BASE + '_', '') || 'default',
         };
         applied.push(logEntry);
         appendMigrationLog(logEntry);
@@ -140,6 +158,7 @@
           timestamp: new Date().toISOString(),
           durationMs: Date.now() - startTime,
           stoppedAt: lastVersion,
+          projectCode: getStorageKey().replace(STORAGE_KEY_BASE + '_', '') || 'default',
         };
         applied.push(logEntry);
         appendMigrationLog(logEntry);
@@ -167,6 +186,7 @@
       action: 'force_reset',
       toVersion: version || 0,
       timestamp: new Date().toISOString(),
+      storageKey: getStorageKey(),
     });
   }
 
@@ -225,6 +245,7 @@
     getLatestVersion,
     getMigrationLog,
     forceResetVersion,
+    getStorageKey,     // 暴露供调试和测试
     _migrations: migrations,  // 仅供测试
   };
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
