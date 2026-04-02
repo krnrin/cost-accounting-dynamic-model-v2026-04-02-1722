@@ -1,0 +1,14 @@
+node_modules/
+output/
+tmp/
+test-results/
+__pycache__/
+.playwright-cli/
+
+*.pyc
+*.pyo
+*.tmp
+*.log
+
+~$*.xlsx
+~$*.xls

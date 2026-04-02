@@ -1,0 +1,885 @@
+{
+  "meta": {
+    "sourceWorkbook": "G281_protocol_price.xlsx",
+    "sheetName": "assembly_part_list",
+    "generatedAt": "2026-03-26T01:48:45+08:00",
+    "scopeNote": "Top-level rows with Function filled, including IPT crimp terminal.",
+    "portfolioRule": "confirmed_to_protocol_partial_to_progress_else_sample",
+    "portfolioRuleNote": "Initialization rule: fully confirmed aggregated connectors switch to protocol pricing, partially confirmed aggregated connectors switch to progress pricing, and the rest switch to sample pricing while keeping manual per-item override available.",
+    "initialQuoteWorkbook": "吉利E281报价核算.xlsx",
+    "initialQuoteSheet": "二次物料明细",
+    "initialQuoteRule": "报价核算二次物料明细优先，必要时通过总成散件清单做总成号桥接；未匹配到则留空。",
+    "initialQuoteMatchedRows": 8
+  },
+  "summary": {
+    "totalRows": 20,
+    "confirmed": 8,
+    "quotedPending": 6,
+    "noReply": 5,
+    "devPending": 1,
+    "portfolioRecommendationCounts": {
+      "protocol": 2,
+      "progress": 3,
+      "sample": 6
+    }
+  },
+  "portfolios": [
+    {
+      "portfolioId": "battery_end_hv",
+      "portfolioName": "battery_end_hv",
+      "sourceCount": 4,
+      "mappedRowKeys": [
+        "r001",
+        "r016",
+        "r024",
+        "r129"
+      ],
+      "statusCounts": {
+        "confirmed": 1,
+        "quoted_pending": 2,
+        "no_reply": 0,
+        "dev_pending": 1
+      },
+      "recommendedStage": "progress",
+      "functionBriefs": [
+        "HVPC2P1600FT535-NH-P010 / 接电池端",
+        "HVPC2P1600FV535-NH-P010 / 接电池端",
+        "HVPC2P1600FT525-NH-P010 / 接电池端",
+        "YGC1612-EV-P2PWNA1-4 / 135度角度出线"
+      ],
+      "functionRaws": [
+        "HVPC2P1600FT535-NH-P010 / 接电池端 / 适配2*35mm²屏蔽铜包铝硅胶铝导线",
+        "HVPC2P1600FV535-NH-P010 / 接电池端 / 适配2*35mm²屏蔽铜包铝硅胶铝导线",
+        "HVPC2P1600FT525-NH-P010 / 接电池端 / 适配2*25mm²屏蔽铜包铝硅胶铜导线",
+        "YGC1612-EV-P2PWNA1-4 / 135度角度出线 / （永贵带50A保险，取消互锁，工具解锁） / 接电池端 / 适配2*4mm²屏蔽铜包铝交联铝导线"
+      ],
+      "supplierNames": [
+        "安费诺",
+        "永贵"
+      ]
+    },
+    {
+      "portfolioId": "edrive_end_hv",
+      "portfolioName": "edrive_end_hv",
+      "sourceCount": 3,
+      "mappedRowKeys": [
+        "r009",
+        "r033",
+        "r065"
+      ],
+      "statusCounts": {
+        "confirmed": 1,
+        "quoted_pending": 2,
+        "no_reply": 0,
+        "dev_pending": 0
+      },
+      "recommendedStage": "progress",
+      "functionBriefs": [
+        "IPT2PFS035-S02P010（安费诺） / 接电驱端",
+        "IPT2P25P001-P010（安费诺 不含端子） / 接电驱端",
+        "PEVC-040-P42A-004-W / （菲尼克斯带，取消互锁，工具解锁）"
+      ],
+      "functionRaws": [
+        "IPT2PFS035-S02P010（安费诺） / 接电驱端 / 适配2*35mm²屏蔽铜包铝硅胶铝导线",
+        "IPT2P25P001-P010（安费诺 不含端子） / 接电驱端 / 适配2*25mm²屏蔽铜包铝硅胶铜导线",
+        "PEVC-040-P42A-004-W / （菲尼克斯带，取消互锁，工具解锁） / 接电驱 / 适配4mm²屏蔽铜包铝交联铝导线"
+      ],
+      "supplierNames": [
+        "安费诺",
+        "菲尼克斯"
+      ]
+    },
+    {
+      "portfolioId": "accm_end",
+      "portfolioName": "accm_end",
+      "sourceCount": 1,
+      "mappedRowKeys": [
+        "r040"
+      ],
+      "statusCounts": {
+        "confirmed": 1,
+        "quoted_pending": 0,
+        "no_reply": 0,
+        "dev_pending": 0
+      },
+      "recommendedStage": "protocol",
+      "functionBriefs": [
+        "2521188-1 / （泰科，取消互锁，工具解锁）"
+      ],
+      "functionRaws": [
+        "2521188-1 / （泰科，取消互锁，工具解锁） / 接ACCM端 / 适配4mm²屏蔽铜包铝交联铝导线"
+      ],
+      "supplierNames": [
+        "TE"
+      ]
+    },
+    {
+      "portfolioId": "ptc_end",
+      "portfolioName": "ptc_end",
+      "sourceCount": 2,
+      "mappedRowKeys": [
+        "r058",
+        "r125"
+      ],
+      "statusCounts": {
+        "confirmed": 1,
+        "quoted_pending": 1,
+        "no_reply": 0,
+        "dev_pending": 0
+      },
+      "recommendedStage": "progress",
+      "functionBriefs": [
+        "1-2509498-1 / （TE，取消互锁，工具解锁）",
+        "YG1176D（永贵，取消互锁，工具解锁） / 接PTC"
+      ],
+      "functionRaws": [
+        "1-2509498-1 / （TE，取消互锁，工具解锁） / 接PTC / 适配4mm²屏蔽铜包铝交联铝导线 / TE总成号是2521928-1 CODE A",
+        "YG1176D（永贵，取消互锁，工具解锁） / 接PTC / 适配2*4mm²屏蔽铜包铝交联铝导线"
+      ],
+      "supplierNames": [
+        "TE",
+        "永贵"
+      ]
+    },
+    {
+      "portfolioId": "charge_socket_main",
+      "portfolioName": "charge_socket_main",
+      "sourceCount": 4,
+      "mappedRowKeys": [
+        "r072",
+        "r108",
+        "r114",
+        "r119"
+      ],
+      "statusCounts": {
+        "confirmed": 4,
+        "quoted_pending": 0,
+        "no_reply": 0,
+        "dev_pending": 0
+      },
+      "recommendedStage": "protocol",
+      "functionBriefs": [
+        "2523328-1 / 组合式充电插座(带电子锁，防尘盖)",
+        "HVSPC2P1900FS112 / 快充连接器（直流）",
+        "HVC2PG263UFSW106-NH / 慢充连接器（交流）",
+        "HVSPC2P1900FV112 / 快充连接器（直流）"
+      ],
+      "functionRaws": [
+        "2523328-1 / 组合式充电插座(带电子锁，防尘盖) / DC：120mm²非屏蔽硅胶铝导线 / AC：6mm²非屏蔽铝导线 / DC接地：6mm²非屏蔽黄绿铜导线 / AC接地：5mm²非屏蔽黄绿铜导线",
+        "HVSPC2P1900FS112 / 快充连接器（直流） / 适配2*120mm²非屏蔽硅胶铝导线 / ESOW：HVSPC2P1900FS112（安费诺，120方非屏蔽、CodeA、带互锁、180°正插） / 3D数据：Code A0 180度 / 安费诺提供资料：180度",
+        "HVC2PG263UFSW106-NH / 慢充连接器（交流） / 适配2*6mm²非屏蔽铝导线 / （安费诺，取消互锁，工具解锁，6方非屏蔽铝线，超声波焊接）",
+        "HVSPC2P1900FV112 / 快充连接器（直流） / 适配2*120mm²非屏蔽硅胶铝导线 / ESOW：HVSPC2P1900FV112（安费诺，120方非屏蔽、CodeA、带互锁、90°正插） / 3D数据：Code A0 90度 / 安费诺提供资料：180度"
+      ],
+      "supplierNames": [
+        "TE",
+        "安费诺"
+      ]
+    },
+    {
+      "portfolioId": "dc_charge_lv",
+      "portfolioName": "dc_charge_lv",
+      "sourceCount": 1,
+      "mappedRowKeys": [
+        "r090"
+      ],
+      "statusCounts": {
+        "confirmed": 0,
+        "quoted_pending": 0,
+        "no_reply": 1,
+        "dev_pending": 0
+      },
+      "recommendedStage": "sample",
+      "functionBriefs": [
+        "1-2438787-1 / DC 8PIN低压信号连接器"
+      ],
+      "functionRaws": [
+        "1-2438787-1 / DC 8PIN低压信号连接器 / 适配8*0.5mm²线"
+      ],
+      "supplierNames": [
+        "TE"
+      ]
+    },
+    {
+      "portfolioId": "ac_charge_lv",
+      "portfolioName": "ac_charge_lv",
+      "sourceCount": 1,
+      "mappedRowKeys": [
+        "r093"
+      ],
+      "statusCounts": {
+        "confirmed": 0,
+        "quoted_pending": 0,
+        "no_reply": 1,
+        "dev_pending": 0
+      },
+      "recommendedStage": "sample",
+      "functionBriefs": [
+        "1-2355517-5 / AC 6PIN低压信号连接器,1pin使用盲堵"
+      ],
+      "functionRaws": [
+        "1-2355517-5 / AC 6PIN低压信号连接器,1pin使用盲堵 / 适配5*0.5方单芯铜导线"
+      ],
+      "supplierNames": [
+        "TE"
+      ]
+    },
+    {
+      "portfolioId": "electronic_lock",
+      "portfolioName": "electronic_lock",
+      "sourceCount": 1,
+      "mappedRowKeys": [
+        "r097"
+      ],
+      "statusCounts": {
+        "confirmed": 0,
+        "quoted_pending": 0,
+        "no_reply": 1,
+        "dev_pending": 0
+      },
+      "recommendedStage": "sample",
+      "functionBriefs": [
+        "5-965906-5 / 电子锁低压连接器总成"
+      ],
+      "functionRaws": [
+        "5-965906-5 / 电子锁低压连接器总成 / 适配4*0.5mm²单芯铜导线"
+      ],
+      "supplierNames": [
+        "TE"
+      ]
+    },
+    {
+      "portfolioId": "low_voltage_inline",
+      "portfolioName": "low_voltage_inline",
+      "sourceCount": 1,
+      "mappedRowKeys": [
+        "r100"
+      ],
+      "statusCounts": {
+        "confirmed": 0,
+        "quoted_pending": 0,
+        "no_reply": 1,
+        "dev_pending": 0
+      },
+      "recommendedStage": "sample",
+      "functionBriefs": [
+        "5-2385463-1 / 低压inline连接器总成，22pin使用16pin"
+      ],
+      "functionRaws": [
+        "5-2385463-1 / 低压inline连接器总成，22pin使用16pin / 4#8#13#15#16#22#不使用 / 适配16*0.5mm²单芯铜导线"
+      ],
+      "supplierNames": [
+        "TE"
+      ]
+    },
+    {
+      "portfolioId": "branch_splitter",
+      "portfolioName": "branch_splitter",
+      "sourceCount": 1,
+      "mappedRowKeys": [
+        "r047"
+      ],
+      "statusCounts": {
+        "confirmed": 0,
+        "quoted_pending": 1,
+        "no_reply": 0,
+        "dev_pending": 0
+      },
+      "recommendedStage": "sample",
+      "functionBriefs": [
+        "F02-372011-111 / 二分四分线器"
+      ],
+      "functionRaws": [
+        "F02-372011-111 / 二分四分线器 / 适配6*4mm²屏蔽铜包铝交联铝导线"
+      ],
+      "supplierNames": [
+        "八达"
+      ]
+    },
+    {
+      "portfolioId": "misc_terminal_set",
+      "portfolioName": "misc_terminal_set",
+      "sourceCount": 1,
+      "mappedRowKeys": [
+        "r032"
+      ],
+      "statusCounts": {
+        "confirmed": 0,
+        "quoted_pending": 0,
+        "no_reply": 1,
+        "dev_pending": 0
+      },
+      "recommendedStage": "sample",
+      "functionBriefs": [
+        "IPT 压接端子"
+      ],
+      "functionRaws": [
+        "IPT 压接端子"
+      ],
+      "supplierNames": [
+        "TE"
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "rowKey": "r001",
+      "sequence": 1,
+      "sourceRow": 2,
+      "portfolioId": "battery_end_hv",
+      "groupLabel": "Battery end / 2x35",
+      "partNumber": "HVPC2P1600FT5-NH-MP010",
+      "partName": "Cover 45deg reverse Code A",
+      "supplier": "Amphenol",
+      "targetProtocolPrice": 23,
+      "replyPrice": null,
+      "supplierReply": "OK",
+      "statusKey": "confirmed",
+      "statusLabel": "confirmed",
+      "recommendedStage": "protocol",
+      "difference": null,
+      "functionRaw": "HVPC2P1600FT535-NH-P010 / 接电池端 / 适配2*35mm²屏蔽铜包铝硅胶铝导线",
+      "functionBrief": "HVPC2P1600FT535-NH-P010 / 接电池端",
+      "supplierRaw": "安费诺",
+      "assemblyRemark": "协议价OK",
+      "customerRemark": "客户指定",
+      "partNameRaw": "护套（145度反装 A键位）",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r009",
+      "sequence": 9,
+      "sourceRow": 10,
+      "portfolioId": "edrive_end_hv",
+      "groupLabel": "E-drive end / 2x35",
+      "partNumber": "N022525276C",
+      "partName": "Welded terminal 70",
+      "supplier": "Amphenol",
+      "targetProtocolPrice": 17,
+      "replyPrice": 21,
+      "supplierReply": "21",
+      "statusKey": "quoted_pending",
+      "statusLabel": "quoted_pending",
+      "recommendedStage": "sample",
+      "difference": 4,
+      "functionRaw": "IPT2PFS035-S02P010（安费诺） / 接电驱端 / 适配2*35mm²屏蔽铜包铝硅胶铝导线",
+      "functionBrief": "IPT2PFS035-S02P010（安费诺） / 接电驱端",
+      "supplierRaw": "安费诺",
+      "assemblyRemark": "总成协议价21",
+      "customerRemark": "客户指定",
+      "partNameRaw": "焊接端子-70",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r016",
+      "sequence": 16,
+      "sourceRow": 17,
+      "portfolioId": "battery_end_hv",
+      "groupLabel": "Battery end / 2x35 / 90deg",
+      "partNumber": "HVPC2P1600FV5-NH-M-P010",
+      "partName": "Cover 90deg reverse Code A",
+      "supplier": "Amphenol",
+      "targetProtocolPrice": 21,
+      "replyPrice": 22,
+      "supplierReply": "22",
+      "statusKey": "quoted_pending",
+      "statusLabel": "quoted_pending",
+      "recommendedStage": "sample",
+      "difference": 1,
+      "functionRaw": "HVPC2P1600FV535-NH-P010 / 接电池端 / 适配2*35mm²屏蔽铜包铝硅胶铝导线",
+      "functionBrief": "HVPC2P1600FV535-NH-P010 / 接电池端",
+      "supplierRaw": "安费诺",
+      "assemblyRemark": "总成协议价22",
+      "customerRemark": "客户指定",
+      "partNameRaw": "护套-90度-反装-CODE A",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r024",
+      "sequence": 24,
+      "sourceRow": 25,
+      "portfolioId": "battery_end_hv",
+      "groupLabel": "Battery end / 2x25",
+      "partNumber": "HVPC2P1600FT5-NH-MP010",
+      "partName": "Cover 45deg reverse Code A",
+      "supplier": "Amphenol",
+      "targetProtocolPrice": 21,
+      "replyPrice": 23,
+      "supplierReply": "23",
+      "statusKey": "quoted_pending",
+      "statusLabel": "quoted_pending",
+      "recommendedStage": "sample",
+      "difference": 2,
+      "functionRaw": "HVPC2P1600FT525-NH-P010 / 接电池端 / 适配2*25mm²屏蔽铜包铝硅胶铜导线",
+      "functionBrief": "HVPC2P1600FT525-NH-P010 / 接电池端",
+      "supplierRaw": "安费诺",
+      "assemblyRemark": "总成协议价23",
+      "customerRemark": "客户指定",
+      "partNameRaw": "护套（145度反装 A键位）",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r032",
+      "sequence": 32,
+      "sourceRow": 33,
+      "portfolioId": "misc_terminal_set",
+      "groupLabel": "IPT terminal",
+      "partNumber": "1-2177380-1",
+      "partName": "IPT crimp terminal",
+      "supplier": "TE",
+      "targetProtocolPrice": null,
+      "replyPrice": null,
+      "supplierReply": "",
+      "statusKey": "no_reply",
+      "statusLabel": "no_reply",
+      "recommendedStage": "sample",
+      "difference": null,
+      "functionRaw": "IPT 压接端子",
+      "functionBrief": "IPT 压接端子",
+      "supplierRaw": "TE",
+      "assemblyRemark": "",
+      "customerRemark": "★",
+      "partNameRaw": "IPT 压接端子",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r033",
+      "sequence": 33,
+      "sourceRow": 34,
+      "portfolioId": "edrive_end_hv",
+      "groupLabel": "E-drive end / 2x25",
+      "partNumber": "IPT3P-01-06",
+      "partName": "Special shield part",
+      "supplier": "Amphenol",
+      "targetProtocolPrice": 9,
+      "replyPrice": 12.5,
+      "supplierReply": "12.5",
+      "statusKey": "quoted_pending",
+      "statusLabel": "quoted_pending",
+      "recommendedStage": "sample",
+      "difference": 3.5,
+      "functionRaw": "IPT2P25P001-P010（安费诺 不含端子） / 接电驱端 / 适配2*25mm²屏蔽铜包铝硅胶铜导线",
+      "functionBrief": "IPT2P25P001-P010（安费诺 不含端子） / 接电驱端",
+      "supplierRaw": "安费诺",
+      "assemblyRemark": "总成协议价12.5",
+      "customerRemark": "客户指定",
+      "partNameRaw": "特殊屏蔽件",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r040",
+      "sequence": 40,
+      "sourceRow": 41,
+      "portfolioId": "accm_end",
+      "groupLabel": "ACCM end",
+      "partNumber": "2509744-1",
+      "partName": "Cover",
+      "supplier": "TE",
+      "targetProtocolPrice": 10,
+      "replyPrice": null,
+      "supplierReply": "OK",
+      "statusKey": "confirmed",
+      "statusLabel": "confirmed",
+      "recommendedStage": "protocol",
+      "difference": null,
+      "functionRaw": "2521188-1 / （泰科，取消互锁，工具解锁） / 接ACCM端 / 适配4mm²屏蔽铜包铝交联铝导线",
+      "functionBrief": "2521188-1 / （泰科，取消互锁，工具解锁）",
+      "supplierRaw": "TE",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "护套",
+      "initialQuote": 13.0,
+      "initialQuoteSource": "吉利E281报价核算.xlsx!二次物料明细!I17",
+      "initialQuoteCode": "2521188-1",
+      "initialQuotePriceType": "总成参考价",
+      "initialQuoteMatchType": "direct"
+    },
+    {
+      "rowKey": "r047",
+      "sequence": 47,
+      "sourceRow": 48,
+      "portfolioId": "branch_splitter",
+      "groupLabel": "Branch splitter",
+      "partNumber": "F02-372010-B04",
+      "partName": "Left end cap",
+      "supplier": "Bada",
+      "targetProtocolPrice": 16,
+      "replyPrice": 18,
+      "supplierReply": "18",
+      "statusKey": "quoted_pending",
+      "statusLabel": "quoted_pending",
+      "recommendedStage": "sample",
+      "difference": 2,
+      "functionRaw": "F02-372011-111 / 二分四分线器 / 适配6*4mm²屏蔽铜包铝交联铝导线",
+      "functionBrief": "F02-372011-111 / 二分四分线器",
+      "supplierRaw": "八达",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "左尾盖",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r058",
+      "sequence": 58,
+      "sourceRow": 59,
+      "portfolioId": "ptc_end",
+      "groupLabel": "PTC end / TE",
+      "partNumber": "1-2509498-1",
+      "partName": "Cover",
+      "supplier": "TE",
+      "targetProtocolPrice": 9,
+      "replyPrice": 10.5,
+      "supplierReply": "10.5",
+      "statusKey": "quoted_pending",
+      "statusLabel": "quoted_pending",
+      "recommendedStage": "sample",
+      "difference": 1.5,
+      "functionRaw": "1-2509498-1 / （TE，取消互锁，工具解锁） / 接PTC / 适配4mm²屏蔽铜包铝交联铝导线 / TE总成号是2521928-1 CODE A",
+      "functionBrief": "1-2509498-1 / （TE，取消互锁，工具解锁）",
+      "supplierRaw": "TE",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "护套",
+      "initialQuote": 17.0,
+      "initialQuoteSource": "吉利E281报价核算.xlsx!二次物料明细!I50",
+      "initialQuoteCode": "1-2509498-1",
+      "initialQuotePriceType": "参考2310537-1散件价",
+      "initialQuoteMatchType": "direct"
+    },
+    {
+      "rowKey": "r065",
+      "sequence": 65,
+      "sourceRow": 66,
+      "portfolioId": "edrive_end_hv",
+      "groupLabel": "E-drive end / 4mm",
+      "partNumber": "1890945",
+      "partName": "Half-finished plug cover",
+      "supplier": "Phoenix",
+      "targetProtocolPrice": 26.35,
+      "replyPrice": null,
+      "supplierReply": "OK",
+      "statusKey": "confirmed",
+      "statusLabel": "confirmed",
+      "recommendedStage": "protocol",
+      "difference": null,
+      "functionRaw": "PEVC-040-P42A-004-W / （菲尼克斯带，取消互锁，工具解锁） / 接电驱 / 适配4mm²屏蔽铜包铝交联铝导线",
+      "functionBrief": "PEVC-040-P42A-004-W / （菲尼克斯带，取消互锁，工具解锁）",
+      "supplierRaw": "菲尼克斯",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "护套-插头半成品",
+      "initialQuote": 30.48,
+      "initialQuoteSource": "吉利E281报价核算.xlsx!二次物料明细!I51",
+      "initialQuoteCode": "PEVC-040-P42A-004-W",
+      "initialQuotePriceType": "询价",
+      "initialQuoteMatchType": "direct"
+    },
+    {
+      "rowKey": "r072",
+      "sequence": 72,
+      "sourceRow": 73,
+      "portfolioId": "charge_socket_main",
+      "groupLabel": "Charge socket / main assembly",
+      "partNumber": "2519063-1",
+      "partName": "Dust cover assembly",
+      "supplier": "TE",
+      "targetProtocolPrice": 150,
+      "replyPrice": null,
+      "supplierReply": "OK",
+      "statusKey": "confirmed",
+      "statusLabel": "confirmed",
+      "recommendedStage": "protocol",
+      "difference": null,
+      "functionRaw": "2523328-1 / 组合式充电插座(带电子锁，防尘盖) / DC：120mm²非屏蔽硅胶铝导线 / AC：6mm²非屏蔽铝导线 / DC接地：6mm²非屏蔽黄绿铜导线 / AC接地：5mm²非屏蔽黄绿铜导线",
+      "functionBrief": "2523328-1 / 组合式充电插座(带电子锁，防尘盖)",
+      "supplierRaw": "TE",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "防尘盖组件",
+      "initialQuote": 160.0,
+      "initialQuoteSource": "吉利E281报价核算.xlsx!二次物料明细!I54",
+      "initialQuoteCode": "2523328-1",
+      "initialQuotePriceType": "总成参考价",
+      "initialQuoteMatchType": "direct"
+    },
+    {
+      "rowKey": "r090",
+      "sequence": 90,
+      "sourceRow": 91,
+      "portfolioId": "dc_charge_lv",
+      "groupLabel": "DC 8PIN low-voltage signal",
+      "partNumber": "1-2438787-1",
+      "partName": "DC low-voltage 8pin insert",
+      "supplier": "TE",
+      "targetProtocolPrice": null,
+      "replyPrice": null,
+      "supplierReply": "",
+      "statusKey": "no_reply",
+      "statusLabel": "no_reply",
+      "recommendedStage": "sample",
+      "difference": null,
+      "functionRaw": "1-2438787-1 / DC 8PIN低压信号连接器 / 适配8*0.5mm²线",
+      "functionBrief": "1-2438787-1 / DC 8PIN低压信号连接器",
+      "supplierRaw": "TE",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "DC端低压插件-8pin",
+      "initialQuote": 2.29197,
+      "initialQuoteSource": "吉利E281报价核算.xlsx!二次物料明细!I56",
+      "initialQuoteCode": "1-2438787-1",
+      "initialQuotePriceType": "系统价",
+      "initialQuoteMatchType": "direct"
+    },
+    {
+      "rowKey": "r093",
+      "sequence": 93,
+      "sourceRow": 94,
+      "portfolioId": "ac_charge_lv",
+      "groupLabel": "AC 6PIN low-voltage signal",
+      "partNumber": "1-2355517-5",
+      "partName": "AC low-voltage 5pin insert",
+      "supplier": "TE",
+      "targetProtocolPrice": null,
+      "replyPrice": null,
+      "supplierReply": "",
+      "statusKey": "no_reply",
+      "statusLabel": "no_reply",
+      "recommendedStage": "sample",
+      "difference": null,
+      "functionRaw": "1-2355517-5 / AC 6PIN低压信号连接器,1pin使用盲堵 / 适配5*0.5方单芯铜导线",
+      "functionBrief": "1-2355517-5 / AC 6PIN低压信号连接器,1pin使用盲堵",
+      "supplierRaw": "TE",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "AC端低压插件-5pin",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r097",
+      "sequence": 97,
+      "sourceRow": 98,
+      "portfolioId": "electronic_lock",
+      "groupLabel": "Electronic lock low-voltage connector",
+      "partNumber": "5-965906-5",
+      "partName": "Electronic lock 4pin insert",
+      "supplier": "TE",
+      "targetProtocolPrice": null,
+      "replyPrice": null,
+      "supplierReply": "",
+      "statusKey": "no_reply",
+      "statusLabel": "no_reply",
+      "recommendedStage": "sample",
+      "difference": null,
+      "functionRaw": "5-965906-5 / 电子锁低压连接器总成 / 适配4*0.5mm²单芯铜导线",
+      "functionBrief": "5-965906-5 / 电子锁低压连接器总成",
+      "supplierRaw": "TE",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "电子锁低压插件-4pin",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r100",
+      "sequence": 100,
+      "sourceRow": 101,
+      "portfolioId": "low_voltage_inline",
+      "groupLabel": "Low-voltage inline connector",
+      "partNumber": "5-2385463-1",
+      "partName": "Plastic shell",
+      "supplier": "TE",
+      "targetProtocolPrice": null,
+      "replyPrice": null,
+      "supplierReply": "",
+      "statusKey": "no_reply",
+      "statusLabel": "no_reply",
+      "recommendedStage": "sample",
+      "difference": null,
+      "functionRaw": "5-2385463-1 / 低压inline连接器总成，22pin使用16pin / 4#8#13#15#16#22#不使用 / 适配16*0.5mm²单芯铜导线",
+      "functionBrief": "5-2385463-1 / 低压inline连接器总成，22pin使用16pin",
+      "supplierRaw": "TE",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "护套塑壳",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r108",
+      "sequence": 108,
+      "sourceRow": 109,
+      "portfolioId": "charge_socket_main",
+      "groupLabel": "Fast charge / DC / 180deg",
+      "partNumber": "HVSPC2P1900FS1-M",
+      "partName": "Straight cover Code A0 180deg",
+      "supplier": "Amphenol",
+      "targetProtocolPrice": 31,
+      "replyPrice": null,
+      "supplierReply": "OK",
+      "statusKey": "confirmed",
+      "statusLabel": "confirmed",
+      "recommendedStage": "protocol",
+      "difference": null,
+      "functionRaw": "HVSPC2P1900FS112 / 快充连接器（直流） / 适配2*120mm²非屏蔽硅胶铝导线 / ESOW：HVSPC2P1900FS112（安费诺，120方非屏蔽、CodeA、带互锁、180°正插） / 3D数据：Code A0 180度 / 安费诺提供资料：180度",
+      "functionBrief": "HVSPC2P1900FS112 / 快充连接器（直流）",
+      "supplierRaw": "安费诺",
+      "assemblyRemark": "协议价OK",
+      "customerRemark": "客户指定",
+      "partNameRaw": "护套-正插Code A0-180度",
+      "initialQuote": 33.0,
+      "initialQuoteSource": "吉利E281报价核算.xlsx!二次物料明细!I62",
+      "initialQuoteCode": "HVSPC2P1900FS112",
+      "initialQuotePriceType": "询价",
+      "initialQuoteMatchType": "direct"
+    },
+    {
+      "rowKey": "r114",
+      "sequence": 114,
+      "sourceRow": 115,
+      "portfolioId": "charge_socket_main",
+      "groupLabel": "Slow charge / AC",
+      "partNumber": "HVC2PG263FSW1-M-NH-P010",
+      "partName": "Plug assembly Code A",
+      "supplier": "Amphenol",
+      "targetProtocolPrice": 9,
+      "replyPrice": null,
+      "supplierReply": "OK",
+      "statusKey": "confirmed",
+      "statusLabel": "confirmed",
+      "recommendedStage": "protocol",
+      "difference": null,
+      "functionRaw": "HVC2PG263UFSW106-NH / 慢充连接器（交流） / 适配2*6mm²非屏蔽铝导线 / （安费诺，取消互锁，工具解锁，6方非屏蔽铝线，超声波焊接）",
+      "functionBrief": "HVC2PG263UFSW106-NH / 慢充连接器（交流）",
+      "supplierRaw": "安费诺",
+      "assemblyRemark": "协议价OK",
+      "customerRemark": "客户指定",
+      "partNameRaw": "插头组件Code A 无高压互锁",
+      "initialQuote": 12.0,
+      "initialQuoteSource": "吉利E281报价核算.xlsx!二次物料明细!I63",
+      "initialQuoteCode": "HVC2PG263UFSW106-NH",
+      "initialQuotePriceType": "询价",
+      "initialQuoteMatchType": "direct"
+    },
+    {
+      "rowKey": "r119",
+      "sequence": 119,
+      "sourceRow": 120,
+      "portfolioId": "charge_socket_main",
+      "groupLabel": "Fast charge / DC / 90deg",
+      "partNumber": "HVSPC2P1900FV1-M",
+      "partName": "Straight cover Code A0 90deg",
+      "supplier": "Amphenol",
+      "targetProtocolPrice": 31,
+      "replyPrice": null,
+      "supplierReply": "OK",
+      "statusKey": "confirmed",
+      "statusLabel": "confirmed",
+      "recommendedStage": "protocol",
+      "difference": null,
+      "functionRaw": "HVSPC2P1900FV112 / 快充连接器（直流） / 适配2*120mm²非屏蔽硅胶铝导线 / ESOW：HVSPC2P1900FV112（安费诺，120方非屏蔽、CodeA、带互锁、90°正插） / 3D数据：Code A0 90度 / 安费诺提供资料：180度",
+      "functionBrief": "HVSPC2P1900FV112 / 快充连接器（直流）",
+      "supplierRaw": "安费诺",
+      "assemblyRemark": "协议价OK",
+      "customerRemark": "客户指定",
+      "partNameRaw": "护套-正插Code A0-90度",
+      "initialQuote": 33.0,
+      "initialQuoteSource": "吉利E281报价核算.xlsx!二次物料明细!I93",
+      "initialQuoteCode": "HVSPC2P1900FV112",
+      "initialQuotePriceType": "参考价",
+      "initialQuoteMatchType": "direct"
+    },
+    {
+      "rowKey": "r125",
+      "sequence": 125,
+      "sourceRow": 126,
+      "portfolioId": "ptc_end",
+      "groupLabel": "PTC end / Yonggui",
+      "partNumber": "115490007801",
+      "partName": "Chain welded terminal",
+      "supplier": "Yonggui",
+      "targetProtocolPrice": 50,
+      "replyPrice": null,
+      "supplierReply": "OK",
+      "statusKey": "confirmed",
+      "statusLabel": "confirmed",
+      "recommendedStage": "protocol",
+      "difference": null,
+      "functionRaw": "YG1176D（永贵，取消互锁，工具解锁） / 接PTC / 适配2*4mm²屏蔽铜包铝交联铝导线",
+      "functionBrief": "YG1176D（永贵，取消互锁，工具解锁） / 接PTC",
+      "supplierRaw": "永贵",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "链式-焊接端子",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    },
+    {
+      "rowKey": "r129",
+      "sequence": 129,
+      "sourceRow": 130,
+      "portfolioId": "battery_end_hv",
+      "groupLabel": "Battery end / 4mm / 135deg",
+      "partNumber": "113990002546",
+      "partName": "YGC1612-EV-P2PWNA1 plug assembly",
+      "supplier": "Yonggui",
+      "targetProtocolPrice": 17,
+      "replyPrice": null,
+      "supplierReply": "in development",
+      "statusKey": "dev_pending",
+      "statusLabel": "dev_pending",
+      "recommendedStage": "sample",
+      "difference": null,
+      "functionRaw": "YGC1612-EV-P2PWNA1-4 / 135度角度出线 / （永贵带50A保险，取消互锁，工具解锁） / 接电池端 / 适配2*4mm²屏蔽铜包铝交联铝导线",
+      "functionBrief": "YGC1612-EV-P2PWNA1-4 / 135度角度出线",
+      "supplierRaw": "永贵",
+      "assemblyRemark": "",
+      "customerRemark": "客户指定",
+      "partNameRaw": "YGC1612-EV-P2PWNA1插头组件",
+      "initialQuote": null,
+      "initialQuoteSource": "",
+      "initialQuoteCode": "",
+      "initialQuotePriceType": "",
+      "initialQuoteMatchType": "none"
+    }
+  ]
+}

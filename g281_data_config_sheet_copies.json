@@ -1,0 +1,6083 @@
+{
+  "meta": {
+    "generator": "g281_generate_config_sheet_copies.py",
+    "generatedAt": "2026-03-30T01:16:48",
+    "contractVersion": "g281.config-sheet-copies.v1",
+    "sourceDirectory": "BOM核对",
+    "sheetName": "配置清单",
+    "versionOrder": [
+      "tt",
+      "fixed",
+      "quote"
+    ],
+    "availableVersions": [
+      "quote",
+      "fixed"
+    ],
+    "workbooks": {
+      "quote": "E281项目 报价BOM V01-11.3.xlsx",
+      "fixed": "吉利E281 国内项目 定点BOM V05-2026.01.04.xlsx"
+    },
+    "notes": [
+      "This payload preserves sheet content and formatting metadata for config-sheet version management.",
+      "Workbook formulas are exported as formula strings with style references in stylePool."
+    ]
+  },
+  "versions": {
+    "quote": {
+      "key": "quote",
+      "label": "报价版配置清单",
+      "versionTag": "quote",
+      "workbook": "E281项目 报价BOM V01-11.3.xlsx",
+      "workbookPath": "BOM核对/E281项目 报价BOM V01-11.3.xlsx",
+      "sheetName": "配置清单",
+      "sheetIndex": 0,
+      "sheetCount": 16,
+      "snapshot": {
+        "sheetName": "配置清单",
+        "dimension": "A1:K13",
+        "maxRow": 13,
+        "maxColumn": 11,
+        "freezePanes": null,
+        "mergedRanges": [
+          "A1:F1",
+          "G1:J1"
+        ],
+        "rowDimensions": {
+          "1": {
+            "height": 42.0,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "2": {
+            "height": 72.0,
+            "styleId": 410,
+            "customHeight": true,
+            "customFormat": true
+          },
+          "3": {
+            "height": 79.8,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "4": {
+            "height": 79.95,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "5": {
+            "height": 79.95,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "6": {
+            "height": 79.95,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "7": {
+            "height": 79.95,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "8": {
+            "height": 79.95,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "9": {
+            "height": 79.95,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "10": {
+            "height": 79.95,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "11": {
+            "height": 79.95,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "12": {
+            "height": 79.95,
+            "styleId": 409,
+            "customHeight": true
+          },
+          "13": {
+            "height": 79.95,
+            "styleId": 409,
+            "customHeight": true
+          }
+        },
+        "columnDimensions": {
+          "A": {
+            "min": 1,
+            "max": 1,
+            "width": 9.0,
+            "styleId": 5,
+            "customWidth": true
+          },
+          "B": {
+            "min": 2,
+            "max": 2,
+            "width": 25.3333333333333,
+            "styleId": 409,
+            "customWidth": true
+          },
+          "C": {
+            "min": 3,
+            "max": 3,
+            "width": 25.4416666666667,
+            "styleId": 5,
+            "customWidth": true
+          },
+          "D": {
+            "min": 4,
+            "max": 4,
+            "width": 25.3333333333333,
+            "styleId": 409,
+            "customWidth": true
+          },
+          "E": {
+            "min": 5,
+            "max": 5,
+            "width": 35.3333333333333,
+            "styleId": 409,
+            "customWidth": true
+          },
+          "F": {
+            "min": 6,
+            "max": 6,
+            "width": 11.6666666666667,
+            "styleId": 409,
+            "customWidth": true
+          },
+          "G": {
+            "min": 7,
+            "max": 10,
+            "width": 12.775,
+            "styleId": 5,
+            "customWidth": true
+          },
+          "K": {
+            "min": 11,
+            "max": 11,
+            "width": 55.8833333333333,
+            "styleId": 409,
+            "customWidth": true
+          }
+        },
+        "hiddenRows": [],
+        "hiddenColumns": [],
+        "defaultRowHeight": 14.0,
+        "defaultColWidth": 9.0,
+        "sheetView": {
+          "zoomScale": 70
+        },
+        "pageSetup": {
+          "orientation": "portrait",
+          "paperSize": 9
+        },
+        "autoFilter": null,
+        "dataValidations": [],
+        "cells": [
+          {
+            "r": 1,
+            "c": 1,
+            "addr": "A1",
+            "type": "s",
+            "styleId": 411,
+            "value": "配置信息和用量 (Feature & Take Rate)"
+          },
+          {
+            "r": 1,
+            "c": 2,
+            "addr": "B1",
+            "type": "n",
+            "styleId": 412,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 3,
+            "addr": "C1",
+            "type": "n",
+            "styleId": 412,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 4,
+            "addr": "D1",
+            "type": "n",
+            "styleId": 412,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 5,
+            "addr": "E1",
+            "type": "n",
+            "styleId": 412,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 6,
+            "addr": "F1",
+            "type": "n",
+            "styleId": 413,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 7,
+            "addr": "G1",
+            "type": "s",
+            "styleId": 59,
+            "value": "E281"
+          },
+          {
+            "r": 1,
+            "c": 8,
+            "addr": "H1",
+            "type": "n",
+            "styleId": 412,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 9,
+            "addr": "I1",
+            "type": "n",
+            "styleId": 412,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 10,
+            "addr": "J1",
+            "type": "n",
+            "styleId": 413,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 11,
+            "addr": "K1",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 2,
+            "c": 1,
+            "addr": "A2",
+            "type": "s",
+            "styleId": 400,
+            "value": "序号"
+          },
+          {
+            "r": 2,
+            "c": 2,
+            "addr": "B2",
+            "type": "s",
+            "styleId": 415,
+            "value": "零件包名称"
+          },
+          {
+            "r": 2,
+            "c": 3,
+            "addr": "C2",
+            "type": "s",
+            "styleId": 402,
+            "value": "零件号"
+          },
+          {
+            "r": 2,
+            "c": 4,
+            "addr": "D2",
+            "type": "s",
+            "styleId": 416,
+            "value": "零件名称"
+          },
+          {
+            "r": 2,
+            "c": 5,
+            "addr": "E2",
+            "type": "s",
+            "styleId": 416,
+            "value": "适配导线"
+          },
+          {
+            "r": 2,
+            "c": 6,
+            "addr": "F2",
+            "type": "s",
+            "styleId": 417,
+            "value": "标配/选配"
+          },
+          {
+            "r": 2,
+            "c": 7,
+            "addr": "G2",
+            "type": "s",
+            "styleId": 405,
+            "value": "520启航版\n（舒适型）"
+          },
+          {
+            "r": 2,
+            "c": 8,
+            "addr": "H2",
+            "type": "s",
+            "styleId": 405,
+            "value": "626探索版\n（豪华型）"
+          },
+          {
+            "r": 2,
+            "c": 9,
+            "addr": "I2",
+            "type": "s",
+            "styleId": 405,
+            "value": "626远航智驾版\n（尊贵型"
+          },
+          {
+            "r": 2,
+            "c": 10,
+            "addr": "J2",
+            "type": "s",
+            "styleId": 405,
+            "value": "660四驱星舰智驾版（旗舰型）"
+          },
+          {
+            "r": 2,
+            "c": 11,
+            "addr": "K2",
+            "type": "s",
+            "styleId": 418,
+            "value": "数模图示"
+          },
+          {
+            "r": 3,
+            "c": 1,
+            "addr": "A3",
+            "type": "n",
+            "styleId": 59,
+            "value": 1
+          },
+          {
+            "r": 3,
+            "c": 2,
+            "addr": "B3",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 3,
+            "c": 3,
+            "addr": "C3",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608491523
+          },
+          {
+            "r": 3,
+            "c": 4,
+            "addr": "D3",
+            "type": "s",
+            "styleId": 419,
+            "value": "直流母线总成"
+          },
+          {
+            "r": 3,
+            "c": 5,
+            "addr": "E3",
+            "type": "s",
+            "styleId": 420,
+            "value": "50mm²屏蔽铜包铝交联铝导线"
+          },
+          {
+            "r": 3,
+            "c": 6,
+            "addr": "F3",
+            "type": "s",
+            "styleId": 419,
+            "value": "S"
+          },
+          {
+            "r": 3,
+            "c": 7,
+            "addr": "G3",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 3,
+            "c": 8,
+            "addr": "H3",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 3,
+            "c": 9,
+            "addr": "I3",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 3,
+            "c": 10,
+            "addr": "J3",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 3,
+            "c": 11,
+            "addr": "K3",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 4,
+            "c": 1,
+            "addr": "A4",
+            "type": "n",
+            "styleId": 59,
+            "value": 2
+          },
+          {
+            "r": 4,
+            "c": 2,
+            "addr": "B4",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 4,
+            "c": 3,
+            "addr": "C4",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608491524
+          },
+          {
+            "r": 4,
+            "c": 4,
+            "addr": "D4",
+            "type": "s",
+            "styleId": 419,
+            "value": "直流母线总成"
+          },
+          {
+            "r": 4,
+            "c": 5,
+            "addr": "E4",
+            "type": "s",
+            "styleId": 420,
+            "value": "50mm²屏蔽铜包铝交联铝导线"
+          },
+          {
+            "r": 4,
+            "c": 6,
+            "addr": "F4",
+            "type": "s",
+            "styleId": 419,
+            "value": "S"
+          },
+          {
+            "r": 4,
+            "c": 7,
+            "addr": "G4",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 4,
+            "c": 8,
+            "addr": "H4",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 4,
+            "c": 9,
+            "addr": "I4",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 4,
+            "c": 10,
+            "addr": "J4",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 4,
+            "c": 11,
+            "addr": "K4",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 5,
+            "c": 1,
+            "addr": "A5",
+            "type": "n",
+            "styleId": 59,
+            "value": 3
+          },
+          {
+            "r": 5,
+            "c": 2,
+            "addr": "B5",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 5,
+            "c": 3,
+            "addr": "C5",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608442962
+          },
+          {
+            "r": 5,
+            "c": 4,
+            "addr": "D5",
+            "type": "s",
+            "styleId": 419,
+            "value": "直流母线总成"
+          },
+          {
+            "r": 5,
+            "c": 5,
+            "addr": "E5",
+            "type": "s",
+            "styleId": 420,
+            "value": "50mm²屏蔽铜包铝交联铝导线"
+          },
+          {
+            "r": 5,
+            "c": 6,
+            "addr": "F5",
+            "type": "s",
+            "styleId": 419,
+            "value": "S"
+          },
+          {
+            "r": 5,
+            "c": 7,
+            "addr": "G5",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 5,
+            "c": 8,
+            "addr": "H5",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 5,
+            "c": 9,
+            "addr": "I5",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 5,
+            "c": 10,
+            "addr": "J5",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 5,
+            "c": 11,
+            "addr": "K5",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 6,
+            "c": 1,
+            "addr": "A6",
+            "type": "n",
+            "styleId": 59,
+            "value": 4
+          },
+          {
+            "r": 6,
+            "c": 2,
+            "addr": "B6",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 6,
+            "c": 3,
+            "addr": "C6",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608442964
+          },
+          {
+            "r": 6,
+            "c": 4,
+            "addr": "D6",
+            "type": "s",
+            "styleId": 419,
+            "value": "电动压缩机线束总成"
+          },
+          {
+            "r": 6,
+            "c": 5,
+            "addr": "E6",
+            "type": "s",
+            "styleId": 421,
+            "value": "4mm²屏蔽铜包铝交联铝导线"
+          },
+          {
+            "r": 6,
+            "c": 6,
+            "addr": "F6",
+            "type": "s",
+            "styleId": 419,
+            "value": "S"
+          },
+          {
+            "r": 6,
+            "c": 7,
+            "addr": "G6",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 6,
+            "c": 8,
+            "addr": "H6",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 6,
+            "c": 9,
+            "addr": "I6",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 6,
+            "c": 10,
+            "addr": "J6",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 6,
+            "c": 11,
+            "addr": "K6",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 1,
+            "addr": "A7",
+            "type": "n",
+            "styleId": 59,
+            "value": 5
+          },
+          {
+            "r": 7,
+            "c": 2,
+            "addr": "B7",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 7,
+            "c": 3,
+            "addr": "C7",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608442963
+          },
+          {
+            "r": 7,
+            "c": 4,
+            "addr": "D7",
+            "type": "s",
+            "styleId": 419,
+            "value": "电动压缩机线束总成"
+          },
+          {
+            "r": 7,
+            "c": 5,
+            "addr": "E7",
+            "type": "s",
+            "styleId": 421,
+            "value": "4mm²屏蔽铜包铝交联铝导线"
+          },
+          {
+            "r": 7,
+            "c": 6,
+            "addr": "F7",
+            "type": "s",
+            "styleId": 419,
+            "value": "O"
+          },
+          {
+            "r": 7,
+            "c": 7,
+            "addr": "G7",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 7,
+            "c": 8,
+            "addr": "H7",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 9,
+            "addr": "I7",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 10,
+            "addr": "J7",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 11,
+            "addr": "K7",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 8,
+            "c": 1,
+            "addr": "A8",
+            "type": "n",
+            "styleId": 59,
+            "value": 6
+          },
+          {
+            "r": 8,
+            "c": 2,
+            "addr": "B8",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 8,
+            "c": 3,
+            "addr": "C8",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608516992
+          },
+          {
+            "r": 8,
+            "c": 4,
+            "addr": "D8",
+            "type": "s",
+            "styleId": 419,
+            "value": "电动压缩机线束总成"
+          },
+          {
+            "r": 8,
+            "c": 5,
+            "addr": "E8",
+            "type": "s",
+            "styleId": 421,
+            "value": "4mm²屏蔽铜包铝交联铝导线"
+          },
+          {
+            "r": 8,
+            "c": 6,
+            "addr": "F8",
+            "type": "s",
+            "styleId": 419,
+            "value": "O"
+          },
+          {
+            "r": 8,
+            "c": 7,
+            "addr": "G8",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 8,
+            "c": 8,
+            "addr": "H8",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 8,
+            "c": 9,
+            "addr": "I8",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 8,
+            "c": 10,
+            "addr": "J8",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 8,
+            "c": 11,
+            "addr": "K8",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 1,
+            "addr": "A9",
+            "type": "n",
+            "styleId": 59,
+            "value": 7
+          },
+          {
+            "r": 9,
+            "c": 2,
+            "addr": "B9",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 9,
+            "c": 3,
+            "addr": "C9",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608519100
+          },
+          {
+            "r": 9,
+            "c": 4,
+            "addr": "D9",
+            "type": "s",
+            "styleId": 419,
+            "value": "电动压缩机线束总成"
+          },
+          {
+            "r": 9,
+            "c": 5,
+            "addr": "E9",
+            "type": "s",
+            "styleId": 421,
+            "value": "4mm²屏蔽铜包铝交联铝导线"
+          },
+          {
+            "r": 9,
+            "c": 6,
+            "addr": "F9",
+            "type": "s",
+            "styleId": 419,
+            "value": "S"
+          },
+          {
+            "r": 9,
+            "c": 7,
+            "addr": "G9",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 8,
+            "addr": "H9",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 9,
+            "addr": "I9",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 10,
+            "addr": "J9",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 9,
+            "c": 11,
+            "addr": "K9",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 10,
+            "c": 1,
+            "addr": "A10",
+            "type": "n",
+            "styleId": 59,
+            "value": 8
+          },
+          {
+            "r": 10,
+            "c": 2,
+            "addr": "B10",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 10,
+            "c": 3,
+            "addr": "C10",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608442966
+          },
+          {
+            "r": 10,
+            "c": 4,
+            "addr": "D10",
+            "type": "s",
+            "styleId": 419,
+            "value": "组合式充电插座线束总成"
+          },
+          {
+            "r": 10,
+            "c": 5,
+            "addr": "E10",
+            "type": "s",
+            "styleId": 420,
+            "value": "120mm²非屏蔽硅胶铝导线\n6mm²非屏蔽铝导线\n6mm²非屏蔽黄绿铜导线\n5mm²非屏蔽黄绿铜导线"
+          },
+          {
+            "r": 10,
+            "c": 6,
+            "addr": "F10",
+            "type": "s",
+            "styleId": 419,
+            "value": "S"
+          },
+          {
+            "r": 10,
+            "c": 7,
+            "addr": "G10",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 10,
+            "c": 8,
+            "addr": "H10",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 10,
+            "c": 9,
+            "addr": "I10",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 10,
+            "c": 10,
+            "addr": "J10",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 10,
+            "c": 11,
+            "addr": "K10",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 11,
+            "c": 1,
+            "addr": "A11",
+            "type": "n",
+            "styleId": 59,
+            "value": 9
+          },
+          {
+            "r": 11,
+            "c": 2,
+            "addr": "B11",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 11,
+            "c": 3,
+            "addr": "C11",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608442965
+          },
+          {
+            "r": 11,
+            "c": 4,
+            "addr": "D11",
+            "type": "s",
+            "styleId": 419,
+            "value": "组合式充电插座线束总成"
+          },
+          {
+            "r": 11,
+            "c": 5,
+            "addr": "E11",
+            "type": "s",
+            "styleId": 420,
+            "value": "120mm²非屏蔽硅胶铝导线\n6mm²非屏蔽铝导线\n6mm²非屏蔽黄绿铜导线\n5mm²非屏蔽黄绿铜导线"
+          },
+          {
+            "r": 11,
+            "c": 6,
+            "addr": "F11",
+            "type": "s",
+            "styleId": 419,
+            "value": "S"
+          },
+          {
+            "r": 11,
+            "c": 7,
+            "addr": "G11",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 11,
+            "c": 8,
+            "addr": "H11",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 11,
+            "c": 9,
+            "addr": "I11",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 11,
+            "c": 10,
+            "addr": "J11",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 11,
+            "c": 11,
+            "addr": "K11",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 12,
+            "c": 1,
+            "addr": "A12",
+            "type": "n",
+            "styleId": 59,
+            "value": 10
+          },
+          {
+            "r": 12,
+            "c": 2,
+            "addr": "B12",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 12,
+            "c": 3,
+            "addr": "C12",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608507680
+          },
+          {
+            "r": 12,
+            "c": 4,
+            "addr": "D12",
+            "type": "s",
+            "styleId": 419,
+            "value": "组合式充电插座线束总成"
+          },
+          {
+            "r": 12,
+            "c": 5,
+            "addr": "E12",
+            "type": "s",
+            "styleId": 420,
+            "value": "120mm²非屏蔽硅胶铝导线\n6mm²非屏蔽铝导线\n6mm²非屏蔽黄绿铜导线\n5mm²非屏蔽黄绿铜导线"
+          },
+          {
+            "r": 12,
+            "c": 6,
+            "addr": "F12",
+            "type": "s",
+            "styleId": 419,
+            "value": "S"
+          },
+          {
+            "r": 12,
+            "c": 7,
+            "addr": "G12",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 12,
+            "c": 8,
+            "addr": "H12",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 12,
+            "c": 9,
+            "addr": "I12",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 12,
+            "c": 10,
+            "addr": "J12",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 12,
+            "c": 11,
+            "addr": "K12",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 1,
+            "addr": "A13",
+            "type": "n",
+            "styleId": 59,
+            "value": 11
+          },
+          {
+            "r": 13,
+            "c": 2,
+            "addr": "B13",
+            "type": "s",
+            "styleId": 419,
+            "value": "高压线束"
+          },
+          {
+            "r": 13,
+            "c": 3,
+            "addr": "C13",
+            "type": "n",
+            "styleId": 100,
+            "value": 6608544875
+          },
+          {
+            "r": 13,
+            "c": 4,
+            "addr": "D13",
+            "type": "s",
+            "styleId": 419,
+            "value": "前驱直流母线 "
+          },
+          {
+            "r": 13,
+            "c": 5,
+            "addr": "E13",
+            "type": "s",
+            "styleId": 420,
+            "value": "50mm²屏蔽铜包铝交联铝导线"
+          },
+          {
+            "r": 13,
+            "c": 6,
+            "addr": "F13",
+            "type": "s",
+            "styleId": 419,
+            "value": "S"
+          },
+          {
+            "r": 13,
+            "c": 7,
+            "addr": "G13",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 8,
+            "addr": "H13",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 9,
+            "addr": "I13",
+            "type": "n",
+            "styleId": 408,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 10,
+            "addr": "J13",
+            "type": "n",
+            "styleId": 408,
+            "value": 1
+          },
+          {
+            "r": 13,
+            "c": 11,
+            "addr": "K13",
+            "type": "n",
+            "styleId": 414,
+            "value": null
+          }
+        ],
+        "stylePool": {
+          "411": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": true,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 0,
+                "tint": -0.149906918546098
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "left",
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "412": {
+            "numberFormat": "General",
+            "font": {
+              "name": "等线",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134,
+              "scheme": "minor"
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "413": {
+            "numberFormat": "General",
+            "font": {
+              "name": "等线",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134,
+              "scheme": "minor"
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "59": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "414": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "等线",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134,
+              "scheme": "minor"
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "400": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 2,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "415": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 2,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "402": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 2,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "416": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 2,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "417": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 2,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "405": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "rgb",
+                "rgb": "FF000000",
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "418": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "419": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "100": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "420": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 0,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "408": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 10.0,
+              "bold": false,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "421": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          }
+        },
+        "metadata": {
+          "sheetState": "visible",
+          "tabColor": null,
+          "showGridLines": null,
+          "printTitleRows": null,
+          "printTitleCols": null
+        }
+      }
+    },
+    "fixed": {
+      "key": "fixed",
+      "label": "定点版配置清单",
+      "versionTag": "fixed",
+      "workbook": "吉利E281 国内项目 定点BOM V05-2026.01.04.xlsx",
+      "workbookPath": "BOM核对/吉利E281 国内项目 定点BOM V05-2026.01.04.xlsx",
+      "sheetName": "配置清单",
+      "sheetIndex": 0,
+      "sheetCount": 16,
+      "snapshot": {
+        "sheetName": "配置清单",
+        "dimension": "A1:AC15",
+        "maxRow": 15,
+        "maxColumn": 29,
+        "freezePanes": null,
+        "mergedRanges": [
+          "H1:M1",
+          "A1:G1"
+        ],
+        "rowDimensions": {
+          "1": {
+            "height": 42.0,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "2": {
+            "height": 72.0,
+            "styleId": 384,
+            "customHeight": true,
+            "customFormat": true
+          },
+          "3": {
+            "height": 79.8,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "4": {
+            "height": 79.95,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "5": {
+            "height": 79.95,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "6": {
+            "height": 79.95,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "7": {
+            "height": 79.95,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "8": {
+            "height": 79.95,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "9": {
+            "height": 79.95,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "10": {
+            "height": 79.95,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "11": {
+            "height": 79.95,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "12": {
+            "height": 79.95,
+            "styleId": 383,
+            "customHeight": true
+          },
+          "13": {
+            "height": 132.0,
+            "styleId": 383,
+            "customHeight": true
+          }
+        },
+        "columnDimensions": {
+          "A": {
+            "min": 1,
+            "max": 1,
+            "width": 9.0,
+            "styleId": 107,
+            "customWidth": true
+          },
+          "B": {
+            "min": 2,
+            "max": 2,
+            "width": 25.3333333333333,
+            "styleId": 383,
+            "customWidth": true
+          },
+          "C": {
+            "min": 3,
+            "max": 3,
+            "width": 25.4416666666667,
+            "styleId": 107,
+            "customWidth": true
+          },
+          "D": {
+            "min": 4,
+            "max": 4,
+            "width": 25.3333333333333,
+            "styleId": 383,
+            "customWidth": true
+          },
+          "E": {
+            "min": 5,
+            "max": 5,
+            "width": 35.3333333333333,
+            "styleId": 383,
+            "customWidth": true
+          },
+          "F": {
+            "min": 6,
+            "max": 6,
+            "width": 23.0083333333333,
+            "styleId": 383,
+            "customWidth": true
+          },
+          "G": {
+            "min": 7,
+            "max": 7,
+            "width": 11.6666666666667,
+            "styleId": 383,
+            "customWidth": true
+          },
+          "H": {
+            "min": 8,
+            "max": 13,
+            "width": 12.775,
+            "styleId": 107,
+            "customWidth": true
+          },
+          "N": {
+            "min": 14,
+            "max": 15,
+            "width": 55.8916666666667,
+            "styleId": 383,
+            "customWidth": true
+          },
+          "P": {
+            "min": 16,
+            "max": 16,
+            "width": 44.2583333333333,
+            "styleId": 385,
+            "customWidth": true
+          }
+        },
+        "hiddenRows": [],
+        "hiddenColumns": [],
+        "defaultRowHeight": 14.25,
+        "defaultColWidth": 9.0,
+        "sheetView": {
+          "tabSelected": true,
+          "zoomScale": 50
+        },
+        "pageSetup": {
+          "orientation": "portrait",
+          "paperSize": 9
+        },
+        "autoFilter": null,
+        "dataValidations": [],
+        "cells": [
+          {
+            "r": 1,
+            "c": 1,
+            "addr": "A1",
+            "type": "s",
+            "styleId": 386,
+            "value": "配置信息和用量 (Feature & Take Rate)"
+          },
+          {
+            "r": 1,
+            "c": 2,
+            "addr": "B1",
+            "type": "n",
+            "styleId": 387,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 3,
+            "addr": "C1",
+            "type": "n",
+            "styleId": 387,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 4,
+            "addr": "D1",
+            "type": "n",
+            "styleId": 387,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 5,
+            "addr": "E1",
+            "type": "n",
+            "styleId": 387,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 6,
+            "addr": "F1",
+            "type": "n",
+            "styleId": 387,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 7,
+            "addr": "G1",
+            "type": "n",
+            "styleId": 388,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 8,
+            "addr": "H1",
+            "type": "s",
+            "styleId": 371,
+            "value": "E281国内项目"
+          },
+          {
+            "r": 1,
+            "c": 9,
+            "addr": "I1",
+            "type": "n",
+            "styleId": 387,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 10,
+            "addr": "J1",
+            "type": "n",
+            "styleId": 387,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 11,
+            "addr": "K1",
+            "type": "n",
+            "styleId": 387,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 12,
+            "addr": "L1",
+            "type": "n",
+            "styleId": 387,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 13,
+            "addr": "M1",
+            "type": "n",
+            "styleId": 387,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 14,
+            "addr": "N1",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 1,
+            "c": 15,
+            "addr": "O1",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 2,
+            "c": 1,
+            "addr": "A2",
+            "type": "s",
+            "styleId": 373,
+            "value": "序号"
+          },
+          {
+            "r": 2,
+            "c": 2,
+            "addr": "B2",
+            "type": "s",
+            "styleId": 390,
+            "value": "零件包名称"
+          },
+          {
+            "r": 2,
+            "c": 3,
+            "addr": "C2",
+            "type": "s",
+            "styleId": 375,
+            "value": "零件号"
+          },
+          {
+            "r": 2,
+            "c": 4,
+            "addr": "D2",
+            "type": "s",
+            "styleId": 391,
+            "value": "零件名称"
+          },
+          {
+            "r": 2,
+            "c": 5,
+            "addr": "E2",
+            "type": "s",
+            "styleId": 391,
+            "value": "适配导线"
+          },
+          {
+            "r": 2,
+            "c": 6,
+            "addr": "F2",
+            "type": "s",
+            "styleId": 391,
+            "value": "配置"
+          },
+          {
+            "r": 2,
+            "c": 7,
+            "addr": "G2",
+            "type": "s",
+            "styleId": 392,
+            "value": "标配/选配"
+          },
+          {
+            "r": 2,
+            "c": 8,
+            "addr": "H2",
+            "type": "s",
+            "styleId": 295,
+            "value": "52.4\n不带PTC\n2驱\n标配"
+          },
+          {
+            "r": 2,
+            "c": 9,
+            "addr": "I2",
+            "type": "s",
+            "styleId": 295,
+            "value": "52.4\n带PTC\n2驱\n选配"
+          },
+          {
+            "r": 2,
+            "c": 10,
+            "addr": "J2",
+            "type": "s",
+            "styleId": 295,
+            "value": "63.8\n不带PTC\n2驱\n标配"
+          },
+          {
+            "r": 2,
+            "c": 11,
+            "addr": "K2",
+            "type": "s",
+            "styleId": 295,
+            "value": "63.8\n带PTC\n2驱\n选配"
+          },
+          {
+            "r": 2,
+            "c": 12,
+            "addr": "L2",
+            "type": "s",
+            "styleId": 295,
+            "value": "75.2\n不带PTC\n2驱\n标配"
+          },
+          {
+            "r": 2,
+            "c": 13,
+            "addr": "M2",
+            "type": "s",
+            "styleId": 295,
+            "value": "75.2\n不带PTC\n4驱\n标配"
+          },
+          {
+            "r": 2,
+            "c": 14,
+            "addr": "N2",
+            "type": "s",
+            "styleId": 393,
+            "value": "报价数模图示"
+          },
+          {
+            "r": 2,
+            "c": 15,
+            "addr": "O2",
+            "type": "s",
+            "styleId": 393,
+            "value": "1219正式数据数模图示"
+          },
+          {
+            "r": 2,
+            "c": 16,
+            "addr": "P2",
+            "type": "s",
+            "styleId": 393,
+            "value": "备注"
+          },
+          {
+            "r": 3,
+            "c": 1,
+            "addr": "A3",
+            "type": "n",
+            "styleId": 87,
+            "value": 1
+          },
+          {
+            "r": 3,
+            "c": 2,
+            "addr": "B3",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 3,
+            "c": 3,
+            "addr": "C3",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608491523
+          },
+          {
+            "r": 3,
+            "c": 4,
+            "addr": "D3",
+            "type": "s",
+            "styleId": 394,
+            "value": "直流母线总成"
+          },
+          {
+            "r": 3,
+            "c": 5,
+            "addr": "E3",
+            "type": "s",
+            "styleId": 395,
+            "value": "35mm²屏蔽硅胶铝导线（屏蔽层镀锡铜包铝）"
+          },
+          {
+            "r": 3,
+            "c": 6,
+            "addr": "F3",
+            "type": "n",
+            "styleId": 380,
+            "value": 63.8
+          },
+          {
+            "r": 3,
+            "c": 7,
+            "addr": "G3",
+            "type": "s",
+            "styleId": 394,
+            "value": "S"
+          },
+          {
+            "r": 3,
+            "c": 8,
+            "addr": "H3",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 3,
+            "c": 9,
+            "addr": "I3",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 3,
+            "c": 10,
+            "addr": "J3",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 3,
+            "c": 11,
+            "addr": "K3",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 3,
+            "c": 12,
+            "addr": "L3",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 3,
+            "c": 13,
+            "addr": "M3",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 3,
+            "c": 14,
+            "addr": "N3",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 3,
+            "c": 15,
+            "addr": "O3",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 3,
+            "c": 16,
+            "addr": "P3",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据护板和支架数据变更，线束走向微调"
+          },
+          {
+            "r": 4,
+            "c": 1,
+            "addr": "A4",
+            "type": "n",
+            "styleId": 87,
+            "value": 2
+          },
+          {
+            "r": 4,
+            "c": 2,
+            "addr": "B4",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 4,
+            "c": 3,
+            "addr": "C4",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608491524
+          },
+          {
+            "r": 4,
+            "c": 4,
+            "addr": "D4",
+            "type": "s",
+            "styleId": 394,
+            "value": "直流母线总成"
+          },
+          {
+            "r": 4,
+            "c": 5,
+            "addr": "E4",
+            "type": "s",
+            "styleId": 395,
+            "value": "35mm²屏蔽硅胶铝导线（屏蔽层镀锡铜包铝）"
+          },
+          {
+            "r": 4,
+            "c": 6,
+            "addr": "F4",
+            "type": "n",
+            "styleId": 380,
+            "value": 75.2
+          },
+          {
+            "r": 4,
+            "c": 7,
+            "addr": "G4",
+            "type": "s",
+            "styleId": 394,
+            "value": "S"
+          },
+          {
+            "r": 4,
+            "c": 8,
+            "addr": "H4",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 4,
+            "c": 9,
+            "addr": "I4",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 4,
+            "c": 10,
+            "addr": "J4",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 4,
+            "c": 11,
+            "addr": "K4",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 4,
+            "c": 12,
+            "addr": "L4",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 4,
+            "c": 13,
+            "addr": "M4",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 4,
+            "c": 14,
+            "addr": "N4",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 4,
+            "c": 15,
+            "addr": "O4",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 4,
+            "c": 16,
+            "addr": "P4",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据护板和支架数据变更，线束走向微调"
+          },
+          {
+            "r": 5,
+            "c": 1,
+            "addr": "A5",
+            "type": "n",
+            "styleId": 87,
+            "value": 3
+          },
+          {
+            "r": 5,
+            "c": 2,
+            "addr": "B5",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 5,
+            "c": 3,
+            "addr": "C5",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608442962
+          },
+          {
+            "r": 5,
+            "c": 4,
+            "addr": "D5",
+            "type": "s",
+            "styleId": 394,
+            "value": "直流母线总成"
+          },
+          {
+            "r": 5,
+            "c": 5,
+            "addr": "E5",
+            "type": "s",
+            "styleId": 395,
+            "value": "35mm²屏蔽硅胶铝导线（屏蔽层镀锡铜包铝）"
+          },
+          {
+            "r": 5,
+            "c": 6,
+            "addr": "F5",
+            "type": "n",
+            "styleId": 380,
+            "value": 52.4
+          },
+          {
+            "r": 5,
+            "c": 7,
+            "addr": "G5",
+            "type": "s",
+            "styleId": 394,
+            "value": "S"
+          },
+          {
+            "r": 5,
+            "c": 8,
+            "addr": "H5",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 5,
+            "c": 9,
+            "addr": "I5",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 5,
+            "c": 10,
+            "addr": "J5",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 5,
+            "c": 11,
+            "addr": "K5",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 5,
+            "c": 12,
+            "addr": "L5",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 5,
+            "c": 13,
+            "addr": "M5",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 5,
+            "c": 14,
+            "addr": "N5",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 5,
+            "c": 15,
+            "addr": "O5",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 5,
+            "c": 16,
+            "addr": "P5",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据护板和支架数据变更，线束走向微调"
+          },
+          {
+            "r": 6,
+            "c": 1,
+            "addr": "A6",
+            "type": "n",
+            "styleId": 87,
+            "value": 4
+          },
+          {
+            "r": 6,
+            "c": 2,
+            "addr": "B6",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 6,
+            "c": 3,
+            "addr": "C6",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608442964
+          },
+          {
+            "r": 6,
+            "c": 4,
+            "addr": "D6",
+            "type": "s",
+            "styleId": 394,
+            "value": "电动压缩机线束总成"
+          },
+          {
+            "r": 6,
+            "c": 5,
+            "addr": "E6",
+            "type": "s",
+            "styleId": 397,
+            "value": "4.0mm²屏蔽镀锡铜包铝交联铝导线"
+          },
+          {
+            "r": 6,
+            "c": 6,
+            "addr": "F6",
+            "type": "s",
+            "styleId": 25,
+            "value": "52.4/63.8/75.2不带PTC"
+          },
+          {
+            "r": 6,
+            "c": 7,
+            "addr": "G6",
+            "type": "s",
+            "styleId": 394,
+            "value": "S"
+          },
+          {
+            "r": 6,
+            "c": 8,
+            "addr": "H6",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 6,
+            "c": 9,
+            "addr": "I6",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 6,
+            "c": 10,
+            "addr": "J6",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 6,
+            "c": 11,
+            "addr": "K6",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 6,
+            "c": 12,
+            "addr": "L6",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 6,
+            "c": 13,
+            "addr": "M6",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 6,
+            "c": 14,
+            "addr": "N6",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 6,
+            "c": 15,
+            "addr": "O6",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 6,
+            "c": 16,
+            "addr": "P6",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据线束走向调整，数模上永贵插件变更，BOM料号报价时已是最新"
+          },
+          {
+            "r": 7,
+            "c": 1,
+            "addr": "A7",
+            "type": "n",
+            "styleId": 87,
+            "value": 5
+          },
+          {
+            "r": 7,
+            "c": 2,
+            "addr": "B7",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 7,
+            "c": 3,
+            "addr": "C7",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608442963
+          },
+          {
+            "r": 7,
+            "c": 4,
+            "addr": "D7",
+            "type": "s",
+            "styleId": 394,
+            "value": "电动压缩机线束总成"
+          },
+          {
+            "r": 7,
+            "c": 5,
+            "addr": "E7",
+            "type": "s",
+            "styleId": 397,
+            "value": "4.0mm²屏蔽镀锡铜包铝交联铝导线"
+          },
+          {
+            "r": 7,
+            "c": 6,
+            "addr": "F7",
+            "type": "s",
+            "styleId": 25,
+            "value": "52.4带PTC"
+          },
+          {
+            "r": 7,
+            "c": 7,
+            "addr": "G7",
+            "type": "s",
+            "styleId": 394,
+            "value": "O"
+          },
+          {
+            "r": 7,
+            "c": 8,
+            "addr": "H7",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 9,
+            "addr": "I7",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 7,
+            "c": 10,
+            "addr": "J7",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 11,
+            "addr": "K7",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 12,
+            "addr": "L7",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 13,
+            "addr": "M7",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 14,
+            "addr": "N7",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 15,
+            "addr": "O7",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 7,
+            "c": 16,
+            "addr": "P7",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据线束走向调整，数模上永贵插件变更为135度，BOM料号报价时已是最新；\n永贵接PTC插件数模数据变更，需确认料号是否变更"
+          },
+          {
+            "r": 8,
+            "c": 1,
+            "addr": "A8",
+            "type": "n",
+            "styleId": 87,
+            "value": 6
+          },
+          {
+            "r": 8,
+            "c": 2,
+            "addr": "B8",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 8,
+            "c": 3,
+            "addr": "C8",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608516992
+          },
+          {
+            "r": 8,
+            "c": 4,
+            "addr": "D8",
+            "type": "s",
+            "styleId": 394,
+            "value": "电动压缩机线束总成"
+          },
+          {
+            "r": 8,
+            "c": 5,
+            "addr": "E8",
+            "type": "s",
+            "styleId": 397,
+            "value": "4.0mm²屏蔽镀锡铜包铝交联铝导线"
+          },
+          {
+            "r": 8,
+            "c": 6,
+            "addr": "F8",
+            "type": "s",
+            "styleId": 25,
+            "value": "63.8带PTC"
+          },
+          {
+            "r": 8,
+            "c": 7,
+            "addr": "G8",
+            "type": "s",
+            "styleId": 394,
+            "value": "O"
+          },
+          {
+            "r": 8,
+            "c": 8,
+            "addr": "H8",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 8,
+            "c": 9,
+            "addr": "I8",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 8,
+            "c": 10,
+            "addr": "J8",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 8,
+            "c": 11,
+            "addr": "K8",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 8,
+            "c": 12,
+            "addr": "L8",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 8,
+            "c": 13,
+            "addr": "M8",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 8,
+            "c": 14,
+            "addr": "N8",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 8,
+            "c": 15,
+            "addr": "O8",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 8,
+            "c": 16,
+            "addr": "P8",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据线束走向调整，数模上永贵插件变更为135度，BOM料号报价时已是最新；"
+          },
+          {
+            "r": 9,
+            "c": 1,
+            "addr": "A9",
+            "type": "n",
+            "styleId": 87,
+            "value": 7
+          },
+          {
+            "r": 9,
+            "c": 2,
+            "addr": "B9",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 9,
+            "c": 3,
+            "addr": "C9",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608519100
+          },
+          {
+            "r": 9,
+            "c": 4,
+            "addr": "D9",
+            "type": "s",
+            "styleId": 394,
+            "value": "电动压缩机线束总成"
+          },
+          {
+            "r": 9,
+            "c": 5,
+            "addr": "E9",
+            "type": "s",
+            "styleId": 397,
+            "value": "4.0mm²屏蔽镀锡铜包铝交联铝导线"
+          },
+          {
+            "r": 9,
+            "c": 6,
+            "addr": "F9",
+            "type": "s",
+            "styleId": 25,
+            "value": "75.2四驱"
+          },
+          {
+            "r": 9,
+            "c": 7,
+            "addr": "G9",
+            "type": "s",
+            "styleId": 394,
+            "value": "S"
+          },
+          {
+            "r": 9,
+            "c": 8,
+            "addr": "H9",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 9,
+            "addr": "I9",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 10,
+            "addr": "J9",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 11,
+            "addr": "K9",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 12,
+            "addr": "L9",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 13,
+            "addr": "M9",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 9,
+            "c": 14,
+            "addr": "N9",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 15,
+            "addr": "O9",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 9,
+            "c": 16,
+            "addr": "P9",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据与1218M车样线数据完全一致；\n1219数据与报价数据相比护板微调，金属支架数据变更；\n1219数据与1220海外数据完全一致"
+          },
+          {
+            "r": 10,
+            "c": 1,
+            "addr": "A10",
+            "type": "n",
+            "styleId": 87,
+            "value": 8
+          },
+          {
+            "r": 10,
+            "c": 2,
+            "addr": "B10",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 10,
+            "c": 3,
+            "addr": "C10",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608442966
+          },
+          {
+            "r": 10,
+            "c": 4,
+            "addr": "D10",
+            "type": "s",
+            "styleId": 394,
+            "value": "组合式充电插座线束总成"
+          },
+          {
+            "r": 10,
+            "c": 5,
+            "addr": "E10",
+            "type": "s",
+            "styleId": 395,
+            "value": "120mm²非屏蔽硅胶铝导线\n6mm²非屏蔽铝导线\n6mm²非屏蔽黄绿铜导线\n5mm²非屏蔽黄绿铜导线"
+          },
+          {
+            "r": 10,
+            "c": 6,
+            "addr": "F10",
+            "type": "n",
+            "styleId": 380,
+            "value": 63.8
+          },
+          {
+            "r": 10,
+            "c": 7,
+            "addr": "G10",
+            "type": "s",
+            "styleId": 394,
+            "value": "S"
+          },
+          {
+            "r": 10,
+            "c": 8,
+            "addr": "H10",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 10,
+            "c": 9,
+            "addr": "I10",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 10,
+            "c": 10,
+            "addr": "J10",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 10,
+            "c": 11,
+            "addr": "K10",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 10,
+            "c": 12,
+            "addr": "L10",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 10,
+            "c": 13,
+            "addr": "M10",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 10,
+            "c": 14,
+            "addr": "N10",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 10,
+            "c": 15,
+            "addr": "O10",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 10,
+            "c": 16,
+            "addr": "P10",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据线束走向微调，充电座数据调整，数模上增加橡胶件以及隔线扎带绳；"
+          },
+          {
+            "r": 11,
+            "c": 1,
+            "addr": "A11",
+            "type": "n",
+            "styleId": 87,
+            "value": 9
+          },
+          {
+            "r": 11,
+            "c": 2,
+            "addr": "B11",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 11,
+            "c": 3,
+            "addr": "C11",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608442965
+          },
+          {
+            "r": 11,
+            "c": 4,
+            "addr": "D11",
+            "type": "s",
+            "styleId": 394,
+            "value": "组合式充电插座线束总成"
+          },
+          {
+            "r": 11,
+            "c": 5,
+            "addr": "E11",
+            "type": "s",
+            "styleId": 395,
+            "value": "120mm²非屏蔽硅胶铝导线\n6mm²非屏蔽铝导线\n6mm²非屏蔽黄绿铜导线\n5mm²非屏蔽黄绿铜导线"
+          },
+          {
+            "r": 11,
+            "c": 6,
+            "addr": "F11",
+            "type": "n",
+            "styleId": 380,
+            "value": 75.2
+          },
+          {
+            "r": 11,
+            "c": 7,
+            "addr": "G11",
+            "type": "s",
+            "styleId": 394,
+            "value": "S"
+          },
+          {
+            "r": 11,
+            "c": 8,
+            "addr": "H11",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 11,
+            "c": 9,
+            "addr": "I11",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 11,
+            "c": 10,
+            "addr": "J11",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 11,
+            "c": 11,
+            "addr": "K11",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 11,
+            "c": 12,
+            "addr": "L11",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 11,
+            "c": 13,
+            "addr": "M11",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 11,
+            "c": 14,
+            "addr": "N11",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 11,
+            "c": 15,
+            "addr": "O11",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 11,
+            "c": 16,
+            "addr": "P11",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据线束走向微调，充电座数据调整，数模上增加橡胶件以及隔线扎带绳；"
+          },
+          {
+            "r": 12,
+            "c": 1,
+            "addr": "A12",
+            "type": "n",
+            "styleId": 87,
+            "value": 10
+          },
+          {
+            "r": 12,
+            "c": 2,
+            "addr": "B12",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 12,
+            "c": 3,
+            "addr": "C12",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608507680
+          },
+          {
+            "r": 12,
+            "c": 4,
+            "addr": "D12",
+            "type": "s",
+            "styleId": 394,
+            "value": "组合式充电插座线束总成"
+          },
+          {
+            "r": 12,
+            "c": 5,
+            "addr": "E12",
+            "type": "s",
+            "styleId": 395,
+            "value": "120mm²非屏蔽硅胶铝导线\n6mm²非屏蔽铝导线\n6mm²非屏蔽黄绿铜导线\n5mm²非屏蔽黄绿铜导线"
+          },
+          {
+            "r": 12,
+            "c": 6,
+            "addr": "F12",
+            "type": "n",
+            "styleId": 380,
+            "value": 52.4
+          },
+          {
+            "r": 12,
+            "c": 7,
+            "addr": "G12",
+            "type": "s",
+            "styleId": 394,
+            "value": "S"
+          },
+          {
+            "r": 12,
+            "c": 8,
+            "addr": "H12",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 12,
+            "c": 9,
+            "addr": "I12",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 12,
+            "c": 10,
+            "addr": "J12",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 12,
+            "c": 11,
+            "addr": "K12",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 12,
+            "c": 12,
+            "addr": "L12",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 12,
+            "c": 13,
+            "addr": "M12",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 12,
+            "c": 14,
+            "addr": "N12",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 12,
+            "c": 15,
+            "addr": "O12",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 12,
+            "c": 16,
+            "addr": "P12",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据线束走向微调，充电座数据调整，数模上增加橡胶件以及隔线扎带绳；"
+          },
+          {
+            "r": 13,
+            "c": 1,
+            "addr": "A13",
+            "type": "n",
+            "styleId": 87,
+            "value": 11
+          },
+          {
+            "r": 13,
+            "c": 2,
+            "addr": "B13",
+            "type": "s",
+            "styleId": 394,
+            "value": "高压线束"
+          },
+          {
+            "r": 13,
+            "c": 3,
+            "addr": "C13",
+            "type": "n",
+            "styleId": 279,
+            "value": 6608544875
+          },
+          {
+            "r": 13,
+            "c": 4,
+            "addr": "D13",
+            "type": "s",
+            "styleId": 394,
+            "value": "前驱直流母线"
+          },
+          {
+            "r": 13,
+            "c": 5,
+            "addr": "E13",
+            "type": "s",
+            "styleId": 395,
+            "value": "25mm²屏蔽硅胶铜导线（屏蔽层镀锡铜包铝）"
+          },
+          {
+            "r": 13,
+            "c": 6,
+            "addr": "F13",
+            "type": "n",
+            "styleId": 380,
+            "value": 75.2
+          },
+          {
+            "r": 13,
+            "c": 7,
+            "addr": "G13",
+            "type": "s",
+            "styleId": 394,
+            "value": "S"
+          },
+          {
+            "r": 13,
+            "c": 8,
+            "addr": "H13",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 9,
+            "addr": "I13",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 10,
+            "addr": "J13",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 11,
+            "addr": "K13",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 12,
+            "addr": "L13",
+            "type": "n",
+            "styleId": 381,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 13,
+            "addr": "M13",
+            "type": "s",
+            "styleId": 381,
+            "value": "●"
+          },
+          {
+            "r": 13,
+            "c": 14,
+            "addr": "N13",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 15,
+            "addr": "O13",
+            "type": "n",
+            "styleId": 389,
+            "value": null
+          },
+          {
+            "r": 13,
+            "c": 16,
+            "addr": "P13",
+            "type": "s",
+            "styleId": 396,
+            "value": "1219数据与报价数据相比护板和右侧支架数据变更，线束走向微调，电池端插件位置调整\n1219数据与1218M车样线数据相比护板微调，金属支架数据变动，电池端插件位置调整；\n1219数据与1220海外车8801778176数据相比，2颗金属支架数据均有差异，护板数据微调，电池端插件位置调整；\n备注：1220海外车8801778176数据与国内M车样线数据完全一致，仅一颗金属支架数据不一致"
+          },
+          {
+            "r": 14,
+            "c": 29,
+            "addr": "AC14",
+            "type": "s",
+            "styleId": 384,
+            "value": "海外车与M车样线"
+          },
+          {
+            "r": 15,
+            "c": 17,
+            "addr": "Q15",
+            "type": "s",
+            "styleId": 384,
+            "value": "1219与报价相比"
+          },
+          {
+            "r": 15,
+            "c": 21,
+            "addr": "U15",
+            "type": "s",
+            "styleId": 384,
+            "value": "1219与M车样线相比"
+          },
+          {
+            "r": 15,
+            "c": 25,
+            "addr": "Y15",
+            "type": "s",
+            "styleId": 384,
+            "value": "1219与海外车相比"
+          }
+        ],
+        "stylePool": {
+          "386": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": true,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 0,
+                "tint": -0.149906918546098
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "left",
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "387": {
+            "numberFormat": "General",
+            "font": {
+              "name": "等线",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134,
+              "scheme": "minor"
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "388": {
+            "numberFormat": "General",
+            "font": {
+              "name": "等线",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134,
+              "scheme": "minor"
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "371": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 0,
+                "tint": -0.15
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "389": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "等线",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134,
+              "scheme": "minor"
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "373": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 2,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "390": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 2,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "375": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 2,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "391": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 2,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "392": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 2,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "295": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "rgb",
+                "rgb": "FF000000",
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "393": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "87": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "394": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "279": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "395": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 0,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "380": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fillType": "solid",
+              "patternType": "solid",
+              "fgColor": {
+                "type": "theme",
+                "theme": 0,
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "indexed",
+                "indexed": 64,
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "381": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 36.0,
+              "bold": false,
+              "italic": false,
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "396": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "等线",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134,
+              "scheme": "minor"
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "397": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "25": {
+            "numberFormat": "General",
+            "font": {
+              "name": "微软雅黑",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "left": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "right": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "top": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "bottom": {
+                "style": "thin",
+                "color": {
+                  "type": "auto",
+                  "tint": 0.0,
+                  "auto": true
+                }
+              },
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "horizontal": "center",
+              "vertical": "center",
+              "textRotation": 0,
+              "wrapText": true,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          },
+          "384": {
+            "numberFormat": "#,##0\\ [$€-1];[Red]\\-#,##0\\ [$€-1]",
+            "font": {
+              "name": "等线",
+              "size": 11.0,
+              "bold": false,
+              "italic": false,
+              "color": {
+                "type": "theme",
+                "theme": 1,
+                "tint": 0.0
+              },
+              "charset": 134,
+              "scheme": "minor"
+            },
+            "fill": {
+              "fgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              },
+              "bgColor": {
+                "type": "rgb",
+                "rgb": "00000000",
+                "tint": 0.0
+              }
+            },
+            "border": {
+              "diagonalDown": false,
+              "diagonalUp": false,
+              "outline": true
+            },
+            "alignment": {
+              "vertical": "center",
+              "textRotation": 0,
+              "indent": 0.0,
+              "relativeIndent": 0.0,
+              "readingOrder": 0.0
+            },
+            "protection": {
+              "locked": true,
+              "hidden": false
+            }
+          }
+        },
+        "metadata": {
+          "sheetState": "visible",
+          "tabColor": null,
+          "showGridLines": null,
+          "printTitleRows": null,
+          "printTitleCols": null
+        }
+      }
+    }
+  }
+}

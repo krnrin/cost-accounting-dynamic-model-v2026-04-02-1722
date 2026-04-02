@@ -1,0 +1,999 @@
+{
+  "meta": {
+    "quoteWorkbook": "吉利E281报价核算.xlsx",
+    "fixedWorkbook": "吉利E281定点核算.xlsx",
+    "generatedAt": "2026-03-26T15:22:52+08:00",
+    "layer": "JSON 数据层"
+  },
+  "scopeOrder": [
+    "scenario",
+    "breakdown",
+    "details"
+  ],
+  "versionSnapshots": {
+    "quote": {
+      "kind": "quote",
+      "label": "报价包装版",
+      "packInner": 5.875759,
+      "packFreight": 0.0,
+      "packWarehouse": 5.916875,
+      "packOther": 0.851667,
+      "packTotal": 12.644301,
+      "sources": {
+        "packInner": "包装物流费用!E25 + F25",
+        "packFreight": "包装物流费用!G25 + H25",
+        "packWarehouse": "包装物流费用!J25 + K25",
+        "packOther": "包装物流费用!I25",
+        "packTotal": "包装物流费用!L25"
+      },
+      "note": "程序应用值按包装物流费用页单套成本拆分：内外包装=内包装+外包装，运输费=运费+超额运费，仓储费=三方仓+仓储费，短驳/其他=短驳及其他。"
+    },
+    "fixed": {
+      "kind": "fixed",
+      "label": "定点包装版",
+      "packInner": 5.875759,
+      "packFreight": 0.0,
+      "packWarehouse": 5.916875,
+      "packOther": 0.851667,
+      "packTotal": 12.644301,
+      "sources": {
+        "packInner": "包装物流费用!E25 + F25",
+        "packFreight": "包装物流费用!G25 + H25",
+        "packWarehouse": "包装物流费用!J25 + K25",
+        "packOther": "包装物流费用!I25",
+        "packTotal": "包装物流费用!L25"
+      },
+      "note": "程序应用值按包装物流费用页单套成本拆分：内外包装=内包装+外包装，运输费=运费+超额运费，仓储费=三方仓+仓储费，短驳/其他=短驳及其他。"
+    }
+  },
+  "comparisons": {
+    "scenario": {
+      "scopeId": "scenario",
+      "scopeLabel": "程序映射",
+      "hint": "应用报价版 / 定点版后，会直接回填主页面的内外包装、运输费、仓储费、短驳/其他 4 个输入项。",
+      "groups": [
+        {
+          "key": "scenario.mapping",
+          "label": "程序包装映射",
+          "meta": "把包装物流费用页单套拆分映射到程序当前 4 个包装输入项。",
+          "aligned": [
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "apply.packInner",
+                "label": "内外包装",
+                "displayLabel": "内外包装",
+                "unit": "元/套",
+                "value": 5.875759,
+                "numericValue": 5.875759,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "E25+F25",
+                "source": "包装物流费用!E25+F25",
+                "formula": "",
+                "note": "程序字段 = 内包装 + 外包装。",
+                "rawValue": "5.875759"
+              },
+              "fixed": {
+                "itemKey": "apply.packInner",
+                "label": "内外包装",
+                "displayLabel": "内外包装",
+                "unit": "元/套",
+                "value": 5.875759,
+                "numericValue": 5.875759,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "E25+F25",
+                "source": "包装物流费用!E25+F25",
+                "formula": "",
+                "note": "程序字段 = 内包装 + 外包装。",
+                "rawValue": "5.875759"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "apply.packFreight",
+                "label": "运输费",
+                "displayLabel": "运输费",
+                "unit": "元/套",
+                "value": 0.0,
+                "numericValue": 0.0,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "G25+H25",
+                "source": "包装物流费用!G25+H25",
+                "formula": "",
+                "note": "程序字段 = 运费 + 超额运费。",
+                "rawValue": "0.0"
+              },
+              "fixed": {
+                "itemKey": "apply.packFreight",
+                "label": "运输费",
+                "displayLabel": "运输费",
+                "unit": "元/套",
+                "value": 0.0,
+                "numericValue": 0.0,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "G25+H25",
+                "source": "包装物流费用!G25+H25",
+                "formula": "",
+                "note": "程序字段 = 运费 + 超额运费。",
+                "rawValue": "0.0"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "apply.packWarehouse",
+                "label": "仓储费",
+                "displayLabel": "仓储费",
+                "unit": "元/套",
+                "value": 5.916875,
+                "numericValue": 5.916875,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "J25+K25",
+                "source": "包装物流费用!J25+K25",
+                "formula": "",
+                "note": "程序字段 = 三方仓费用 + 仓储费。",
+                "rawValue": "5.916875"
+              },
+              "fixed": {
+                "itemKey": "apply.packWarehouse",
+                "label": "仓储费",
+                "displayLabel": "仓储费",
+                "unit": "元/套",
+                "value": 5.916875,
+                "numericValue": 5.916875,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "J25+K25",
+                "source": "包装物流费用!J25+K25",
+                "formula": "",
+                "note": "程序字段 = 三方仓费用 + 仓储费。",
+                "rawValue": "5.916875"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "apply.packOther",
+                "label": "短驳 / 其他",
+                "displayLabel": "短驳 / 其他",
+                "unit": "元/套",
+                "value": 0.851667,
+                "numericValue": 0.851667,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "I25",
+                "source": "包装物流费用!I25",
+                "formula": "",
+                "note": "程序字段 = 短驳（合肥仓库到客户）+ 其他。",
+                "rawValue": "0.851667"
+              },
+              "fixed": {
+                "itemKey": "apply.packOther",
+                "label": "短驳 / 其他",
+                "displayLabel": "短驳 / 其他",
+                "unit": "元/套",
+                "value": 0.851667,
+                "numericValue": 0.851667,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "I25",
+                "source": "包装物流费用!I25",
+                "formula": "",
+                "note": "程序字段 = 短驳（合肥仓库到客户）+ 其他。",
+                "rawValue": "0.851667"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "apply.packTotal",
+                "label": "程序包装物流合计",
+                "displayLabel": "程序包装物流合计",
+                "unit": "元/套",
+                "value": 12.644301,
+                "numericValue": 12.644301,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L25",
+                "source": "包装物流费用!L25",
+                "formula": "",
+                "note": "四个程序字段汇总后应与包装物流费用页单套合计一致。",
+                "rawValue": "12.644301"
+              },
+              "fixed": {
+                "itemKey": "apply.packTotal",
+                "label": "程序包装物流合计",
+                "displayLabel": "程序包装物流合计",
+                "unit": "元/套",
+                "value": 12.644301,
+                "numericValue": 12.644301,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L25",
+                "source": "包装物流费用!L25",
+                "formula": "",
+                "note": "四个程序字段汇总后应与包装物流费用页单套合计一致。",
+                "rawValue": "12.644301"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "assessment.packagingPerSet",
+                "label": "项目评估单套包装物流",
+                "displayLabel": "项目评估单套包装物流",
+                "unit": "元/PCS",
+                "value": 12.644301,
+                "numericValue": 12.644301,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F32",
+                "source": "项目评估汇总（昆山90%）!F32",
+                "formula": "=包装物流费用!L25",
+                "note": "来源：项目评估汇总引用包装物流费用!L25。",
+                "rawValue": "12.6443008441667"
+              },
+              "fixed": {
+                "itemKey": "assessment.packagingPerSet",
+                "label": "项目评估单套包装物流",
+                "displayLabel": "项目评估单套包装物流",
+                "unit": "元/PCS",
+                "value": 12.644301,
+                "numericValue": 12.644301,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F32",
+                "source": "项目评估汇总（昆山90%）!F32",
+                "formula": "=包装物流费用!L25",
+                "note": "来源：项目评估汇总引用包装物流费用!L25。",
+                "rawValue": "12.6443008441667"
+              }
+            }
+          ],
+          "summary": {
+            "quoteCount": 6,
+            "fixedCount": 6,
+            "matchedCount": 6,
+            "quoteOnlyCount": 0,
+            "fixedOnlyCount": 0,
+            "differenceCount": 0
+          }
+        }
+      ],
+      "summary": {
+        "quoteCount": 6,
+        "fixedCount": 6,
+        "matchedCount": 6,
+        "quoteOnlyCount": 0,
+        "fixedOnlyCount": 0,
+        "differenceCount": 0
+      }
+    },
+    "breakdown": {
+      "scopeId": "breakdown",
+      "scopeLabel": "单套拆分",
+      "hint": "保留包装物流费用页单套成本拆分，以及项目评估/项目汇总对它的引用关系。",
+      "groups": [
+        {
+          "key": "breakdown.perSet",
+          "label": "单套包装拆分",
+          "meta": "来源：包装物流费用 + 项目评估/项目汇总引用。",
+          "aligned": [
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "breakdown.innerPack",
+                "label": "内包装",
+                "displayLabel": "内包装",
+                "unit": "元/套",
+                "value": 4.838884,
+                "numericValue": 4.838884,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "E25",
+                "source": "包装物流费用!E25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B50C69450>",
+                "note": "",
+                "rawValue": "4.8388841775"
+              },
+              "fixed": {
+                "itemKey": "breakdown.innerPack",
+                "label": "内包装",
+                "displayLabel": "内包装",
+                "unit": "元/套",
+                "value": 4.838884,
+                "numericValue": 4.838884,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "E25",
+                "source": "包装物流费用!E25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B54373890>",
+                "note": "",
+                "rawValue": "4.8388841775"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "breakdown.outerPack",
+                "label": "外包装",
+                "displayLabel": "外包装",
+                "unit": "元/套",
+                "value": 1.036875,
+                "numericValue": 1.036875,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "F25",
+                "source": "包装物流费用!F25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B545AE270>",
+                "note": "",
+                "rawValue": "1.036875"
+              },
+              "fixed": {
+                "itemKey": "breakdown.outerPack",
+                "label": "外包装",
+                "displayLabel": "外包装",
+                "unit": "元/套",
+                "value": 1.036875,
+                "numericValue": 1.036875,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "F25",
+                "source": "包装物流费用!F25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B53E5B4D0>",
+                "note": "",
+                "rawValue": "1.036875"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "breakdown.freight",
+                "label": "运费",
+                "displayLabel": "运费",
+                "unit": "元/套",
+                "value": 0.0,
+                "numericValue": 0.0,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "G25",
+                "source": "包装物流费用!G25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B53E5BD70>",
+                "note": "",
+                "rawValue": "0"
+              },
+              "fixed": {
+                "itemKey": "breakdown.freight",
+                "label": "运费",
+                "displayLabel": "运费",
+                "unit": "元/套",
+                "value": 0.0,
+                "numericValue": 0.0,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "G25",
+                "source": "包装物流费用!G25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B53E03590>",
+                "note": "",
+                "rawValue": "0"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "breakdown.extraFreight",
+                "label": "超额运费",
+                "displayLabel": "超额运费",
+                "unit": "元/套",
+                "value": 0.0,
+                "numericValue": 0.0,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "H25",
+                "source": "包装物流费用!H25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B53E5BBF0>",
+                "note": "",
+                "rawValue": "0"
+              },
+              "fixed": {
+                "itemKey": "breakdown.extraFreight",
+                "label": "超额运费",
+                "displayLabel": "超额运费",
+                "unit": "元/套",
+                "value": 0.0,
+                "numericValue": 0.0,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "H25",
+                "source": "包装物流费用!H25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B53E5B470>",
+                "note": "",
+                "rawValue": "0"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "breakdown.shortHaulOther",
+                "label": "短驳 / 其他",
+                "displayLabel": "短驳 / 其他",
+                "unit": "元/套",
+                "value": 0.851667,
+                "numericValue": 0.851667,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "I25",
+                "source": "包装物流费用!I25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B51DE3350>",
+                "note": "",
+                "rawValue": "0.851666666666666"
+              },
+              "fixed": {
+                "itemKey": "breakdown.shortHaulOther",
+                "label": "短驳 / 其他",
+                "displayLabel": "短驳 / 其他",
+                "unit": "元/套",
+                "value": 0.851667,
+                "numericValue": 0.851667,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "I25",
+                "source": "包装物流费用!I25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B5460BE90>",
+                "note": "",
+                "rawValue": "0.851666666666666"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "breakdown.thirdWarehouse",
+                "label": "三方仓费用",
+                "displayLabel": "三方仓费用",
+                "unit": "元/套",
+                "value": 4.88,
+                "numericValue": 4.88,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "J25",
+                "source": "包装物流费用!J25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B545AF3B0>",
+                "note": "",
+                "rawValue": "4.88"
+              },
+              "fixed": {
+                "itemKey": "breakdown.thirdWarehouse",
+                "label": "三方仓费用",
+                "displayLabel": "三方仓费用",
+                "unit": "元/套",
+                "value": 4.88,
+                "numericValue": 4.88,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "J25",
+                "source": "包装物流费用!J25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B545AE1B0>",
+                "note": "",
+                "rawValue": "4.88"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "breakdown.storage",
+                "label": "仓储费",
+                "displayLabel": "仓储费",
+                "unit": "元/套",
+                "value": 1.036875,
+                "numericValue": 1.036875,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "K25",
+                "source": "包装物流费用!K25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B545AFD70>",
+                "note": "",
+                "rawValue": "1.036875"
+              },
+              "fixed": {
+                "itemKey": "breakdown.storage",
+                "label": "仓储费",
+                "displayLabel": "仓储费",
+                "unit": "元/套",
+                "value": 1.036875,
+                "numericValue": 1.036875,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "K25",
+                "source": "包装物流费用!K25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B54B621B0>",
+                "note": "",
+                "rawValue": "1.036875"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "breakdown.total",
+                "label": "包装物流单套合计",
+                "displayLabel": "包装物流单套合计",
+                "unit": "元/套",
+                "value": 12.644301,
+                "numericValue": 12.644301,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L25",
+                "source": "包装物流费用!L25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B53D28B30>",
+                "note": "",
+                "rawValue": "12.6443008441667"
+              },
+              "fixed": {
+                "itemKey": "breakdown.total",
+                "label": "包装物流单套合计",
+                "displayLabel": "包装物流单套合计",
+                "unit": "元/套",
+                "value": 12.644301,
+                "numericValue": 12.644301,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L25",
+                "source": "包装物流费用!L25",
+                "formula": "<openpyxl.worksheet.formula.ArrayFormula object at 0x0000017B54B624B0>",
+                "note": "",
+                "rawValue": "12.6443008441667"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "breakdown.assessmentPackaging",
+                "label": "项目评估包装物流引用",
+                "displayLabel": "项目评估包装物流引用",
+                "unit": "元/PCS",
+                "value": 12.644301,
+                "numericValue": 12.644301,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F32",
+                "source": "项目评估汇总（昆山90%）!F32",
+                "formula": "=包装物流费用!L25",
+                "note": "项目评估汇总 F32 引用包装物流费用!L25。",
+                "rawValue": "12.6443008441667"
+              },
+              "fixed": {
+                "itemKey": "breakdown.assessmentPackaging",
+                "label": "项目评估包装物流引用",
+                "displayLabel": "项目评估包装物流引用",
+                "unit": "元/PCS",
+                "value": 12.644301,
+                "numericValue": 12.644301,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F32",
+                "source": "项目评估汇总（昆山90%）!F32",
+                "formula": "=包装物流费用!L25",
+                "note": "项目评估汇总 F32 引用包装物流费用!L25。",
+                "rawValue": "12.6443008441667"
+              }
+            }
+          ],
+          "summary": {
+            "quoteCount": 9,
+            "fixedCount": 9,
+            "matchedCount": 9,
+            "quoteOnlyCount": 0,
+            "fixedOnlyCount": 0,
+            "differenceCount": 0
+          }
+        }
+      ],
+      "summary": {
+        "quoteCount": 9,
+        "fixedCount": 9,
+        "matchedCount": 9,
+        "quoteOnlyCount": 0,
+        "fixedOnlyCount": 0,
+        "differenceCount": 0
+      }
+    },
+    "details": {
+      "scopeId": "details",
+      "scopeLabel": "明细对照",
+      "hint": "逐个零件对照包装物流费用页中的包装、仓储和短驳成本。",
+      "groups": [
+        {
+          "key": "details.parts",
+          "label": "零件包装明细",
+          "meta": "来源：包装物流费用逐件明细。",
+          "aligned": [
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608491523",
+                "label": "6608491523 · 直流母线总成",
+                "displayLabel": "6608491523",
+                "unit": "元/套",
+                "value": 4.475783,
+                "numericValue": 4.475783,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L4",
+                "source": "包装物流费用!L4",
+                "formula": "=SUM(E4:K4)",
+                "note": "用量 0.525；内包装 1.94245；外包装 0.35；短驳/其他 0.333333；三方仓 1.5；仓储费 0.35",
+                "rawValue": "4.47578333333333"
+              },
+              "fixed": {
+                "itemKey": "detail.6608491523",
+                "label": "6608491523 · 直流母线总成",
+                "displayLabel": "6608491523",
+                "unit": "元/套",
+                "value": 4.475783,
+                "numericValue": 4.475783,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L4",
+                "source": "包装物流费用!L4",
+                "formula": "=SUM(E4:K4)",
+                "note": "用量 0.525；内包装 1.94245；外包装 0.35；短驳/其他 0.333333；三方仓 1.5；仓储费 0.35",
+                "rawValue": "4.47578333333333"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608491524",
+                "label": "6608491524 · 直流母线总成",
+                "displayLabel": "6608491524",
+                "unit": "元/套",
+                "value": 4.475783,
+                "numericValue": 4.475783,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L5",
+                "source": "包装物流费用!L5",
+                "formula": "=SUM(E5:K5)",
+                "note": "用量 0.105；内包装 1.94245；外包装 0.35；短驳/其他 0.333333；三方仓 1.5；仓储费 0.35",
+                "rawValue": "4.47578333333333"
+              },
+              "fixed": {
+                "itemKey": "detail.6608491524",
+                "label": "6608491524 · 直流母线总成",
+                "displayLabel": "6608491524",
+                "unit": "元/套",
+                "value": 4.475783,
+                "numericValue": 4.475783,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L5",
+                "source": "包装物流费用!L5",
+                "formula": "=SUM(E5:K5)",
+                "note": "用量 0.105；内包装 1.94245；外包装 0.35；短驳/其他 0.333333；三方仓 1.5；仓储费 0.35",
+                "rawValue": "4.47578333333333"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608442962",
+                "label": "6608442962 · 直流母线总成",
+                "displayLabel": "6608442962",
+                "unit": "元/套",
+                "value": 4.475783,
+                "numericValue": 4.475783,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L6",
+                "source": "包装物流费用!L6",
+                "formula": "=SUM(E6:K6)",
+                "note": "用量 0.07；内包装 1.94245；外包装 0.35；短驳/其他 0.333333；三方仓 1.5；仓储费 0.35",
+                "rawValue": "4.47578333333333"
+              },
+              "fixed": {
+                "itemKey": "detail.6608442962",
+                "label": "6608442962 · 直流母线总成",
+                "displayLabel": "6608442962",
+                "unit": "元/套",
+                "value": 4.475783,
+                "numericValue": 4.475783,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L6",
+                "source": "包装物流费用!L6",
+                "formula": "=SUM(E6:K6)",
+                "note": "用量 0.07；内包装 1.94245；外包装 0.35；短驳/其他 0.333333；三方仓 1.5；仓储费 0.35",
+                "rawValue": "4.47578333333333"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608544875",
+                "label": "6608544875 · 前驱直流母线总成",
+                "displayLabel": "6608544875",
+                "unit": "元/套",
+                "value": 4.475783,
+                "numericValue": 4.475783,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L7",
+                "source": "包装物流费用!L7",
+                "formula": "=SUM(E7:K7)",
+                "note": "用量 0.105；内包装 1.94245；外包装 0.35；短驳/其他 0.333333；三方仓 1.5；仓储费 0.35",
+                "rawValue": "4.47578333333333"
+              },
+              "fixed": {
+                "itemKey": "detail.6608544875",
+                "label": "6608544875 · 前驱直流母线总成",
+                "displayLabel": "6608544875",
+                "unit": "元/套",
+                "value": 4.475783,
+                "numericValue": 4.475783,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L7",
+                "source": "包装物流费用!L7",
+                "formula": "=SUM(E7:K7)",
+                "note": "用量 0.105；内包装 1.94245；外包装 0.35；短驳/其他 0.333333；三方仓 1.5；仓储费 0.35",
+                "rawValue": "4.47578333333333"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608442964",
+                "label": "6608442964 · 电动压缩机线束总成",
+                "displayLabel": "6608442964",
+                "unit": "元/套",
+                "value": 2.174007,
+                "numericValue": 2.174007,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L8",
+                "source": "包装物流费用!L8",
+                "formula": "=SUM(E8:K8)",
+                "note": "用量 0.595；内包装 0.394007；外包装 0.14；短驳/其他 0.0；三方仓 1.5；仓储费 0.14",
+                "rawValue": "2.1740068"
+              },
+              "fixed": {
+                "itemKey": "detail.6608442964",
+                "label": "6608442964 · 电动压缩机线束总成",
+                "displayLabel": "6608442964",
+                "unit": "元/套",
+                "value": 2.174007,
+                "numericValue": 2.174007,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L8",
+                "source": "包装物流费用!L8",
+                "formula": "=SUM(E8:K8)",
+                "note": "用量 0.595；内包装 0.394007；外包装 0.14；短驳/其他 0.0；三方仓 1.5；仓储费 0.14",
+                "rawValue": "2.1740068"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608519100",
+                "label": "6608519100 · 电动压缩机线束总成",
+                "displayLabel": "6608519100",
+                "unit": "元/套",
+                "value": 2.174007,
+                "numericValue": 2.174007,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L9",
+                "source": "包装物流费用!L9",
+                "formula": "=SUM(E9:K9)",
+                "note": "用量 0.105；内包装 0.394007；外包装 0.14；短驳/其他 0.0；三方仓 1.5；仓储费 0.14",
+                "rawValue": "2.1740068"
+              },
+              "fixed": {
+                "itemKey": "detail.6608519100",
+                "label": "6608519100 · 电动压缩机线束总成",
+                "displayLabel": "6608519100",
+                "unit": "元/套",
+                "value": 2.174007,
+                "numericValue": 2.174007,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L9",
+                "source": "包装物流费用!L9",
+                "formula": "=SUM(E9:K9)",
+                "note": "用量 0.105；内包装 0.394007；外包装 0.14；短驳/其他 0.0；三方仓 1.5；仓储费 0.14",
+                "rawValue": "2.1740068"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608442963",
+                "label": "6608442963 · 电动压缩机线束总成",
+                "displayLabel": "6608442963",
+                "unit": "元/套",
+                "value": 2.372508,
+                "numericValue": 2.372508,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L10",
+                "source": "包装物流费用!L10",
+                "formula": "=SUM(E10:K10)",
+                "note": "用量 0.03；内包装 0.522509；外包装 0.175；短驳/其他 0.0；三方仓 1.5；仓储费 0.175",
+                "rawValue": "2.3725085"
+              },
+              "fixed": {
+                "itemKey": "detail.6608442963",
+                "label": "6608442963 · 电动压缩机线束总成",
+                "displayLabel": "6608442963",
+                "unit": "元/套",
+                "value": 2.372508,
+                "numericValue": 2.372508,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L10",
+                "source": "包装物流费用!L10",
+                "formula": "=SUM(E10:K10)",
+                "note": "用量 0.03；内包装 0.522509；外包装 0.175；短驳/其他 0.0；三方仓 1.5；仓储费 0.175",
+                "rawValue": "2.3725085"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608516992",
+                "label": "6608516992 · 电动压缩机线束总成",
+                "displayLabel": "6608516992",
+                "unit": "元/套",
+                "value": 2.372508,
+                "numericValue": 2.372508,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L11",
+                "source": "包装物流费用!L11",
+                "formula": "=SUM(E11:K11)",
+                "note": "用量 0.225；内包装 0.522509；外包装 0.175；短驳/其他 0.0；三方仓 1.5；仓储费 0.175",
+                "rawValue": "2.3725085"
+              },
+              "fixed": {
+                "itemKey": "detail.6608516992",
+                "label": "6608516992 · 电动压缩机线束总成",
+                "displayLabel": "6608516992",
+                "unit": "元/套",
+                "value": 2.372508,
+                "numericValue": 2.372508,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L11",
+                "source": "包装物流费用!L11",
+                "formula": "=SUM(E11:K11)",
+                "note": "用量 0.225；内包装 0.522509；外包装 0.175；短驳/其他 0.0；三方仓 1.5；仓储费 0.175",
+                "rawValue": "2.3725085"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608442966",
+                "label": "6608442966 · 组合式充电插座线束总成",
+                "displayLabel": "6608442966",
+                "unit": "元/套",
+                "value": 9.877858,
+                "numericValue": 9.877858,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L12",
+                "source": "包装物流费用!L12",
+                "formula": "=SUM(E12:K12)",
+                "note": "用量 0.525；内包装 4.094525；外包装 0.875；短驳/其他 0.833333；三方仓 3.2；仓储费 0.875",
+                "rawValue": "9.87785833333333"
+              },
+              "fixed": {
+                "itemKey": "detail.6608442966",
+                "label": "6608442966 · 组合式充电插座线束总成",
+                "displayLabel": "6608442966",
+                "unit": "元/套",
+                "value": 9.877858,
+                "numericValue": 9.877858,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L12",
+                "source": "包装物流费用!L12",
+                "formula": "=SUM(E12:K12)",
+                "note": "用量 0.525；内包装 4.094525；外包装 0.875；短驳/其他 0.833333；三方仓 3.2；仓储费 0.875",
+                "rawValue": "9.87785833333333"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608442965",
+                "label": "6608442965 · 组合式充电插座线束总成",
+                "displayLabel": "6608442965",
+                "unit": "元/套",
+                "value": 9.877858,
+                "numericValue": 9.877858,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L13",
+                "source": "包装物流费用!L13",
+                "formula": "=SUM(E13:K13)",
+                "note": "用量 0.105；内包装 4.094525；外包装 0.875；短驳/其他 0.833333；三方仓 3.2；仓储费 0.875",
+                "rawValue": "9.87785833333333"
+              },
+              "fixed": {
+                "itemKey": "detail.6608442965",
+                "label": "6608442965 · 组合式充电插座线束总成",
+                "displayLabel": "6608442965",
+                "unit": "元/套",
+                "value": 9.877858,
+                "numericValue": 9.877858,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L13",
+                "source": "包装物流费用!L13",
+                "formula": "=SUM(E13:K13)",
+                "note": "用量 0.105；内包装 4.094525；外包装 0.875；短驳/其他 0.833333；三方仓 3.2；仓储费 0.875",
+                "rawValue": "9.87785833333333"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "detail.6608507680",
+                "label": "6608507680 · 组合式充电插座线束总成",
+                "displayLabel": "6608507680",
+                "unit": "元/套",
+                "value": 9.877858,
+                "numericValue": 9.877858,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L14",
+                "source": "包装物流费用!L14",
+                "formula": "=SUM(E14:K14)",
+                "note": "用量 0.07；内包装 4.094525；外包装 0.875；短驳/其他 0.833333；三方仓 3.2；仓储费 0.875",
+                "rawValue": "9.87785833333333"
+              },
+              "fixed": {
+                "itemKey": "detail.6608507680",
+                "label": "6608507680 · 组合式充电插座线束总成",
+                "displayLabel": "6608507680",
+                "unit": "元/套",
+                "value": 9.877858,
+                "numericValue": 9.877858,
+                "valueType": "number",
+                "sourceSheet": "包装物流费用",
+                "sourceCell": "L14",
+                "source": "包装物流费用!L14",
+                "formula": "=SUM(E14:K14)",
+                "note": "用量 0.07；内包装 4.094525；外包装 0.875；短驳/其他 0.833333；三方仓 3.2；仓储费 0.875",
+                "rawValue": "9.87785833333333"
+              }
+            }
+          ],
+          "summary": {
+            "quoteCount": 11,
+            "fixedCount": 11,
+            "matchedCount": 11,
+            "quoteOnlyCount": 0,
+            "fixedOnlyCount": 0,
+            "differenceCount": 0
+          }
+        }
+      ],
+      "summary": {
+        "quoteCount": 11,
+        "fixedCount": 11,
+        "matchedCount": 11,
+        "quoteOnlyCount": 0,
+        "fixedOnlyCount": 0,
+        "differenceCount": 0
+      }
+    }
+  }
+}

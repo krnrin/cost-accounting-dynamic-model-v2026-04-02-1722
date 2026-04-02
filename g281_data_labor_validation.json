@@ -1,0 +1,1071 @@
+{
+  "meta": {
+    "quoteWorkbook": "吉利E281报价核算.xlsx",
+    "fixedWorkbook": "吉利E281定点核算.xlsx",
+    "generatedAt": "2026-03-26T15:22:52+08:00",
+    "layer": "JSON 数据层"
+  },
+  "scopeOrder": [
+    "scenario",
+    "directLabor",
+    "manufacturing",
+    "baseline"
+  ],
+  "versionSnapshots": {
+    "quote": {
+      "kind": "quote",
+      "label": "报价工时版",
+      "directHours": 1.126242,
+      "directRate": 35.0,
+      "manufacturingHours": 0.475606,
+      "manufacturingRate": 46.69,
+      "directLaborPerSet": 39.418477,
+      "manufacturingPerSet": 22.206025,
+      "sources": {
+        "directHours": "项目评估汇总（昆山90%）!F16 / 客户报价逻辑!J2",
+        "directRate": "客户报价逻辑!J2",
+        "manufacturingHours": "项目评估汇总（昆山90%）!F23 / 客户报价逻辑!K20",
+        "manufacturingRate": "客户报价逻辑!K20"
+      },
+      "note": "程序应用值按《客户报价逻辑》的前工程费率与制造费率折算。"
+    },
+    "fixed": {
+      "kind": "fixed",
+      "label": "定点工时版",
+      "directHours": 1.126242,
+      "directRate": 35.0,
+      "manufacturingHours": 0.475606,
+      "manufacturingRate": 46.69,
+      "directLaborPerSet": 39.418477,
+      "manufacturingPerSet": 22.206024,
+      "sources": {
+        "directHours": "项目评估汇总（昆山90%）!F16 / 客户报价逻辑!J2",
+        "directRate": "客户报价逻辑!J2",
+        "manufacturingHours": "项目评估汇总（昆山90%）!F23 / 客户报价逻辑!K20",
+        "manufacturingRate": "客户报价逻辑!K20"
+      },
+      "note": "程序应用值按《客户报价逻辑》的前工程费率与制造费率折算。"
+    }
+  },
+  "comparisons": {
+    "scenario": {
+      "scopeId": "scenario",
+      "scopeLabel": "程序映射",
+      "hint": "应用报价版 / 定点版后，会直接回填主页面的前工程工时、前工程费率、后工程工时、制造费率 4 个输入项。",
+      "groups": [
+        {
+          "key": "scenario.mapping",
+          "label": "程序工时映射",
+          "meta": "把核算表里的直接人工/制造费用折算为程序当前的 4 个工时参数。",
+          "aligned": [
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "snapshot.directHours",
+                "label": "前工程工时",
+                "unit": "h/套",
+                "value": 1.126242,
+                "numericValue": 1.126242,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F16/J2",
+                "source": "项目评估汇总（昆山90%）!F16/J2",
+                "formula": "",
+                "note": "按单套直接人工 / 客户报价逻辑前工程费率换算。",
+                "rawValue": "1.126242"
+              },
+              "fixed": {
+                "itemKey": "snapshot.directHours",
+                "label": "前工程工时",
+                "unit": "h/套",
+                "value": 1.126242,
+                "numericValue": 1.126242,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F16/J2",
+                "source": "项目评估汇总（昆山90%）!F16/J2",
+                "formula": "",
+                "note": "按单套直接人工 / 客户报价逻辑前工程费率换算。",
+                "rawValue": "1.126242"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "apply.directRate",
+                "label": "前工程费率",
+                "unit": "元/h",
+                "value": 35.0,
+                "numericValue": 35.0,
+                "valueType": "number",
+                "sourceSheet": "客户报价逻辑",
+                "sourceCell": "J2",
+                "source": "客户报价逻辑!J2",
+                "formula": "直接人工 (35元/H)",
+                "note": "按客户报价逻辑直接人工列头取值。",
+                "rawValue": "直接人工 (35元/H)"
+              },
+              "fixed": {
+                "itemKey": "apply.directRate",
+                "label": "前工程费率",
+                "unit": "元/h",
+                "value": 35.0,
+                "numericValue": 35.0,
+                "valueType": "number",
+                "sourceSheet": "客户报价逻辑",
+                "sourceCell": "J2",
+                "source": "客户报价逻辑!J2",
+                "formula": "直接人工 (35元/H)",
+                "note": "按客户报价逻辑直接人工列头取值。",
+                "rawValue": "直接人工 (35元/H)"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "snapshot.manufacturingHours",
+                "label": "后工程工时",
+                "unit": "h/套",
+                "value": 0.475606,
+                "numericValue": 0.475606,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F23/K20",
+                "source": "项目评估汇总（昆山90%）!F23/K20",
+                "formula": "",
+                "note": "按单套制造费用 / 客户报价逻辑制造费率换算。",
+                "rawValue": "0.475606"
+              },
+              "fixed": {
+                "itemKey": "snapshot.manufacturingHours",
+                "label": "后工程工时",
+                "unit": "h/套",
+                "value": 0.475606,
+                "numericValue": 0.475606,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F23/K20",
+                "source": "项目评估汇总（昆山90%）!F23/K20",
+                "formula": "",
+                "note": "按单套制造费用 / 客户报价逻辑制造费率换算。",
+                "rawValue": "0.475606"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "apply.manufacturingRate",
+                "label": "制造费率",
+                "unit": "元/h",
+                "value": 46.69,
+                "numericValue": 46.69,
+                "valueType": "number",
+                "sourceSheet": "客户报价逻辑",
+                "sourceCell": "K20",
+                "source": "客户报价逻辑!K20",
+                "formula": "=37.36-1.25+0.27+11.52-1.38+0.17",
+                "note": "按客户报价逻辑制造费汇总取值。",
+                "rawValue": "46.69"
+              },
+              "fixed": {
+                "itemKey": "apply.manufacturingRate",
+                "label": "制造费率",
+                "unit": "元/h",
+                "value": 46.69,
+                "numericValue": 46.69,
+                "valueType": "number",
+                "sourceSheet": "客户报价逻辑",
+                "sourceCell": "K20",
+                "source": "客户报价逻辑!K20",
+                "formula": "=37.36-1.25+0.27+11.52-1.38+0.17",
+                "note": "按客户报价逻辑制造费汇总取值。",
+                "rawValue": "46.69"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "summary.cycleSeconds",
+                "label": "回路工时(s)",
+                "unit": "s/回路",
+                "value": "#REF!",
+                "numericValue": null,
+                "valueType": "error",
+                "sourceSheet": "项目汇总",
+                "sourceCell": "E9",
+                "source": "项目汇总!E9",
+                "formula": "=E29*3600/E10",
+                "note": "报价版取第一轮报价列，定点版取客户目标/定点列。",
+                "rawValue": "#REF!"
+              },
+              "fixed": {
+                "itemKey": "summary.cycleSeconds",
+                "label": "回路工时(s)",
+                "unit": "s/回路",
+                "value": 227.794184,
+                "numericValue": 227.794184,
+                "valueType": "number",
+                "sourceSheet": "项目汇总",
+                "sourceCell": "C8",
+                "source": "项目汇总!C8",
+                "formula": "=C28*3600/C9",
+                "note": "报价版取第一轮报价列，定点版取客户目标/定点列。",
+                "rawValue": "227.794183927311"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "summary.operatingLaborRate",
+                "label": "运营成本工时费（不包含折旧）",
+                "unit": "元/h",
+                "value": 52.275345,
+                "numericValue": 52.275345,
+                "valueType": "number",
+                "sourceSheet": "项目汇总",
+                "sourceCell": "E12",
+                "source": "项目汇总!E12",
+                "formula": "52.2753446503895",
+                "note": "报价版取第一轮报价列，定点版取客户目标/定点列。",
+                "rawValue": "52.2753446503895"
+              },
+              "fixed": {
+                "itemKey": "summary.operatingLaborRate",
+                "label": "运营成本工时费（不包含折旧）",
+                "unit": "元/h",
+                "value": 45.637187,
+                "numericValue": 45.637187,
+                "valueType": "number",
+                "sourceSheet": "项目汇总",
+                "sourceCell": "C11",
+                "source": "项目汇总!C11",
+                "formula": "=(C32+C33)/C28",
+                "note": "报价版取第一轮报价列，定点版取客户目标/定点列。",
+                "rawValue": "45.6371872062705"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "summary.directLaborRate",
+                "label": "运营成本直接人工费率",
+                "unit": "元/h",
+                "value": "#REF!",
+                "numericValue": null,
+                "valueType": "error",
+                "sourceSheet": "项目汇总",
+                "sourceCell": "E13",
+                "source": "项目汇总!E13",
+                "formula": "=E33/E29",
+                "note": "报价版取第一轮报价列，定点版取客户目标/定点列。",
+                "rawValue": "#REF!"
+              },
+              "fixed": {
+                "itemKey": "summary.directLaborRate",
+                "label": "运营成本直接人工费率",
+                "unit": "元/h",
+                "value": 29.192097,
+                "numericValue": 29.192097,
+                "valueType": "number",
+                "sourceSheet": "项目汇总",
+                "sourceCell": "C12",
+                "source": "项目汇总!C12",
+                "formula": "=C32/C28",
+                "note": "报价版取第一轮报价列，定点版取客户目标/定点列。",
+                "rawValue": "29.19209672271"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "summary.manufacturingPerSet",
+                "label": "制造费用(单套) D=①+②+③+④",
+                "unit": "元/PCS",
+                "value": 22.206025,
+                "numericValue": 22.206025,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F23",
+                "source": "项目评估汇总（昆山90%）!F23",
+                "formula": "=F24+F25+F26+F27+F28+F29+F30",
+                "note": "Excel 原值 #VALUE!，按 F24:F30 汇总修复。",
+                "rawValue": "#VALUE!"
+              },
+              "fixed": {
+                "itemKey": "summary.manufacturingPerSet",
+                "label": "制造费用(单套) D=①+②+③+④",
+                "unit": "元/PCS",
+                "value": 22.206024,
+                "numericValue": 22.206024,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F23",
+                "source": "项目评估汇总（昆山90%）!F23",
+                "formula": "=F24+F25+F26+F27+F28+F29+F30",
+                "note": "",
+                "rawValue": "22.2060244225358"
+              }
+            }
+          ],
+          "summary": {
+            "quoteCount": 8,
+            "fixedCount": 8,
+            "matchedCount": 8,
+            "quoteOnlyCount": 0,
+            "fixedOnlyCount": 0,
+            "differenceCount": 4
+          }
+        }
+      ],
+      "summary": {
+        "quoteCount": 8,
+        "fixedCount": 8,
+        "matchedCount": 8,
+        "quoteOnlyCount": 0,
+        "fixedOnlyCount": 0,
+        "differenceCount": 4
+      }
+    },
+    "directLabor": {
+      "scopeId": "directLabor",
+      "scopeLabel": "直接人工",
+      "hint": "按项目评估汇总的单套直接人工及前后工程拆分，对齐报价核算与定点核算。",
+      "groups": [
+        {
+          "key": "direct.cost",
+          "label": "直接人工拆分",
+          "meta": "来源：项目评估汇总（昆山90%）",
+          "aligned": [
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "direct.total",
+                "label": "单套直接人工（元/PCS）",
+                "unit": "元/PCS",
+                "value": 39.418477,
+                "numericValue": 39.418477,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F16",
+                "source": "项目评估汇总（昆山90%）!F16",
+                "formula": "=F17+F18+F19",
+                "note": "程序工时换算基准。",
+                "rawValue": "39.4184765001779"
+              },
+              "fixed": {
+                "itemKey": "direct.total",
+                "label": "单套直接人工（元/PCS）",
+                "unit": "元/PCS",
+                "value": 39.418477,
+                "numericValue": 39.418477,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F16",
+                "source": "项目评估汇总（昆山90%）!F16",
+                "formula": "=F17+F18+F19",
+                "note": "程序工时换算基准。",
+                "rawValue": "39.4184765001779"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "direct.open_line",
+                "label": "—前工程效率-开线",
+                "unit": "元/PCS",
+                "value": 0.0,
+                "numericValue": 0.0,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F17",
+                "source": "项目评估汇总（昆山90%）!F17",
+                "formula": "=配置明细!L24*运营工时费报价基准!E8/运营工时费报价基准!$M$5",
+                "note": "工厂开线标准工时费",
+                "rawValue": "0"
+              },
+              "fixed": {
+                "itemKey": "direct.open_line",
+                "label": "—前工程效率-开线",
+                "unit": "元/PCS",
+                "value": 0.0,
+                "numericValue": 0.0,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F17",
+                "source": "项目评估汇总（昆山90%）!F17",
+                "formula": "=配置明细!L24*运营工时费报价基准!E8/运营工时费报价基准!$M$5",
+                "note": "工厂开线标准工时费",
+                "rawValue": "0"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "direct.common",
+                "label": "—前工程效率 - 公共制程",
+                "unit": "元/PCS",
+                "value": 24.832989,
+                "numericValue": 24.832989,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F18",
+                "source": "项目评估汇总（昆山90%）!F18",
+                "formula": "=配置明细!M24*运营工时费报价基准!$E$8/运营工时费报价基准!$M$5",
+                "note": "工厂公共制程标准工时费",
+                "rawValue": "24.8329888913895"
+              },
+              "fixed": {
+                "itemKey": "direct.common",
+                "label": "—前工程效率 - 公共制程",
+                "unit": "元/PCS",
+                "value": 24.832989,
+                "numericValue": 24.832989,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F18",
+                "source": "项目评估汇总（昆山90%）!F18",
+                "formula": "=配置明细!M24*运营工时费报价基准!$E$8/运营工时费报价基准!$M$5",
+                "note": "工厂公共制程标准工时费",
+                "rawValue": "24.8329888913895"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "direct.assembly",
+                "label": "—后工程 - 总装",
+                "unit": "元/PCS",
+                "value": 14.585488,
+                "numericValue": 14.585488,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F19",
+                "source": "项目评估汇总（昆山90%）!F19",
+                "formula": "=配置明细!N24*运营工时费报价基准!$E$8/运营工时费报价基准!$M$5",
+                "note": "工厂总装标准工时费",
+                "rawValue": "14.5854876087884"
+              },
+              "fixed": {
+                "itemKey": "direct.assembly",
+                "label": "—后工程 - 总装",
+                "unit": "元/PCS",
+                "value": 14.585488,
+                "numericValue": 14.585488,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F19",
+                "source": "项目评估汇总（昆山90%）!F19",
+                "formula": "=配置明细!N24*运营工时费报价基准!$E$8/运营工时费报价基准!$M$5",
+                "note": "工厂总装标准工时费",
+                "rawValue": "14.5854876087884"
+              }
+            }
+          ],
+          "summary": {
+            "quoteCount": 4,
+            "fixedCount": 4,
+            "matchedCount": 4,
+            "quoteOnlyCount": 0,
+            "fixedOnlyCount": 0,
+            "differenceCount": 0
+          }
+        }
+      ],
+      "summary": {
+        "quoteCount": 4,
+        "fixedCount": 4,
+        "matchedCount": 4,
+        "quoteOnlyCount": 0,
+        "fixedOnlyCount": 0,
+        "differenceCount": 0
+      }
+    },
+    "manufacturing": {
+      "scopeId": "manufacturing",
+      "scopeLabel": "制造费用",
+      "hint": "按项目评估汇总的制造费用拆分对齐展示；若 Excel 原值为 #VALUE!，程序按同页逻辑做可追溯修复。",
+      "groups": [
+        {
+          "key": "manufacturing.cost",
+          "label": "制造费用拆分",
+          "meta": "来源：项目评估汇总（昆山90%）",
+          "aligned": [
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "manufacturing.total",
+                "label": "制造费用(单套) D=①+②+③+④",
+                "unit": "元/PCS",
+                "value": 22.206025,
+                "numericValue": 22.206025,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F23",
+                "source": "项目评估汇总（昆山90%）!F23",
+                "formula": "=F24+F25+F26+F27+F28+F29+F30",
+                "note": "Excel 原值 #VALUE!，按 F24:F30 汇总修复。",
+                "rawValue": "#VALUE!"
+              },
+              "fixed": {
+                "itemKey": "manufacturing.total",
+                "label": "制造费用(单套) D=①+②+③+④",
+                "unit": "元/PCS",
+                "value": 22.206024,
+                "numericValue": 22.206024,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F23",
+                "source": "项目评估汇总（昆山90%）!F23",
+                "formula": "=F24+F25+F26+F27+F28+F29+F30",
+                "note": "",
+                "rawValue": "22.2060244225358"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "manufacturing.indirect",
+                "label": "—间接人工",
+                "unit": "元/PCS",
+                "value": 8.741948,
+                "numericValue": 8.741948,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F24",
+                "source": "项目评估汇总（昆山90%）!F24",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E10",
+                "note": "工厂费率",
+                "rawValue": "8.74194843685761"
+              },
+              "fixed": {
+                "itemKey": "manufacturing.indirect",
+                "label": "—间接人工",
+                "unit": "元/PCS",
+                "value": 8.741948,
+                "numericValue": 8.741948,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F24",
+                "source": "项目评估汇总（昆山90%）!F24",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E10",
+                "note": "工厂费率",
+                "rawValue": "8.74194843685761"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "manufacturing.supplies",
+                "label": "—低值易耗品",
+                "unit": "元/PCS",
+                "value": 0.688935,
+                "numericValue": 0.688935,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F25",
+                "source": "项目评估汇总（昆山90%）!F25",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E11",
+                "note": "工厂费率",
+                "rawValue": "0.688934622113995"
+              },
+              "fixed": {
+                "itemKey": "manufacturing.supplies",
+                "label": "—低值易耗品",
+                "unit": "元/PCS",
+                "value": 0.688935,
+                "numericValue": 0.688935,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F25",
+                "source": "项目评估汇总（昆山90%）!F25",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E11",
+                "note": "工厂费率",
+                "rawValue": "0.688934622113995"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "manufacturing.materials",
+                "label": "—机物料消耗",
+                "unit": "元/PCS",
+                "value": 3.247625,
+                "numericValue": 3.247625,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F26",
+                "source": "项目评估汇总（昆山90%）!F26",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E12",
+                "note": "工厂费率",
+                "rawValue": "3.24762540363108"
+              },
+              "fixed": {
+                "itemKey": "manufacturing.materials",
+                "label": "—机物料消耗",
+                "unit": "元/PCS",
+                "value": 3.247625,
+                "numericValue": 3.247625,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F26",
+                "source": "项目评估汇总（昆山90%）!F26",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E12",
+                "note": "工厂费率",
+                "rawValue": "3.24762540363108"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "manufacturing.building",
+                "label": "—厂房分摊",
+                "unit": "元/PCS",
+                "value": 5.216776,
+                "numericValue": 5.216776,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F27",
+                "source": "项目评估汇总（昆山90%）!F27",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E13",
+                "note": "工厂费率",
+                "rawValue": "5.21677591243015"
+              },
+              "fixed": {
+                "itemKey": "manufacturing.building",
+                "label": "—厂房分摊",
+                "unit": "元/PCS",
+                "value": 5.216776,
+                "numericValue": 5.216776,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F27",
+                "source": "项目评估汇总（昆山90%）!F27",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E13",
+                "note": "工厂费率",
+                "rawValue": "5.21677591243015"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "manufacturing.warehouse",
+                "label": "—自动化仓、仓库分摊",
+                "unit": "元/PCS",
+                "value": 0.32724,
+                "numericValue": 0.32724,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F28",
+                "source": "项目评估汇总（昆山90%）!F28",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E14",
+                "note": "工厂费率",
+                "rawValue": "0.327239567633685"
+              },
+              "fixed": {
+                "itemKey": "manufacturing.warehouse",
+                "label": "—自动化仓、仓库分摊",
+                "unit": "元/PCS",
+                "value": 0.32724,
+                "numericValue": 0.32724,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F28",
+                "source": "项目评估汇总（昆山90%）!F28",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E14",
+                "note": "工厂费率",
+                "rawValue": "0.327239567633685"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "manufacturing.other",
+                "label": "—其他制费",
+                "unit": "元/PCS",
+                "value": 2.256793,
+                "numericValue": 2.256793,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F29",
+                "source": "项目评估汇总（昆山90%）!F29",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E15",
+                "note": "工厂费率",
+                "rawValue": "2.25679259502233"
+              },
+              "fixed": {
+                "itemKey": "manufacturing.other",
+                "label": "—其他制费",
+                "unit": "元/PCS",
+                "value": 2.256793,
+                "numericValue": 2.256793,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F29",
+                "source": "项目评估汇总（昆山90%）!F29",
+                "formula": "=(配置明细!$L$24+配置明细!$M$24+配置明细!$N$24)*运营工时费报价基准!E15",
+                "note": "工厂费率",
+                "rawValue": "2.25679259502233"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "manufacturing.material_loss",
+                "label": "-材料损耗",
+                "unit": "元/PCS",
+                "value": 1.726708,
+                "numericValue": 1.726708,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F30",
+                "source": "项目评估汇总（昆山90%）!F30",
+                "formula": "=F15*0.5%",
+                "note": "Excel 原值 #VALUE!，按对侧核算表同逻辑行 F30 回填。；材料*0.5%",
+                "rawValue": "#VALUE!"
+              },
+              "fixed": {
+                "itemKey": "manufacturing.material_loss",
+                "label": "-材料损耗",
+                "unit": "元/PCS",
+                "value": 1.726708,
+                "numericValue": 1.726708,
+                "valueType": "number",
+                "sourceSheet": "项目评估汇总（昆山90%）",
+                "sourceCell": "F30",
+                "source": "项目评估汇总（昆山90%）!F30",
+                "formula": "=F15*0.5%",
+                "note": "材料*0.5%",
+                "rawValue": "1.72670788484695"
+              }
+            }
+          ],
+          "summary": {
+            "quoteCount": 8,
+            "fixedCount": 8,
+            "matchedCount": 8,
+            "quoteOnlyCount": 0,
+            "fixedOnlyCount": 0,
+            "differenceCount": 1
+          }
+        }
+      ],
+      "summary": {
+        "quoteCount": 8,
+        "fixedCount": 8,
+        "matchedCount": 8,
+        "quoteOnlyCount": 0,
+        "fixedOnlyCount": 0,
+        "differenceCount": 1
+      }
+    },
+    "baseline": {
+      "scopeId": "baseline",
+      "scopeLabel": "工时费基准",
+      "hint": "保留运营工时费报价基准和工厂效率的原始引用，便于追溯工时费率来源。",
+      "groups": [
+        {
+          "key": "baseline.rates",
+          "label": "工时费基准引用",
+          "meta": "来源：运营工时费报价基准 + 工厂效率",
+          "aligned": [
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "baseline.stdAssembly",
+                "label": "K3 工厂标准工时费",
+                "unit": "元/h",
+                "value": 26.272887,
+                "numericValue": 26.272887,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E8",
+                "source": "运营工时费报价基准!E8",
+                "formula": "26.272887050439",
+                "note": "项目评估汇总 F17:F19 实际引用。",
+                "rawValue": "26.272887050439"
+              },
+              "fixed": {
+                "itemKey": "baseline.stdAssembly",
+                "label": "K3 工厂标准工时费",
+                "unit": "元/h",
+                "value": 26.272887,
+                "numericValue": 26.272887,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E8",
+                "source": "运营工时费报价基准!E8",
+                "formula": "26.272887050439",
+                "note": "项目评估汇总 F17:F19 实际引用。",
+                "rawValue": "26.272887050439"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "baseline.efficiency",
+                "label": "K3 工厂效率",
+                "unit": "系数",
+                "value": 0.9,
+                "numericValue": 0.9,
+                "valueType": "number",
+                "sourceSheet": "工厂效率",
+                "sourceCell": "D17",
+                "source": "工厂效率!D17",
+                "formula": "0.9",
+                "note": "项目评估汇总按工厂效率折算。",
+                "rawValue": "0.9"
+              },
+              "fixed": {
+                "itemKey": "baseline.efficiency",
+                "label": "K3 工厂效率",
+                "unit": "系数",
+                "value": 0.9,
+                "numericValue": 0.9,
+                "valueType": "number",
+                "sourceSheet": "工厂效率",
+                "sourceCell": "D17",
+                "source": "工厂效率!D17",
+                "formula": "0.9",
+                "note": "项目评估汇总按工厂效率折算。",
+                "rawValue": "0.9"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "baseline.derivedDirectRate",
+                "label": "折算直接人工费率",
+                "unit": "元/h",
+                "value": 29.192097,
+                "numericValue": 29.192097,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E8/D17",
+                "source": "运营工时费报价基准!E8/D17",
+                "formula": "",
+                "note": "按标准工时费 / 工厂效率折算。",
+                "rawValue": "29.192097"
+              },
+              "fixed": {
+                "itemKey": "baseline.derivedDirectRate",
+                "label": "折算直接人工费率",
+                "unit": "元/h",
+                "value": 29.192097,
+                "numericValue": 29.192097,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E8/D17",
+                "source": "运营工时费报价基准!E8/D17",
+                "formula": "",
+                "note": "按标准工时费 / 工厂效率折算。",
+                "rawValue": "29.192097"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "baseline.indirect",
+                "label": "间接人工费率",
+                "unit": "元/h",
+                "value": 6.474015,
+                "numericValue": 6.474015,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E10",
+                "source": "运营工时费报价基准!E10",
+                "formula": "6.47401490294886",
+                "note": "",
+                "rawValue": "6.47401490294886"
+              },
+              "fixed": {
+                "itemKey": "baseline.indirect",
+                "label": "间接人工费率",
+                "unit": "元/h",
+                "value": 6.474015,
+                "numericValue": 6.474015,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E10",
+                "source": "运营工时费报价基准!E10",
+                "formula": "6.47401490294886",
+                "note": "",
+                "rawValue": "6.47401490294886"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "baseline.supplies",
+                "label": "低值易耗品费率",
+                "unit": "元/h",
+                "value": 0.510204,
+                "numericValue": 0.510204,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E11",
+                "source": "运营工时费报价基准!E11",
+                "formula": "0.510203536767451",
+                "note": "",
+                "rawValue": "0.510203536767451"
+              },
+              "fixed": {
+                "itemKey": "baseline.supplies",
+                "label": "低值易耗品费率",
+                "unit": "元/h",
+                "value": 0.510204,
+                "numericValue": 0.510204,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E11",
+                "source": "运营工时费报价基准!E11",
+                "formula": "0.510203536767451",
+                "note": "",
+                "rawValue": "0.510203536767451"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "baseline.materials",
+                "label": "机物料消耗费率",
+                "unit": "元/h",
+                "value": 2.40509,
+                "numericValue": 2.40509,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E12",
+                "source": "运营工时费报价基准!E12",
+                "formula": "2.40509028555431",
+                "note": "",
+                "rawValue": "2.40509028555431"
+              },
+              "fixed": {
+                "itemKey": "baseline.materials",
+                "label": "机物料消耗费率",
+                "unit": "元/h",
+                "value": 2.40509,
+                "numericValue": 2.40509,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E12",
+                "source": "运营工时费报价基准!E12",
+                "formula": "2.40509028555431",
+                "note": "",
+                "rawValue": "2.40509028555431"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "baseline.building",
+                "label": "厂房分摊费率",
+                "unit": "元/h",
+                "value": 3.863382,
+                "numericValue": 3.863382,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E13",
+                "source": "运营工时费报价基准!E13",
+                "formula": "3.86338185890258",
+                "note": "",
+                "rawValue": "3.86338185890258"
+              },
+              "fixed": {
+                "itemKey": "baseline.building",
+                "label": "厂房分摊费率",
+                "unit": "元/h",
+                "value": 3.863382,
+                "numericValue": 3.863382,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E13",
+                "source": "运营工时费报价基准!E13",
+                "formula": "3.86338185890258",
+                "note": "",
+                "rawValue": "3.86338185890258"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "baseline.warehouse",
+                "label": "自动化仓/仓库分摊费率",
+                "unit": "元/h",
+                "value": 0.242343,
+                "numericValue": 0.242343,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E14",
+                "source": "运营工时费报价基准!E14",
+                "formula": "0.242343437849944",
+                "note": "",
+                "rawValue": "0.242343437849944"
+              },
+              "fixed": {
+                "itemKey": "baseline.warehouse",
+                "label": "自动化仓/仓库分摊费率",
+                "unit": "元/h",
+                "value": 0.242343,
+                "numericValue": 0.242343,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E14",
+                "source": "运营工时费报价基准!E14",
+                "formula": "0.242343437849944",
+                "note": "",
+                "rawValue": "0.242343437849944"
+              }
+            },
+            {
+              "status": "matched",
+              "quote": {
+                "itemKey": "baseline.other",
+                "label": "其他制费费率",
+                "unit": "元/h",
+                "value": 1.67131,
+                "numericValue": 1.67131,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E15",
+                "source": "运营工时费报价基准!E15",
+                "formula": "1.67131034901083",
+                "note": "",
+                "rawValue": "1.67131034901083"
+              },
+              "fixed": {
+                "itemKey": "baseline.other",
+                "label": "其他制费费率",
+                "unit": "元/h",
+                "value": 1.67131,
+                "numericValue": 1.67131,
+                "valueType": "number",
+                "sourceSheet": "运营工时费报价基准",
+                "sourceCell": "E15",
+                "source": "运营工时费报价基准!E15",
+                "formula": "1.67131034901083",
+                "note": "",
+                "rawValue": "1.67131034901083"
+              }
+            }
+          ],
+          "summary": {
+            "quoteCount": 9,
+            "fixedCount": 9,
+            "matchedCount": 9,
+            "quoteOnlyCount": 0,
+            "fixedOnlyCount": 0,
+            "differenceCount": 0
+          }
+        }
+      ],
+      "summary": {
+        "quoteCount": 9,
+        "fixedCount": 9,
+        "matchedCount": 9,
+        "quoteOnlyCount": 0,
+        "fixedOnlyCount": 0,
+        "differenceCount": 0
+      }
+    }
+  }
+}

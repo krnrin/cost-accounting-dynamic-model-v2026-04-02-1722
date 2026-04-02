@@ -1,0 +1,27 @@
+{
+  "name": "g281-profit-dashboard",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Offline harness cost dashboard with Univer sheet editor.",
+  "scripts": {
+    "build:univer-editor": "node ./build_univer_editor.mjs"
+  },
+  "dependencies": {
+    "@univerjs/drawing": "0.18.0",
+    "@univerjs/drawing-ui": "0.18.0",
+    "@univerjs/preset-sheets-conditional-formatting": "0.18.0",
+    "@univerjs/preset-sheets-core": "0.18.0",
+    "@univerjs/preset-sheets-drawing": "0.18.0",
+    "@univerjs/preset-sheets-filter": "0.18.0",
+    "@univerjs/preset-sheets-sort": "0.18.0",
+    "@univerjs/presets": "^0.18.0",
+    "@univerjs/sheets-conditional-formatting-ui": "0.18.0",
+    "@univerjs/sheets-drawing-ui": "0.18.0",
+    "@univerjs/sheets-filter-ui": "0.18.0",
+    "@univerjs/sheets-sort-ui": "0.18.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.3"
+  }
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "A-20260324-001",
+    "title": "基准版本审批",
+    "relatedVersionId": "H-20260324-001",
+    "status": "APPROVED",
+    "owner": "项目经理",
+    "submittedAt": "2026-03-24T01:55:00+08:00",
+    "approvedAt": "2026-03-24T02:10:00+08:00",
+    "comment": "基准版本已完成定点成本核对，确认当前利润基线。"
+  },
+  {
+    "id": "A-20260324-002",
+    "title": "BOM 轻量化审批",
+    "relatedVersionId": "H-20260324-002",
+    "status": "PENDING",
+    "owner": "成本工程师",
+    "submittedAt": "2026-03-24T02:07:00+08:00",
+    "approvedAt": "",
+    "comment": "轻量化试算已提交，等待连接器协议价与工时优化联审。"
+  },
+  {
+    "id": "A-20260324-003",
+    "title": "资源爬坡评审",
+    "relatedVersionId": "H-20260324-003",
+    "status": "REVIEW",
+    "owner": "制造工程",
+    "submittedAt": "2026-03-24T02:20:00+08:00",
+    "approvedAt": "",
+    "comment": "当前处于评审中，等待工时、包装和物流联动确认。"
+  }
+]

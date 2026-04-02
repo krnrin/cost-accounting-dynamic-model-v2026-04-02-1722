@@ -1,0 +1,129 @@
+[
+  {
+    "action": "替换",
+    "part": "主高压电缆",
+    "from": "铜基标准线",
+    "to": "铝基轻量线",
+    "resource": "裁线 / 压接 / 测试",
+    "obsoleteQty": 180,
+    "obsoleteValue": 12600,
+    "equipmentDelta": 0.08,
+    "laborDelta": 0.06,
+    "packagingDelta": 0.03,
+    "configs": [
+      "CM020",
+      "CM030"
+    ],
+    "stock": "旧铜基尾料优先转用 / 分批消化",
+    "note": "铜铝切换后需要重新校准裁线余量。"
+  },
+  {
+    "action": "新增",
+    "part": "端子护套",
+    "from": "无",
+    "to": "高压密封护套",
+    "resource": "装配 / 热缩",
+    "obsoleteQty": 0,
+    "obsoleteValue": 0,
+    "equipmentDelta": 0.03,
+    "laborDelta": 0.03,
+    "packagingDelta": 0.01,
+    "configs": [
+      "CM015",
+      "CM020",
+      "CM030"
+    ],
+    "stock": "无",
+    "note": "新护套带来新增工位动作和包装保护。"
+  },
+  {
+    "action": "取消",
+    "part": "单层胶带",
+    "from": "单层胶带",
+    "to": "复合缠绕方案",
+    "resource": "缠绕机 / 返修工位",
+    "obsoleteQty": 120,
+    "obsoleteValue": 4600,
+    "equipmentDelta": -0.04,
+    "laborDelta": -0.04,
+    "packagingDelta": -0.01,
+    "configs": [
+      "CM010",
+      "CM015"
+    ],
+    "stock": "剩余胶带优先内部消耗 / 低值报废",
+    "note": "包扎方式升级后，旧胶带库存需要转呆滞。"
+  },
+  {
+    "action": "替换",
+    "part": "支架总成",
+    "from": "钢支架",
+    "to": "复合支架",
+    "resource": "扭力枪 / 夹具",
+    "obsoleteQty": 65,
+    "obsoleteValue": 5200,
+    "equipmentDelta": -0.01,
+    "laborDelta": -0.02,
+    "packagingDelta": 0,
+    "configs": [
+      "CM020"
+    ],
+    "stock": "旧件分批消化",
+    "note": "轻量化支架减重，但需要重新校验装配节拍。"
+  },
+  {
+    "action": "新增",
+    "part": "防呆标签",
+    "from": "无",
+    "to": "二维码防错标签",
+    "resource": "打印 / 贴标",
+    "obsoleteQty": 0,
+    "obsoleteValue": 0,
+    "equipmentDelta": 0.01,
+    "laborDelta": 0.02,
+    "packagingDelta": 0.02,
+    "configs": [
+      "CM010",
+      "CM015",
+      "CM020",
+      "CM030"
+    ],
+    "stock": "无",
+    "note": "标签动作直接联动配置防错。"
+  },
+  {
+    "action": "替换",
+    "part": "包装内衬",
+    "from": "EPE内衬",
+    "to": "纸浆模塑内衬",
+    "resource": "包装线 / 装箱",
+    "obsoleteQty": 240,
+    "obsoleteValue": 3100,
+    "equipmentDelta": 0,
+    "laborDelta": 0.01,
+    "packagingDelta": -0.08,
+    "configs": [
+      "CM030"
+    ],
+    "stock": "旧内衬按呆滞评估 / 退库可用",
+    "note": "包装替换优先降低物流成本。"
+  },
+  {
+    "action": "替换",
+    "part": "连接器套件",
+    "from": "样品价连接器",
+    "to": "协议价 / 批量价连接器",
+    "resource": "压接 / 插接 / 检验",
+    "obsoleteQty": 42,
+    "obsoleteValue": 2800,
+    "equipmentDelta": 0.02,
+    "laborDelta": -0.01,
+    "packagingDelta": 0,
+    "configs": [
+      "CM020",
+      "CM030"
+    ],
+    "stock": "样件转研发领用或退库",
+    "note": "连接器价格版本切换后，样件库存要独立闭环。"
+  }
+]

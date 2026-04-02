@@ -1,0 +1,185 @@
+[
+  {
+    "id": "H-20260324-001",
+    "name": "基准版本",
+    "scenarioName": "E281 基准生命周期场景",
+    "state": {
+      "bom": "freeze",
+      "connector": "batch",
+      "metal": "quote",
+      "labor": "base",
+      "equipment": "base",
+      "packaging": "base",
+      "sales": "quote",
+      "mix": "quote",
+      "vave": "none"
+    },
+    "draft": {
+      "scenarioName": "E281 基准生命周期场景",
+      "copperPrice": 69300,
+      "aluminumPrice": 18500,
+      "directHours": 1.126242,
+      "directRate": 35,
+      "manufacturingHours": 0.475606,
+      "manufacturingRate": 46.69,
+      "packInner": 5.875759,
+      "packFreight": 0,
+      "packWarehouse": 5.916875,
+      "packOther": 0.851667,
+      "bomWireDrawing": 820,
+      "bomWireEat": 35,
+      "bomWireHidden": 18,
+      "bomTapeDiameter": 8.5,
+      "bomTapeWidth": 19,
+      "bomTapeOverlap": 35,
+      "mix": [
+        10,
+        40,
+        35,
+        15
+      ],
+      "volumes": [
+        85000,
+        135000,
+        125000,
+        114000,
+        94000,
+        47000
+      ],
+      "asp": [
+        484.196845551355,
+        479.251857437304,
+        479.251857437304,
+        479.251857437304,
+        479.251857437304,
+        479.251857437304
+      ]
+    },
+    "createdAt": "2026-03-24T01:45:00+08:00",
+    "author": "system",
+    "note": "来自当前工作簿基准版本，用于定点价和利润基线。",
+    "summary": null
+  },
+  {
+    "id": "H-20260324-002",
+    "name": "轻量化试算版",
+    "scenarioName": "E281 轻量化试算场景",
+    "state": {
+      "bom": "light",
+      "connector": "protocol",
+      "metal": "fixed",
+      "labor": "optimize",
+      "equipment": "shared",
+      "packaging": "optimize",
+      "sales": "fixed",
+      "mix": "fixed",
+      "vave": "normal"
+    },
+    "draft": {
+      "scenarioName": "E281 轻量化试算场景",
+      "copperPrice": 68400,
+      "aluminumPrice": 18200,
+      "directHours": 1.126242,
+      "directRate": 35,
+      "manufacturingHours": 0.475606,
+      "manufacturingRate": 46.69,
+      "packInner": 5.875759,
+      "packFreight": 0,
+      "packWarehouse": 5.916875,
+      "packOther": 0.851667,
+      "bomWireDrawing": 792,
+      "bomWireEat": 31,
+      "bomWireHidden": 15,
+      "bomTapeDiameter": 8.1,
+      "bomTapeWidth": 19,
+      "bomTapeOverlap": 32,
+      "mix": [
+        12,
+        42,
+        33,
+        13
+      ],
+      "volumes": [
+        90000,
+        142000,
+        132000,
+        120000,
+        98000,
+        51000
+      ],
+      "asp": [
+        484.196845551355,
+        479.251857437304,
+        479.251857437304,
+        479.251857437304,
+        479.251857437304,
+        479.251857437304
+      ]
+    },
+    "createdAt": "2026-03-24T02:05:00+08:00",
+    "author": "system",
+    "note": "用于验证 BOM 轻量化、连接器协议价和工时优化组合。",
+    "summary": null
+  },
+  {
+    "id": "H-20260324-003",
+    "name": "资源爬坡压力版",
+    "scenarioName": "E281 资源爬坡压力场景",
+    "state": {
+      "bom": "regress",
+      "connector": "sample",
+      "metal": "tt",
+      "labor": "ramp",
+      "equipment": "dedicated",
+      "packaging": "longhaul",
+      "sales": "tt",
+      "mix": "tt",
+      "vave": "aggressive"
+    },
+    "draft": {
+      "scenarioName": "E281 资源爬坡压力场景",
+      "copperPrice": 72800,
+      "aluminumPrice": 19250,
+      "directHours": 1.21,
+      "directRate": 36.5,
+      "manufacturingHours": 0.54,
+      "manufacturingRate": 49,
+      "packInner": 3.38,
+      "packFreight": 4.85,
+      "packWarehouse": 3.2,
+      "packOther": 2.86,
+      "bomWireDrawing": 835,
+      "bomWireEat": 38,
+      "bomWireHidden": 22,
+      "bomTapeDiameter": 9.1,
+      "bomTapeWidth": 19,
+      "bomTapeOverlap": 40,
+      "mix": [
+        8,
+        35,
+        37,
+        20
+      ],
+      "volumes": [
+        72000,
+        110000,
+        118000,
+        109000,
+        90000,
+        43000
+      ],
+      "asp": [
+        484.196845551355,
+        479.251857437304,
+        479.251857437304,
+        479.251857437304,
+        479.251857437304,
+        479.251857437304
+      ]
+    },
+    "createdAt": "2026-03-24T02:18:00+08:00",
+    "author": "system",
+    "note": "用于模拟试制、爬坡和远途物流带来的成本压力。",
+    "summary": null
+  }
+]

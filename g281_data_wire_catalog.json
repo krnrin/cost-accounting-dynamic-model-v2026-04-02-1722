@@ -1,0 +1,1262 @@
+{
+  "meta": {
+    "generator": "g281_generate_wire_catalog.py",
+    "generatedAt": "2026-03-26T21:50:14+08:00",
+    "quoteWorkbook": "吉利E281报价核算_导线联动_V02-2026.03.26.xlsx",
+    "fixedWorkbook": "吉利E281定点核算_导线联动_V02-2026.03.26.xlsx",
+    "ttWorkbook": "G281 TT_实际开线长度已回填.xlsx",
+    "quoteSourceWorkbook": "吉利E281报价核算.xlsx",
+    "fixedSourceWorkbook": "吉利E281定点核算.xlsx",
+    "ttSourceWorkbook": "G281 TT_实际开线长度已回填.xlsx",
+    "sheetUnitPriceRule": "导线基准单价 = 铝重*铝价/1000 + 铜重*铜价/1000 + 非铜/1000（导线价格表按元/kg）",
+    "runtimeUnitPriceRule": "导线当前单价 = 铝重*当前铝价/1000000 + 铜重*当前铜价/1000000 + 非铜/1000（页面金属价按元/吨）",
+    "usageFallbackOrder": {
+      "tt": [
+        "tt"
+      ],
+      "fixed": [
+        "fixed"
+      ],
+      "quote": [
+        "quote"
+      ]
+    }
+  },
+  "basePrices": {
+    "quote": {
+      "aluminum": 18.91,
+      "copper": 76.45
+    },
+    "fixed": {
+      "aluminum": 18.91,
+      "copper": 76.45
+    },
+    "tt": {
+      "aluminum": 19250.0,
+      "copper": 72800.0
+    }
+  },
+  "runtimeMetalVersions": {
+    "quote": {
+      "aluminum": 18500.0,
+      "copper": 69300.0
+    },
+    "fixed": {
+      "aluminum": 18200.0,
+      "copper": 68400.0
+    },
+    "tt": {
+      "aluminum": 19250.0,
+      "copper": 72800.0
+    }
+  },
+  "summary": {
+    "modelCount": 26,
+    "usageQtyQuote": 63.36,
+    "usageQtyFixed": 63.36,
+    "usageQtyTt": 61.93,
+    "totalAluminumWeight": 740.396,
+    "totalCopperWeight": 217.52,
+    "totalNonCopper": 35747.97,
+    "aluminumFamilyCount": 3,
+    "copperFamilyCount": 18,
+    "mixedFamilyCount": 5,
+    "inferredModelCount": 2
+  },
+  "models": [
+    {
+      "code": "FHLALR2GCCAATB2G/50.0/橙",
+      "name": "50mm²屏蔽镀锡铜包铝硅胶铝导线",
+      "unit": "M",
+      "supplier": "太平洋/鑫宏业",
+      "sap": "/",
+      "remark": "鑫宏业",
+      "owner": "郑锦清",
+      "currency": "CNY",
+      "priceType": "批量价",
+      "familyKey": "FHLALR2GCCAATB2G",
+      "section": 50.0,
+      "materialFamily": "铜铝混合",
+      "relationLabel": "铝基+铜基+非铜",
+      "weights": {
+        "aluminum": 155.48,
+        "copper": 14.65,
+        "nonCopper": 8833.65
+      },
+      "weightSource": {
+        "method": "exact_code",
+        "label": "原表",
+        "note": "沿用报价/定点导线模板。",
+        "templateCode": "FHLALR2GCCAATB2G/50.0/橙",
+        "templateName": "50mm²屏蔽镀锡铜包铝硅胶铝导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": 7.21,
+        "fixed": 7.21,
+        "tt": null
+      },
+      "baseUnitPrice": {
+        "quote": 12.893769,
+        "fixed": 12.893769,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [
+          6
+        ],
+        "fixed": [
+          6
+        ],
+        "tt": []
+      }
+    },
+    {
+      "code": "FHLALR91XCCAATB91X/4.0/橙",
+      "name": "4.0mm²屏蔽镀锡铜包铝交联铝导线",
+      "unit": "M",
+      "supplier": "太平洋/鑫宏业",
+      "sap": "/",
+      "remark": "鑫宏业",
+      "owner": "郑锦清",
+      "currency": "CNY",
+      "priceType": "批量价",
+      "familyKey": "FHLALR91XCCAATB91X",
+      "section": 4.0,
+      "materialFamily": "铜铝混合",
+      "relationLabel": "铝基+铜基+非铜",
+      "weights": {
+        "aluminum": 17.64,
+        "copper": 4.79,
+        "nonCopper": 1438.88
+      },
+      "weightSource": {
+        "method": "exact_code",
+        "label": "原表",
+        "note": "沿用报价/定点导线模板。",
+        "templateCode": "FHLALR91XCCAATB91X/4.0/橙",
+        "templateName": "4.0mm²屏蔽镀锡铜包铝交联铝导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": 7.99,
+        "fixed": 7.99,
+        "tt": null
+      },
+      "baseUnitPrice": {
+        "quote": 2.138648,
+        "fixed": 2.138648,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [
+          25
+        ],
+        "fixed": [
+          25
+        ],
+        "tt": []
+      }
+    },
+    {
+      "code": "FHLALR2G/120.0/橙",
+      "name": "120mm²单芯非屏蔽铝导线",
+      "unit": "M",
+      "supplier": "太平洋/鑫宏业/斯普乐 / 鑫宏业",
+      "sap": "A01101891",
+      "remark": "太平洋 / ★",
+      "owner": "郑锦清",
+      "currency": "CNY",
+      "priceType": "批量价 / TT 导入",
+      "familyKey": "FHLALR2G",
+      "section": 120.0,
+      "materialFamily": "铝基",
+      "relationLabel": "铝基+非铜",
+      "weights": {
+        "aluminum": 327.7,
+        "copper": 0.0,
+        "nonCopper": 10360.0
+      },
+      "weightSource": {
+        "method": "exact_code",
+        "label": "原表",
+        "note": "沿用报价/定点导线模板。",
+        "templateCode": "FHLALR2G/120.0/橙",
+        "templateName": "120mm²单芯非屏蔽铝导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": 8.44,
+        "fixed": 8.44,
+        "tt": 8.44
+      },
+      "baseUnitPrice": {
+        "quote": 16.556807,
+        "fixed": 16.556807,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [
+          70
+        ],
+        "fixed": [
+          70
+        ],
+        "tt": [
+          156
+        ]
+      }
+    },
+    {
+      "code": "FHLALR91X/6.0/橙",
+      "name": "6mm²单芯非屏蔽铝导线",
+      "unit": "M",
+      "supplier": "鑫宏业/斯普乐",
+      "sap": "/",
+      "remark": "鑫宏业",
+      "owner": "郑锦清",
+      "currency": "CNY",
+      "priceType": "批量价",
+      "familyKey": "FHLALR91X",
+      "section": 6.0,
+      "materialFamily": "铝基",
+      "relationLabel": "铝基+非铜",
+      "weights": {
+        "aluminum": 17.68,
+        "copper": 0.0,
+        "nonCopper": 755.77
+      },
+      "weightSource": {
+        "method": "exact_code",
+        "label": "原表",
+        "note": "沿用报价/定点导线模板。",
+        "templateCode": "FHLALR91X/6.0/橙",
+        "templateName": "6mm²单芯非屏蔽铝导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": 8.58,
+        "fixed": 8.58,
+        "tt": null
+      },
+      "baseUnitPrice": {
+        "quote": 1.090099,
+        "fixed": 1.090099,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [
+          71
+        ],
+        "fixed": [
+          71
+        ],
+        "tt": []
+      }
+    },
+    {
+      "code": "FHL91X/6.0/黄绿",
+      "name": "6mm²单芯铜导线",
+      "unit": "M",
+      "supplier": "鑫宏业/斯普乐 / 鑫宏业",
+      "sap": "A01101944 / A01102926",
+      "remark": "鑫宏业 / ★",
+      "owner": "郑锦清",
+      "currency": "CNY",
+      "priceType": "批量价 / TT 导入",
+      "familyKey": "FHL91X",
+      "section": 6.0,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 55.81,
+        "nonCopper": 450.0
+      },
+      "weightSource": {
+        "method": "exact_code",
+        "label": "原表",
+        "note": "沿用报价/定点导线模板。",
+        "templateCode": "FHL91X/6.0/黄绿",
+        "templateName": "6mm²单芯铜导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": 0.69,
+        "fixed": 0.69,
+        "tt": 0.78
+      },
+      "baseUnitPrice": {
+        "quote": 4.716674,
+        "fixed": 4.716674,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [
+          72
+        ],
+        "fixed": [
+          72
+        ],
+        "tt": [
+          158
+        ]
+      }
+    },
+    {
+      "code": "FHL91X/5.0/黄绿",
+      "name": "5mm²单芯铜导线",
+      "unit": "M",
+      "supplier": "鑫宏业/斯普乐 / 鑫宏业",
+      "sap": "/ / A01103405",
+      "remark": "鑫宏业 / ★",
+      "owner": "郑锦清",
+      "currency": "CNY",
+      "priceType": "批量价 / TT 导入",
+      "familyKey": "FHL91X",
+      "section": 5.0,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 47.9,
+        "nonCopper": 562.8
+      },
+      "weightSource": {
+        "method": "exact_code",
+        "label": "原表",
+        "note": "沿用报价/定点导线模板。",
+        "templateCode": "FHL91X/5.0/黄绿",
+        "templateName": "5mm²单芯铜导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": 0.75,
+        "fixed": 0.75,
+        "tt": 0.75
+      },
+      "baseUnitPrice": {
+        "quote": 4.224755,
+        "fixed": 4.224755,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [
+          73
+        ],
+        "fixed": [
+          73
+        ],
+        "tt": [
+          159
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/黑",
+      "name": "低压导线 / 0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011796",
+      "remark": "福斯 / ★",
+      "owner": "郑锦清",
+      "currency": "CNY",
+      "priceType": "批量价 / TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "exact_code",
+        "label": "原表",
+        "note": "沿用报价/定点导线模板。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": 29.7,
+        "fixed": 29.7,
+        "tt": 3.0
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [
+          74
+        ],
+        "fixed": [
+          74
+        ],
+        "tt": [
+          164
+        ]
+      }
+    },
+    {
+      "code": "FHLALR2GCCAATB2G/35.0/橙",
+      "name": "35mm²屏蔽镀锡铜包铝硅胶铝导线",
+      "unit": "M",
+      "supplier": "太平洋",
+      "sap": "A01103420",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FHLALR2GCCAATB2G",
+      "section": 35.0,
+      "materialFamily": "铜铝混合",
+      "relationLabel": "铝基+铜基+非铜",
+      "weights": {
+        "aluminum": 108.836,
+        "copper": 10.255,
+        "nonCopper": 6183.555
+      },
+      "weightSource": {
+        "method": "scaled_family",
+        "label": "同家族推算",
+        "note": "TT 专有规格，按 FHLALR2GCCAATB2G/50.0/橙 同家族模板 × 0.7000 推算。",
+        "templateCode": "FHLALR2GCCAATB2G/50.0/橙",
+        "templateName": "50mm²屏蔽镀锡铜包铝硅胶铝导线",
+        "ratio": 0.7,
+        "inferred": true
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 4.98
+      },
+      "baseUnitPrice": {
+        "quote": 9.025639,
+        "fixed": 9.025639,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          19
+        ]
+      }
+    },
+    {
+      "code": "FHLR2GCCAATB2G/25.0/橙",
+      "name": "25mm²屏蔽镀锡铜包铝硅胶铜导线",
+      "unit": "M",
+      "supplier": "鑫宏业",
+      "sap": "A01103233",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FHLR2GCCAATB2G",
+      "section": 25.0,
+      "materialFamily": "铜铝混合",
+      "relationLabel": "铝基+铜基+非铜",
+      "weights": {
+        "aluminum": 77.74,
+        "copper": 7.325,
+        "nonCopper": 4416.825
+      },
+      "weightSource": {
+        "method": "scaled_surrogate",
+        "label": "同类推算",
+        "note": "TT 专有规格，按 FHLALR2GCCAATB2G/50.0/橙 同结构近似模板 × 0.5000 推算。",
+        "templateCode": "FHLALR2GCCAATB2G/50.0/橙",
+        "templateName": "50mm²屏蔽镀锡铜包铝硅胶铝导线",
+        "ratio": 0.5,
+        "inferred": true
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 2.43
+      },
+      "baseUnitPrice": {
+        "quote": 6.446885,
+        "fixed": 6.446885,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          46
+        ]
+      }
+    },
+    {
+      "code": "FHLALR91XCCAATB91X/4.0/橙/AL8",
+      "name": "4.0mm²屏蔽镀锡铜包铝交联铝导线",
+      "unit": "M",
+      "supplier": "鑫宏业",
+      "sap": "A01103226",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FHLALR91XCCAATB91X",
+      "section": 4.0,
+      "materialFamily": "铜铝混合",
+      "relationLabel": "铝基+铜基+非铜",
+      "weights": {
+        "aluminum": 17.64,
+        "copper": 4.79,
+        "nonCopper": 1438.88
+      },
+      "weightSource": {
+        "method": "normalized_code",
+        "label": "规格映射",
+        "note": "按去后缀后的同型号模板映射。",
+        "templateCode": "FHLALR91XCCAATB91X/4.0/橙",
+        "templateName": "4.0mm²屏蔽镀锡铜包铝交联铝导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 8.82
+      },
+      "baseUnitPrice": {
+        "quote": 2.138648,
+        "fixed": 2.138648,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          72
+        ]
+      }
+    },
+    {
+      "code": "FHLAL91X/6.0/橙/AL8",
+      "name": "6mm²单芯非屏蔽铝导线",
+      "unit": "M",
+      "supplier": "鑫宏业",
+      "sap": "A01103404",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FHLAL91X",
+      "section": 6.0,
+      "materialFamily": "铝基",
+      "relationLabel": "铝基+非铜",
+      "weights": {
+        "aluminum": 17.68,
+        "copper": 0.0,
+        "nonCopper": 755.77
+      },
+      "weightSource": {
+        "method": "name_match",
+        "label": "名称映射",
+        "note": "按相同导线名称模板映射。",
+        "templateCode": "FHLALR91X/6.0/橙",
+        "templateName": "6mm²单芯非屏蔽铝导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 8.58
+      },
+      "baseUnitPrice": {
+        "quote": 1.090099,
+        "fixed": 1.090099,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          157
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/棕兰",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011830",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.68
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          160
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/棕",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011832",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.53
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          161
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/兰黄",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011805",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.53
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          162
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/红",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011755",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.53
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          163
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/兰",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011808",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.53
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          165
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/黄黑",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011774",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.68
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          166
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/白",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011749",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.68
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          167
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/黄",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011771",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.68
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          168
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/黑白",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011792",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.68
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          169
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/黄白",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011769",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.68
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          170
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/红白",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011754",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.68
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          171
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/绿白",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011780",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.68
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          172
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/绿黑",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011786",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.53
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          173
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/粉",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01000221",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.53
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          174
+        ]
+      }
+    },
+    {
+      "code": "FLRY-B/0.5/紫白",
+      "name": "0.5低压导线",
+      "unit": "M",
+      "supplier": "福斯",
+      "sap": "A01011813",
+      "remark": "★",
+      "owner": "",
+      "currency": "CNY",
+      "priceType": "TT 导入",
+      "familyKey": "FLRY-B/0.5",
+      "section": 0.5,
+      "materialFamily": "铜基",
+      "relationLabel": "铜基+非铜",
+      "weights": {
+        "aluminum": 0.0,
+        "copper": 4.5,
+        "nonCopper": 34.49
+      },
+      "weightSource": {
+        "method": "family_section",
+        "label": "家族映射",
+        "note": "按相同家族与规格模板映射。",
+        "templateCode": "FLRY-B/0.5/黑",
+        "templateName": "低压导线",
+        "inferred": false
+      },
+      "usage": {
+        "quote": null,
+        "fixed": null,
+        "tt": 1.53
+      },
+      "baseUnitPrice": {
+        "quote": 0.378515,
+        "fixed": 0.378515,
+        "tt": null
+      },
+      "sourceRows": {
+        "quote": [],
+        "fixed": [],
+        "tt": [
+          175
+        ]
+      }
+    }
+  ]
+}
