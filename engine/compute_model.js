@@ -186,12 +186,12 @@
     const rate = Math.max(0, numberOr(annualRate, 0));
     return safeArray(years).map((year, index) => {
       if (index === 0 || rate <= 0) {
-        return { year, rate: 0, note: index === 0 ? '????' : '' };
+        return { year, rate: 0, note: index === 0 ? '基准年' : '' };
       }
       const prevFactor = Math.max(0, 1 - rate * (index - 1));
       const nextFactor = Math.max(0, 1 - rate * index);
       const derivedRate = prevFactor > 0 ? Math.max(0, 1 - (nextFactor / prevFactor)) : 0;
-      return { year, rate: derivedRate, note: '????????' };
+      return { year, rate: derivedRate, note: '由整体年降率换算' };
     });
   }
 
@@ -211,7 +211,7 @@
     }
     let factor = 1;
     const yearRows = safeArray(years).map((year, index) => {
-      const fallback = { year, rate: 0, note: index === 0 ? '????' : '' };
+      const fallback = { year, rate: 0, note: index === 0 ? '基准年' : '' };
       const baseRow = rowMap.get(year) || fallback;
       const rate = index === 0 ? 0 : Math.max(0, numberOr(baseRow.rate, 0));
       factor = index === 0 ? 1 : Math.max(0, factor * (1 - rate));
@@ -219,7 +219,7 @@
         year,
         rate,
         factor,
-        note: baseRow.note || (index === 0 ? '????' : ''),
+        note: baseRow.note || (index === 0 ? '基准年' : ''),
       };
     });
     const annualRate = yearRows.find((row, index) => index > 0 && numberOr(row.rate, 0) > 0)?.rate
@@ -239,9 +239,9 @@
       const amount = Math.max(0, numberOr(entry && entry.amount, 0));
       if (!amount) return acc;
       const modeText = String(entry && entry.mode ? entry.mode : '').toLowerCase();
-      const mode = modeText.includes('direct') || String(entry && entry.mode ? entry.mode : '').includes('??') ? 'direct' : 'allocate';
+      const mode = modeText.includes('direct') || String(entry && entry.mode ? entry.mode : '').includes('直接') ? 'direct' : 'allocate';
       acc.push({
-        category: entry && entry.category ? String(entry.category) : `??${index + 1}`,
+        category: entry && entry.category ? String(entry.category) : `一次性${index + 1}`,
         mode,
         amount,
         recognitionYear: normalizeLifecycleYear(entry && entry.recognitionYear, firstYear),
@@ -261,7 +261,7 @@
       recognitionYear: firstYear,
       allocationStartYear: firstYear,
       allocationVolume: lifecycleVolume,
-      note: '?????????',
+      note: '一次性客户收入',
     }];
   }
 
@@ -340,7 +340,7 @@
         rowMap.set(year, {
           year,
           amountTotal: Math.max(0, numberOr(volumes[index], 0)) * amountPerSet,
-          note: amountPerSet > 0 ? '??????' : '',
+          note: amountPerSet > 0 ? '返利' : '',
         });
       });
     }
@@ -607,6 +607,26 @@
       };
     });
 
+    // --- Issue #1: 进度价 = 协议价差距追踪 ---
+    let progressPriceGap = 0;
+    let progressPriceDetail = null;
+    const progressTracker = global.G281ProgressPriceTracker;
+    if (progressTracker) {
+      const progressItems = connectorItems.map(item => ({
+        partNo: item.partNo,
+        agreedPrice: item.agreedPrice || item.protocolPrice || 0,
+        batchPrice: item.batchPrice || item.currentPrice || 0,
+        quotePrice: item.quotePrice || 0,
+        quantity: item.lifecycleQty || item.qty || 0,
+        supplier: item.supplier || '',
+        harnessId: item.harnessId || '',
+        category: item.category || 'connector',
+      }));
+      const progressResult = progressTracker.trackBatch(progressItems);
+      progressPriceGap = progressResult.summary.netGap;
+      progressPriceDetail = progressResult;
+    }
+
     return {
       items: connectorItems,
       pricing,
@@ -617,6 +637,8 @@
       overrideCount,
       followCount,
       stageCounts,
+      progressPriceGap,
+      progressPriceDetail,
     };
   }
 
@@ -709,23 +731,6 @@
     };
   }
 
-  function numberOr(value, fallback) {
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : fallback;
-  }
-
-  function approxEqual(left, right, tolerance) {
-    const nextTolerance = Number.isFinite(Number(tolerance)) ? Number(tolerance) : 1e-6;
-    return Math.abs(numberOr(left, 0) - numberOr(right, 0)) <= nextTolerance;
-  }
-
-  function arrayApproxEqual(left, right, tolerance) {
-    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
-      return false;
-    }
-    return left.every((value, index) => approxEqual(value, right[index], tolerance));
-  }
-
   function lifecycleVersionKey(stateSnapshot) {
     const maps = {
       bom: { freeze: 'quote', light: 'fixed', regress: 'tt' },
@@ -816,17 +821,17 @@
       return null;
     }
 
-    if (!arrayApproxEqual(draft && draft.volumes, financial.volumes || [], 1e-6)) {
+    if (!arraysClose(draft && draft.volumes, financial.volumes || [], 1e-6)) {
       return null;
     }
-    if (!arrayApproxEqual(draft && draft.asp, financial.asp || [], 1e-6)) {
+    if (!arraysClose(draft && draft.asp, financial.asp || [], 1e-6)) {
       return null;
     }
 
     const metalBaseline = lifecycleMetalBaseline(base, lifecycleKey);
     if (!approxEqual(draft && draft.copperPrice, metalBaseline.copperPrice, 1e-6)) return null;
     if (!approxEqual(draft && draft.aluminumPrice, metalBaseline.aluminumPrice, 1e-6)) return null;
-    if (!arrayApproxEqual(draft && draft.mix, lifecycleMixBaseline(base, lifecycleKey), 1e-6)) return null;
+    if (!arraysClose(draft && draft.mix, lifecycleMixBaseline(base, lifecycleKey), 1e-6)) return null;
 
     const laborSnapshot = lifecycleLaborSnapshot(runtime, lifecycleKey);
     if (laborSnapshot) {
@@ -1016,8 +1021,8 @@
       ),
       currentMix: options.draft.mix,
       stateSnapshot: { ...options.currentState },
-      dataLayer: 'JSON 鏁版嵁灞?+ financialVersions',
-      engineLayer: '璁＄畻寮曟搸',
+      dataLayer: 'JSON 数据层 + financialVersions',
+      engineLayer: '计算引擎 (financial exact)',
       exactFinancialVersionKey: options.exactFinancial.key,
     };
   }
@@ -1025,19 +1030,25 @@
   function computeModel(runtime, draft, state) {
     const BASE = runtime.master;
     const bomChanges = runtime.bomChanges || [];
+    // Issue #4: 从 projectConfig 读取状态默认值
+    const sd = (root.ConfigBridge && root.ConfigBridge.stateDefaults)
+      ? root.ConfigBridge.stateDefaults()
+      : { bom: 'freeze', metal: 'quote', connector: 'quote', labor: 'base',
+          equipment: 'base', packaging: 'base', sales: 'quote', mix: 'quote',
+          annualDrop: 'quote', oneTimeCustomer: 'quote', rebate: 'quote', vave: 'none' };
     const currentState = {
-      bom: state && state.bom ? state.bom : 'freeze',
-      metal: state && state.metal ? state.metal : 'quote',
-      connector: state && state.connector && BASE.versions.connector[state.connector] ? state.connector : 'quote',
-      labor: state && state.labor ? state.labor : 'base',
-      equipment: state && state.equipment ? state.equipment : 'base',
-      packaging: state && state.packaging ? state.packaging : 'base',
-      sales: state && state.sales ? state.sales : 'quote',
-      mix: state && state.mix ? state.mix : 'quote',
-      annualDrop: state && state.annualDrop ? state.annualDrop : 'quote',
-      oneTimeCustomer: state && state.oneTimeCustomer ? state.oneTimeCustomer : 'quote',
-      rebate: state && state.rebate ? state.rebate : 'quote',
-      vave: state && state.vave ? state.vave : 'none',
+      bom: state && state.bom ? state.bom : sd.bom,
+      metal: state && state.metal ? state.metal : sd.metal,
+      connector: state && state.connector && BASE.versions.connector[state.connector] ? state.connector : sd.connector,
+      labor: state && state.labor ? state.labor : sd.labor,
+      equipment: state && state.equipment ? state.equipment : sd.equipment,
+      packaging: state && state.packaging ? state.packaging : sd.packaging,
+      sales: state && state.sales ? state.sales : sd.sales,
+      mix: state && state.mix ? state.mix : sd.mix,
+      annualDrop: state && state.annualDrop ? state.annualDrop : sd.annualDrop,
+      oneTimeCustomer: state && state.oneTimeCustomer ? state.oneTimeCustomer : sd.oneTimeCustomer,
+      rebate: state && state.rebate ? state.rebate : sd.rebate,
+      vave: state && state.vave ? state.vave : sd.vave,
     };
 
     const d = {
@@ -1106,8 +1117,12 @@
 
     const mixPrice = weighted(d.mix, BASE.priceMixIndexes) / weighted(BASE.baselineMix, BASE.priceMixIndexes);
     const mixCost = weighted(d.mix, BASE.costMixIndexes) / weighted(BASE.baselineMix, BASE.costMixIndexes);
-    const copperFactor = 1 + ((d.copperPrice - BASE.copperPrice) / BASE.copperPrice) * 0.65;
-    const aluminumFactor = 1 + ((d.aluminumPrice - BASE.aluminumPrice) / BASE.aluminumPrice) * 0.45;
+    // Issue #4: 从 projectConfig 读取金属价格敏感度
+    const ms = (root.ConfigBridge && root.ConfigBridge.metalSensitivity)
+      ? root.ConfigBridge.metalSensitivity()
+      : { copper: 0.65, aluminum: 0.45 };
+    const copperFactor = 1 + ((d.copperPrice - BASE.copperPrice) / BASE.copperPrice) * ms.copper;
+    const aluminumFactor = 1 + ((d.aluminumPrice - BASE.aluminumPrice) / BASE.aluminumPrice) * ms.aluminum;
     const connectorFactor = connectorScenario.factor || conn.factor;
     const laborBaselinePerSet = quoteLaborSnapshot
       ? (Number(quoteLaborSnapshot.directLaborPerSet) || 0) + (Number(quoteLaborSnapshot.manufacturingPerSet) || 0)
@@ -1186,7 +1201,16 @@
       });
     }
 
-    const matBase = quoteBase.materialPerSet * (0.24 * connectorFactor + 0.38 * copperFactor + 0.18 * aluminumFactor + 0.20);
+    // Issue #4: 从 projectConfig 读取材料成本组成系数
+    const mc = (root.ConfigBridge && root.ConfigBridge.materialComposition)
+      ? root.ConfigBridge.materialComposition()
+      : { connector: 0.24, copper: 0.38, aluminum: 0.18, other: 0.20 };
+    const matBase = quoteBase.materialPerSet * (
+      mc.connector * connectorFactor +
+      mc.copper * copperFactor +
+      mc.aluminum * aluminumFactor +
+      mc.other
+    );
     const material = matBase * bom.factor;
     const rnd = quoteBase.rndPerSet;
     const operating = (material + directLabor + manufacturing + packaging) * mixCost + equipment + rnd - vave.savings;
@@ -1194,9 +1218,9 @@
     const annual = lifecycleYearSeries.map((year, index) => {
       const volume = lifecycleVolumeSeries[index];
       const aspBase = d.asp[index] * mixPrice;
-      const annualDropFactor = numberOr(annualDrop.yearRows[index] && annualDrop.yearRows[index].factor, 1);
-      const rebatePerSet = numberOr(rebate.yearRows[index] && rebate.yearRows[index].amountPerSet, 0);
-      const oneTimeRevenue = numberOr(oneTimeCustomer.revenueByYear && oneTimeCustomer.revenueByYear[index], 0);
+      const annualDropFactor = numberOr(annualDrop.yearRows?.[index]?.factor, 1);
+      const rebatePerSet = numberOr(rebate.yearRows?.[index]?.amountPerSet, 0);
+      const oneTimeRevenue = numberOr(oneTimeCustomer.revenueByYear?.[index], 0);
       const asp = Math.max(0, aspBase * annualDropFactor - rebatePerSet);
       const revenue = volume * asp + oneTimeRevenue;
       const cost = volume * operating;
@@ -1461,6 +1485,11 @@
       result.harnessProfit = null;
       result.financialContext.warnings.push(`线束利润拆解生成失败：${error && error.message ? error.message : String(error)}`);
     }
+
+    // Issue #4: 计算路径标记
+    result.computationPath = root.ComputationPath
+      ? root.ComputationPath.detect(result)
+      : { path: 'unknown', label: '未知' };
 
     return result;
   }

@@ -179,6 +179,10 @@
     }
 
     const factors = Array.isArray(options?.factors) && options.factors.length ? options.factors : FACTOR_DEFS;
+    const dimension = factors.length;
+    if (dimension > 15) {
+      throw new Error(`Shapley: factor count ${dimension} exceeds maximum 15 (would require ${2 ** dimension} evaluations).`);
+    }
     const scenarios = normalizeScenarios(
       runtime,
       options?.draft || {},
@@ -196,7 +200,7 @@
       scenarioDraft: scenarios.scenarioDraft,
     };
 
-    const dimension = factors.length;
+      // dimension already declared above
     const maxMask = (1 << dimension) - 1;
     const factorials = factorialTable(dimension);
     const cache = new Map();

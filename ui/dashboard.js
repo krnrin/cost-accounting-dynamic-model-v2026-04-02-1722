@@ -218,7 +218,6 @@ function ensureDashboardUiScaffold() {
     }
   }
 
-  versionPanel?.querySelector('h2')?.replaceChildren('成本要素版本管理');
 
   const versionTimelineTrigger = versionPanel?.querySelector('h2');
   if (versionTimelineTrigger) {
@@ -316,8 +315,8 @@ function ensureDashboardUiScaffold() {
       timelineStrip.innerHTML = `
         <div class="hero-block-head timeline-strip-head">
           <div>
-            <h3>鐗堟湰鍙戝竷鏃堕棿绾?</h3>
-            <p class="section-note">灞曠ず鍚勬垚鏈绱犵増鏈殑鍙戝竷鏃堕棿銆佹渶杩戞洿鏂板拰褰撳墠鐢熸晥鐗堟湰銆?/p>
+            <h3>版本发布时间线</h3>
+            <p class="section-note">展示各成本要素版本的发布时间、最近更新时间和当前生效版本。</p>
           </div>
           <div id="timelineScenarioTagsWrap" class="hero-badges"></div>
         </div>
@@ -334,8 +333,6 @@ function ensureDashboardUiScaffold() {
       timelineNote.textContent = '展示各成本要素版本的发布时间、最近更新时间和当前生效版本。';
     }
 
-    timelineTitle?.replaceChildren('版本发布时间线');
-    timelineNote?.replaceChildren('显示各成本要素版本的发布时间、最近更新时间和当前生效版本。');
 
     let timelineDrawer = document.getElementById('versionTimelineDrawer');
     if (!timelineDrawer) {
@@ -636,14 +633,7 @@ if (initialFactoryClose) {
   initialFactoryClose.textContent = '关闭';
 }
 
-initialCapitalButton?.replaceChildren('资源投入管理');
-initialCapitalTitle?.replaceChildren('资源投入管理');
-initialFactoryButton?.replaceChildren('工厂效率 / 运营费率');
-initialExportBomButton?.replaceChildren('导出原生BOM');
 initialLogicTrigger?.setAttribute('aria-label', '打开动态利润引擎逻辑说明');
-initialFactoryTitle?.replaceChildren('工厂效率与运营工时费率');
-initialFactoryNote?.replaceChildren('按工厂展开效率与费率口径，支持在弹窗内直接修改本地值，用于版本测算与横向对比。');
-initialFactoryClose?.replaceChildren('关闭');
 
 const $ = (id) => document.getElementById(id);
 const el = {
@@ -8891,6 +8881,26 @@ function computeProfitInsightsPayload(model) {
     },
   };
 
+
+    // --- Issue #3: 计算因果链瀑布图 ---
+    if (window.G281WaterfallCausal) {
+      const waterfallData = window.G281WaterfallCausal.computeCausalWaterfall({
+        engine: window.G281Engine,
+        runtime: RUNTIME,
+        baselineState: shapleyResult.baseline.state,
+        baselineDraft: shapleyResult.baseline.draft,
+        scenarioState: shapleyResult.scenario.state,
+        scenarioDraft: shapleyResult.scenario.draft,
+        factors: window.G281WaterfallCausal.CAUSAL_ORDER.map(f => {
+          const shapleyFactor = window.G281ProfitShapley.defaultFactors.find(sf => sf.key === f.key);
+          return { ...f, draftKeys: shapleyFactor?.draftKeys || [] };
+        }),
+      });
+      payload.waterfall = {
+        html: window.G281WaterfallCausal.renderWaterfallHTML(waterfallData),
+        data: waterfallData,
+      };
+    }
   profitInsightsCacheKey = cacheKey;
   profitInsightsCacheValue = payload;
   return payload;
@@ -8903,6 +8913,9 @@ function renderProfitInsights(model) {
   if (!payload) return;
   profitInsightsView.renderTargetPrice(payload.targetPrice);
   profitInsightsView.renderShapleyWaterfall(payload.shapley);
+  if (payload.waterfall) {
+    profitInsightsView.renderWaterfall(payload.waterfall);
+  }
 }
 
 function compareRowSnapshot(model, index) {

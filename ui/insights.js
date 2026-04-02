@@ -146,15 +146,35 @@
     card.innerHTML = `
       <div class="profit-insight-head">
         <div>
-          <div class="profit-insight-eyebrow">Shapley</div>
-          <h3>毛利率贡献拆解</h3>
+          <div class="profit-insight-eyebrow">Attribution</div>
+          <h3>利润归因</h3>
           <p class="profit-insight-subtitle" data-role="waterfall-subtitle"></p>
         </div>
         <div class="profit-insight-pill" data-role="waterfall-total"></div>
       </div>
-      <div class="profit-waterfall-list" data-role="waterfall-list"></div>
+      <!-- Issue #3: 双视图 tab -->
+      <div class="attribution-tabs">
+        <div class="attribution-tab active" data-view="waterfall">因果链瀑布图</div>
+        <div class="attribution-tab" data-view="shapley">Shapley 归因</div>
+      </div>
+      <div class="attribution-view waterfall-view" data-role="waterfall-view"></div>
+      <div class="attribution-view shapley-view" data-role="shapley-view" style="display:none;">
+        <div class="profit-waterfall-list" data-role="waterfall-list"></div>
+      </div>
       <p class="profit-insight-note" data-role="waterfall-note"></p>
     `;
+
+    // Issue #3: tab 切换事件
+    const tabs = card.querySelectorAll('.attribution-tab');
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        tabs.forEach((t) => t.classList.remove('active'));
+        tab.classList.add('active');
+        const view = tab.dataset.view;
+        card.querySelector('.waterfall-view').style.display = view === 'waterfall' ? '' : 'none';
+        card.querySelector('.shapley-view').style.display = view === 'shapley' ? '' : 'none';
+      });
+    });
 
     return card;
   }
@@ -232,6 +252,16 @@
     });
   }
 
+  function renderWaterfall(cardRef, data = {}) {
+    const view = cardRef.querySelector('[data-role="waterfall-view"]');
+    if (!view) return;
+    if (!data || !data.html) {
+      view.innerHTML = '<div class="waterfall-empty">无瀑布图数据</div>';
+      return;
+    }
+    view.innerHTML = data.html;
+  }
+
   function init(baseId, mountPoint, options = {}) {
     if (!mountPoint || !(mountPoint instanceof HTMLElement)) {
       throw new Error('profit insights mount point is required');
@@ -263,6 +293,7 @@
       },
       renderTargetPrice: (data) => renderTargetPrice(price.card, price.metrics, data),
       renderShapleyWaterfall: (data) => renderShapley(waterfall, data),
+      renderWaterfall: (data) => renderWaterfall(waterfall, data),
     };
   }
 
@@ -298,6 +329,9 @@
     },
     renderShapleyWaterfall(data) {
       state.instance?.renderShapleyWaterfall(data);
+    },
+    renderWaterfall(data) {
+      state.instance?.renderWaterfall(data);
     },
     get instance() {
       return state.instance;

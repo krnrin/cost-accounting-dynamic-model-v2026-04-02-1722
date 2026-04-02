@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>高压线束通用成本核算平台</title>
   <link rel="icon" href="data:," />
-  <link rel="stylesheet" href="./vendor/univer-editor/g281_univer_template_editor.css?v=20260329b" />
-  <link rel="stylesheet" href="./g281_profit_dashboard.css?v=20260331d" />
-  <link rel="stylesheet" href="./g281_bom_validation.css?v=20260331g" />
-  <link rel="stylesheet" href="./g281_profit_insights.css?v=20260328b" />
-  <link rel="stylesheet" href="./g281_profit_logic_drawer.css?v=20260331a" />
-  <link rel="stylesheet" href="./g281_factory_efficiency_view.css?v=20260327b" data-fe-style="factory-efficiency" />
-  <link rel="stylesheet" href="./g281_version_timeline.css?v=20260329a" />
-  <link rel="stylesheet" href="./g281_workbook_viewer.css?v=20260330e" />
+  <link rel="stylesheet" href="../vendor/univer-editor/g281_univer_template_editor.css?v=20260329b" />
+  <link rel="stylesheet" href="./dashboard.css?v=20260331d" />
+  <link rel="stylesheet" href="../g281_bom_validation.css?v=20260331g" />
+  <link rel="stylesheet" href="./insights.css?v=20260328b" />
+  <link rel="stylesheet" href="./logic_drawer.css?v=20260331a" />
+  <link rel="stylesheet" href="../g281_factory_efficiency_view.css?v=20260327b" data-fe-style="factory-efficiency" />
+  <link rel="stylesheet" href="./version_timeline.css?v=20260329a" />
+  <link rel="stylesheet" href="./workbook_viewer.css?v=20260330e" />
 </head>
 <body>
   <div class="app">
@@ -150,8 +150,7 @@
 
       <section class="kpi-grid" id="kpiGrid"></section>
       <div id="profitInsightsMount" class="profit-insights-mount"></div>
-      <div id="profitInsightsMount"></div>
-
+      
       <section class="card mt change-visual-section">
         <div class="change-visual-head">
           <div>
@@ -366,7 +365,7 @@
           </div>
           <div class="layer-card">
             <div class="layer-title">计算引擎</div>
-            <div class="layer-value">g281_engine.js</div>
+            <div class="layer-value">engine/compute_model.js</div>
             <div class="layer-meta" id="layerEngineMeta">单独计算、无 DOM 依赖</div>
           </div>
           <div class="layer-card">
@@ -477,11 +476,11 @@
               <select id="bomValidationHarness"></select>
             </label>
             <label class="field">
-              <span>瀵规瘮宸︾増</span>
+              <span>对比左版</span>
               <select id="bomValidationLeftVersion"></select>
             </label>
             <label class="field">
-              <span>鍙冲啗鍩哄噯</span>
+              <span>右军基准</span>
               <select id="bomValidationRightVersion"></select>
             </label>
             <input id="importBomValidationFile" type="file" accept=".json,application/json" hidden />
@@ -648,34 +647,37 @@
     </section>
   </div>
 
-  <script src="./vendor/xlsx/xlsx.full.min.js?v=20260327b"></script>
-  <script src="./g281_bom_schema.js?v=20260327b"></script>
-  <script src="./g281_bom_db.js?v=20260330f"></script>
-  <script src="./g281_factor_version_repo.js?v=20260330a"></script>
-  <script src="./g281_scenario_repo.js?v=20260330a"></script>
-<script src="./g281_bom_parser.js?v=20260331b"></script>
-  <script src="./g281_bom_semantic_repo.js?v=20260330a"></script>
-<script src="./g281_bom_alignment_engine.js?v=20260331b"></script>
-<script src="./g281_bom_diff_engine.js?v=20260331b"></script>
-  <script src="./g281_bom_io.js?v=20260327b"></script>
-  <script src="./g281_data_bundle.js?v=20260331b"></script>
-  <script src="./g281_engine.js?v=20260331b"></script>
-  <script src="./g281_repo.js"></script>
-  <script src="./g281_target_price_solver.js"></script>
-  <script src="./g281_profit_shapley.js"></script>
-  <script src="./g281_profit_insights.js?v=20260328b"></script>
-  <script src="./g281_profit_logic_drawer.js?v=20260331a"></script>
-  <script src="./g281_operating_labor_rate_data.js?v=20260327b"></script>
-  <script src="./g281_factory_efficiency_view.js?v=20260327b"></script>
-  <script src="./g281_bom_template_runtime.js?v=20260328a"></script>
-  <script src="./g281_harness_profit.js?v=20260328a"></script>
-  <script src="./g281_version_timeline.js?v=20260329a"></script>
-  <script src="./vendor/univer-editor/g281_univer_template_editor.js?v=20260329b"></script>
-<script src="./g281_profit_dashboard.js?v=20260331d"></script>
-  <script src="./g281_workbook_viewer.js?v=20260330f"></script>
-<script src="./g281_bom_validation_view.js?v=20260331h"></script>
-  <script src="./g281_capital_validation_view.js"></script>
-  <script src="./g281_labor_validation_view.js"></script>
-  <script src="./g281_packaging_validation_view.js"></script>
+  <script src="../vendor/xlsx/xlsx.full.min.js?v=20260327b"></script>
+  <script src="../engine/bom_schema.js?v=20260327b"></script>
+  <script src="../engine/bom_db.js?v=20260330f"></script>
+  <script src="../g281_factor_version_repo.js?v=20260330a"></script>
+  <script src="../g281_scenario_repo.js?v=20260330a"></script>
+<script src="../engine/bom_parser.js?v=20260331b"></script>
+  <script src="../g281_bom_semantic_repo.js?v=20260330a"></script>
+<script src="../engine/align_key_enhancer.js"></script>
+<script src="../g281_bom_alignment_engine.js?v=20260331b"></script>
+<script src="../g281_bom_diff_engine.js?v=20260331b"></script>
+  <script src="../g281_bom_io.js?v=20260327b"></script>
+  <script src="../g281_data_bundle.js?v=20260331b"></script>
+  <script src="../engine/compute_model.js?v=20260331b"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../engine/target_price_solver.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../charts/waterfall_causal.js"></script>
+  <link rel="stylesheet" href="../charts/waterfall_causal.css">
+  <script src="./insights.js?v=20260328b"></script>
+  <script src="./logic_drawer.js?v=20260331a"></script>
+  <script src="../g281_operating_labor_rate_data.js?v=20260327b"></script>
+  <script src="../g281_factory_efficiency_view.js?v=20260327b"></script>
+  <script src="../g281_bom_template_runtime.js?v=20260328a"></script>
+  <script src="../engine/harness_profit.js?v=20260328a"></script>
+  <script src="./version_timeline.js?v=20260329a"></script>
+  <script src="../vendor/univer-editor/g281_univer_template_editor.js?v=20260329b"></script>
+<script src="./dashboard.js?v=20260331d"></script>
+  <script src="./workbook_viewer.js?v=20260330f"></script>
+<script src="../g281_bom_validation_view.js?v=20260331h"></script>
+  <script src="../g281_capital_validation_view.js"></script>
+  <script src="../g281_labor_validation_view.js"></script>
+  <script src="../g281_packaging_validation_view.js"></script>
 </body>
 </html>

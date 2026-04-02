@@ -386,6 +386,14 @@
       warnings.push('模型材料成本小于等于 0，线束利润与导线原材料成本估算将全部回落为 0。');
     }
 
+    // --- Issue #2: 未匹配料号不分摊到产品成本，走呆滞提报 ---
+    const stagnantPool = Math.max(residualMaterialPool, 0); // 记录但不分摊
+    residualMaterialPool = 0; // 不再分摊到线束成本
+
+    warnings.push(
+      `残余材料池 ¥${stagnantPool.toFixed(2)} 为变更取消料号，不计入当前产品成本，请走呆滞提报流程。`
+    );
+
     const totalResidualBasis = harnessDrafts.reduce((sum, row) => sum + numberOr(row.residualBasis, 0), 0);
     const totalHarnessMaterial = matchedWireTotal + Math.max(residualMaterialPool, 0);
     const nonMaterialPools = {
@@ -431,9 +439,9 @@
         const matchedMaterialCost = line.catalogMatched
           ? numberOr(line.materialCost, 0) * matchedWireScale
           : 0;
-        const unmatchedMaterialCost = !line.catalogMatched && unmatchedWireBasis > 0
-          ? unmatchedWireAllocatedMaterial * (numberOr(line.residualBasis, 0) / unmatchedWireBasis)
-          : 0;
+        // --- Issue #2: 未匹配导线不分摊，标记为呆滞候选 ---
+        const unmatchedMaterialCost = 0; // 不再分摊
+        // 保留导线信息以防后续切换回来
         const wireMaterialCost = matchedMaterialCost + unmatchedMaterialCost;
         const wireOperatingShare = harnessMaterialCost > 0
           ? wireMaterialCost / harnessMaterialCost
@@ -473,6 +481,13 @@
           catalogMatchMethod: line.catalogMatchMethod,
           catalogCode: line.catalogCode,
           catalogName: line.catalogName,
+          stagnantCandidate: !line.catalogMatched, // 呆滞候选标记
+          preservedWireInfo: !line.catalogMatched ? {
+            catalogCode: line.catalogCode,
+            catalogName: line.catalogName,
+            partNumber: line.partNumber,
+            partName: line.partName,
+          } : null,
           materialUnitCost: line.catalogMatched
             ? (line.quantity ? wireMaterialCost / line.quantity : 0)
             : null,
