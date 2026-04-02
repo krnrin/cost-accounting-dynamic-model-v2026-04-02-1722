@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="../shared/nav.css">
   <link rel="stylesheet" href="../shared/project_switcher.css">
   <link rel="stylesheet" href="../ui/dashboard.css">
+  <link rel="stylesheet" href="../ui/insights.css">
+  <link rel="stylesheet" href="../ui/logic_drawer.css">
   <style>
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
     .page-header { padding: 20px 24px 12px; }
@@ -14,6 +16,12 @@
     .page-header p { margin: 4px 0 0; font-size: 13px; color: #888; }
     .preview-content { padding: 0 24px 24px; }
     #previewKpiGrid, #previewStatePanel, #previewAnnualTable, #previewCharts { margin-top: 16px; }
+    .preview-charts-row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .preview-charts-row canvas { flex: 1; min-width: 300px; max-height: 320px; background: #1a1a2e; border-radius: 8px; padding: 12px; }
+    .status-msg { padding: 12px 16px; border-radius: 8px; font-size: 13px; }
+    .status-ok { background: rgba(74,222,128,0.1); color: #4ade80; }
+    .status-warn { background: rgba(251,191,36,0.1); color: #fbbf24; }
+    .status-err { background: rgba(248,113,113,0.1); color: #f87171; }
   </style>
 </head>
 <body>
@@ -27,10 +35,14 @@
   </div>
 
   <div class="preview-content">
+    <div id="previewStatus"></div>
     <div id="previewKpiGrid"></div>
     <div id="previewStatePanel"></div>
     <div id="previewAnnualTable"></div>
-    <div id="previewCharts"></div>
+    <div id="previewCharts" class="preview-charts-row">
+      <canvas id="chartCostBridge"></canvas>
+      <canvas id="chartAnnualTrend"></canvas>
+    </div>
     <div id="previewCompare"></div>
   </div>
 
@@ -65,7 +77,7 @@
   <script src="../config/project_registry.js"></script>
   <script src="../shared/project_switcher.js"></script>
 
-  <!-- UI (预演页只加载需要的渲染器) -->
+  <!-- UI (预演页渲染器) -->
   <script src="../ui/renderers/kpi_grid.js"></script>
   <script src="../ui/renderers/annual_table.js"></script>
   <script src="../ui/renderers/charts.js"></script>
@@ -77,8 +89,9 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       G281Nav.mountNavBar();
+      const statusEl = document.getElementById('previewStatus');
 
-      // 项目注册表初始化 (Issue #14)
+      // ── 1. 项目注册表初始化 ──
       try {
         const resp = await fetch('../config/g281.project.json');
         const config = await resp.json();
@@ -89,7 +102,53 @@
         }
       } catch (e) { console.warn('[项目注册]', e); }
 
-      console.log('[预演页] 新模块已集成，等待 dashboard.js 拆分后接入渲染器');
+      // ── 2. 加载数据 & 计算 ──
+      let model = null;
+      try {
+        const repo = typeof G281Repo !== 'undefined' ? G281Repo : null;
+        if (repo) {
+          const states = (typeof G281UI !== 'undefined' && G281UI.ScenarioState)
+            ? G281UI.ScenarioState.current()
+            : (typeof G281StateNormalizer !== 'undefined'
+              ? G281StateNormalizer.normalize({})
+              : {});
+          if (typeof G281ComputeModel !== 'undefined') {
+            model = G281ComputeModel.compute(repo, states);
+          }
+        }
+      } catch (e) {
+        console.error('[预演] 计算失败:', e);
+        if (statusEl) statusEl.innerHTML = '<div class="status-msg status-err">⚠ 计算引擎出错: ' + e.message + '</div>';
+      }
+
+      // ── 3. 渲染 KPI 网格 ──
+      if (model && typeof G281UI !== 'undefined' && G281UI.KpiGrid) {
+        G281UI.KpiGrid.render(document.getElementById('previewKpiGrid'), model);
+      }
+
+      // ── 4. 渲染年度利润表 ──
+      if (model && typeof G281UI !== 'undefined' && G281UI.AnnualTable) {
+        const annualRows = model.annualRows || model.annual || [];
+        G281UI.AnnualTable.render(document.getElementById('previewAnnualTable'), annualRows);
+      }
+
+      // ── 5. 渲染图表 ──
+      if (model && typeof G281UI !== 'undefined' && G281UI.Charts) {
+        G281UI.Charts.renderCostBridge(document.getElementById('chartCostBridge'), model);
+        G281UI.Charts.renderAnnualTrend(
+          document.getElementById('chartAnnualTrend'),
+          model.annualRows || model.annual || []
+        );
+      }
+
+      // ── 6. 状态消息 ──
+      if (model && statusEl && !statusEl.innerHTML) {
+        statusEl.innerHTML = '<div class="status-msg status-ok">✓ 模型已加载 · 调整左侧参数面板查看利润变化</div>';
+      } else if (!model && statusEl && !statusEl.innerHTML) {
+        statusEl.innerHTML = '<div class="status-msg status-warn">💡 暂无数据 · 请先在核算页导入 BOM 和报价数据</div>';
+      }
+
+      console.log('[预演页] 渲染器已接入', model ? '✓ 计算完成' : '⚠ 无数据');
     });
   </script>
 </body>
