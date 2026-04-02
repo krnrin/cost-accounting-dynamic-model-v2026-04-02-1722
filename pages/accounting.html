@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>核算 — 报价工作台</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../ui/dashboard.css">
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
+    .page-header { padding: 20px 24px 12px; }
+    .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .page-header p { margin: 4px 0 0; font-size: 13px; color: #888; }
+    .accounting-content { padding: 0 24px 24px; }
+    .acc-section { margin-top: 16px; background: #1a1a2e; border-radius: 8px; padding: 16px; }
+    .acc-section h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+  </style>
+</head>
+<body>
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+
+  <div class="page-header">
+    <h1>📊 核算</h1>
+    <p>内部核算报价 · 变更报价 · BOM 成本拆解</p>
+  </div>
+
+  <div class="accounting-content">
+    <!-- 报价版本选择 -->
+    <div class="acc-section" id="accVersionSelector">
+      <h2>报价版本</h2>
+      <p style="color:#666; font-size:13px;">选择 BOM 版本 → 自动加载对应材料/工时/设备快照</p>
+    </div>
+
+    <!-- 成本拆解表 -->
+    <div class="acc-section" id="accCostBreakdown">
+      <h2>成本拆解</h2>
+      <p style="color:#666; font-size:13px;">材料 · 人工 · 制造 · 包装 · 设备 · R&D</p>
+    </div>
+
+    <!-- 线束级利润拆解 -->
+    <div class="acc-section" id="accHarnessProfit">
+      <h2>线束级利润</h2>
+      <p style="color:#666; font-size:13px;">按线束号拆解收入/成本/利润</p>
+    </div>
+
+    <!-- 变更报价对比 -->
+    <div class="acc-section" id="accChangeQuote">
+      <h2>变更报价</h2>
+      <p style="color:#666; font-size:13px;">BOM 变更影响 · 替换/新增/取消 · 呆滞料</p>
+    </div>
+
+    <!-- 目标价求解 -->
+    <div class="acc-section" id="accTargetPrice">
+      <h2>目标价求解</h2>
+      <p style="color:#666; font-size:13px;">二分法反算 ASP → 满足目标利润率</p>
+    </div>
+  </div>
+
+  <!-- Engine -->
+  <script src="../engine/shared_utils.js"></script>
+  <script src="../engine/state_normalizer.js"></script>
+  <script src="../engine/snapshot_resolver.js"></script>
+  <script src="../engine/annual_calc.js"></script>
+  <script src="../engine/config_bridge.js"></script>
+  <script src="../engine/computation_path.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../engine/compute_model.js"></script>
+  <script src="../engine/harness_profit.js"></script>
+  <script src="../engine/target_price_solver.js"></script>
+  <script src="../engine/bom_parser.js"></script>
+  <script src="../engine/bom_schema.js"></script>
+  <script src="../engine/bom_db.js"></script>
+  <script src="../engine/align_key_enhancer.js"></script>
+
+  <!-- Core -->
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../core/storage_adapter.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      G281Nav.mountNavBar();
+      console.log('[核算页] 骨架已加载，等待 dashboard.js 拆分后集成报价渲染器');
+    });
+  </script>
+</body>
+</html>
