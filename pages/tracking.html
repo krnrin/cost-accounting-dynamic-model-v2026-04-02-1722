@@ -19,6 +19,9 @@
     .gap-positive { background: rgba(239,68,68,0.15); color: #f87171; }
     .gap-negative { background: rgba(34,197,94,0.15); color: #4ade80; }
     .gap-zero { background: rgba(148,163,184,0.1); color: #94a3b8; }
+    .status-msg { padding: 12px 16px; border-radius: 8px; font-size: 13px; }
+    .status-ok { background: rgba(74,222,128,0.1); color: #4ade80; }
+    .status-warn { background: rgba(251,191,36,0.1); color: #fbbf24; }
   </style>
 </head>
 <body>
@@ -31,25 +34,26 @@
   </div>
 
   <div class="tracking-content">
+    <div id="trkStatus"></div>
     <div class="trk-section" id="trkProgressPrice">
       <h2>进度价差距追踪</h2>
-      <p style="color:#666; font-size:13px;">协议价 vs 批量价 → 缺口汇总 · 按供应商/料号明细</p>
+      <div id="trkProgressTable"><p style="color:#666; font-size:13px;">协议价 vs 批量价 → 缺口汇总 · 按供应商/料号明细</p></div>
     </div>
     <div class="trk-section" id="trkConnectorProtocol">
       <h2>连接器协议价落实</h2>
-      <p style="color:#666; font-size:13px;">各料号协议状态 · 已确认 / 未确认 / 进度价混合</p>
+      <div id="trkConnectorTable"><p style="color:#666; font-size:13px;">各料号协议状态 · 已确认 / 未确认 / 进度价混合</p></div>
     </div>
     <div class="trk-section" id="trkOneTimeCost">
       <h2>一次性费用分摊</h2>
-      <p style="color:#666; font-size:13px;">模具/检具/研发 · 按年度实际销量分摊进度 · 未分摊余额</p>
+      <div id="trkOneTimeTable"><p style="color:#666; font-size:13px;">模具/检具/研发 · 按年度实际销量分摊进度 · 未分摊余额</p></div>
     </div>
     <div class="trk-section" id="trkAnnualDrop">
       <h2>年降执行</h2>
-      <p style="color:#666; font-size:13px;">各年度降价率 · 实际执行 vs 约定 · 累计因子</p>
+      <div id="trkDropTable"><p style="color:#666; font-size:13px;">各年度降价率 · 实际执行 vs 约定 · 累计因子</p></div>
     </div>
     <div class="trk-section" id="trkResidualPool">
       <h2>残余材料池 · 呆滞提报</h2>
-      <p style="color:#666; font-size:13px;">变更取消料号 → 呆滞候选 · 提报流程状态</p>
+      <div id="trkResidualTable"><p style="color:#666; font-size:13px;">变更取消料号 → 呆滞候选 · 提报流程状态</p></div>
     </div>
   </div>
 
@@ -83,7 +87,9 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       G281Nav.mountNavBar();
+      const statusEl = document.getElementById('trkStatus');
 
+      // ── 1. 项目注册 ──
       try {
         const resp = await fetch('../config/g281.project.json');
         const config = await resp.json();
@@ -94,7 +100,59 @@
         }
       } catch (e) { console.warn('[项目注册]', e); }
 
-      console.log('[跟踪页] 新模块已集成，等待跟踪渲染器接入');
+      // ── 2. 进度价差距追踪 ──
+      if (typeof G281ProgressPriceTracker !== 'undefined') {
+        try {
+          const repo = typeof G281Repo !== 'undefined' ? G281Repo : null;
+          if (repo) {
+            const tracker = G281ProgressPriceTracker;
+            const gaps = tracker.computeGaps ? tracker.computeGaps(repo) : null;
+            const tableEl = document.getElementById('trkProgressTable');
+            if (gaps && gaps.items && gaps.items.length && tableEl) {
+              tableEl.innerHTML = '<table class="annual-table"><thead><tr>' +
+                '<th>料号</th><th>供应商</th><th>协议价</th><th>批量价</th><th>缺口</th><th>状态</th></tr></thead><tbody>' +
+                gaps.items.map(item => {
+                  const gap = (item.batchPrice || 0) - (item.protocolPrice || 0);
+                  const cls = gap > 0 ? 'gap-positive' : gap < 0 ? 'gap-negative' : 'gap-zero';
+                  return `<tr><td>${item.partNo || '--'}</td><td>${item.supplier || '--'}</td>` +
+                    `<td>${item.protocolPrice?.toFixed(4) || '--'}</td>` +
+                    `<td>${item.batchPrice?.toFixed(4) || '--'}</td>` +
+                    `<td><span class="gap-indicator ${cls}">${gap > 0 ? '+' : ''}${gap.toFixed(4)}</span></td>` +
+                    `<td>${item.status || '--'}</td></tr>`;
+                }).join('') + '</tbody></table>' +
+                `<p style="margin-top:8px;color:#888;font-size:12px;">总缺口: ${gaps.totalGap?.toFixed(2) || '--'} 元</p>`;
+            }
+          }
+        } catch (e) { console.warn('[进度价追踪]', e); }
+      }
+
+      // ── 3. 残余材料池 ──
+      if (typeof G281ResidualPoolHandler !== 'undefined') {
+        try {
+          const repo = typeof G281Repo !== 'undefined' ? G281Repo : null;
+          if (repo) {
+            const pool = G281ResidualPoolHandler;
+            const residuals = pool.getPool ? pool.getPool(repo) : null;
+            const residualEl = document.getElementById('trkResidualTable');
+            if (residuals && residuals.length && residualEl) {
+              residualEl.innerHTML = '<table class="annual-table"><thead><tr>' +
+                '<th>料号</th><th>描述</th><th>库存数量</th><th>单价</th><th>金额</th><th>状态</th></tr></thead><tbody>' +
+                residuals.map(r =>
+                  `<tr><td>${r.partNo || '--'}</td><td>${r.description || '--'}</td>` +
+                  `<td>${r.qty || '--'}</td><td>${r.unitPrice?.toFixed(4) || '--'}</td>` +
+                  `<td>${r.amount?.toFixed(2) || '--'}</td><td>${r.status || '待提报'}</td></tr>`
+                ).join('') + '</tbody></table>';
+            }
+          }
+        } catch (e) { console.warn('[残余材料池]', e); }
+      }
+
+      // ── 4. 状态 ──
+      if (statusEl && !statusEl.innerHTML) {
+        statusEl.innerHTML = '<div class="status-msg status-warn">💡 数据加载中 · 部分追踪模块待数据导入后激活</div>';
+      }
+
+      console.log('[跟踪页] 渲染器已接入');
     });
   </script>
 </body>

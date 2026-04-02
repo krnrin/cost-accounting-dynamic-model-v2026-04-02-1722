@@ -12,7 +12,7 @@
  *
  * Issue #14 — 多项目可复用架构 ① 层
  */
-;(function (root) {
+;(function (global) {
   'use strict';
 
   // ============================================================
@@ -266,5 +266,5 @@
   // ============================================================
   // 导出
   // ============================================================
-  root.ConfigLoader = ConfigLoader;
+  global.ConfigLoader = ConfigLoader;
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
