@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>预演 — 动态利润模型</title>
   <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
   <link rel="stylesheet" href="../ui/dashboard.css">
   <style>
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
@@ -12,14 +13,12 @@
     .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
     .page-header p { margin: 4px 0 0; font-size: 13px; color: #888; }
     .preview-content { padding: 0 24px 24px; }
-    /* 预演页专属：KPI + 状态控制 + 年度表 + 图表 */
     #previewKpiGrid, #previewStatePanel, #previewAnnualTable, #previewCharts { margin-top: 16px; }
   </style>
 </head>
 <body>
   <!-- 共享导航 -->
   <script src="../shared/nav.js"></script>
-  <script src="../shared/nav.css"></script>
   <script src="../shared/page_router.js"></script>
 
   <div class="page-header">
@@ -28,21 +27,16 @@
   </div>
 
   <div class="preview-content">
-    <!-- KPI 指标网格 -->
     <div id="previewKpiGrid"></div>
-
-    <!-- 状态组合控制面板 -->
     <div id="previewStatePanel"></div>
-
-    <!-- 年度利润表 -->
     <div id="previewAnnualTable"></div>
-
-    <!-- 图表区：因果链瀑布图 + Shapley 归因 + 成本桥 -->
     <div id="previewCharts"></div>
-
-    <!-- 对比行 -->
     <div id="previewCompare"></div>
   </div>
+
+  <!-- 统一工具函数 (必须最先加载) -->
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
 
   <!-- Engine 子模块 -->
   <script src="../engine/shared_utils.js"></script>
@@ -58,21 +52,44 @@
   <script src="../engine/harness_profit.js"></script>
   <script src="../engine/target_price_solver.js"></script>
 
+  <!-- 性能与健壮性 (Issue #12) -->
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+
   <!-- Core -->
   <script src="../core/config_loader.js"></script>
   <script src="../core/repo.js"></script>
   <script src="../core/storage_adapter.js"></script>
 
+  <!-- 多项目 (Issue #14) -->
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+
   <!-- UI (预演页只加载需要的渲染器) -->
+  <script src="../ui/renderers/kpi_grid.js"></script>
+  <script src="../ui/renderers/annual_table.js"></script>
+  <script src="../ui/renderers/charts.js"></script>
+  <script src="../ui/renderers/compare_panel.js"></script>
+  <script src="../ui/state/scenario_state.js"></script>
   <script src="../ui/insights.js"></script>
   <script src="../ui/logic_drawer.js"></script>
 
   <script>
-    // 预演页初始化
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       G281Nav.mountNavBar();
-      // TODO: 从 dashboard.js 提取预演相关渲染器后，在此初始化
-      console.log('[预演页] 骨架已加载，等待 dashboard.js 拆分后集成渲染器');
+
+      // 项目注册表初始化 (Issue #14)
+      try {
+        const resp = await fetch('../config/g281.project.json');
+        const config = await resp.json();
+        if (typeof G281ProjectRegistry !== 'undefined') {
+          G281ProjectRegistry.registerProject('G281', config);
+          G281ProjectRegistry.switchProject('G281');
+          G281ProjectRegistry.lockProject('G281');
+        }
+      } catch (e) { console.warn('[项目注册]', e); }
+
+      console.log('[预演页] 新模块已集成，等待 dashboard.js 拆分后接入渲染器');
     });
   </script>
 </body>

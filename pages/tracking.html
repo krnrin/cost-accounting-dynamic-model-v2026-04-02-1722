@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>跟踪 — 执行追踪台</title>
   <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
   <link rel="stylesheet" href="../ui/dashboard.css">
   <style>
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
@@ -30,36 +31,31 @@
   </div>
 
   <div class="tracking-content">
-    <!-- 进度价差距追踪 (Issue #1) -->
     <div class="trk-section" id="trkProgressPrice">
       <h2>进度价差距追踪</h2>
       <p style="color:#666; font-size:13px;">协议价 vs 批量价 → 缺口汇总 · 按供应商/料号明细</p>
     </div>
-
-    <!-- 连接器协议价落实 -->
     <div class="trk-section" id="trkConnectorProtocol">
       <h2>连接器协议价落实</h2>
       <p style="color:#666; font-size:13px;">各料号协议状态 · 已确认 / 未确认 / 进度价混合</p>
     </div>
-
-    <!-- 一次性费用分摊执行 -->
     <div class="trk-section" id="trkOneTimeCost">
       <h2>一次性费用分摊</h2>
       <p style="color:#666; font-size:13px;">模具/检具/研发 · 按年度实际销量分摊进度 · 未分摊余额</p>
     </div>
-
-    <!-- 年降执行追踪 -->
     <div class="trk-section" id="trkAnnualDrop">
       <h2>年降执行</h2>
       <p style="color:#666; font-size:13px;">各年度降价率 · 实际执行 vs 约定 · 累计因子</p>
     </div>
-
-    <!-- 残余材料池 / 呆滞料 (Issue #2) -->
     <div class="trk-section" id="trkResidualPool">
       <h2>残余材料池 · 呆滞提报</h2>
       <p style="color:#666; font-size:13px;">变更取消料号 → 呆滞候选 · 提报流程状态</p>
     </div>
   </div>
+
+  <!-- 统一工具函数 -->
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
 
   <!-- Engine -->
   <script src="../engine/shared_utils.js"></script>
@@ -71,15 +67,34 @@
   <script src="../engine/residual_pool_handler.js"></script>
   <script src="../engine/compute_model.js"></script>
 
+  <!-- 性能与健壮性 (Issue #12) -->
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+
   <!-- Core -->
   <script src="../core/config_loader.js"></script>
   <script src="../core/repo.js"></script>
   <script src="../core/storage_adapter.js"></script>
 
+  <!-- 多项目 (Issue #14) -->
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       G281Nav.mountNavBar();
-      console.log('[跟踪页] 骨架已加载，等待 dashboard.js 拆分后集成跟踪渲染器');
+
+      try {
+        const resp = await fetch('../config/g281.project.json');
+        const config = await resp.json();
+        if (typeof G281ProjectRegistry !== 'undefined') {
+          G281ProjectRegistry.registerProject('G281', config);
+          G281ProjectRegistry.switchProject('G281');
+          G281ProjectRegistry.lockProject('G281');
+        }
+      } catch (e) { console.warn('[项目注册]', e); }
+
+      console.log('[跟踪页] 新模块已集成，等待跟踪渲染器接入');
     });
   </script>
 </body>

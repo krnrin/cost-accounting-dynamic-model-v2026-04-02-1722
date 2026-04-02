@@ -64,13 +64,9 @@
     },
   ];
 
-  function clonePlain(value, fallback) {
-    try {
-      return JSON.parse(JSON.stringify(value));
-    } catch (error) {
-      return fallback;
-    }
-  }
+  // Issue #10: 委托给 G281Shared
+  const clonePlain = (typeof G281Shared !== 'undefined' && G281Shared.clonePlain)
+    || function (value, fallback) { try { return JSON.parse(JSON.stringify(value)); } catch (e) { return fallback; } };
 
   function factorialTable(size) {
     const values = [1];

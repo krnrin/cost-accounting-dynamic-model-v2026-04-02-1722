@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>归档 — 数据存档管理</title>
   <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
   <link rel="stylesheet" href="../ui/dashboard.css">
   <style>
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
@@ -26,30 +27,27 @@
   </div>
 
   <div class="archive-content">
-    <!-- 版本时间线 -->
     <div class="arc-section" id="arcTimeline">
       <h2>版本时间线</h2>
       <p style="color:#666; font-size:13px;">JSON 版本 · 提交历史 · 对比差异</p>
     </div>
-
-    <!-- Excel 工作簿查看器 -->
     <div class="arc-section" id="arcWorkbook">
       <h2>Excel 工作簿</h2>
       <p style="color:#666; font-size:13px;">原始 Excel Sheet 浏览 · 数据验证 · 导出</p>
     </div>
-
-    <!-- 数据仓库浏览 -->
     <div class="arc-section" id="arcRepo">
       <h2>数据仓库</h2>
       <p style="color:#666; font-size:13px;">GitHub 仓库文件结构 · JSON 数据浏览 · 原始数据下载</p>
     </div>
-
-    <!-- BOM 版本对比 -->
     <div class="arc-section" id="arcBomCompare">
       <h2>BOM 版本对比</h2>
       <p style="color:#666; font-size:13px;">冻结版 vs 定点版 · 按线束/分组/料号对比</p>
     </div>
   </div>
+
+  <!-- 统一工具函数 -->
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
 
   <!-- Engine (归档页只需轻量引擎) -->
   <script src="../engine/shared_utils.js"></script>
@@ -58,19 +56,50 @@
   <script src="../engine/bom_db.js"></script>
   <script src="../engine/align_key_enhancer.js"></script>
 
+  <!-- Schema 迁移 (Issue #11) -->
+  <script src="../engine/schema_migrator.js"></script>
+
+  <!-- 性能与健壮性 (Issue #12) -->
+  <script src="../engine/error_boundary.js"></script>
+
   <!-- Core -->
   <script src="../core/config_loader.js"></script>
   <script src="../core/repo.js"></script>
   <script src="../core/storage_adapter.js"></script>
+
+  <!-- 多项目 (Issue #14) -->
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
 
   <!-- UI (归档页专属) -->
   <script src="../ui/workbook_viewer.js"></script>
   <script src="../ui/version_timeline.js"></script>
 
   <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       G281Nav.mountNavBar();
-      console.log('[归档页] 骨架已加载，等待 dashboard.js 拆分后集成归档渲染器');
+
+      try {
+        const resp = await fetch('../config/g281.project.json');
+        const config = await resp.json();
+        if (typeof G281ProjectRegistry !== 'undefined') {
+          G281ProjectRegistry.registerProject('G281', config);
+          G281ProjectRegistry.switchProject('G281');
+          G281ProjectRegistry.lockProject('G281');
+        }
+      } catch (e) { console.warn('[项目注册]', e); }
+
+      // IDB + Schema 迁移
+      if (typeof G281BomDb !== 'undefined') {
+        try {
+          await G281BomDb.init();
+          if (typeof G281SchemaMigrator !== 'undefined') {
+            await G281SchemaMigrator.runPending(G281BomDb);
+          }
+        } catch (e) { console.warn('[Schema迁移]', e); }
+      }
+
+      console.log('[归档页] 新模块已集成，等待归档渲染器接入');
     });
   </script>
 </body>
