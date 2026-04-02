@@ -100,44 +100,50 @@
         }
       } catch (e) { console.warn('[项目注册]', e); }
 
-      // ── 2. 进度价差距追踪 ──
-      if (typeof G281ProgressPriceTracker !== 'undefined') {
+      const repo = typeof G281Repo !== 'undefined' ? G281Repo : null;
+
+      // ── 2. 进度价差距追踪 (Issue #35: API名修复 computeGaps → trackBatch) ──
+      if (typeof G281ProgressPriceTracker !== 'undefined' && G281ProgressPriceTracker.trackBatch) {
         try {
-          const repo = typeof G281Repo !== 'undefined' ? G281Repo : null;
           if (repo) {
-            const tracker = G281ProgressPriceTracker;
-            const gaps = tracker.computeGaps ? tracker.computeGaps(repo) : null;
+            // trackBatch 接受 [{partNo, agreedPrice, batchPrice, qty, supplier}] 数组
+            // 从 repo 的连接器快照中提取数据
+            const connectorItems = repo.getConnectorItems ? repo.getConnectorItems() : [];
+            const result = G281ProgressPriceTracker.trackBatch(connectorItems);
             const tableEl = document.getElementById('trkProgressTable');
-            if (gaps && gaps.items && gaps.items.length && tableEl) {
+            if (result && result.items && result.items.length && tableEl) {
               tableEl.innerHTML = '<table class="annual-table"><thead><tr>' +
                 '<th>料号</th><th>供应商</th><th>协议价</th><th>批量价</th><th>缺口</th><th>状态</th></tr></thead><tbody>' +
-                gaps.items.map(item => {
-                  const gap = (item.batchPrice || 0) - (item.protocolPrice || 0);
+                result.items.map(item => {
+                  const gap = (item.batchPrice || 0) - (item.agreedPrice || 0);
                   const cls = gap > 0 ? 'gap-positive' : gap < 0 ? 'gap-negative' : 'gap-zero';
                   return `<tr><td>${item.partNo || '--'}</td><td>${item.supplier || '--'}</td>` +
-                    `<td>${item.protocolPrice?.toFixed(4) || '--'}</td>` +
+                    `<td>${item.agreedPrice?.toFixed(4) || '--'}</td>` +
                     `<td>${item.batchPrice?.toFixed(4) || '--'}</td>` +
                     `<td><span class="gap-indicator ${cls}">${gap > 0 ? '+' : ''}${gap.toFixed(4)}</span></td>` +
                     `<td>${item.status || '--'}</td></tr>`;
                 }).join('') + '</tbody></table>' +
-                `<p style="margin-top:8px;color:#888;font-size:12px;">总缺口: ${gaps.totalGap?.toFixed(2) || '--'} 元</p>`;
+                `<p style="margin-top:8px;color:#888;font-size:12px;">总缺口: ${result.summary?.netGap?.toFixed(2) || '--'} 元</p>`;
             }
           }
         } catch (e) { console.warn('[进度价追踪]', e); }
       }
 
-      // ── 3. 残余材料池 ──
+      // ── 3. 残余材料池 (Issue #35: API名修复 getPool → extractStagnantCandidates) ──
       if (typeof G281ResidualPoolHandler !== 'undefined') {
         try {
-          const repo = typeof G281Repo !== 'undefined' ? G281Repo : null;
           if (repo) {
-            const pool = G281ResidualPoolHandler;
-            const residuals = pool.getPool ? pool.getPool(repo) : null;
+            const handler = G281ResidualPoolHandler;
+            // extractStagnantCandidates 接受 BOM 变更记录数组
+            const bomChanges = repo.getBomChanges ? repo.getBomChanges() : [];
+            const candidates = handler.extractStagnantCandidates
+              ? handler.extractStagnantCandidates(bomChanges)
+              : [];
             const residualEl = document.getElementById('trkResidualTable');
-            if (residuals && residuals.length && residualEl) {
+            if (candidates && candidates.length && residualEl) {
               residualEl.innerHTML = '<table class="annual-table"><thead><tr>' +
                 '<th>料号</th><th>描述</th><th>库存数量</th><th>单价</th><th>金额</th><th>状态</th></tr></thead><tbody>' +
-                residuals.map(r =>
+                candidates.map(r =>
                   `<tr><td>${r.partNo || '--'}</td><td>${r.description || '--'}</td>` +
                   `<td>${r.qty || '--'}</td><td>${r.unitPrice?.toFixed(4) || '--'}</td>` +
                   `<td>${r.amount?.toFixed(2) || '--'}</td><td>${r.status || '待提报'}</td></tr>`

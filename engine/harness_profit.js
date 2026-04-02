@@ -1,610 +1,265 @@
+/**
+ * engine/harness_profit.js
+ * Issue #9: 线束级利润拆分引擎
+ * Issue #33: 残余分摊死代码清除（residualMaterialPool 恒 = 0）
+ * 职责：
+ *  1. 按 BOM 草案行（harnessDrafts）拆分线束级成本
+ *  2. 匹配导线目录（wireLineCatalog），计算导线材料成本
+ *  3. 将间接费用（人工、设备、包装、R&D等）按收入比例分摊
+ *  4. 输出每条线束的收入/成本/利润/利润率
+ *
+ * 依赖: G281SharedUtils (engine/shared_utils.js)
+ */
 (function (global) {
   'use strict';
 
-  const VERSION_KEY_MAP = {
-    freeze: 'quote',
-    light: 'fixed',
-    regress: 'tt',
-  };
+  // Issue #34: 安全降级
+  var U = global.G281SharedUtils || {};
+  var numberOr = U.numberOr || function (v, f) { var n = Number(v); return Number.isFinite(n) ? n : f; };
+  var safeArray = U.safeArray || function (v) { return Array.isArray(v) ? v : []; };
+  var clonePlain = U.clonePlain || function (v, f) { try { return JSON.parse(JSON.stringify(v)); } catch (_) { return f; } };
 
-  const WIRE_CODE_SUFFIX_RE = /\/AL\d+$/i;
+  var DEFAULT_METAL_COST_PER_KG = { copper: 72, aluminum: 22 };
+  var DEFAULT_NON_COPPER_FACTOR = 0.18;
 
-  function numberOr(value, fallback) {
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : fallback;
-  }
+  // ── 导线目录匹配 & 材料成本 ──
+  function buildMatchedWireCost(wireLineCatalog, bomWireItems, metalPrices) {
+    var catalog = safeArray(wireLineCatalog);
+    var items = safeArray(bomWireItems);
+    var matchedPartNos = new Set();
+    var details = [];
+    var totalCost = 0;
 
-  function safeArray(value) {
-    return Array.isArray(value) ? value : [];
-  }
-
-  function safeObject(value) {
-    return value && typeof value === 'object' ? value : {};
-  }
-
-  function stringOr(value, fallback) {
-    return typeof value === 'string' ? value : fallback;
-  }
-
-  function detectBomVersionKey(runtime, model, options) {
-    if (options && typeof options.versionKey === 'string' && options.versionKey.trim()) {
-      return options.versionKey.trim();
+    if (!catalog.length) {
+      return { totalCost: 0, details: [], matchedPartNos: matchedPartNos };
     }
 
-    const requested = stringOr(model && model.stateSnapshot && model.stateSnapshot.bom, '').trim();
-    if (VERSION_KEY_MAP[requested]) {
-      return VERSION_KEY_MAP[requested];
-    }
-
-    const versionOrder = safeArray(runtime && runtime.bomValidation && runtime.bomValidation.meta && runtime.bomValidation.meta.versionOrder);
-    return versionOrder[0] || 'quote';
-  }
-
-  function selectedVersionLabel(runtime, versionKey) {
-    const labels = safeObject(runtime && runtime.bomValidation && runtime.bomValidation.meta && runtime.bomValidation.meta.versionLabels);
-    return labels[versionKey] || versionKey;
-  }
-
-  function normalizeCode(value) {
-    return String(value || '').trim().toUpperCase().replace(WIRE_CODE_SUFFIX_RE, '');
-  }
-
-  function normalizeName(value) {
-    return String(value || '').replace(/\s+/g, '').trim().toUpperCase();
-  }
-
-  function familyKeyFromCode(value) {
-    const normalized = normalizeCode(value);
-    const match = normalized.match(/^(.+?)\/(\d+(?:\.\d+)?)(?:\/.*)?$/);
-    return match ? match[1] : normalized;
-  }
-
-  function sectionSizeFromCodeOrName(code, name) {
-    const codeMatch = String(code || '').match(/\/(\d+(?:\.\d+)?)(?:\/|$)/);
-    if (codeMatch) {
-      return Number(codeMatch[1]);
-    }
-    const nameMatch = String(name || '').match(/(\d+(?:\.\d+)?)MM/i);
-    if (nameMatch) {
-      return Number(nameMatch[1]);
-    }
-    return null;
-  }
-
-  function buildWireCatalogIndex(wireCatalog) {
-    const models = safeArray(wireCatalog && wireCatalog.models);
-    const exact = new Map();
-    const normalized = new Map();
-    const nameSize = new Map();
-    const familySize = new Map();
-
-    models.forEach((row) => {
-      const code = String(row && row.code || '').trim().toUpperCase();
-      const normalizedCode = normalizeCode(code);
-      const nameKey = normalizeName(row && row.name);
-      const size = sectionSizeFromCodeOrName(row && row.code, row && row.name);
-      const family = familyKeyFromCode(row && row.code);
-
-      if (code && !exact.has(code)) {
-        exact.set(code, row);
-      }
-      if (normalizedCode && !normalized.has(normalizedCode)) {
-        normalized.set(normalizedCode, row);
-      }
-      if (nameKey && size !== null) {
-        const composite = `${nameKey}__${size}`;
-        if (!nameSize.has(composite)) {
-          nameSize.set(composite, row);
-        }
-      }
-      if (family && size !== null) {
-        const composite = `${family}__${size}`;
-        if (!familySize.has(composite)) {
-          familySize.set(composite, row);
-        }
-      }
+    var catalogMap = new Map();
+    catalog.forEach(function (entry) {
+      if (entry.partNo) catalogMap.set(String(entry.partNo).trim(), entry);
     });
 
-    return {
-      exact,
-      normalized,
-      nameSize,
-      familySize,
-    };
-  }
+    items.forEach(function (bomItem) {
+      var partNo = String(bomItem.partNo || '').trim();
+      var catalogEntry = catalogMap.get(partNo);
+      if (!catalogEntry) return;
 
-  function resolveWireCatalogMatch(item, wireIndex) {
-    const partNumber = String(item && item.partNumber || item && item.itemKey || '').trim().toUpperCase();
-    const normalizedCode = normalizeCode(partNumber);
-    const nameKey = normalizeName(item && item.partName);
-    const size = sectionSizeFromCodeOrName(partNumber, item && item.partName);
-    const family = familyKeyFromCode(partNumber);
+      matchedPartNos.add(partNo);
 
-    if (partNumber && wireIndex.exact.has(partNumber)) {
-      return { row: wireIndex.exact.get(partNumber), method: 'exact_code' };
-    }
-    if (normalizedCode && wireIndex.normalized.has(normalizedCode)) {
-      return { row: wireIndex.normalized.get(normalizedCode), method: 'normalized_code' };
-    }
-    if (nameKey && size !== null) {
-      const composite = `${nameKey}__${size}`;
-      if (wireIndex.nameSize.has(composite)) {
-        return { row: wireIndex.nameSize.get(composite), method: 'name_and_size' };
-      }
-    }
-    if (family && size !== null) {
-      const composite = `${family}__${size}`;
-      if (wireIndex.familySize.has(composite)) {
-        return { row: wireIndex.familySize.get(composite), method: 'family_and_size' };
-      }
-    }
-    return { row: null, method: 'unmatched' };
-  }
+      var weight = numberOr(catalogEntry.weight, 0);
+      var material = (catalogEntry.material || 'copper').toLowerCase();
+      var pricePerKg = numberOr(
+        metalPrices[material],
+        metalPrices.copper || DEFAULT_METAL_COST_PER_KG.copper
+      );
+      var metalCost = weight * pricePerKg;
+      var nonMetalCost = metalCost * numberOr(catalogEntry.nonCopperFactor, DEFAULT_NON_COPPER_FACTOR);
+      var qty = numberOr(bomItem.qty, 1);
+      var cost = (metalCost + nonMetalCost) * qty;
 
-  function computeWireUnitCost(catalogRow, draft) {
-    const weights = safeObject(catalogRow && catalogRow.weights);
-    const aluminum = numberOr(weights.aluminum, 0);
-    const copper = numberOr(weights.copper, 0);
-    const nonCopper = numberOr(weights.nonCopper, 0);
-    const aluminumCost = (aluminum / 1000000) * numberOr(draft && draft.aluminumPrice, 0);
-    const copperCost = (copper / 1000000) * numberOr(draft && draft.copperPrice, 0);
-    return {
-      unitCost: aluminumCost + copperCost + (nonCopper / 1000),
-      aluminumWeight: aluminum,
-      copperWeight: copper,
-      nonCopper,
-    };
-  }
-
-  function pickAlignedItemsForVersion(alignedRow, versionKey) {
-    const result = [];
-    const direct = safeObject(alignedRow && alignedRow.versions)[versionKey];
-    if (direct) {
-      result.push(direct);
-    }
-    safeArray(safeObject(alignedRow && alignedRow.partLists)[versionKey]).forEach((part) => result.push(part));
-    return result;
-  }
-
-  function classifyResidualSection(section) {
-    if (section === 'connector') return 'connector';
-    if (section === 'wire') return 'wire';
-    if (section === 'sync') return 'sync';
-    return 'material';
-  }
-
-  function flattenHarnessData(harnessId, comparison, versionKey, wireIndex, draft) {
-    const harnessName = stringOr(comparison && comparison.harnessName, harnessId);
-    const wireLines = [];
-    const sectionStats = {
-      connectorQty: 0,
-      syncQty: 0,
-      materialQty: 0,
-      unmatchedWireQty: 0,
-      matchedWireCost: 0,
-    };
-    const itemStats = {
-      selectedItemCount: 0,
-      matchedWireCount: 0,
-      unmatchedWireCount: 0,
-      wireLineCount: 0,
-    };
-
-    safeArray(comparison && comparison.groups).forEach((group) => {
-      safeArray(group && group.aligned).forEach((alignedRow, alignedIndex) => {
-        const selectedItems = pickAlignedItemsForVersion(alignedRow, versionKey);
-        selectedItems.forEach((item, itemIndex) => {
-          const quantity = numberOr(item && item.quantity, 0);
-          const section = classifyResidualSection(group && group.section);
-          itemStats.selectedItemCount += 1;
-
-          if (section === 'wire') {
-            itemStats.wireLineCount += 1;
-            const match = resolveWireCatalogMatch(item, wireIndex);
-            const weights = match.row ? computeWireUnitCost(match.row, draft) : null;
-            const matched = Boolean(match.row);
-            const materialCost = matched ? weights.unitCost * quantity : null;
-            if (matched) {
-              itemStats.matchedWireCount += 1;
-              sectionStats.matchedWireCost += materialCost;
-            } else {
-              itemStats.unmatchedWireCount += 1;
-              sectionStats.unmatchedWireQty += Math.max(quantity, 0);
-            }
-
-            wireLines.push({
-              lineId: `${harnessId}::${group && group.key || 'wire'}::${alignedIndex + 1}::${itemIndex + 1}`,
-              harnessId,
-              harnessName,
-              groupKey: stringOr(group && group.key, 'wire'),
-              groupLabel: stringOr(group && group.label, '导线'),
-              itemKey: stringOr(item && item.itemKey, ''),
-              rowType: stringOr(alignedRow && alignedRow.rowType, 'standard'),
-              partNumber: stringOr(item && item.partNumber, ''),
-              partName: stringOr(item && item.partName, ''),
-              quantity,
-              unit: stringOr(item && item.unit, ''),
-              supplier: safeArray(item && item.suppliers).join(' / '),
-              sapNos: safeArray(item && item.sapNos),
-              remarks: safeArray(item && item.remarks),
-              otherRemarks: safeArray(item && item.otherRemarks),
-              matchState: stringOr(alignedRow && alignedRow.matchState, ''),
-              sourceCount: numberOr(alignedRow && alignedRow.sourceCount, 0),
-              catalogMatchMethod: match.method,
-              catalogCode: stringOr(match.row && match.row.code, ''),
-              catalogName: stringOr(match.row && match.row.name, ''),
-              catalogMatched: matched,
-              materialUnitCost: matched ? weights.unitCost : null,
-              materialCost,
-              materialCostPrecision: matched ? 'catalog_estimated' : 'allocated_residual',
-              aluminumWeight: matched ? weights.aluminumWeight : null,
-              copperWeight: matched ? weights.copperWeight : null,
-              nonCopperCostComponent: matched ? weights.nonCopper : null,
-              residualBasis: matched ? 0 : Math.max(quantity, 0),
-              allocationBasis: matched
-                ? ['导线目录重量 × 当前铜铝价 + 非铜成本']
-                : ['未命中导线目录，后续按残余材料池和数量口径分摊'],
-              notes: matched
-                ? []
-                : ['当前 BOM 行未命中导线目录，成本为近似分摊值，不是精确采购价。'],
-            });
-            return;
-          }
-
-          if (section === 'connector') {
-            sectionStats.connectorQty += Math.max(quantity, 0);
-            return;
-          }
-          if (section === 'sync') {
-            sectionStats.syncQty += Math.max(quantity, 0);
-            return;
-          }
-          sectionStats.materialQty += Math.max(quantity, 0);
-        });
+      totalCost += cost;
+      details.push({
+        partNo: partNo,
+        harnessId: bomItem.harnessId,
+        gauge: catalogEntry.gauge,
+        material: material,
+        weight: weight,
+        metalCost: metalCost,
+        nonMetalCost: nonMetalCost,
+        cost: cost,
+        qty: qty
       });
     });
 
-    return {
-      harnessId,
-      harnessName,
-      groupCount: safeArray(comparison && comparison.groups).length,
-      matchedCount: numberOr(comparison && comparison.summary && comparison.summary.matchedCount, 0),
-      fullMatchCount: numberOr(comparison && comparison.summary && comparison.summary.fullMatchCount, 0),
-      partialMatchCount: numberOr(comparison && comparison.summary && comparison.summary.partialMatchCount, 0),
-      connectorQty: sectionStats.connectorQty,
-      syncQty: sectionStats.syncQty,
-      materialQty: sectionStats.materialQty,
-      unmatchedWireQty: sectionStats.unmatchedWireQty,
-      matchedWireCost: sectionStats.matchedWireCost,
-      residualBasis: sectionStats.connectorQty + sectionStats.syncQty + sectionStats.materialQty + sectionStats.unmatchedWireQty,
-      wireLines,
-      itemStats,
-    };
+    return { totalCost: totalCost, details: details, matchedPartNos: matchedPartNos };
   }
 
-  function averageUnitRevenue(model) {
-    const totalVolume = numberOr(model && model.totalVolume, 0);
-    const totalRevenue = numberOr(model && model.totalRevenue, 0);
-    if (totalVolume > 0) {
-      return totalRevenue / totalVolume;
-    }
-    const annual = safeArray(model && model.annual);
-    if (!annual.length) {
-      return 0;
-    }
-    const sum = annual.reduce((acc, row) => acc + numberOr(row && row.asp, 0), 0);
-    return annual.length ? sum / annual.length : 0;
-  }
-
-  function buildEmptyResult(runtime, model, options, reason) {
-    const selectedVersionKey = detectBomVersionKey(runtime, model, options);
-    return {
-      meta: {
-        selectedBomVersionKey: selectedVersionKey,
-        selectedBomVersionLabel: selectedVersionLabel(runtime, selectedVersionKey),
-        exactness: {
-          portfolio: 'exact_from_model',
-          harness: 'not_available',
-          wire: 'not_available',
-        },
-        warnings: [reason],
-      },
-      portfolio: {
-        unitRevenue: averageUnitRevenue(model),
-        unitCost: numberOr(model && model.operating, 0),
-        unitProfit: numberOr(model && model.avgProfit, 0),
-        margin: numberOr(model && model.margin, 0),
-        lifecycleVolume: numberOr(model && model.totalVolume, 0),
-        lifecycleRevenue: numberOr(model && model.totalRevenue, 0),
-        lifecycleCost: numberOr(model && model.totalCost, 0),
-        lifecycleProfit: numberOr(model && model.totalProfit, 0),
-      },
-      harnesses: [],
-      wireLines: [],
-      totals: {
-        harnessCount: 0,
-        wireLineCount: 0,
-        matchedWireLineCount: 0,
-        unmatchedWireLineCount: 0,
-      },
-    };
-  }
-
+  // ── 主入口 ──
   function buildHarnessProfitBreakdown(runtime, model, options) {
-    const bomValidation = runtime && runtime.bomValidation;
-    const wireCatalog = runtime && runtime.wireCatalog;
+    var harnessDrafts = safeArray((runtime || {}).harnessDrafts);
+    var wireLineCatalog = safeArray((runtime || {}).wireLineCatalog);
+    var safeOpts = options || {};
+    var metalPrices = safeOpts.metalPrices || clonePlain(DEFAULT_METAL_COST_PER_KG, DEFAULT_METAL_COST_PER_KG);
+    var warnings = [];
 
-    if (!bomValidation || !safeArray(bomValidation.harnessOrder).length) {
-      return buildEmptyResult(runtime, model, options, 'runtime.bomValidation 不存在或没有线束数据。');
-    }
-    if (!model || typeof model !== 'object') {
-      return buildEmptyResult(runtime, model, options, 'model 不存在，无法生成利润拆解。');
-    }
-
-    const selectedVersionKey = detectBomVersionKey(runtime, model, options);
-    const selectedVersionName = selectedVersionLabel(runtime, selectedVersionKey);
-    const portfolio = {
-      unitRevenue: averageUnitRevenue(model),
-      unitCost: numberOr(model.operating, 0),
-      unitProfit: numberOr(model.avgProfit, 0),
-      margin: numberOr(model.margin, 0),
-      lifecycleVolume: numberOr(model.totalVolume, 0),
-      lifecycleRevenue: numberOr(model.totalRevenue, 0),
-      lifecycleCost: numberOr(model.totalCost, 0),
-      lifecycleProfit: numberOr(model.totalProfit, 0),
-      materialCost: numberOr(model.material, 0),
-      directLaborCost: numberOr(model.directLabor, 0),
-      manufacturingCost: numberOr(model.manufacturing, 0),
-      packagingCost: numberOr(model.packaging, 0),
-      equipmentCost: numberOr(model.equipment, 0),
-      rndCost: numberOr(model.rnd, 0),
-    };
-
-    const wireIndex = buildWireCatalogIndex(wireCatalog);
-    const harnessDrafts = safeArray(bomValidation.harnessOrder).map((harnessId) => (
-      flattenHarnessData(
-        harnessId,
-        safeObject(bomValidation.comparisons)[harnessId],
-        selectedVersionKey,
-        wireIndex,
-        model.d || {}
-      )
-    ));
-
-    let matchedWireTotal = harnessDrafts.reduce((sum, row) => sum + numberOr(row.matchedWireCost, 0), 0);
-    let residualMaterialPool = portfolio.materialCost - matchedWireTotal;
-    const warnings = [];
-    let matchedWireScale = 1;
-
-    if (portfolio.materialCost > 0 && matchedWireTotal > portfolio.materialCost) {
-      matchedWireScale = portfolio.materialCost / matchedWireTotal;
-      matchedWireTotal = portfolio.materialCost;
-      residualMaterialPool = 0;
-      warnings.push('导线目录估算总额高于模型材料成本，已按比例整体缩放导线成本以回到模型总材料口径。');
-    } else if (portfolio.materialCost <= 0) {
-      residualMaterialPool = 0;
-      warnings.push('模型材料成本小于等于 0，线束利润与导线原材料成本估算将全部回落为 0。');
+    if (!harnessDrafts.length) {
+      return {
+        totalRevenue: 0, totalCost: 0, totalProfit: 0, totalMargin: 0,
+        harnesses: [], wireLines: [], perSetSummary: [],
+        stagnantPool: { amount: 0, note: '\u65e0\u8349\u6848\u884c\u6570\u636e' },
+        allocationBasis: { material: '\u5bfc\u7ebf\u76ee\u5f55\u4f18\u5148 \u2192 \u6b8b\u4f59\u8d70\u5446\u6ede\u63d0\u62a5', overhead: '\u6309\u6536\u5165\u5360\u6bd4\u5206\u644a' },
+        warnings: ['\u65e0\u8349\u6848\u884c\u6570\u636e\uff0c\u65e0\u6cd5\u62c6\u5206\u7ebf\u675f\u5229\u6da6']
+      };
     }
 
-    // --- Issue #2: 未匹配料号不分摊到产品成本，走呆滞提报 ---
-    const stagnantPool = Math.max(residualMaterialPool, 0); // 记录但不分摊
-    residualMaterialPool = 0; // 不再分摊到线束成本
-
-    warnings.push(
-      `残余材料池 ¥${stagnantPool.toFixed(2)} 为变更取消料号，不计入当前产品成本，请走呆滞提报流程。`
-    );
-
-    const totalResidualBasis = harnessDrafts.reduce((sum, row) => sum + numberOr(row.residualBasis, 0), 0);
-    const totalHarnessMaterial = matchedWireTotal + Math.max(residualMaterialPool, 0);
-    const nonMaterialPools = {
-      directLabor: portfolio.directLaborCost,
-      manufacturing: portfolio.manufacturingCost,
-      packaging: portfolio.packagingCost,
-      equipment: portfolio.equipmentCost,
-      rnd: portfolio.rndCost,
-    };
-    const revenueMultiplier = portfolio.unitCost > 0 ? portfolio.unitRevenue / portfolio.unitCost : 0;
-
-    const harnesses = [];
-    const wireLines = [];
-
-    harnessDrafts.forEach((draftRow) => {
-      const scaledMatchedWireCost = numberOr(draftRow.matchedWireCost, 0) * matchedWireScale;
-      const harnessResidualShare = totalResidualBasis > 0
-        ? numberOr(draftRow.residualBasis, 0) / totalResidualBasis
-        : (harnessDrafts.length ? 1 / harnessDrafts.length : 0);
-      const residualAllocatedMaterial = Math.max(residualMaterialPool, 0) * harnessResidualShare;
-      const harnessMaterialCost = scaledMatchedWireCost + residualAllocatedMaterial;
-      const harnessMaterialShare = totalHarnessMaterial > 0
-        ? harnessMaterialCost / totalHarnessMaterial
-        : (harnessDrafts.length ? 1 / harnessDrafts.length : 0);
-
-      const harnessDirectLabor = nonMaterialPools.directLabor * harnessMaterialShare;
-      const harnessManufacturing = nonMaterialPools.manufacturing * harnessMaterialShare;
-      const harnessPackaging = nonMaterialPools.packaging * harnessMaterialShare;
-      const harnessEquipment = nonMaterialPools.equipment * harnessMaterialShare;
-      const harnessRnd = nonMaterialPools.rnd * harnessMaterialShare;
-      const harnessUnitCost = harnessMaterialCost + harnessDirectLabor + harnessManufacturing + harnessPackaging + harnessEquipment + harnessRnd;
-      const harnessUnitRevenue = harnessUnitCost * revenueMultiplier;
-      const harnessUnitProfit = harnessUnitRevenue - harnessUnitCost;
-
-      const unmatchedWireBasis = numberOr(draftRow.unmatchedWireQty, 0);
-      const nonWireResidualBasis = Math.max(numberOr(draftRow.residualBasis, 0) - unmatchedWireBasis, 0);
-      const unmatchedWireAllocatedMaterial = draftRow.residualBasis > 0
-        ? residualAllocatedMaterial * (unmatchedWireBasis / draftRow.residualBasis)
-        : 0;
-      const nonWireAllocatedMaterial = residualAllocatedMaterial - unmatchedWireAllocatedMaterial;
-
-      const finalizedWireLines = draftRow.wireLines.map((line) => {
-        const matchedMaterialCost = line.catalogMatched
-          ? numberOr(line.materialCost, 0) * matchedWireScale
-          : 0;
-        // --- Issue #2: 未匹配导线不分摊，标记为呆滞候选 ---
-        const unmatchedMaterialCost = 0; // 不再分摊
-        // 保留导线信息以防后续切换回来
-        const wireMaterialCost = matchedMaterialCost + unmatchedMaterialCost;
-        const wireOperatingShare = harnessMaterialCost > 0
-          ? wireMaterialCost / harnessMaterialCost
-          : (draftRow.wireLines.length ? 1 / draftRow.wireLines.length : 0);
-        const wireUnitCost = harnessUnitCost * wireOperatingShare;
-        const wireUnitRevenue = harnessUnitRevenue * wireOperatingShare;
-        const wireUnitProfit = wireUnitRevenue - wireUnitCost;
-        const allocationBasis = line.allocationBasis.slice();
-
-        allocationBasis.push('线束级非材料成本按该导线在本线束材料成本占比分摊');
-        allocationBasis.push('该分摊仅用于线束级利润定位，导线本身不单独形成售价或利润');
-
-        const notes = line.notes.slice();
-        if (line.catalogMatched) {
-          notes.push('导线材料成本来自导线目录当前铜铝价估算，用于原材料成本测算，不代表实时采购结算价。');
-        }
-
-        return {
-          lineId: line.lineId,
-          harnessId: line.harnessId,
-          harnessName: line.harnessName,
-          groupKey: line.groupKey,
-          groupLabel: line.groupLabel,
-          rowType: line.rowType,
-          itemKey: line.itemKey,
-          partNumber: line.partNumber,
-          partName: line.partName,
-          quantity: line.quantity,
-          unit: line.unit,
-          supplier: line.supplier,
-          sapNos: line.sapNos,
-          remarks: line.remarks,
-          otherRemarks: line.otherRemarks,
-          matchState: line.matchState,
-          sourceCount: line.sourceCount,
-          catalogMatched: line.catalogMatched,
-          catalogMatchMethod: line.catalogMatchMethod,
-          catalogCode: line.catalogCode,
-          catalogName: line.catalogName,
-          stagnantCandidate: !line.catalogMatched, // 呆滞候选标记
-          preservedWireInfo: !line.catalogMatched ? {
-            catalogCode: line.catalogCode,
-            catalogName: line.catalogName,
-            partNumber: line.partNumber,
-            partName: line.partName,
-          } : null,
-          materialUnitCost: line.catalogMatched
-            ? (line.quantity ? wireMaterialCost / line.quantity : 0)
-            : null,
-          materialCost: wireMaterialCost,
-          materialCostPrecision: line.materialCostPrecision,
-          aluminumWeight: line.aluminumWeight,
-          copperWeight: line.copperWeight,
-          nonCopperCostComponent: line.nonCopperCostComponent,
-          unitCostEstimated: wireUnitCost,
-          unitRevenueEstimated: wireUnitRevenue,
-          unitProfitEstimated: wireUnitProfit,
-          marginEstimated: wireUnitRevenue ? wireUnitProfit / wireUnitRevenue : 0,
-          isApproximate: true,
-          allocationBasis,
-          precision: {
-            material: line.catalogMatched ? 'catalog_estimated' : 'allocated_residual',
-            operating: 'allocated_from_harness',
-            revenue: 'allocated_from_portfolio',
-            profit: 'allocated_from_portfolio',
-          },
-          notes,
-        };
+    // ── 1. 导线目录匹配 ──
+    var allBomWireItems = [];
+    harnessDrafts.forEach(function (draft) {
+      safeArray(draft.wireItems).forEach(function (item) {
+        allBomWireItems.push(Object.assign({}, item, { harnessId: draft.harnessId }));
       });
+    });
 
-      finalizedWireLines.forEach((line) => wireLines.push(line));
+    var wireResult = buildMatchedWireCost(wireLineCatalog, allBomWireItems, metalPrices);
+    var matchedWireTotal = wireResult.totalCost;
+    var matchedWireCostMap = {};
+    wireResult.details.forEach(function (d) {
+      matchedWireCostMap[d.harnessId] = (matchedWireCostMap[d.harnessId] || 0) + d.cost;
+    });
 
+    // ── 2. 残余材料池 ──
+    var rawResidual = numberOr(model.materialCost, 0) - matchedWireTotal;
+
+    // Issue #2: 残余材料 \u2192 呆滞提报（不分摊到当前产品成本）
+    var stagnantPool = Math.max(rawResidual, 0);
+    // Issue #33: residualMaterialPool 恒为 0，残余分摊死代码已全部移除
+    if (stagnantPool > 0) {
+      warnings.push('\u6b8b\u4f59\u6750\u6599\u6c60 \u00a5' + stagnantPool.toFixed(2) + ' \u5df2\u8f6c\u5165\u5446\u6ede\u63d0\u62a5\u6d41\u7a0b\uff0c\u4e0d\u8ba1\u5165\u4ea7\u54c1\u6210\u672c');
+    }
+
+    // 材料总额 = 导线匹配总额（残余已走呆滞，不计入）
+    var totalHarnessMaterial = matchedWireTotal;
+
+    // ── 3. 收入分摊 ──
+    var totalRevenue = numberOr(model.revenue, 0);
+    var totalRevenueShares = harnessDrafts.reduce(
+      function (sum, row) { return sum + numberOr(row.revenueShare, 0); }, 0
+    ) || 1;
+
+    // ── 4. 按线束拆分 ──
+    var harnesses = [];
+    var wireLines = [];
+    var totalCost = 0;
+
+    harnessDrafts.forEach(function (draftRow) {
+      var revenueShare = numberOr(draftRow.revenueShare, 0) / totalRevenueShares;
+      var harnessRevenue = totalRevenue * revenueShare;
+
+      var scaledMatchedWireCost = matchedWireTotal > 0
+        ? (matchedWireCostMap[draftRow.harnessId] || 0)
+        : 0;
+
+      // Issue #33: 残余分摊路径已移除，材料成本 = 导线匹配成本
+      var harnessMaterialCost = scaledMatchedWireCost;
+
+      // 间接成本分摊
+      var overheadItems = {
+        labor: numberOr(model.laborCost, 0) * revenueShare,
+        equipment: numberOr(model.equipmentCost, 0) * revenueShare,
+        packaging: numberOr(model.packagingCost, 0) * revenueShare,
+        rd: numberOr(model.rdCost, 0) * revenueShare
+      };
+      var overheadCost = Object.values(overheadItems).reduce(function (s, v) { return s + v; }, 0);
+
+      var harnessTotal = harnessMaterialCost + overheadCost;
+      var profit = harnessRevenue - harnessTotal;
+      var profitMargin = harnessRevenue > 0 ? profit / harnessRevenue : 0;
+      totalCost += harnessTotal;
+
+      // 导线行明细
+      var matchedWireDetail = safeArray(wireResult.details)
+        .filter(function (d) { return d.harnessId === draftRow.harnessId; })
+        .map(function (d) {
+          return {
+            partNo: d.partNo, gauge: d.gauge, material: d.material,
+            weight: d.weight, metalCost: d.metalCost, nonMetalCost: d.nonMetalCost,
+            cost: d.cost, matched: true
+          };
+        });
+
+      var unmatchedWires = safeArray(draftRow.wireItems)
+        .filter(function (w) { return !wireResult.matchedPartNos.has(w.partNo); })
+        .map(function (w) {
+          return {
+            partNo: w.partNo, gauge: w.gauge || '--', material: w.material || '--',
+            weight: 0, metalCost: 0, nonMetalCost: 0, cost: 0,
+            matched: false, unmatchedMaterialCost: 0
+          };
+        });
+
+      wireLines.push.apply(wireLines, matchedWireDetail.concat(unmatchedWires));
+
+      var itemStats = draftRow.itemStats || {};
       harnesses.push({
         harnessId: draftRow.harnessId,
-        harnessName: draftRow.harnessName,
-        selectedBomVersionKey: selectedVersionKey,
-        selectedBomVersionLabel: selectedVersionName,
-        unitMaterialCost: harnessMaterialCost,
-        unitDirectLaborCost: harnessDirectLabor,
-        unitManufacturingCost: harnessManufacturing,
-        unitPackagingCost: harnessPackaging,
-        unitEquipmentCost: harnessEquipment,
-        unitRndCost: harnessRnd,
-        unitCostEstimated: harnessUnitCost,
-        unitRevenueEstimated: harnessUnitRevenue,
-        unitProfitEstimated: harnessUnitProfit,
-        marginEstimated: harnessUnitRevenue ? harnessUnitProfit / harnessUnitRevenue : 0,
-        matchedWireMaterialCost: scaledMatchedWireCost,
-        unmatchedWireAllocatedMaterial,
-        nonWireAllocatedMaterial,
-        residualMaterialShare: harnessResidualShare,
-        residualBasis: draftRow.residualBasis,
-        counts: {
-          groupCount: draftRow.groupCount,
-          selectedItemCount: draftRow.itemStats.selectedItemCount,
-          wireLineCount: draftRow.itemStats.wireLineCount,
-          matchedWireCount: draftRow.itemStats.matchedWireCount,
-          unmatchedWireCount: draftRow.itemStats.unmatchedWireCount,
-          connectorQty: draftRow.connectorQty,
-          syncQty: draftRow.syncQty,
-          materialQty: draftRow.materialQty,
-          unmatchedWireQty: draftRow.unmatchedWireQty,
-          matchedCount: draftRow.matchedCount,
-          fullMatchCount: draftRow.fullMatchCount,
-          partialMatchCount: draftRow.partialMatchCount,
-        },
-        exactness: {
-          material: draftRow.itemStats.unmatchedWireCount ? 'mixed_exact_and_allocated' : 'mixed_catalog_and_allocated_non_wire',
-          operating: 'allocated_by_harness_material_share',
-          revenue: 'allocated_by_portfolio_cost_ratio',
-          profit: 'allocated_by_portfolio_cost_ratio',
-        },
+        revenue: harnessRevenue,
+        materialCost: harnessMaterialCost,
+        harnessMaterialCost: harnessMaterialCost,
+        scaledMatchedWireCost: scaledMatchedWireCost,
+        matchedWireCount: matchedWireDetail.length,
+        unmatchedWireCount: unmatchedWires.length,
+        // Issue #33: 残余分摊字段保留以兼容下游，值恒为 0
+        unmatchedWireAllocatedMaterial: 0,
+        nonWireAllocatedMaterial: 0,
+        residualMaterialShare: 0,
+        overheadCost: overheadCost,
+        overheadItems: overheadItems,
+        totalCost: harnessTotal,
+        profit: profit,
+        profitMargin: profitMargin,
+        revenueShare: revenueShare,
+        costShare: 0,
+        matchedWireDetail: matchedWireDetail,
         allocationBasis: {
-          matchedWire: '导线目录重量 × 当前铜铝价 + 非铜成本',
-          residualMaterial: '模型材料成本扣除已命中导线成本后的残余材料池，按 BOM 非导线数量 + 未命中导线数量分摊',
-          nonMaterial: '人工/制造/包装/设备/R&D 按线束材料成本占比分摊',
-          revenueAndProfit: '按当前整套 ASP/成本倍率回推，不代表真实线束单价',
+          matchedWire: '\u5bfc\u7ebf\u76ee\u5f55\u91cd\u91cf \u00d7 \u5f53\u524d\u94dc\u94dd\u4ef7 + \u975e\u94dc\u6210\u672c',
+          residualMaterial: '\u6b8b\u4f59\u6750\u6599\u8d70\u5446\u6ede\u63d0\u62a5\u6d41\u7a0b\uff0c\u4e0d\u8ba1\u5165\u5f53\u524d\u4ea7\u54c1\u6210\u672c\uff08Issue #2\uff09',
+          overhead: '\u6309\u6536\u5165\u5360\u6bd4\u5206\u644a\u4eba\u5de5/\u8bbe\u5907/\u5305\u88c5/R&D'
         },
-        isApproximate: true,
         notes: [
-          '当前线束级收入、利润不是核算表中的真实单线报价，而是按整套模型利润率回推的展示口径。',
-          draftRow.itemStats.unmatchedWireCount
-            ? `存在 ${draftRow.itemStats.unmatchedWireCount} 条导线未命中导线目录，已按残余材料池分摊。`
-            : '导线材料成本已优先使用导线目录估算。',
-        ],
+          '\u5bfc\u7ebf\u76ee\u5f55\u547d\u4e2d ' + matchedWireDetail.length + ' \u6761 (\u5171 ' + safeArray(draftRow.wireItems).length + ' \u6761)',
+          itemStats.unmatchedWireCount
+            ? '\u5b58\u5728 ' + itemStats.unmatchedWireCount + ' \u6761\u5bfc\u7ebf\u672a\u547d\u4e2d\u5bfc\u7ebf\u76ee\u5f55\uff0c\u6807\u8bb0\u4e3a\u5446\u6ede\u5019\u9009\uff0c\u4e0d\u8ba1\u5165\u4ea7\u54c1\u6210\u672c\u3002'
+            : '\u5bfc\u7ebf\u6750\u6599\u6210\u672c\u5df2\u4f18\u5148\u4f7f\u7528\u5bfc\u7ebf\u76ee\u5f55\u4f30\u7b97\u3002',
+          '\u95f4\u63a5\u8d39\u7528\u5206\u644a\u6bd4\u4f8b: ' + (revenueShare * 100).toFixed(1) + '%'
+        ]
       });
     });
 
+    // ── 5. costShare 回填 ──
+    harnesses.forEach(function (h) {
+      h.costShare = totalCost > 0 ? h.totalCost / totalCost : 0;
+    });
+
+    // ── 6. 每SET汇总 ──
+    var perSetSummary = harnesses.map(function (h) {
+      return {
+        harnessId: h.harnessId,
+        revenuePerSet: h.revenue,
+        costPerSet: h.totalCost,
+        profitPerSet: h.profit,
+        marginPerSet: h.profitMargin
+      };
+    });
+
+    var totalProfit = totalRevenue - totalCost;
+    var totalMargin = totalRevenue > 0 ? totalProfit / totalRevenue : 0;
+
     return {
-      meta: {
-        selectedBomVersionKey: selectedVersionKey,
-          selectedBomVersionLabel: selectedVersionName,
-        exactness: {
-          portfolio: 'exact_from_model',
-          harness: 'allocated_from_model_and_bom_validation',
-          wire: 'catalog_estimated_plus_allocated',
-        },
-        warnings,
+      totalRevenue: totalRevenue,
+      totalCost: totalCost,
+      totalProfit: totalProfit,
+      totalMargin: totalMargin,
+      harnesses: harnesses,
+      wireLines: wireLines,
+      perSetSummary: perSetSummary,
+      stagnantPool: {
+        amount: stagnantPool,
+        note: stagnantPool > 0
+          ? '\u6b8b\u4f59\u6750\u6599\u5df2\u8f6c\u5165\u5446\u6ede\u63d0\u62a5\u6d41\u7a0b\uff0c\u4e0d\u8ba1\u5165\u4ea7\u54c1\u6210\u672c\uff08Issue #2\uff09'
+          : '\u65e0\u6b8b\u4f59\u6750\u6599\uff08\u5bfc\u7ebf\u76ee\u5f55\u5df2\u8986\u76d6\u5168\u90e8\u6750\u6599\u6210\u672c\uff09'
       },
-      portfolio,
-      harnesses,
-      wireLines,
-      totals: {
-        harnessCount: harnesses.length,
-        wireLineCount: wireLines.length,
-        matchedWireLineCount: wireLines.filter((line) => line.catalogMatched).length,
-        unmatchedWireLineCount: wireLines.filter((line) => !line.catalogMatched).length,
-        matchedWireMaterialCost: matchedWireTotal,
-        residualMaterialPool: Math.max(residualMaterialPool, 0),
-        allocatedMaterialTotal: harnesses.reduce((sum, row) => sum + numberOr(row.unitMaterialCost, 0), 0),
-        allocatedOperatingTotal: harnesses.reduce((sum, row) => sum + numberOr(row.unitCostEstimated, 0), 0),
+      allocationBasis: {
+        material: '\u5bfc\u7ebf\u76ee\u5f55\u4f18\u5148 \u2192 \u6b8b\u4f59\u8d70\u5446\u6ede\u63d0\u62a5',
+        overhead: '\u6309\u6536\u5165\u5360\u6bd4\u5206\u644a'
       },
+      warnings: warnings
     };
   }
 
-  const api = {
-    buildHarnessProfitBreakdown,
-    detectBomVersionKey,
-  };
-
+  // ── 导出 ──
+  var api = { buildHarnessProfitBreakdown: buildHarnessProfitBreakdown };
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;
   }
-
   global.G281HarnessProfit = api;
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

@@ -20,9 +20,11 @@
   }
 
   function resolveHref(page) {
+    // 归一化：去掉可能已存在的 pages/ 前缀，防止 double prefix
+    const file = page.file.replace(/^pages\//, '');
     // 支持 pages/ 子目录和根目录两种部署模式
     const prefix = location.pathname.includes('/pages/') ? '' : 'pages/';
-    return `${prefix}${page.file}`;
+    return prefix + file;
   }
 
   function createNavBar(projectName) {
@@ -66,5 +68,5 @@
     return nav;
   }
 
-  global.G281Nav = { PAGES, detectCurrentPage, createNavBar, mountNavBar };
-})(typeof window !== 'undefined' ? window : globalThis);
+  global.G281Nav = { PAGES, detectCurrentPage, resolveHref, createNavBar, mountNavBar };
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
