@@ -1031,8 +1031,8 @@
     const BASE = runtime.master;
     const bomChanges = runtime.bomChanges || [];
     // Issue #4: 从 projectConfig 读取状态默认值
-    const sd = (root.ConfigBridge && root.ConfigBridge.stateDefaults)
-      ? root.ConfigBridge.stateDefaults()
+    const sd = (global.ConfigBridge && global.ConfigBridge.stateDefaults)
+      ? global.ConfigBridge.stateDefaults()
       : { bom: 'freeze', metal: 'quote', connector: 'quote', labor: 'base',
           equipment: 'base', packaging: 'base', sales: 'quote', mix: 'quote',
           annualDrop: 'quote', oneTimeCustomer: 'quote', rebate: 'quote', vave: 'none' };
@@ -1118,8 +1118,8 @@
     const mixPrice = weighted(d.mix, BASE.priceMixIndexes) / weighted(BASE.baselineMix, BASE.priceMixIndexes);
     const mixCost = weighted(d.mix, BASE.costMixIndexes) / weighted(BASE.baselineMix, BASE.costMixIndexes);
     // Issue #4: 从 projectConfig 读取金属价格敏感度
-    const ms = (root.ConfigBridge && root.ConfigBridge.metalSensitivity)
-      ? root.ConfigBridge.metalSensitivity()
+    const ms = (global.ConfigBridge && global.ConfigBridge.metalSensitivity)
+      ? global.ConfigBridge.metalSensitivity()
       : { copper: 0.65, aluminum: 0.45 };
     const copperFactor = 1 + ((d.copperPrice - BASE.copperPrice) / BASE.copperPrice) * ms.copper;
     const aluminumFactor = 1 + ((d.aluminumPrice - BASE.aluminumPrice) / BASE.aluminumPrice) * ms.aluminum;
@@ -1202,8 +1202,8 @@
     }
 
     // Issue #4: 从 projectConfig 读取材料成本组成系数
-    const mc = (root.ConfigBridge && root.ConfigBridge.materialComposition)
-      ? root.ConfigBridge.materialComposition()
+    const mc = (global.ConfigBridge && global.ConfigBridge.materialComposition)
+      ? global.ConfigBridge.materialComposition()
       : { connector: 0.24, copper: 0.38, aluminum: 0.18, other: 0.20 };
     const matBase = quoteBase.materialPerSet * (
       mc.connector * connectorFactor +
@@ -1487,8 +1487,8 @@
     }
 
     // Issue #4: 计算路径标记
-    result.computationPath = root.ComputationPath
-      ? root.ComputationPath.detect(result)
+    result.computationPath = global.ComputationPath
+      ? global.ComputationPath.detect(result)
       : { path: 'unknown', label: '未知' };
 
     return result;
