@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="../shared/nav.css">
   <link rel="stylesheet" href="../shared/project_switcher.css">
   <link rel="stylesheet" href="../ui/dashboard.css">
+  <link rel="stylesheet" href="../ui/version_timeline.css">
+  <link rel="stylesheet" href="../ui/workbook_viewer.css">
   <style>
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
     .page-header { padding: 20px 24px 12px; }
@@ -15,6 +17,9 @@
     .archive-content { padding: 0 24px 24px; }
     .arc-section { margin-top: 16px; background: #1a1a2e; border-radius: 8px; padding: 16px; }
     .arc-section h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+    .status-msg { padding: 12px 16px; border-radius: 8px; font-size: 13px; }
+    .status-ok { background: rgba(74,222,128,0.1); color: #4ade80; }
+    .status-warn { background: rgba(251,191,36,0.1); color: #fbbf24; }
   </style>
 </head>
 <body>
@@ -27,21 +32,22 @@
   </div>
 
   <div class="archive-content">
+    <div id="arcStatus"></div>
     <div class="arc-section" id="arcTimeline">
       <h2>版本时间线</h2>
-      <p style="color:#666; font-size:13px;">JSON 版本 · 提交历史 · 对比差异</p>
+      <div id="arcTimelineMount"></div>
     </div>
     <div class="arc-section" id="arcWorkbook">
       <h2>Excel 工作簿</h2>
-      <p style="color:#666; font-size:13px;">原始 Excel Sheet 浏览 · 数据验证 · 导出</p>
+      <div id="arcWorkbookMount"><p style="color:#666; font-size:13px;">原始 Excel Sheet 浏览 · 数据验证 · 导出</p></div>
     </div>
     <div class="arc-section" id="arcRepo">
       <h2>数据仓库</h2>
-      <p style="color:#666; font-size:13px;">GitHub 仓库文件结构 · JSON 数据浏览 · 原始数据下载</p>
+      <div id="arcRepoInfo"><p style="color:#666; font-size:13px;">GitHub 仓库文件结构 · JSON 数据浏览 · 原始数据下载</p></div>
     </div>
     <div class="arc-section" id="arcBomCompare">
       <h2>BOM 版本对比</h2>
-      <p style="color:#666; font-size:13px;">冻结版 vs 定点版 · 按线束/分组/料号对比</p>
+      <div id="arcBomCompareMount"><p style="color:#666; font-size:13px;">冻结版 vs 定点版 · 按线束/分组/料号对比</p></div>
     </div>
   </div>
 
@@ -78,7 +84,9 @@
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       G281Nav.mountNavBar();
+      const statusEl = document.getElementById('arcStatus');
 
+      // ── 1. 项目注册 ──
       try {
         const resp = await fetch('../config/g281.project.json');
         const config = await resp.json();
@@ -89,7 +97,7 @@
         }
       } catch (e) { console.warn('[项目注册]', e); }
 
-      // IDB + Schema 迁移
+      // ── 2. IDB + Schema 迁移 ──
       if (typeof G281BomDb !== 'undefined') {
         try {
           await G281BomDb.init();
@@ -99,7 +107,64 @@
         } catch (e) { console.warn('[Schema迁移]', e); }
       }
 
-      console.log('[归档页] 新模块已集成，等待归档渲染器接入');
+      // ── 3. 版本时间线 ──
+      if (typeof G281VersionTimeline !== 'undefined') {
+        const timelineMount = document.getElementById('arcTimelineMount');
+        if (timelineMount) {
+          try {
+            const repo = typeof G281Repo !== 'undefined' ? G281Repo : null;
+            let events = [];
+            if (repo && repo.getVersionHistory) {
+              events = repo.getVersionHistory();
+            } else if (repo && repo.data && repo.data.financial_versions) {
+              // 从 financial_versions 构造事件数据
+              events = Object.entries(repo.data.financial_versions).map(([key, ver]) => ({
+                id: key,
+                name: ver.label || key,
+                group: ver.factor || '报价',
+                createdAt: ver.publishAt || ver.created,
+                updatedAt: ver.updateAt || ver.updated,
+              }));
+            }
+            G281VersionTimeline.renderTimeline(timelineMount, events, {
+              title: '成本要素版本时间线',
+              subtitle: '显示各成本要素版本的发布时间与更新时间',
+            });
+          } catch (e) {
+            console.warn('[版本时间线]', e);
+            timelineMount.innerHTML = '<p style="color:#666">暂无版本事件数据</p>';
+          }
+        }
+      }
+
+      // ── 4. Excel 工作簿查看器 ──
+      if (typeof G281WorkbookViewer !== 'undefined') {
+        const wbMount = document.getElementById('arcWorkbookMount');
+        if (wbMount && G281WorkbookViewer.init) {
+          try {
+            G281WorkbookViewer.init(wbMount);
+          } catch (e) { console.warn('[工作簿查看器]', e); }
+        }
+      }
+
+      // ── 5. 数据仓库信息 ──
+      const repoInfoEl = document.getElementById('arcRepoInfo');
+      if (repoInfoEl) {
+        const repo = typeof G281Repo !== 'undefined' ? G281Repo : null;
+        if (repo && repo.data) {
+          const dataKeys = Object.keys(repo.data);
+          repoInfoEl.innerHTML = `<p style="color:#4ade80;">✓ 已加载 ${dataKeys.length} 个数据集</p>` +
+            '<ul style="color:#888;font-size:13px;margin:8px 0 0;padding-left:20px;">' +
+            dataKeys.map(k => `<li>${k}</li>`).join('') + '</ul>';
+        }
+      }
+
+      // ── 6. 状态 ──
+      if (statusEl) {
+        statusEl.innerHTML = '<div class="status-msg status-ok">✓ 归档模块已初始化</div>';
+      }
+
+      console.log('[归档页] 渲染器已接入');
     });
   </script>
 </body>
