@@ -3,21 +3,12 @@
 
   const DEFAULT_PROJECT_CODE = 'default-project';
 
-  const clonePlain = (value, fallback = null) => {
-    try {
-      return JSON.parse(JSON.stringify(value));
-    } catch (error) {
-      return fallback;
-    }
-  };
-
-  const toText = (value, fallback = '') => {
-    const text = String(value ?? '').trim();
-    return text || fallback;
-  };
-
+  // Issue #10: 委托给 G281Shared
+  const _S = (typeof G281Shared !== 'undefined') ? G281Shared : {};
+  const clonePlain = _S.clonePlain || ((value, fallback = null) => { try { return JSON.parse(JSON.stringify(value)); } catch (e) { return fallback; } });
+  const toText = _S.toText || ((value, fallback = '') => { const t = String(value ?? '').trim(); return t || fallback; });
   const ensureObject = (value) => (value && typeof value === 'object' ? value : {});
-  const ensureArray = (value) => (Array.isArray(value) ? value : []);
+  const ensureArray = _S.safeArray || ((value) => (Array.isArray(value) ? value : []));
 
   const getDb = () => {
     if (!global.G281BomDb) {
