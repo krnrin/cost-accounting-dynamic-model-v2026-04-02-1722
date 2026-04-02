@@ -3,6 +3,11 @@
 
   const CONNECTOR_LIKE = new Set(['connector', 'terminal', 'ipt_terminal']);
 
+  // --- Issue #5: 引入增强 alignKey ---
+  const AlignKeyEnhancer = global.G281AlignKeyEnhancer || {};
+  const enhanceAlignKeys = AlignKeyEnhancer.enhanceAlignKeys || ((items) => items);
+  const buildSetAwareUsageDelta = AlignKeyEnhancer.buildSetAwareUsageDelta || (() => null);
+
   const clonePlain = (value, fallback = null) => {
     try {
       return JSON.parse(JSON.stringify(value));
@@ -62,6 +67,9 @@
       });
 
   const buildUsageDelta = (leftItem, rightItem) => {
+    const setDelta = buildSetAwareUsageDelta(leftItem, rightItem);
+    if (setDelta) return setDelta;
+
     const leftQty = toNumber(leftItem?.qty, NaN);
     const rightQty = toNumber(rightItem?.qty, NaN);
     const leftUnit = toText(leftItem?.unit, '');
@@ -181,7 +189,9 @@
     });
 
   const alignGroupItems = (leftItems, rightItems, groupKey) => {
-    const exactAligned = pairByKey(leftItems, rightItems, (item) => normalizeKey(item.alignKey));
+    const enhancedLeft = enhanceAlignKeys(leftItems);
+    const enhancedRight = enhanceAlignKeys(rightItems);
+    const exactAligned = pairByKey(enhancedLeft, enhancedRight, (item) => normalizeKey(item.alignKey));
     const partAligned = pairByKey(exactAligned.leftRemaining, exactAligned.rightRemaining, (item) => {
       const partNo = normalizeKey(item.partNo);
       return partNo ? `${normalizeKey(item.itemCategory)}|${normalizeKey(item.endGroup)}|${partNo}` : '';
@@ -280,6 +290,9 @@
       rightHeader: clonePlain(rightHeader, null),
       groups,
       summary,
+      endGroupChanges: AlignKeyEnhancer.classifyEndGroupChanges
+        ? AlignKeyEnhancer.classifyEndGroupChanges(leftItems, rightItems)
+        : null,
     };
   };
 
@@ -317,6 +330,7 @@
       harnessCount: harnesses.length,
     });
 
+    const ResidualHandler = global.G281ResidualPoolHandler;
     return {
       leftReleaseId: toText(leftRelease.releaseId, ''),
       rightReleaseId: toText(rightRelease.releaseId, ''),
@@ -325,6 +339,9 @@
       comparedAt: new Date().toISOString(),
       harnesses,
       summary,
+      stagnantCandidates: ResidualHandler
+        ? ResidualHandler.extractStagnantCandidates(harnesses)
+        : [],
     };
   };
 
