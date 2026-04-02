@@ -64,8 +64,10 @@
         params.set(key, String(value));
       }
     });
+    // 归一化：去掉可能已存在的 pages/ 前缀，防止 double prefix
+    const normalizedFile = pageFile.replace(/^pages\//, '');
     const prefix = location.pathname.includes('/pages/') ? '' : 'pages/';
-    location.href = `${prefix}${pageFile}?${params.toString()}`;
+    location.href = `${prefix}${normalizedFile}?${params.toString()}`;
   }
 
   // 注册跨页面消息监听（用于同源 iframe 或 BroadcastChannel）
@@ -83,6 +85,19 @@
     if (channel) channel.postMessage(data);
   }
 
+  // 清理 BroadcastChannel 防止内存泄漏
+  function destroyBroadcast() {
+    if (channel) {
+      channel.close();
+      channel = null;
+    }
+  }
+
+  // 页面卸载时自动清理
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', destroyBroadcast);
+  }
+
   global.G281PageRouter = {
     readUrlParams,
     writeUrlParams,
@@ -92,5 +107,6 @@
     navigateTo,
     initBroadcast,
     broadcast,
+    destroyBroadcast,
   };
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
