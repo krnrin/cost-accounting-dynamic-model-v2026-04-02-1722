@@ -98,5 +98,11 @@
     _FALLBACK_METAL: FALLBACK_METAL_SENSITIVITY,
   };
 
+  // P2#7: 统一 G281 前缀，保留旧名向后兼容
+  global.G281ConfigBridge = ConfigBridge;
   global.ConfigBridge = ConfigBridge;
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ConfigBridge;
+  }
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

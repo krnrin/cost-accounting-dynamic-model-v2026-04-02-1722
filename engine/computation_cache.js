@@ -150,4 +150,9 @@
     hashInputs,       // deprecated, 保留向后兼容
     _modelCache: modelCache,  // 测试用
   };
+
+  // P2#8: Node.js module.exports
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = root.G281ComputationCache;
+  }
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
