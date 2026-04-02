@@ -50,7 +50,7 @@
   }
 
   // ── 导出 ──────────────────────────────────────
-  global.G281SharedUtils = {
+  const api = {
     FINANCIAL_VERSION_KEYS,
     STATE_FINANCIAL_VERSION_MAP,
     clamp,
@@ -62,4 +62,10 @@
     approxEqual,
     arraysClose,
   };
-})(typeof window !== 'undefined' ? window : globalThis);
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = api;
+  }
+
+  global.G281SharedUtils = api;
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
