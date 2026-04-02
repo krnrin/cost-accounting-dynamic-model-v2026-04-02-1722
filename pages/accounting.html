@@ -166,19 +166,25 @@
                 }).join('') + '</tbody></table>';
             }
 
-            // 线束级利润
-            if (typeof G281HarnessProfit !== 'undefined' && G281HarnessProfit.compute) {
-              const harnessResult = G281HarnessProfit.compute(model);
-              const harnessEl = document.getElementById('accHarnessTable');
-              if (harnessEl && harnessResult && harnessResult.rows) {
-                harnessEl.innerHTML = '<table class="annual-table"><thead><tr>' +
-                  '<th>线束号</th><th>收入</th><th>成本</th><th>利润</th><th>利润率</th></tr></thead><tbody>' +
-                  harnessResult.rows.map(r =>
-                    `<tr><td>${r.harnessId}</td><td>${r.revenue?.toFixed(2) || '--'}</td>` +
-                    `<td>${r.cost?.toFixed(2) || '--'}</td><td style="color:${r.profit > 0 ? '#4ade80' : '#f87171'}">${r.profit?.toFixed(2) || '--'}</td>` +
-                    `<td>${r.margin ? (r.margin * 100).toFixed(1) + '%' : '--'}</td></tr>`
-                  ).join('') + '</tbody></table>';
-              }
+            // ── 线束级利润 (Issue #35: API名修复) ──
+            if (typeof G281HarnessProfit !== 'undefined' && G281HarnessProfit.buildHarnessProfitBreakdown) {
+              try {
+                const runtime = {
+                  harnessDrafts: repo.getHarnessDrafts ? repo.getHarnessDrafts() : [],
+                  wireLineCatalog: repo.getWireLineCatalog ? repo.getWireLineCatalog() : [],
+                };
+                const harnessResult = G281HarnessProfit.buildHarnessProfitBreakdown(runtime, model);
+                const harnessEl = document.getElementById('accHarnessTable');
+                if (harnessEl && harnessResult && harnessResult.harnesses && harnessResult.harnesses.length) {
+                  harnessEl.innerHTML = '<table class="annual-table"><thead><tr>' +
+                    '<th>线束号</th><th>收入</th><th>成本</th><th>利润</th><th>利润率</th></tr></thead><tbody>' +
+                    harnessResult.harnesses.map(r =>
+                      `<tr><td>${r.harnessId}</td><td>${r.revenue?.toFixed(2) || '--'}</td>` +
+                      `<td>${r.totalCost?.toFixed(2) || '--'}</td><td style="color:${r.profit > 0 ? '#4ade80' : '#f87171'}">${r.profit?.toFixed(2) || '--'}</td>` +
+                      `<td>${r.profitMargin ? (r.profitMargin * 100).toFixed(1) + '%' : '--'}</td></tr>`
+                    ).join('') + '</tbody></table>';
+                }
+              } catch (e) { console.warn('[线束利润]', e); }
             }
 
             // 目标价求解
