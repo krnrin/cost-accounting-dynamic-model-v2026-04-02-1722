@@ -157,4 +157,8 @@
   }
 
   global.G281Repo = { init };
-})(window);
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = global.G281Repo;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

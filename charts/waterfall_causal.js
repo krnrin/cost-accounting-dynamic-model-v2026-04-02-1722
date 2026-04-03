@@ -25,6 +25,10 @@
 (function (global) {
   'use strict';
 
+  // P2#9: 委托给 G281Shared，消除重复 clonePlain
+  const clonePlain = (global.G281Shared && global.G281Shared.clonePlain)
+    || function (value) { try { return JSON.parse(JSON.stringify(value)); } catch (e) { return {}; } };
+
   // 因果链固定顺序
   const CAUSAL_ORDER = [
     { key: 'bom',             label: 'BOM版本',    color: '#5B8DEF' },
@@ -43,17 +47,6 @@
 
   /**
    * 计算因果链瀑布图数据
-   * 逐步将每个因素从 baseline 切换到 scenario，记录每步的 margin 变化
-   *
-   * @param {Object} options
-   * @param {Object} options.engine - G281TargetPriceSolver / computeModel
-   * @param {Object} options.runtime - 运行时数据
-   * @param {Object} options.baselineState - 基准状态
-   * @param {Object} options.baselineDraft - 基准草案
-   * @param {Object} options.scenarioState - 场景状态
-   * @param {Object} options.scenarioDraft - 场景草案
-   * @param {Array}  [options.factors] - 可选自定义因素列表
-   * @returns {Object} 瀑布图数据
    */
   function computeCausalWaterfall(options) {
     const engine = options?.engine;
@@ -89,9 +82,7 @@
     }];
 
     factors.forEach(factor => {
-      // 切换该因素到 scenario
       currentState = { ...currentState, [factor.key]: scenarioState[factor.key] };
-      // 切换 draft 中对应的 keys
       if (factor.draftKeys) {
         factor.draftKeys.forEach(dk => {
           if (scenarioDraft.hasOwnProperty(dk)) {
@@ -138,7 +129,6 @@
       finalMargin,
       totalDelta: finalMargin - baseMargin,
       factorCount: factors.length,
-      // 按影响绝对值排序的 top 因素
       topFactors: steps
         .filter(s => !s.isBaseline && !s.isTotal)
         .sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta))
@@ -149,9 +139,6 @@
 
   /**
    * 生成瀑布图 HTML（纯 DOM，不依赖 Chart.js）
-   * @param {Object} waterfallData - computeCausalWaterfall 的输出
-   * @param {Object} [renderOptions]
-   * @returns {string} HTML 字符串
    */
   function renderWaterfallHTML(waterfallData, renderOptions = {}) {
     const width = renderOptions.width || '100%';
@@ -198,10 +185,6 @@
     return html;
   }
 
-  function clonePlain(value) {
-    try { return JSON.parse(JSON.stringify(value)); } catch { return {}; }
-  }
-
   // --- 导出 ---
   const api = {
     computeCausalWaterfall,
@@ -213,4 +196,4 @@
     module.exports = api;
   }
   global.G281WaterfallCausal = api;
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
