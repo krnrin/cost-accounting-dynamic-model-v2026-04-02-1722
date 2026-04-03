@@ -107,6 +107,11 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
+      /* XSS mitigation: escape dynamic strings before innerHTML insertion */
+      const escapeHtml = v => String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
       const pageBoot = window.G281Bootstrap && typeof window.G281Bootstrap.bootstrapPage === 'function'
         ? await window.G281Bootstrap.bootstrapPage({
             statusElement: 'accStatus',
@@ -131,7 +136,7 @@
           const listEl = document.getElementById('accVersionList');
           if (versions.length && listEl) {
             listEl.innerHTML = versions.map(v =>
-              `<button class="acc-btn" data-version="${v.id}">${v.label || v.id}</button>`
+              `<button class="acc-btn" data-version="${escapeHtml(v.id)}">${escapeHtml(v.label || v.id)}</button>`
             ).join(' ');
           }
         } catch (e) { console.warn('[版本列表]', e); }
@@ -159,7 +164,7 @@
                 '<th>成本项</th><th>金额 (元)</th><th>占比</th></tr></thead><tbody>' +
                 Object.entries(items).map(([k, v]) => {
                   const pct = model.operating ? ((v / model.operating) * 100).toFixed(1) : '--';
-                  return `<tr><td>${k}</td><td>${Number.isFinite(v) ? v.toFixed(2) : '--'}</td><td>${pct}%</td></tr>`;
+                  return `<tr><td>${escapeHtml(k)}</td><td>${Number.isFinite(v) ? v.toFixed(2) : '--'}</td><td>${pct}%</td></tr>`;
                 }).join('') + '</tbody></table>';
             }
 
@@ -175,7 +180,7 @@
                   harnessEl.innerHTML = '<table class="annual-table"><thead><tr>' +
                     '<th>线束号</th><th>收入</th><th>成本</th><th>利润</th><th>利润率</th></tr></thead><tbody>' +
                     harnessResult.harnesses.map(r =>
-                      `<tr><td>${r.harnessId}</td><td>${r.revenue?.toFixed(2) || '--'}</td>` +
+                      `<tr><td>${escapeHtml(r.harnessId)}</td><td>${r.revenue?.toFixed(2) || '--'}</td>` +
                       `<td>${r.totalCost?.toFixed(2) || '--'}</td><td style="color:${r.profit > 0 ? '#4ade80' : '#f87171'}">${r.profit?.toFixed(2) || '--'}</td>` +
                       `<td>${r.profitMargin ? (r.profitMargin * 100).toFixed(1) + '%' : '--'}</td></tr>`
                     ).join('') + '</tbody></table>';
