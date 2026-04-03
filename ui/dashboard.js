@@ -1904,11 +1904,18 @@ function ensureVersionTimelineAssets() {
   if (versionTimelineLoader) {
     return versionTimelineLoader;
   }
+  const resolveTimelineScriptSrc = () => {
+    const existingScript = Array.from(document.querySelectorAll('script[src]')).find((node) => {
+      const src = node.getAttribute('src') || '';
+      return /(?:^|\/)(?:g281_)?version_timeline(?:_[^/?#]+)?\.js(?:[?#]|$)/.test(src);
+    });
+    return existingScript?.getAttribute('src') || './version_timeline.js?v=20260329a';
+  };
   versionTimelineLoader = new Promise((resolve, reject) => {
     let script = document.querySelector('script[data-g281-version-timeline]');
     if (!script) {
       script = document.createElement('script');
-      script.src = './g281_version_timeline.js?v=20260329a';
+      script.src = resolveTimelineScriptSrc();
       script.dataset.g281VersionTimeline = 'true';
       document.body.appendChild(script);
     }
@@ -8887,10 +8894,10 @@ function computeProfitInsightsPayload(model) {
       const waterfallData = window.G281WaterfallCausal.computeCausalWaterfall({
         engine: window.G281Engine,
         runtime: RUNTIME,
-        baselineState: shapleyResult.baseline.state,
-        baselineDraft: shapleyResult.baseline.draft,
-        scenarioState: shapleyResult.scenario.state,
-        scenarioDraft: shapleyResult.scenario.draft,
+        baselineState: shapley.baseline.state,
+        baselineDraft: shapley.baseline.draft,
+        scenarioState: shapley.scenario.state,
+        scenarioDraft: shapley.scenario.draft,
         factors: window.G281WaterfallCausal.CAUSAL_ORDER.map(f => {
           const shapleyFactor = window.G281ProfitShapley.defaultFactors.find(sf => sf.key === f.key);
           return { ...f, draftKeys: shapleyFactor?.draftKeys || [] };

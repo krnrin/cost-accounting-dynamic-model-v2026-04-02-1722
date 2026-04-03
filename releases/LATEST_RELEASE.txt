@@ -1,3 +1,4 @@
-﻿Version=v2026.04.02-1722
-MainFile=g281_profit_dashboard_v2026.04.01-1404.html
-Folder=C:\Users\lyvee\.openclaw\workspace\成本核算动态模型\releases\v2026.04.02-1722
+﻿Version=v2026.04.04-0513
+MainFile=dashboard_v2026.04.04-0513.html
+Folder=C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\releases\v2026.04.04-0513
+Structure=new

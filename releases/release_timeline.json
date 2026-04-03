@@ -1,7 +1,26 @@
 ﻿{
-    "schemaVersion":  1,
-    "updatedAt":  "2026-04-02T17:36:55.9446755+08:00",
+    "schemaVersion":  2,
+    "updatedAt":  "2026-04-04T05:13:10.4357619+08:00",
     "releases":  [
+                     {
+                         "versionTag":  "v2026.04.02-2149",
+                         "folderName":  "v2026.04.02-2149",
+                         "mainFile":  "dashboard_v2026.04.02-2149.html",
+                         "structure":  "new",
+                         "publishedAt":  "2026-04-02T21:49:41.8935033+08:00",
+                         "updatedAt":  "2026-04-02T21:49:41.8935033+08:00",
+                         "metadataPath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.02-2149\\release_metadata.json",
+                         "timelineEvents":  [
+                                                {
+                                                    "id":  "release/v2026.04.02-2149",
+                                                    "type":  "release",
+                                                    "title":  "release_published",
+                                                    "versionTag":  "v2026.04.02-2149",
+                                                    "publishedAt":  "2026-04-02T21:49:41.8935033+08:00",
+                                                    "updatedAt":  "2026-04-02T21:49:41.8935033+08:00"
+                                                }
+                                            ]
+                     },
                      {
                          "versionTag":  "v2026.04.02-1722",
                          "folderName":  "v2026.04.02-1722",
@@ -71,6 +90,24 @@
                                                     "versionTag":  "v2026.04.02-1345",
                                                     "publishedAt":  "2026-04-02T13:46:00.4944045+08:00",
                                                     "updatedAt":  "2026-04-02T13:46:00.4944045+08:00"
+                                                }
+                                            ]
+                     },
+                     {
+                         "versionTag":  "v2026.04.01-1404",
+                         "folderName":  "v2026.04.01-1404",
+                         "mainFile":  "g281_profit_dashboard_v2026.04.01-1404.html",
+                         "publishedAt":  "2026-04-01T14:04:53.0117854+08:00",
+                         "updatedAt":  "2026-04-01T14:04:53.0117854+08:00",
+                         "metadataPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.01-1404\\release_metadata.json",
+                         "timelineEvents":  [
+                                                {
+                                                    "id":  "release/v2026.04.01-1404",
+                                                    "type":  "release",
+                                                    "title":  "release_published",
+                                                    "versionTag":  "v2026.04.01-1404",
+                                                    "publishedAt":  "2026-04-01T14:04:53.0117854+08:00",
+                                                    "updatedAt":  "2026-04-01T14:04:53.0117854+08:00"
                                                 }
                                             ]
                      },
@@ -1209,20 +1246,21 @@
                                             ]
                      },
                      {
-                         "versionTag":  "v2026.04.01-1404",
-                         "folderName":  "v2026.04.01-1404",
-                         "mainFile":  "g281_profit_dashboard_v2026.04.01-1404.html",
-                         "publishedAt":  "2026-04-01T14:04:53.0117854+08:00",
-                         "updatedAt":  "2026-04-01T14:04:53.0117854+08:00",
-                         "metadataPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.01-1404\\release_metadata.json",
+                         "versionTag":  "v2026.04.04-0513",
+                         "folderName":  "v2026.04.04-0513",
+                         "mainFile":  "dashboard_v2026.04.04-0513.html",
+                         "structure":  "new",
+                         "publishedAt":  "2026-04-04T05:13:10.4357619+08:00",
+                         "updatedAt":  "2026-04-04T05:13:10.4357619+08:00",
+                         "metadataPath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.04-0513\\release_metadata.json",
                          "timelineEvents":  [
                                                 {
-                                                    "id":  "release/v2026.04.01-1404",
+                                                    "id":  "release/v2026.04.04-0513",
                                                     "type":  "release",
                                                     "title":  "release_published",
-                                                    "versionTag":  "v2026.04.01-1404",
-                                                    "publishedAt":  "2026-04-01T14:04:53.0117854+08:00",
-                                                    "updatedAt":  "2026-04-01T14:04:53.0117854+08:00"
+                                                    "versionTag":  "v2026.04.04-0513",
+                                                    "publishedAt":  "2026-04-04T05:13:10.4357619+08:00",
+                                                    "updatedAt":  "2026-04-04T05:13:10.4357619+08:00"
                                                 }
                                             ]
                      }
