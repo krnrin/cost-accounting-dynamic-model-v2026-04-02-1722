@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "description": "Offline harness cost dashboard with Univer sheet editor.",
   "scripts": {
-    "build:univer-editor": "node ./build_univer_editor.mjs"
+    "build:univer-editor": "node ./build_univer_editor.mjs",
+    "test:landing-workbench": "npx playwright test tests/landing_workbench_smoke.spec.js -c tests/playwright.landing.config.js"
   },
   "dependencies": {
     "@univerjs/drawing": "0.18.0",
@@ -22,6 +23,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "esbuild": "^0.25.3"
   }
 }

@@ -81,6 +81,7 @@
     observers: [],
     tableBound: false,
     mountBound: false,
+    scenarioBound: false,
   };
 
   function $(id) {
@@ -118,6 +119,26 @@
 
   function formatPercent(value) {
     return Number.isFinite(value) ? `${(value * 100).toFixed(2)}%` : '--';
+  }
+
+  function formatLocaleNumber(value, digits) {
+    if (!Number.isFinite(value)) return '--';
+    return Number(value).toLocaleString('zh-CN', {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    });
+  }
+
+  function formatMoneyValue(value) {
+    return Number.isFinite(value) ? `${formatLocaleNumber(value, 2)} 元` : '--';
+  }
+
+  function formatPercentValue(value) {
+    return Number.isFinite(value) ? `${(value * 100).toFixed(2)}%` : '--';
+  }
+
+  function getDashboardBridge() {
+    return global.G281DashboardBridge || null;
   }
 
   function countTableRows(id) {
@@ -158,6 +179,66 @@
     });
   }
 
+  function uniqueTexts(values) {
+    return values.filter(function (item, index, array) {
+      return item && array.indexOf(item) === index;
+    });
+  }
+
+  function readScenarioTagsFromModel(model) {
+    if (!model) return [];
+    const tags = [
+      model.bom && model.bom.label ? `BOM ${model.bom.label}` : '',
+      model.metal && model.metal.label ? `铜铝 ${model.metal.label}` : '',
+      model.conn && model.conn.label ? `连接器 ${model.conn.label}` : '',
+      model.labor && model.labor.label ? `工时 ${model.labor.label}` : '',
+      model.equip && model.equip.label ? `资源投入 ${model.equip.label}` : '',
+      model.pack && model.pack.label ? `包装 ${model.pack.label}` : '',
+      model.annualDrop && model.annualDrop.label ? `年降 ${model.annualDrop.label}` : '',
+      model.oneTimeCustomer && model.oneTimeCustomer.label ? `一次性费用 ${model.oneTimeCustomer.label}` : '',
+      model.rebate && model.rebate.label ? `返点 ${model.rebate.label}` : '',
+      model.vave && model.vave.label ? `VAVE ${model.vave.label}` : '',
+    ].filter(Boolean);
+    if (numberOr(model.connectorSummary && model.connectorSummary.overrideCount, 0) > 0) {
+      tags.splice(3, 0, `连接器覆盖 ${model.connectorSummary.overrideCount} 项`);
+    }
+    return uniqueTexts(tags).slice(0, 9);
+  }
+
+  function buildKpiCardsFromModel(model) {
+    if (!model) return [];
+    const totalVolume = numberOr(model.totalVolume, 0);
+    return [
+      {
+        title: '生命周期收入',
+        value: formatMoneyValue(numberOr(model.totalRevenue, NaN)),
+        meta: totalVolume > 0 ? `按 ${formatLocaleNumber(totalVolume, 0)} 套计算` : '',
+      },
+      {
+        title: '生命周期成本',
+        value: formatMoneyValue(numberOr(model.totalCost, NaN)),
+        meta: `单套成本 ${formatMoneyValue(numberOr(model.operating, NaN))}`,
+      },
+      {
+        title: '生命周期利润',
+        value: formatMoneyValue(numberOr(model.totalProfit, NaN)),
+        meta: `单套利润 ${formatMoneyValue(numberOr(model.avgProfit, NaN))}`,
+      },
+      {
+        title: '毛利率',
+        value: formatPercentValue(numberOr(model.margin, NaN)),
+        meta: `混合售价系数 ${formatLocaleNumber(numberOr(model.mixPrice, 0), 4)}x`,
+      },
+      {
+        title: '静态回收期',
+        value: Number.isFinite(numberOr(model.paybackYears, NaN))
+          ? `${numberOr(model.paybackYears, 0).toFixed(2)} 年`
+          : '∞',
+        meta: `资本投入 ${formatMoneyValue(numberOr(model.capitalTotal, NaN))}`,
+      },
+    ];
+  }
+
   function toneClass(tone) {
     if (tone === 'low') return 'is-low';
     if (tone === 'high') return 'is-high';
@@ -175,6 +256,157 @@
     if (Number.isFinite(row.margin) && row.margin < 0.12) return 'low';
     if (Number.isFinite(row.margin) && row.margin >= 0.2) return 'high';
     return 'mid';
+  }
+
+  function buildHarnessBasisText(row, fallbackLabel) {
+    if (textOf(row && row.basis)) return row.basis;
+    const selectedItemCount = numberOr(row && row.counts && row.counts.selectedItemCount, NaN);
+    const wireLineCount = numberOr(row && row.counts && row.counts.wireLineCount, NaN);
+    if (Number.isFinite(selectedItemCount) || Number.isFinite(wireLineCount)) {
+      return `${formatLocaleNumber(selectedItemCount || 0, 0)} 件 / 导线项 ${formatLocaleNumber(wireLineCount || 0, 0)} 个`;
+    }
+    const matchedWireCount = numberOr(row && row.matchedWireCount, NaN);
+    const unmatchedWireCount = numberOr(row && row.unmatchedWireCount, NaN);
+    if (Number.isFinite(matchedWireCount) || Number.isFinite(unmatchedWireCount)) {
+      return `${fallbackLabel || '当前'} / 导线命中 ${formatLocaleNumber(matchedWireCount || 0, 0)} 项 / 未命中 ${formatLocaleNumber(unmatchedWireCount || 0, 0)} 项`;
+    }
+    const revenueShare = numberOr(row && row.revenueShare, NaN);
+    if (Number.isFinite(revenueShare)) {
+      return `收入占比 ${(revenueShare * 100).toFixed(1)}%`;
+    }
+    return '--';
+  }
+
+  function normalizeHarnessRows(rows) {
+    return rows.slice().sort(function (left, right) {
+      const leftMargin = Number.isFinite(left.margin) ? left.margin : Number.POSITIVE_INFINITY;
+      const rightMargin = Number.isFinite(right.margin) ? right.margin : Number.POSITIVE_INFINITY;
+      if (leftMargin !== rightMargin) return leftMargin - rightMargin;
+      return (left.profit || 0) - (right.profit || 0);
+    }).map(function (row, index) {
+      return Object.assign({}, row, { index: index + 1 });
+    });
+  }
+
+  function mapBreakdownHarnessRows(runtime, model, bridge) {
+    if (!runtime || !model || !global.G281HarnessProfit || typeof global.G281HarnessProfit.buildHarnessProfitBreakdown !== 'function') {
+      return [];
+    }
+    let breakdown = null;
+    try {
+      breakdown = global.G281HarnessProfit.buildHarnessProfitBreakdown(runtime, model);
+    } catch (error) {
+      console.warn('[G281LandingWorkbench] Failed to read harness breakdown', error);
+      return [];
+    }
+    if (!Array.isArray(breakdown && breakdown.harnesses) || !breakdown.harnesses.length) {
+      return [];
+    }
+    const versionLabels = bridge && bridge.getVersionLabels ? bridge.getVersionLabels() : {};
+    const workbookVersionKey = textOf(bridge && bridge.getWorkbookVersionKey && bridge.getWorkbookVersionKey()) || 'quote';
+    const workbookLabel = textOf(versionLabels && versionLabels[workbookVersionKey]) || workbookVersionKey || '当前';
+    return normalizeHarnessRows(breakdown.harnesses.map(function (row) {
+      const revenue = numberOr(row.unitRevenueEstimated, numberOr(row.revenue, NaN));
+      const cost = numberOr(row.unitCostEstimated, numberOr(row.totalCost, NaN));
+      const profit = numberOr(row.unitProfitEstimated, numberOr(row.profit, NaN));
+      const margin = numberOr(row.marginEstimated, numberOr(row.profitMargin, NaN));
+      const material = numberOr(row.unitMaterialCost, numberOr(row.materialCost, numberOr(row.harnessMaterialCost, NaN)));
+      const labor = numberOr(
+        numberOr(row.unitDirectLaborCost, 0) + numberOr(row.unitManufacturingCost, 0),
+        numberOr(row.overheadItems && row.overheadItems.labor, NaN)
+      );
+      const packaging = numberOr(row.unitPackagingCost, numberOr(row.overheadItems && row.overheadItems.packaging, NaN));
+      const equipment = numberOr(
+        numberOr(row.unitEquipmentCost, 0) + numberOr(row.unitRndCost, 0),
+        numberOr(row.overheadItems && row.overheadItems.equipment, 0) + numberOr(row.overheadItems && row.overheadItems.rd, 0)
+      );
+      return {
+        harnessId: textOf(row.harnessId),
+        harnessName: textOf(row.harnessName || row.harnessId),
+        revenueText: formatMoneyValue(revenue),
+        costText: formatMoneyValue(cost),
+        profitText: formatMoneyValue(profit),
+        marginText: formatPercentValue(margin),
+        materialText: formatMoneyValue(material),
+        laborText: formatMoneyValue(labor),
+        packagingText: formatMoneyValue(packaging),
+        equipmentText: formatMoneyValue(equipment),
+        basisText: buildHarnessBasisText(row, workbookLabel),
+        revenue: revenue,
+        cost: cost,
+        profit: profit,
+        margin: margin,
+        tone: inferTone({ margin: margin }),
+      };
+    }).filter(function (row) {
+      return row.harnessId;
+    }));
+  }
+
+  function mapValidationHarnessRows(runtime, model, bridge) {
+    const validation = runtime && runtime.bomValidation;
+    const harnessOrder = Array.isArray(validation && validation.harnessOrder) ? validation.harnessOrder : [];
+    if (!model || !harnessOrder.length) return [];
+    const comparisons = validation && validation.comparisons ? validation.comparisons : {};
+    const workbookVersionKey = textOf(bridge && bridge.getWorkbookVersionKey && bridge.getWorkbookVersionKey()) || 'quote';
+    const versionLabels = bridge && bridge.getVersionLabels ? bridge.getVersionLabels() : {};
+    const versionLabel = textOf(versionLabels && versionLabels[workbookVersionKey]) || workbookVersionKey || '当前';
+    const annualRows = Array.isArray(model.annual) ? model.annual : [];
+    const avgAsp = annualRows.length
+      ? annualRows.reduce(function (sum, row) { return sum + numberOr(row && row.asp, 0); }, 0) / annualRows.length
+      : 0;
+    const totalLabor = numberOr(model.directLabor, 0) + numberOr(model.manufacturing, 0);
+    const capitalAndRnd = numberOr(model.equipment, 0) + numberOr(model.rnd, 0);
+    const baseRows = harnessOrder.map(function (harnessId) {
+      const comparison = comparisons[harnessId] || {};
+      const summary = comparison.summary || {};
+      const itemCounts = summary.itemCounts || {};
+      const weight = numberOr(itemCounts[workbookVersionKey], 0)
+        || numberOr(itemCounts.fixed, 0)
+        || numberOr(itemCounts.quote, 0)
+        || numberOr(itemCounts.tt, 0);
+      return {
+        harnessId: harnessId,
+        harnessName: comparison.harnessName || harnessId,
+        weight: weight,
+      };
+    });
+    const weightedRows = baseRows.filter(function (row) { return row.weight > 0; });
+    const totalWeight = weightedRows.reduce(function (sum, row) { return sum + row.weight; }, 0);
+    const fallbackShare = baseRows.length ? 1 / baseRows.length : 0;
+    return normalizeHarnessRows(baseRows.map(function (row) {
+      const share = totalWeight > 0 && row.weight > 0 ? row.weight / totalWeight : fallbackShare;
+      const revenue = avgAsp * share;
+      const material = numberOr(model.material, 0) * share;
+      const labor = totalLabor * share;
+      const packaging = numberOr(model.packaging, 0) * share;
+      const capital = capitalAndRnd * share;
+      const cost = material + labor + packaging + capital;
+      const profit = revenue - cost;
+      const margin = revenue > 0 ? profit / revenue : 0;
+      return {
+        harnessId: textOf(row.harnessId),
+        harnessName: textOf(row.harnessName),
+        revenueText: formatMoneyValue(revenue),
+        costText: formatMoneyValue(cost),
+        profitText: formatMoneyValue(profit),
+        marginText: formatPercentValue(margin),
+        materialText: formatMoneyValue(material),
+        laborText: formatMoneyValue(labor),
+        packagingText: formatMoneyValue(packaging),
+        equipmentText: formatMoneyValue(capital),
+        basisText: totalWeight > 0 && row.weight > 0
+          ? `${versionLabel} BOM件数 ${formatLocaleNumber(row.weight, 0)}/${formatLocaleNumber(totalWeight, 0)}`
+          : '平均分摊',
+        revenue: revenue,
+        cost: cost,
+        profit: profit,
+        margin: margin,
+        tone: inferTone({ margin: margin }),
+      };
+    }).filter(function (row) {
+      return row.harnessId;
+    }));
   }
 
   function collectHarnessRowsFromTable() {
@@ -211,6 +443,15 @@
       if (leftMargin !== rightMargin) return leftMargin - rightMargin;
       return (left.profit || 0) - (right.profit || 0);
     });
+  }
+
+  function collectHarnessRows(model, bridge) {
+    const runtime = bridge && bridge.getRuntimeSnapshot ? bridge.getRuntimeSnapshot() : null;
+    const breakdownRows = mapBreakdownHarnessRows(runtime, model, bridge);
+    if (breakdownRows.length) return breakdownRows;
+    const validationRows = mapValidationHarnessRows(runtime, model, bridge);
+    if (validationRows.length) return validationRows;
+    return collectHarnessRowsFromTable();
   }
 
   function resolveSelectedHarness(rows) {
@@ -274,15 +515,15 @@
 
   function buildViewModel() {
     const model = global._g281LastModel || null;
-    const harnessRows = collectHarnessRowsFromTable();
+    const bridge = getDashboardBridge();
+    const draft = (bridge && bridge.getDraftSnapshot && bridge.getDraftSnapshot()) || (model && model.d) || null;
+    const harnessRows = collectHarnessRows(model, bridge);
     const selectedHarness = resolveSelectedHarness(harnessRows);
-    const kpiCards = readKpiCards();
-    const scenarioName = textOf(($('scenarioName') && $('scenarioName').value) || (model && model.d && model.d.scenarioName)) || '当前场景';
-    const scenarioTags = collectChipTexts('#scenarioTags .chip');
-    const timelineTags = collectChipTexts('#timelineScenarioTagsWrap .chip');
-    const tags = scenarioTags.concat(timelineTags).filter(function (item, index, array) {
-      return item && array.indexOf(item) === index;
-    }).slice(0, 9);
+    const kpiCards = buildKpiCardsFromModel(model);
+    const scenarioName = textOf((draft && draft.scenarioName) || (model && model.d && model.d.scenarioName) || ($('scenarioName') && $('scenarioName').value)) || '当前场景';
+    const tags = readScenarioTagsFromModel(model).length
+      ? readScenarioTagsFromModel(model)
+      : uniqueTexts(collectChipTexts('#scenarioTags .chip').concat(collectChipTexts('#timelineScenarioTagsWrap .chip'))).slice(0, 9);
     const totalProfitCard = findKpi(kpiCards, '生命周期利润');
     const marginCard = findKpi(kpiCards, '毛利率');
     const paybackCard = findKpi(kpiCards, '静态回收期');
@@ -293,15 +534,19 @@
     const negativeCount = harnessRows.filter(function (row) {
       return row.profit < 0;
     }).length;
-    const directHours = numberOr($('directHours') && $('directHours').value, 0);
-    const manufacturingHours = numberOr($('manufacturingHours') && $('manufacturingHours').value, 0);
+    const directHours = numberOr(draft && draft.directHours, numberOr(model && model.d && model.d.directHours, 0));
+    const manufacturingHours = numberOr(draft && draft.manufacturingHours, numberOr(model && model.d && model.d.manufacturingHours, 0));
     const packagingTotal =
-      numberOr($('packInner') && $('packInner').value, 0) +
-      numberOr($('packFreight') && $('packFreight').value, 0) +
-      numberOr($('packWarehouse') && $('packWarehouse').value, 0) +
-      numberOr($('packOther') && $('packOther').value, 0);
-    const connectorCount = countTableRows('connectorPriceTable');
-    const historyCount = countTableRows('historyTable');
+      numberOr(draft && draft.packInner, numberOr(model && model.d && model.d.packInner, 0)) +
+      numberOr(draft && draft.packFreight, numberOr(model && model.d && model.d.packFreight, 0)) +
+      numberOr(draft && draft.packWarehouse, numberOr(model && model.d && model.d.packWarehouse, 0)) +
+      numberOr(draft && draft.packOther, numberOr(model && model.d && model.d.packOther, 0));
+    const connectorCount = (
+      numberOr(model && model.connectorSummary && model.connectorSummary.followCount, 0)
+      + numberOr(model && model.connectorSummary && model.connectorSummary.overrideCount, 0)
+    ) || countTableRows('connectorPriceTable');
+    const savedScenarios = bridge && bridge.listSavedScenarios ? bridge.listSavedScenarios() : null;
+    const historyCount = Array.isArray(savedScenarios) ? savedScenarios.length : countTableRows('historyTable');
 
     return {
       model: model,
@@ -310,7 +555,7 @@
       tags: tags,
       harnessRows: harnessRows,
       selectedHarness: selectedHarness,
-      kpiCards: kpiCards.slice(0, 4),
+      kpiCards: (kpiCards.length ? kpiCards : readKpiCards()).slice(0, 4),
       totalProfitCard: totalProfitCard,
       marginCard: marginCard,
       paybackCard: paybackCard,
@@ -568,6 +813,15 @@
     state.tableBound = true;
   }
 
+  function bindScenarioEvents() {
+    const input = $('scenarioName');
+    if (!input || state.scenarioBound) return;
+    input.addEventListener('change', function () {
+      scheduleRefresh();
+    });
+    state.scenarioBound = true;
+  }
+
   function watchTargets() {
     if (state.observers.length || typeof MutationObserver === 'undefined') return;
     const targets = [
@@ -575,10 +829,6 @@
       $('harnessProfitSummary'),
       $('harnessProfitNote'),
       $('harnessProfitTable'),
-      $('scenarioTags'),
-      $('timelineScenarioTagsWrap'),
-      $('historyTable'),
-      $('connectorPriceTable'),
     ].filter(Boolean);
     targets.forEach(function (target) {
       const observer = new MutationObserver(function () {
@@ -598,6 +848,7 @@
     if (!$('landingWorkbenchMount')) return;
     bindMountEvents();
     bindTableEvents();
+    bindScenarioEvents();
     watchTargets();
     state.mounted = true;
     scheduleRefresh();

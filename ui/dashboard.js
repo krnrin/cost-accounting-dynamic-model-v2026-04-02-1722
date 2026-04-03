@@ -9454,7 +9454,7 @@ function setupProfitHomepage() {
     el.profitActionBar.innerHTML = '';
   }
   mountWorkspacePages();
-  setWorkspacePage(activeWorkspacePage);
+  setWorkspacePage('profit');
   document.querySelector('.bom-section')?.classList.add('profit-hidden');
   document.querySelector('.architecture-card')?.classList.add('profit-hidden');
   el.historyTable?.closest('section.two-col')?.classList.add('profit-hidden');
