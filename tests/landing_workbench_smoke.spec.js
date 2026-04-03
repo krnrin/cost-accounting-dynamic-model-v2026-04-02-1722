@@ -51,6 +51,46 @@ async function exerciseLandingWorkbench(page) {
   const opacity = await workbench.evaluate((element) => window.getComputedStyle(element).opacity);
   expect(Number(opacity)).toBeGreaterThan(0.99);
 
+  const bridgeCapabilities = await page.evaluate(() => ({
+    hasSetWorkspacePage: typeof window.G281DashboardBridge?.setWorkspacePage === 'function',
+    hasGetWorkspacePage: typeof window.G281DashboardBridge?.getWorkspacePage === 'function',
+    hasOpenVersionTimeline: typeof window.G281DashboardBridge?.openVersionTimeline === 'function',
+    hasCloseVersionTimeline: typeof window.G281DashboardBridge?.closeVersionTimeline === 'function',
+    hasOpenBomValidation: typeof window.G281DashboardBridge?.openBomValidation === 'function',
+  }));
+  expect(bridgeCapabilities).toEqual({
+    hasSetWorkspacePage: true,
+    hasGetWorkspacePage: true,
+    hasOpenVersionTimeline: true,
+    hasCloseVersionTimeline: true,
+    hasOpenBomValidation: true,
+  });
+  await expect
+    .poll(() => page.evaluate(() => window.G281DashboardBridge.getWorkspacePage()))
+    .toBe('profit');
+
+  await page.evaluate(() => window.G281DashboardBridge.setWorkspacePage('data'));
+  await expect(page.locator('#workspaceTabData')).toHaveAttribute('aria-selected', 'true');
+  await expect
+    .poll(() => page.evaluate(() => window.G281DashboardBridge.getWorkspacePage()))
+    .toBe('data');
+
+  await page.evaluate(() => window.G281DashboardBridge.openBomValidation());
+  await expect(page.locator('#bomValidationModal')).toBeVisible();
+  await page.locator('#closeBomValidationBtn').click();
+  await expect(page.locator('#bomValidationModal')).toBeHidden();
+
+  await page.evaluate(() => window.G281DashboardBridge.setWorkspacePage('profit'));
+  await expect(page.locator('#workspaceTabProfit')).toHaveAttribute('aria-selected', 'true');
+  await expect
+    .poll(() => page.evaluate(() => window.G281DashboardBridge.getWorkspacePage()))
+    .toBe('profit');
+
+  await page.evaluate(() => window.G281DashboardBridge.openVersionTimeline());
+  await expect(page.locator('#versionTimelineDrawer')).toBeVisible();
+  await page.evaluate(() => window.G281DashboardBridge.closeVersionTimeline());
+  await expect(page.locator('#versionTimelineDrawer')).toBeHidden();
+
   const initialTitle = (await detailTitle.textContent()) || '';
   const harnessCount = await harnessItems.count();
   if (harnessCount > 1) {

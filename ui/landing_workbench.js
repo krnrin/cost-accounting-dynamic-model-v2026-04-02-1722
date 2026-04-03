@@ -757,6 +757,7 @@
   }
 
   function scheduleRefresh() {
+    watchTargets();
     if (state.refreshToken) return;
     state.refreshToken = global.requestAnimationFrame(function () {
       state.refreshToken = 0;
@@ -764,7 +765,59 @@
     });
   }
 
+  function disconnectObservers() {
+    state.observers.forEach(function (observer) {
+      observer.disconnect();
+    });
+    state.observers = [];
+  }
+
+  function shouldUseMutationFallback() {
+    const bridge = getDashboardBridge();
+    return !bridge
+      || typeof bridge.getStateSnapshot !== 'function'
+      || typeof bridge.getDraftSnapshot !== 'function'
+      || typeof bridge.getRuntimeSnapshot !== 'function';
+  }
+
+  function tryBridgeAction(selector) {
+    const bridge = getDashboardBridge();
+    if (!bridge) return false;
+    try {
+      if (selector === '#workspaceTabProfit' && typeof bridge.setWorkspacePage === 'function') {
+        bridge.setWorkspacePage('profit');
+        return true;
+      }
+      if (selector === '#workspaceTabData' && typeof bridge.setWorkspacePage === 'function') {
+        bridge.setWorkspacePage('data');
+        return true;
+      }
+      if (selector === '#openVersionTimelineBtn' && typeof bridge.openVersionTimeline === 'function') {
+        return bridge.openVersionTimeline() !== false;
+      }
+      if (selector === '#openBomValidationBtn' && typeof bridge.openBomValidation === 'function') {
+        return bridge.openBomValidation() !== false;
+      }
+      if (selector === '#openPackagingValidationBtn' && typeof bridge.openPackagingValidation === 'function') {
+        return bridge.openPackagingValidation() !== false;
+      }
+      if (selector === '#openCapitalValidationBtn' && typeof bridge.openCapitalValidation === 'function') {
+        return bridge.openCapitalValidation() !== false;
+      }
+      if (selector === '#openLaborValidationBtn' && typeof bridge.openLaborValidation === 'function') {
+        return bridge.openLaborValidation() !== false;
+      }
+    } catch (error) {
+      console.warn('[G281LandingWorkbench] Failed to run bridge action', selector, error);
+      return false;
+    }
+    return false;
+  }
+
   function handleAction(kind, selector) {
+    if (kind === 'click' && tryBridgeAction(selector)) {
+      return;
+    }
     const target = selector ? doc.querySelector(selector) : null;
     if (!target) return;
     if (kind === 'click' && typeof target.click === 'function') {
@@ -823,7 +876,12 @@
   }
 
   function watchTargets() {
-    if (state.observers.length || typeof MutationObserver === 'undefined') return;
+    if (typeof MutationObserver === 'undefined') return;
+    if (!shouldUseMutationFallback()) {
+      disconnectObservers();
+      return;
+    }
+    if (state.observers.length) return;
     const targets = [
       $('kpiGrid'),
       $('harnessProfitSummary'),

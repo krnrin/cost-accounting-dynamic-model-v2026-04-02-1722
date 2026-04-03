@@ -9219,6 +9219,45 @@ function updateDashboardBridge() {
     getActiveBomVersionKey: () => state.bom,
     getBomVersionOption: (bomKey = state.bom) => clonePlain(BASE.versions?.bom?.[bomKey] || null, null),
     getActiveBomAutoExtract: () => clonePlain(getActiveBomAutoExtract(), null),
+    setWorkspacePage: (page = 'profit') => setWorkspacePage(page),
+    getWorkspacePage: () => activeWorkspacePage,
+    openVersionTimeline: () => {
+      setVersionTimelineDrawerOpen(true);
+      return true;
+    },
+    closeVersionTimeline: () => {
+      setVersionTimelineDrawerOpen(false);
+      return true;
+    },
+    openBomValidation: () => {
+      const button = document.getElementById('openBomValidationBtn');
+      setWorkspacePage('data');
+      button?.click?.();
+      return Boolean(button);
+    },
+    openCapitalValidation: () => {
+      const button = document.getElementById('openCapitalValidationBtn');
+      setWorkspacePage('data');
+      button?.click?.();
+      return Boolean(button);
+    },
+    openLaborValidation: () => {
+      const button = document.getElementById('openLaborValidationBtn');
+      setWorkspacePage('data');
+      button?.click?.();
+      return Boolean(button);
+    },
+    openPackagingValidation: () => {
+      const button = document.getElementById('openPackagingValidationBtn');
+      setWorkspacePage('data');
+      button?.click?.();
+      return Boolean(button);
+    },
+    openFactoryEfficiency: () => {
+      setWorkspacePage('data');
+      el.openFactoryEfficiencyBtn?.click?.();
+      return Boolean(el.openFactoryEfficiencyBtn);
+    },
     listBomVersions: () => orderedVersionEntries('bom', BASE.versions?.bom || {}).map(([key, option]) => ({
       key,
       label: option?.label || key,
@@ -9352,6 +9391,7 @@ function openProfitLogicDrawer() {
 function render(m){
   window._g281LastModel = m;
   el.scenarioName.value=m.d.scenarioName; renderScenarioHistorySelect(); renderTags(m); renderVersionTimeline(); renderSummary(m); renderDataManagementOverview(m); renderKPIs(m); renderProfitDrivers(m); renderHarnessProfitV2(m); renderWireCatalog(m); renderBomAnalysis(m); renderConnectorPricing(m); renderArchitecture(m); renderCostBridge(m); renderAnnualChart(m); renderConfigBars(m); renderEventTable(m); renderCompare(m); renderCapital(m); renderAnnualTable(m); renderProfitInsights(m); renderChangeVisualization(m); if (factoryEfficiencyView && el.factoryEfficiencyModal && !el.factoryEfficiencyModal.hidden) { factoryEfficiencyView.render(buildFactoryEfficiencyPayload(m)); } clearDirty();
+  window.G281LandingWorkbench?.refresh?.();
 }
 
 function syncInputs(){
