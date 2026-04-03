@@ -116,9 +116,9 @@
     activeProjectCode = projectCode;
     saveRegistry();
 
-    // 通知 ConfigLoader 切换
-    if (root.ConfigLoader && root.ConfigLoader.loadFromJSON) {
-      root.ConfigLoader.loadFromJSON(config);
+    // 通知 ConfigLoader 切换（P0#2: loadFromJSON → load，匹配 ConfigLoader 实际 API）
+    if (root.ConfigLoader && root.ConfigLoader.load) {
+      root.ConfigLoader.load(config);
     }
 
     // 通知监听器

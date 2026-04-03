@@ -6,10 +6,11 @@
 (function (global) {
   'use strict';
 
-  const U = global.G281SharedUtils;
+  // P0#1: 防御性解构
+  const U = global.G281SharedUtils || {};
   const { numberOr, safeArray, approxEqual, arraysClose, normalizeMix } = U;
 
-  // ── financial version 访问 ────────────────────
+  // ── financial version 访问 ──────────────────
   function financialVersionEntries(runtime) {
     return runtime && runtime.financialVersions && runtime.financialVersions.versions
       ? runtime.financialVersions.versions : {};
@@ -22,7 +23,7 @@
     return financialVersion(runtime, versionKey);
   }
 
-  // ── 资产验证 ──────────────────────────────────
+  // ── 资产验证 ────────────────────────────────
   function validationCapitalAmount(validation, scopeId, kind, fallback) {
     const summaryKey = kind === 'quote' ? 'quoteSummary' : 'fixedSummary';
     const amount = Number(validation && validation.comparisons && validation.comparisons[scopeId]
@@ -30,7 +31,7 @@
     return Number.isFinite(amount) ? amount : (Number(fallback) || 0);
   }
 
-  // ── BOM 版本快照 ──────────────────────────────
+  // ── BOM 版本快照 ────────────────────────────
   function bomVersionSnapshot(runtime, base, versionKey) {
     const keyMap = { freeze: 'quote', light: 'fixed', regress: 'tt' };
     const snapshotKey = keyMap[versionKey];
@@ -47,7 +48,7 @@
     };
   }
 
-  // ── 资本版本快照 ──────────────────────────────
+  // ── 资本版本快照 ──────────────────────────
   function capitalVersionSnapshot(runtime, base, versionKey) {
     const quoteSnapshot = {
       equipment: validationCapitalAmount(runtime && runtime.capitalValidation, 'equipment', 'quote', base && base.capital && base.capital.equipment),
@@ -78,7 +79,7 @@
              fixtures: fixedSnapshot.fixtures * scale, rnd: fixedSnapshot.rnd, sourceKind: 'tt' };
   }
 
-  // ── 生命周期版本一致性检测 ─────────────────────
+  // ── 生命周期版本一致性检测 ───────────────
   function lifecycleVersionKey(stateSnapshot) {
     const maps = {
       bom: { freeze: 'quote', light: 'fixed', regress: 'tt' },
@@ -122,7 +123,7 @@
       ? runtime.packagingValidation.versionSnapshots[lifecycleKey] || null : null;
   }
 
-  // ── BOM draft 匹配 ────────────────────────────
+  // ── BOM draft 匹配 ──────────────────────────
   function bomDraftMatches(draft, snapshotDraft) {
     if (!snapshotDraft) return true;
     const keys = ['bomWireDrawing', 'bomWireEat', 'bomWireHidden', 'bomTapeDiameter', 'bomTapeWidth', 'bomTapeOverlap'];
@@ -132,7 +133,7 @@
     });
   }
 
-  // ── 精确财务版本解析 ──────────────────────────
+  // ── 精确财务版本解析 ────────────────────
   function resolveExactFinancialVersion(runtime, base, currentState, draft, bomSnapshot, connectorScenario) {
     const lifecycleKey = lifecycleVersionKey(currentState);
     if (lifecycleKey !== 'quote' && lifecycleKey !== 'fixed') return null;
@@ -166,7 +167,7 @@
     return { key: lifecycleKey, financial };
   }
 
-  // ── 财务漂移警告 ──────────────────────────────
+  // ── 财务漂移警告 ────────────────────────
   function detectFinancialDriftWarnings(runtime, base, financialKey, draft) {
     const warnings = [];
     const version = financialVersion(runtime, financialKey);
@@ -203,7 +204,7 @@
     return warnings;
   }
 
-  // ── 精确版 draft 覆盖 ─────────────────────────
+  // ── 精确版 draft 覆盖 ─────────────────────
   function effectiveDraftForFinancial(runtime, base, draft, financialKey) {
     const version = financialVersion(runtime, financialKey);
     if (!version) return draft;
@@ -229,7 +230,7 @@
     };
   }
 
-  // ── 导出 ──────────────────────────────────────
+  // ── 导出 ────────────────────────────────────
   global.G281SnapshotResolver = {
     financialVersionEntries,
     financialVersion,
@@ -247,4 +248,8 @@
     detectFinancialDriftWarnings,
     effectiveDraftForFinancial,
   };
-})(typeof window !== 'undefined' ? window : globalThis);
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = global.G281SnapshotResolver;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

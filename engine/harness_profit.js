@@ -167,8 +167,9 @@
           };
         });
 
+      // P1#5: partNo trim 防止空格导致假阴性
       var unmatchedWires = safeArray(draftRow.wireItems)
-        .filter(function (w) { return !wireResult.matchedPartNos.has(w.partNo); })
+        .filter(function (w) { return !wireResult.matchedPartNos.has(String(w.partNo || '').trim()); })
         .map(function (w) {
           return {
             partNo: w.partNo, gauge: w.gauge || '--', material: w.material || '--',

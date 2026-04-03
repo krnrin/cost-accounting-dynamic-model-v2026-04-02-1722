@@ -6,11 +6,12 @@
 (function (global) {
   'use strict';
 
-  const U = global.G281SharedUtils;
+  // P0#1: 防御性解构，避免加载顺序问题导致崩溃
+  const U = global.G281SharedUtils || {};
   const { numberOr, safeArray, clamp, normalizeMix,
           FINANCIAL_VERSION_KEYS, STATE_FINANCIAL_VERSION_MAP } = U;
 
-  // ── 状态-财务版本映射 ─────────────────────────
+  // ── 状态-财务版本映射 ─────────────────────
   function stateFinancialVersionKey(group, key) {
     return STATE_FINANCIAL_VERSION_MAP[group] && STATE_FINANCIAL_VERSION_MAP[group][key]
       ? STATE_FINANCIAL_VERSION_MAP[group][key] : '';
@@ -43,7 +44,7 @@
     return candidates.find((k) => FINANCIAL_VERSION_KEYS.has(k)) || '';
   }
 
-  // ── 生命周期年度 ──────────────────────────────
+  // ── 生命周期年度 ────────────────────────────
   function normalizeLifecycleYear(value, fallback) {
     const n = Number(value);
     return Number.isFinite(n) ? n : fallback;
@@ -54,7 +55,7 @@
       .map((y, i) => normalizeLifecycleYear(y, new Date().getFullYear() + i));
   }
 
-  // ── 年降 ──────────────────────────────────────
+  // ── 年降 ────────────────────────────────────
   function legacyAnnualDropRows(years, annualRate) {
     const rate = Math.max(0, numberOr(annualRate, 0));
     return safeArray(years).map((year, index) => {
@@ -89,7 +90,7 @@
     return { ...(version || {}), yearRows, annualRate: Math.max(0, numberOr(annualRate, 0)) };
   }
 
-  // ── 一次性客户收入 ─────────────────────────────
+  // ── 一次性客户收入 ───────────────────────
   function normalizeOneTimeCustomerEntries(version, years, volumes) {
     const firstYear = years[0] || new Date().getFullYear();
     const lifecycleVolume = safeArray(volumes).reduce((s, v) => s + Math.max(0, numberOr(v, 0)), 0);
@@ -160,7 +161,7 @@
     };
   }
 
-  // ── 返利 ──────────────────────────────────────
+  // ── 返利 ────────────────────────────────────
   function normalizeRebateVersion(version, years, volumes) {
     const rowMap = new Map();
     safeArray(version && version.yearRows).forEach((row) => {
@@ -192,7 +193,7 @@
       || numberOr(model && model.rebate && model.rebate.amountTotal, 0) > 0;
   }
 
-  // ── 连接器场景 ────────────────────────────────
+  // ── 连接器场景 ────────────────────────────
   const connectorBaseCostDefault = (base) => Number(base && base.baseMaterial) * 0.24 || 0;
   const connectorVersionKey = (versions, key, fallback) => (key && versions[key] ? key : fallback);
   const specialConnectorStages = {
@@ -292,7 +293,7 @@
              overrideCount, followCount, stageCounts, progressPriceGap, progressPriceDetail };
   }
 
-  // ── BOM 变更汇总 ──────────────────────────────
+  // ── BOM 变更汇总 ────────────────────────────
   function summarizeBomChanges(bomChanges) {
     return (bomChanges || []).reduce((acc, row) => {
       if (row.action === '替换') acc.replaceCount += 1;
@@ -309,7 +310,7 @@
          equipmentDelta: 0, laborDelta: 0, packagingDelta: 0, configs: new Set() });
   }
 
-  // ── 导出 ──────────────────────────────────────
+  // ── 导出 ────────────────────────────────────
   global.G281StateNormalizer = {
     stateFinancialVersionKey,
     resolvePureFinancialVersionKey,
@@ -334,4 +335,8 @@
     buildConnectorScenario,
     summarizeBomChanges,
   };
-})(typeof window !== 'undefined' ? window : globalThis);
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = global.G281StateNormalizer;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

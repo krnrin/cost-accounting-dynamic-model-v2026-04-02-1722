@@ -18,13 +18,12 @@
   const BRACKET_RUBBER_KEYWORDS = ['支架', '橡胶'];
   const TAPE_TUBE_KEYWORDS = ['胶带', '套管', '热缩管', '编织套管'];
 
-  const clonePlain = (value, fallback = null) => {
-    try {
-      return JSON.parse(JSON.stringify(value));
-    } catch (error) {
-      return fallback;
-    }
-  };
+  // P2#9: 委托给 G281Shared，消除重复 clonePlain
+  const clonePlain = (global.G281Shared && global.G281Shared.clonePlain)
+    || function (value, fallback) {
+      if (fallback === undefined) fallback = null;
+      try { return JSON.parse(JSON.stringify(value)); } catch (error) { return fallback; }
+    };
 
   const toText = (value, fallback = '') => {
     const text = String(value ?? '').trim();
@@ -322,4 +321,8 @@
     classifyBomItem,
     buildAlignKey,
   };
-})(window);
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = global.G281BomParser;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

@@ -196,7 +196,6 @@
       scenarioDraft: scenarios.scenarioDraft,
     };
 
-    // dimension already declared above
     const maxMask = (1 << dimension) - 1;
     const factorials = factorialTable(dimension);
     const cache = new Map();
@@ -264,4 +263,8 @@
     },
     defaultFactors: FACTOR_DEFS,
   };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = global.G281ProfitShapley;
+  }
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

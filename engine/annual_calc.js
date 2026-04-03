@@ -6,9 +6,10 @@
 (function (global) {
   'use strict';
 
-  const { numberOr, safeArray } = global.G281SharedUtils;
+  // P0#1: 防御性解构
+  const { numberOr, safeArray } = global.G281SharedUtils || {};
 
-  // ── 年度值访问 ────────────────────────────────
+  // ── 年度值访问 ────────────────────────────
   function annualValueAt(version, key, index, fallback) {
     const series = version && version.annual && Array.isArray(version.annual[key]) ? version.annual[key] : null;
     if (!series) return fallback;
@@ -16,7 +17,7 @@
     return Number.isFinite(value) ? value : fallback;
   }
 
-  // ── 从 financialVersion 构建年度行 ────────────
+  // ── 从 financialVersion 构建年度行 ──────────
   function buildAnnualRowsFromFinancial(version, fallbackYears) {
     const years = safeArray(version && version.years).length ? safeArray(version.years) : safeArray(fallbackYears);
     const volumes = safeArray(version && version.volumes);
@@ -41,7 +42,7 @@
     });
   }
 
-  // ── 从计算结果构建年度行 ───────────────────────
+  // ── 从计算结果构建年度行 ───────────────
   function buildAnnualRowsFromComputed(years, draft, operating, material, directLabor, equipment, manufacturing, rnd, packaging, mixPrice) {
     return safeArray(years).map((year, index) => {
       const volume = numberOr(draft && draft.volumes && draft.volumes[index], 0);
@@ -57,7 +58,7 @@
     });
   }
 
-  // ── 丰富计算年度行 ────────────────────────────
+  // ── 丰富计算年度行 ──────────────────────
   function enrichComputedAnnualRows(model) {
     return safeArray(model && model.annual).map((row) => ({
       ...row,
@@ -71,7 +72,7 @@
     }));
   }
 
-  // ── 报价基线对比 ──────────────────────────────
+  // ── 报价基线对比 ──────────────────────────
   function quoteCompareBase(runtime, base) {
     const SR = global.G281SnapshotResolver;
     const quoteFinancial = SR.financialVersionData(runtime, 'quote');
@@ -90,7 +91,7 @@
     };
   }
 
-  // ── 对比行 ────────────────────────────────────
+  // ── 对比行 ────────────────────────────────
   function buildCompareRows(baseRevenuePerSet, baseCostPerSet, basePaybackVolume,
     currentRevenuePerSet, totalVolume, totalRevenue, totalCost, totalProfit, margin, paybackVolume) {
     return [
@@ -105,7 +106,7 @@
     ];
   }
 
-  // ── 组合摘要 ──────────────────────────────────
+  // ── 组合摘要 ──────────────────────────────
   function buildPortfolioSummary(mode, financialVersionKey, financialVersionLabel, warnings, totals, annualRows) {
     return {
       mode,
@@ -129,7 +130,7 @@
     };
   }
 
-  // ── 精确财务模型构建 ──────────────────────────
+  // ── 精确财务模型构建 ────────────────────
   function buildExactFinancialModel(options) {
     const financial = options.exactFinancial.financial || {};
     const qBase = quoteCompareBase(options.runtime, options.base);
@@ -210,7 +211,7 @@
     };
   }
 
-  // ── 导出 ──────────────────────────────────────
+  // ── 导出 ────────────────────────────────────
   global.G281AnnualCalc = {
     annualValueAt,
     buildAnnualRowsFromFinancial,
@@ -221,4 +222,8 @@
     buildPortfolioSummary,
     buildExactFinancialModel,
   };
-})(typeof window !== 'undefined' ? window : globalThis);
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = global.G281AnnualCalc;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);
