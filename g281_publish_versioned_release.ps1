@@ -60,6 +60,14 @@ $assets = @(
 )
 
 $passthroughPaths = @(
+  "config",
+  "core",
+  "engine",
+  "pages",
+  "shared",
+  "ui",
+  "utils",
+  "charts",
   "vendor\\xlsx",
   "vendor\\univer-editor"
 )
@@ -71,20 +79,62 @@ function Get-VersionedName {
   return "{0}_{1}{2}" -f $base, $Tag, $ext
 }
 
+function Get-ReleaseSortTimestamp {
+  param($Value)
+  try {
+    return ([DateTimeOffset]::Parse([string]$Value)).UtcDateTime
+  } catch {
+    return [DateTime]::MinValue
+  }
+}
+
 New-Item -ItemType Directory -Path $versionDir -Force | Out-Null
 
-$htmlSource = Join-Path $workspace "g281_profit_dashboard.html"
+$legacyHtmlSource = Join-Path $workspace "g281_profit_dashboard.html"
+$modernDashboardSource = Join-Path $workspace "ui\\dashboard.html"
 $htmlTargetName = Get-VersionedName -FileName "g281_profit_dashboard.html" -Tag $VersionTag
 $htmlTargetPath = Join-Path $versionDir $htmlTargetName
 
-$html = Get-Content -LiteralPath $htmlSource -Raw -Encoding UTF8
+$html = $null
+$legacyHtmlAvailable = Test-Path -LiteralPath $legacyHtmlSource
+if ($legacyHtmlAvailable) {
+  $html = Get-Content -LiteralPath $legacyHtmlSource -Raw -Encoding UTF8
+} elseif (Test-Path -LiteralPath $modernDashboardSource) {
+  $html = @"
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=./ui/dashboard.html">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G281 Legacy Dashboard Entry</title>
+</head>
+<body>
+  <script>
+    location.replace('./ui/dashboard.html');
+  </script>
+  <p>正在打开旧版 Dashboard：<a href="./ui/dashboard.html">ui/dashboard.html</a></p>
+</body>
+</html>
+"@
+} else {
+  throw "Cannot find dashboard entry source. Checked: $legacyHtmlSource and $modernDashboardSource"
+}
+
 $assetMappings = @()
 foreach ($asset in $assets) {
   $versionedName = Get-VersionedName -FileName $asset -Tag $VersionTag
   $sourcePath = Join-Path $workspace $asset
+  if (-not (Test-Path -LiteralPath $sourcePath)) {
+    continue
+  }
   $targetPath = Join-Path $versionDir $versionedName
+  $legacyCompatPath = Join-Path $versionDir $asset
   Copy-Item -LiteralPath $sourcePath -Destination $targetPath -Force
-  $html = $html.Replace("./$asset", "./$versionedName")
+  Copy-Item -LiteralPath $sourcePath -Destination $legacyCompatPath -Force
+  if ($legacyHtmlAvailable) {
+    $html = $html.Replace("./$asset", "./$versionedName")
+  }
   $assetMappings += [PSCustomObject]@{
     logicalName = $asset
     releaseName = $versionedName
@@ -103,6 +153,62 @@ foreach ($path in $passthroughPaths) {
 
 $html = "<!-- Release: $VersionTag -->`r`n" + $html
 Set-Content -LiteralPath $htmlTargetPath -Value $html -Encoding UTF8
+
+$previewEntryPath = Join-Path $versionDir "pages\\preview.html"
+$newProjectEntryPath = Join-Path $versionDir "pages\\new_project.html"
+$indexTargetPath = Join-Path $versionDir "index.html"
+$indexHtml = if ((Test-Path -LiteralPath $previewEntryPath) -and (Test-Path -LiteralPath $newProjectEntryPath)) {
+@"
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G281 Release Entry</title>
+</head>
+<body>
+  <script>
+    (function () {
+      var previewTarget = './pages/preview.html';
+      var newProjectTarget = './pages/new_project.html';
+      try {
+        var activeCode = localStorage.getItem('g281_active_project') || '';
+        var registry = JSON.parse(localStorage.getItem('g281_project_registry') || '{}') || {};
+        var hasRegisteredProjects = Object.keys(registry).length > 0;
+        var hasActiveProject = !!(activeCode && registry[activeCode]);
+        location.replace(hasActiveProject || hasRegisteredProjects ? previewTarget : newProjectTarget);
+      } catch (error) {
+        location.replace(newProjectTarget);
+      }
+    })();
+  </script>
+  <p>正在打开项目入口…</p>
+  <p>无项目时进入 <a href="./pages/new_project.html">pages/new_project.html</a></p>
+  <p>已有项目时进入 <a href="./pages/preview.html">pages/preview.html</a></p>
+  <p>旧版看板入口仍可使用：<a href="./$htmlTargetName">$htmlTargetName</a></p>
+</body>
+</html>
+"@
+} else {
+@"
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=./$htmlTargetName">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G281 Release Entry</title>
+</head>
+<body>
+  <script>
+    location.replace('./$htmlTargetName');
+  </script>
+  <p>正在打开旧版入口：<a href="./$htmlTargetName">$htmlTargetName</a></p>
+</body>
+</html>
+"@
+}
+Set-Content -LiteralPath $indexTargetPath -Value $indexHtml -Encoding UTF8
 
 $publishedAt = (Get-Date).ToString("o")
 $gitCommit = ""
@@ -137,6 +243,8 @@ $versionMetadata = [ordered]@{
   workspace = $workspace
   folderName = (Split-Path -Leaf $versionDir)
   folderPath = $versionDir
+  entryFile = "index.html"
+  entryFilePath = $indexTargetPath
   mainFile = $htmlTargetName
   mainFilePath = $htmlTargetPath
   gitCommit = $gitCommit
@@ -152,6 +260,7 @@ Set-Content -LiteralPath $versionMetadataPath -Value ($versionMetadata | Convert
 $latestPath = Join-Path $releaseDir "LATEST_RELEASE.txt"
 $latestContent = @(
   "Version=$VersionTag"
+  "EntryFile=index.html"
   "MainFile=$htmlTargetName"
   "Folder=$versionDir"
 ) -join "`r`n"
@@ -161,6 +270,7 @@ $latestJsonPath = Join-Path $releaseDir "LATEST_RELEASE.json"
 $latestJson = [ordered]@{
   schemaVersion = 1
   versionTag = $VersionTag
+  entryFile = "index.html"
   mainFile = $htmlTargetName
   folderName = (Split-Path -Leaf $versionDir)
   folderPath = $versionDir
@@ -192,6 +302,7 @@ if (Test-Path -LiteralPath $timelinePath) {
 $timelineRecord = [ordered]@{
   versionTag = $VersionTag
   folderName = (Split-Path -Leaf $versionDir)
+  entryFile = "index.html"
   mainFile = $htmlTargetName
   publishedAt = $publishedAt
   updatedAt = $publishedAt
@@ -203,7 +314,13 @@ $timelineRecords = @($timelineRecord)
 if ($existingTimeline.Count -gt 0) {
   $timelineRecords += @($existingTimeline | Where-Object { $_.versionTag -ne $VersionTag })
 }
-$timelineRecords = @($timelineRecords | Sort-Object -Property publishedAt -Descending)
+$timelineRecords = @(
+  $timelineRecords | Sort-Object -Descending -Property @{
+    Expression = { Get-ReleaseSortTimestamp $_.publishedAt }
+  }, @{
+    Expression = { [string]$_.versionTag }
+  }
+)
 
 $timelineDocument = [ordered]@{
   schemaVersion = 1

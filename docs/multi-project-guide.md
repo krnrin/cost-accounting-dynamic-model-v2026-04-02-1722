@@ -32,12 +32,12 @@
 
 ## 使用方式
 
-### 注册新项目
+### 创建新项目
 
 ```javascript
 // 1. 创建配置文件 config/e281.project.json（参照 g281.project.json）
-// 2. 在代码中注册
-G281ProjectRegistry.registerProject('E281', e281Config);
+// 2. 在代码中创建
+G281ProjectRegistry.registerNewProject('E281', e281Config);
 // 3. 锁定关键参数
 G281ProjectRegistry.lockProject('E281');
 ```

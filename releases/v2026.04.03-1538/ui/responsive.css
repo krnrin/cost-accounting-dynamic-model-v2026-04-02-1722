@@ -1,0 +1,206 @@
+/**
+ * ui/responsive.css
+ * P3#11: 响应式设计 — 768px / 1024px / 1280px 断点
+ *
+ * 使用方式: 在 HTML <head> 中引入，位于 tokens.css 和 dashboard.css 之后
+ * 依赖: tokens.css (CSS 变量)
+ *
+ * 断点策略:
+ *   <= 768px   ─ Mobile:  单列布局、侧栏收起、KPI 卡片堆叠
+ *   769–1024px ─ Tablet:  侧栏可折叠、2列 KPI
+ *   1025–1280px─ Desktop: 默认布局
+ *   >= 1281px  ─ Wide:    4列 KPI、加宽表格
+ */
+
+/* ================================================
+   Mobile  (<= 768px)
+   ================================================ */
+@media screen and (max-width: 768px) {
+  /* 侧栏收起 */
+  .sidebar,
+  .nav-sidebar,
+  .project-switcher-sidebar {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: var(--g281-z-drawer, 300);
+    transition: left var(--g281-transition-normal, 200ms ease);
+    background: var(--g281-bg-surface, #1a1a2e);
+  }
+  .sidebar.is-open,
+  .nav-sidebar.is-open {
+    left: 0;
+    box-shadow: var(--g281-shadow-modal, 0 8px 32px rgba(0,0,0,0.5));
+  }
+
+  /* 主内容全宽 */
+  .main-content,
+  .dashboard-body,
+  .preview-content,
+  .page-body {
+    margin-left: 0 !important;
+    padding: var(--g281-space-sm, 8px);
+  }
+
+  /* KPI 网格单列 */
+  .kpi-grid,
+  .kpi-container,
+  [class*="kpi-row"] {
+    display: flex;
+    flex-direction: column;
+    gap: var(--g281-space-sm, 8px);
+  }
+  .kpi-card {
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* 表格横向滚动 */
+  .annual-table-wrapper,
+  .data-table-wrapper,
+  .compare-panel-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .annual-table-wrapper table,
+  .data-table-wrapper table {
+    min-width: 600px;
+  }
+
+  /* 图表堆叠 */
+  .preview-charts-row,
+  .charts-row,
+  .chart-grid {
+    flex-direction: column !important;
+  }
+  .preview-charts-row canvas,
+  .chart-container {
+    min-width: 100% !important;
+    max-height: 260px;
+  }
+
+  /* 隐藏非必要控件 */
+  .workbook-viewer-zoom-group,
+  .version-template-statusbar-meta {
+    display: none;
+  }
+
+  /* 模态框全屏 */
+  .bom-modal-panel,
+  .workbook-editor-panel {
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* 页面标题缩小 */
+  .page-header h1 {
+    font-size: 18px;
+  }
+  .page-header p {
+    font-size: 12px;
+  }
+
+  /* 导航汉堡菜单 */
+  .nav-hamburger {
+    display: flex !important;
+  }
+}
+
+/* ================================================
+   Tablet  (769px – 1024px)
+   ================================================ */
+@media screen and (min-width: 769px) and (max-width: 1024px) {
+  /* 侧栏可折叠但默认可见 */
+  .sidebar,
+  .nav-sidebar {
+    width: 200px;
+  }
+  .main-content,
+  .dashboard-body {
+    margin-left: 200px;
+  }
+
+  /* KPI 2列 */
+  .kpi-grid,
+  .kpi-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--g281-space-md, 12px);
+  }
+
+  /* 图表 2列 */
+  .preview-charts-row,
+  .charts-row {
+    flex-wrap: wrap;
+  }
+  .preview-charts-row canvas,
+  .chart-container {
+    min-width: calc(50% - var(--g281-space-sm, 8px));
+    flex: 1 1 45%;
+  }
+}
+
+/* ================================================
+   Wide Desktop  (>= 1281px)
+   ================================================ */
+@media screen and (min-width: 1281px) {
+  /* KPI 4列 */
+  .kpi-grid,
+  .kpi-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--g281-space-base, 16px);
+  }
+
+  /* 加宽内容区 */
+  .main-content,
+  .dashboard-body,
+  .preview-content {
+    max-width: var(--g281-content-max-width, 1400px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* 表格更宽 */
+  .annual-table-wrapper table {
+    width: 100%;
+  }
+}
+
+/* ================================================
+   Utility: 侧栏开关辅助
+   ================================================ */
+.nav-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--g281-text-primary, #e0e0e0);
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: var(--g281-radius-sm, 4px);
+}
+.nav-hamburger:hover {
+  background: var(--g281-bg-hover, #2a2a45);
+}
+
+/* 移动端侧栏遮罩 */
+.sidebar-backdrop {
+  display: none;
+}
+@media screen and (max-width: 768px) {
+  .sidebar-backdrop.is-visible {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: var(--g281-bg-overlay, rgba(0,0,0,0.55));
+    z-index: calc(var(--g281-z-drawer, 300) - 1);
+  }
+}

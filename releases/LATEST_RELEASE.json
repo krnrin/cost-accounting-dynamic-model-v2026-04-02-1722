@@ -1,11 +1,12 @@
 ﻿{
     "schemaVersion":  1,
-    "versionTag":  "v2026.04.02-1722",
-    "mainFile":  "g281_profit_dashboard_v2026.04.01-1404.html",
-    "folderName":  "v2026.04.02-1722",
-    "folderPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.02-1722",
+    "versionTag":  "v2026.04.03-1538",
+    "entryFile":  "index.html",
+    "mainFile":  "g281_profit_dashboard_v2026.04.03-1538.html",
+    "folderName":  "v2026.04.03-1538",
+    "folderPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.03-1538",
     "metadataFile":  "release_metadata.json",
-    "metadataPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.02-1722\\release_metadata.json",
+    "metadataPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.03-1538\\release_metadata.json",
     "timelinePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\release_timeline.json",
-    "publishedAt":  "2026-04-02T17:36:55.9446755+08:00"
+    "publishedAt":  "2026-04-03T15:38:57.5358933+08:00"
 }
