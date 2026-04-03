@@ -67,19 +67,19 @@
       <div class="profit-insight-head">
         <div>
           <div class="profit-insight-eyebrow">Target Price</div>
-          <h3>目标毛利率反推售价</h3>
+          <h3>\u76EE\u6807\u6BDB\u5229\u7387\u53CD\u63A8\u552E\u4EF7</h3>
           <p class="profit-insight-subtitle" data-role="price-subtitle"></p>
         </div>
         <div class="profit-insight-pill" data-role="price-status"></div>
       </div>
       <div class="profit-insight-control-row">
         <label class="profit-insight-control">
-          <span>目标毛利率 (%)</span>
+          <span>\u76EE\u6807\u6BDB\u5229\u7387 (%)</span>
           <input type="number" step="0.01" min="-99.99" max="99.99" data-role="target-margin-input" />
         </label>
         <div class="profit-insight-control-actions">
-          <button class="mini-button secondary" type="button" data-role="target-margin-apply">应用</button>
-          <button class="mini-button" type="button" data-role="target-margin-reset">恢复报价基准</button>
+          <button class="mini-button secondary" type="button" data-role="target-margin-apply">\u5E94\u7528</button>
+          <button class="mini-button" type="button" data-role="target-margin-reset">\u6062\u590D\u62A5\u4EF7\u57FA\u51C6</button>
         </div>
       </div>
       <div class="profit-insight-metric-grid" data-role="price-metrics"></div>
@@ -88,10 +88,10 @@
     `;
 
     const metrics = {
-      current: createMetric('当前 ASP'),
-      required: createMetric('目标 ASP'),
-      delta: createMetric('售价差异'),
-      margin: createMetric('目标毛利率'),
+      current: createMetric('\u5F53\u524D ASP'),
+      required: createMetric('\u76EE\u6807 ASP'),
+      delta: createMetric('\u552E\u4EF7\u5DEE\u5F02'),
+      margin: createMetric('\u76EE\u6807\u6BDB\u5229\u7387'),
     };
 
     const container = card.querySelector('[data-role="price-metrics"]');
@@ -111,7 +111,7 @@
 
       const numeric = Number(raw);
       if (!Number.isFinite(numeric) || numeric <= -100 || numeric >= 100) {
-        input.setCustomValidity('请输入 -99.99 到 99.99 之间的毛利率');
+        input.setCustomValidity('\u8BF7\u8F93\u5165 -99.99 \u5230 99.99 \u4E4B\u95F4\u7684\u6BDB\u5229\u7387');
         input.reportValidity();
         return;
       }
@@ -147,15 +147,15 @@
       <div class="profit-insight-head">
         <div>
           <div class="profit-insight-eyebrow">Attribution</div>
-          <h3>利润归因</h3>
+          <h3>\u5229\u6DA6\u5F52\u56E0</h3>
           <p class="profit-insight-subtitle" data-role="waterfall-subtitle"></p>
         </div>
         <div class="profit-insight-pill" data-role="waterfall-total"></div>
       </div>
-      <!-- Issue #3: 双视图 tab -->
+      <!-- Issue #3: \u53CC\u89C6\u56FE tab -->
       <div class="attribution-tabs">
-        <div class="attribution-tab active" data-view="waterfall">因果链瀑布图</div>
-        <div class="attribution-tab" data-view="shapley">Shapley 归因</div>
+        <div class="attribution-tab active" data-view="waterfall">\u56E0\u679C\u94FE\u7011\u5E03\u56FE</div>
+        <div class="attribution-tab" data-view="shapley">Shapley \u5F52\u56E0</div>
       </div>
       <div class="attribution-view waterfall-view" data-role="waterfall-view"></div>
       <div class="attribution-view shapley-view" data-role="shapley-view" style="display:none;">
@@ -164,7 +164,7 @@
       <p class="profit-insight-note" data-role="waterfall-note"></p>
     `;
 
-    // Issue #3: tab 切换事件
+    // Issue #3: tab \u5207\u6362\u4E8B\u4EF6
     const tabs = card.querySelectorAll('.attribution-tab');
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -183,20 +183,20 @@
     const subtitle = cardRef.querySelector('[data-role="price-subtitle"]');
     const status = cardRef.querySelector('[data-role="price-status"]');
     const input = cardRef.querySelector('[data-role="target-margin-input"]');
-    subtitle.textContent = `${data.scenarioName || '默认场景'} · ${data.targetModeLabel || data.varianceLabel || '求售价'}`;
-    status.textContent = data.statusLabel || (data.convergence?.success === true ? '已收敛' : '待计算');
+    subtitle.textContent = `${data.scenarioName || '\u9ED8\u8BA4\u573A\u666F'} \u00B7 ${data.targetModeLabel || data.varianceLabel || '\u6C42\u552E\u4EF7'}`;
+    status.textContent = data.statusLabel || (data.convergence?.success === true ? '\u5DF2\u6536\u655B' : '\u5F85\u8BA1\u7B97');
     if (input) {
       input.value = isNumber(data.requestedMargin) ? Number(data.requestedMargin).toFixed(2) : '';
     }
 
-    metrics.current.set(formatCurrency(data.currentASP), `当前毛利率 ${formatPercent(data.currentMargin)}`);
+    metrics.current.set(formatCurrency(data.currentASP), `\u5F53\u524D\u6BDB\u5229\u7387 ${formatPercent(data.currentMargin)}`);
     metrics.required.set(
       formatCurrency(data.requiredASP),
-      `${data.targetModeLabel || '目标毛利率'} ${formatPercent(data.requestedMargin)}`
+      `${data.targetModeLabel || '\u76EE\u6807\u6BDB\u5229\u7387'} ${formatPercent(data.requestedMargin)}`
     );
-    metrics.delta.set(formatCurrency(data.deltaASP), `报价 ASP ${formatCurrency(data.baseASP)}`);
-    metrics.margin.set(formatPercent(data.requestedMargin), `求解结果 ${formatPercent(data.requiredMargin)}`);
-    metrics.margin.setLabel('目标毛利率');
+    metrics.delta.set(formatCurrency(data.deltaASP), `\u62A5\u4EF7 ASP ${formatCurrency(data.baseASP)}`);
+    metrics.margin.set(formatPercent(data.requestedMargin), `\u6C42\u89E3\u7ED3\u679C ${formatPercent(data.requiredMargin)}`);
+    metrics.margin.setLabel('\u76EE\u6807\u6BDB\u5229\u7387');
 
     cardRef.querySelector('[data-role="price-note"]').textContent = data.note || '';
     cardRef.querySelector('[data-role="price-spark"]').textContent = data.sparkline || '';
@@ -208,14 +208,14 @@
     const total = cardRef.querySelector('[data-role="waterfall-total"]');
     const note = cardRef.querySelector('[data-role="waterfall-note"]');
 
-    subtitle.textContent = `${data.subtitle || '毛利率拆解'} · 输入 ${formatPercent(data.baselineMargin)} 输出 ${formatPercent(data.scenarioMargin)}`;
+    subtitle.textContent = `${data.subtitle || '\u6BDB\u5229\u7387\u62C6\u89E3'} \u00B7 \u8F93\u5165 ${formatPercent(data.baselineMargin)} \u8F93\u51FA ${formatPercent(data.scenarioMargin)}`;
     total.textContent = formatPoints(data.totalDelta);
     note.textContent = data.note || '';
 
     const series = Array.isArray(data.items) ? data.items : [];
     const aggregate = series.reduce((sum, entry) => sum + (Number(entry.value) || 0), 0);
-    if (!note) {
-      note.textContent = `分项合计 ${formatPoints(aggregate)}`;
+    if (!data.note) {
+      note.textContent = `\u5206\u9879\u5408\u8BA1 ${formatPoints(aggregate)}`;
     }
 
     const maxMagnitude =
@@ -229,7 +229,13 @@
 
       const label = document.createElement('div');
       label.className = 'profit-waterfall-label';
-      label.innerHTML = `<strong>${entry.label || '未知项'}</strong><span>${entry.from || '开始'} → ${entry.to || '结束'}</span>`;
+      // P1: XSS fix — use textContent instead of innerHTML
+      const labelStrong = document.createElement('strong');
+      labelStrong.textContent = entry.label || '\u672A\u77E5\u9879';
+      const labelSpan = document.createElement('span');
+      labelSpan.textContent = `${entry.from || '\u5F00\u59CB'} \u2192 ${entry.to || '\u7ED3\u675F'}`;
+      label.appendChild(labelStrong);
+      label.appendChild(labelSpan);
 
       const track = document.createElement('div');
       track.className = 'profit-waterfall-track';
@@ -243,7 +249,13 @@
 
       const valueNode = document.createElement('div');
       valueNode.className = 'profit-waterfall-value';
-      valueNode.innerHTML = `<strong>${formatPoints(value)}</strong><span>${formatPercent((Number(entry.share) || 0) * 100)}</span>`;
+      // P1: XSS fix — use textContent instead of innerHTML
+      const valueStrong = document.createElement('strong');
+      valueStrong.textContent = formatPoints(value);
+      const valueSpan = document.createElement('span');
+      valueSpan.textContent = formatPercent((Number(entry.share) || 0) * 100);
+      valueNode.appendChild(valueStrong);
+      valueNode.appendChild(valueSpan);
 
       row.appendChild(label);
       row.appendChild(track);
@@ -256,7 +268,7 @@
     const view = cardRef.querySelector('[data-role="waterfall-view"]');
     if (!view) return;
     if (!data || !data.html) {
-      view.innerHTML = '<div class="waterfall-empty">无瀑布图数据</div>';
+      view.innerHTML = '<div class="waterfall-empty">\u65E0\u7011\u5E03\u56FE\u6570\u636E</div>';
       return;
     }
     view.innerHTML = data.html;
@@ -315,6 +327,7 @@
 
   ready(ensureAutoMount);
 
+  // \u4E3B\u5BFC\u51FA\uFF08\u5411\u540E\u517C\u5BB9\uFF09
   global.g281ProfitInsights = {
     init(baseId, mountPoint, options = {}) {
       if (state.instance) {
@@ -337,4 +350,8 @@
       return state.instance;
     },
   };
-})(window);
+
+  // P2#8: \u7EDF\u4E00\u547D\u540D\u7A7A\u95F4
+  global.G281UI = global.G281UI || {};
+  global.G281UI.ProfitInsights = global.g281ProfitInsights;
+})(globalThis);

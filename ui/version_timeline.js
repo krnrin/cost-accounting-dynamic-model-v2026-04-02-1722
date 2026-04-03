@@ -1,5 +1,12 @@
-﻿(() => {
-  const DEFAULT_COLORS = [
+/**
+ * ui/version_timeline.js
+ * \u6210\u672C\u8981\u7D20\u7248\u672C\u65F6\u95F4\u7EBF
+ * P2#8: BOM \u79FB\u9664, window \u2192 globalThis, G281UI.VersionTimeline \u522B\u540D
+ */
+(function (global) {
+  'use strict';
+
+  var DEFAULT_COLORS = [
     '#2b6cb0',
     '#0f766e',
     '#b45309',
@@ -10,23 +17,23 @@
     '#16a34a',
   ];
 
-  const DAY = 24 * 60 * 60 * 1000;
+  var DAY = 24 * 60 * 60 * 1000;
 
   function toDate(value) {
     if (!value) return null;
     if (value instanceof Date) return value;
-    const parsed = new Date(value);
+    var parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? null : parsed;
   }
 
   function formatDate(value) {
     if (!value) return '-';
-    const date = toDate(value);
+    var date = toDate(value);
     if (!date) return '-';
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, '0');
-    const day = `${date.getDate()}`.padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    var year = date.getFullYear();
+    var month = String(date.getMonth() + 1).padStart(2, '0');
+    var day = String(date.getDate()).padStart(2, '0');
+    return year + '-' + month + '-' + day;
   }
 
   function clamp(value, min, max) {
@@ -36,16 +43,16 @@
   function normalizeEvents(input) {
     if (!Array.isArray(input)) return [];
     return input
-      .map((item, index) => {
+      .map(function (item, index) {
         if (!item) return null;
-        const createdAt = toDate(item.createdAt || item.publishAt || item.created || item.published);
-        const updatedAt = toDate(item.updatedAt || item.updateAt || item.updated || item.lastUpdate);
-        const safeCreatedAt = createdAt || updatedAt;
-        const safeUpdatedAt = updatedAt || createdAt;
+        var createdAt = toDate(item.createdAt || item.publishAt || item.created || item.published);
+        var updatedAt = toDate(item.updatedAt || item.updateAt || item.updated || item.lastUpdate);
+        var safeCreatedAt = createdAt || updatedAt;
+        var safeUpdatedAt = updatedAt || createdAt;
         return {
-          id: item.id || `evt-${index}`,
-          name: item.name || item.label || item.title || `事件 ${index + 1}`,
-          group: item.group || item.factor || item.category || '未分类',
+          id: item.id || 'evt-' + index,
+          name: item.name || item.label || item.title || '\u4E8B\u4EF6 ' + (index + 1),
+          group: item.group || item.factor || item.category || '\u672A\u5206\u7C7B',
           createdAt: safeCreatedAt,
           updatedAt: safeUpdatedAt,
           meta: item.meta || {},
@@ -56,18 +63,20 @@
 
   function normalizeGroups(groups, events) {
     if (Array.isArray(groups) && groups.length) {
-      return groups.map((group, index) => ({
-        id: group.id || `grp-${index}`,
-        label: group.label || group.name || `组 ${index + 1}`,
-        color: group.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length],
-      }));
+      return groups.map(function (group, index) {
+        return {
+          id: group.id || 'grp-' + index,
+          label: group.label || group.name || '\u7EC4 ' + (index + 1),
+          color: group.color || DEFAULT_COLORS[index % DEFAULT_COLORS.length],
+        };
+      });
     }
-    const map = new Map();
-    events.forEach((evt) => {
-      const key = evt.group || '未分类';
+    var map = new Map();
+    events.forEach(function (evt) {
+      var key = evt.group || '\u672A\u5206\u7C7B';
       if (!map.has(key)) {
         map.set(key, {
-          id: `grp-${map.size}`,
+          id: 'grp-' + map.size,
           label: key,
           color: DEFAULT_COLORS[map.size % DEFAULT_COLORS.length],
         });
@@ -77,17 +86,19 @@
   }
 
   function buildScope(events) {
-    const dates = events
-      .flatMap((evt) => [evt.createdAt, evt.updatedAt])
-      .filter(Boolean)
-      .map((value) => value.getTime());
+    var dates = events
+      .reduce(function (acc, evt) {
+        if (evt.createdAt) acc.push(evt.createdAt.getTime());
+        if (evt.updatedAt) acc.push(evt.updatedAt.getTime());
+        return acc;
+      }, []);
     if (!dates.length) {
-      const now = Date.now();
+      var now = Date.now();
       return { min: now - 15 * DAY, max: now + 15 * DAY };
     }
-    const min = Math.min(...dates);
-    const max = Math.max(...dates);
-    const padding = Math.max(DAY * 3, (max - min) * 0.08);
+    var min = Math.min.apply(null, dates);
+    var max = Math.max.apply(null, dates);
+    var padding = Math.max(DAY * 3, (max - min) * 0.08);
     return { min: min - padding, max: max + padding };
   }
 
@@ -96,24 +107,26 @@
   }
 
   function createNode(tag, className, text) {
-    const node = document.createElement(tag);
+    var node = document.createElement(tag);
     if (className) node.className = className;
     if (text != null) node.textContent = text;
     return node;
   }
 
   function createEmptyState(container) {
-    const empty = createNode('div', 'timeline-empty');
-    empty.innerHTML = `<div class="timeline-empty-title">暂无版本事件</div>
-<div class="timeline-empty-note">成本要素版本更新后，会自动记录到时间线。</div>`;
+    var empty = createNode('div', 'timeline-empty');
+    var title = createNode('div', 'timeline-empty-title', '\u6682\u65E0\u7248\u672C\u4E8B\u4EF6');
+    var note = createNode('div', 'timeline-empty-note', '\u6210\u672C\u8981\u7D20\u7248\u672C\u66F4\u65B0\u540E\uFF0C\u4F1A\u81EA\u52A8\u8BB0\u5F55\u5230\u65F6\u95F4\u7EBF\u3002');
+    empty.appendChild(title);
+    empty.appendChild(note);
     container.appendChild(empty);
   }
 
   function renderLegend(container, groups) {
-    const legend = createNode('div', 'timeline-legend');
-    groups.forEach((group) => {
-      const item = createNode('div', 'timeline-legend-item');
-      const swatch = createNode('span', 'timeline-legend-swatch');
+    var legend = createNode('div', 'timeline-legend');
+    groups.forEach(function (group) {
+      var item = createNode('div', 'timeline-legend-item');
+      var swatch = createNode('span', 'timeline-legend-swatch');
       swatch.style.background = group.color;
       item.appendChild(swatch);
       item.appendChild(createNode('span', 'timeline-legend-label', group.label));
@@ -123,29 +136,29 @@
   }
 
   function renderEvents(track, events, scope, groupColor) {
-    const { min, max } = scope;
-    const span = max - min || 1;
-    events.forEach((evt) => {
-      const createdAt = evt.createdAt ? evt.createdAt.getTime() : null;
-      const updatedAt = evt.updatedAt ? evt.updatedAt.getTime() : null;
-      const left = createdAt == null ? 0 : clamp(((createdAt - min) / span) * 100, 0, 100);
-      const right = updatedAt == null ? left : clamp(((updatedAt - min) / span) * 100, 0, 100);
-      const width = Math.max(2, Math.abs(right - left));
-      const bar = createNode('div', 'timeline-bar');
-      bar.style.left = `${Math.min(left, right)}%`;
-      bar.style.width = `${width}%`;
+    var min = scope.min, max = scope.max;
+    var span = max - min || 1;
+    events.forEach(function (evt) {
+      var createdAt = evt.createdAt ? evt.createdAt.getTime() : null;
+      var updatedAt = evt.updatedAt ? evt.updatedAt.getTime() : null;
+      var left = createdAt == null ? 0 : clamp(((createdAt - min) / span) * 100, 0, 100);
+      var right = updatedAt == null ? left : clamp(((updatedAt - min) / span) * 100, 0, 100);
+      var width = Math.max(2, Math.abs(right - left));
+      var bar = createNode('div', 'timeline-bar');
+      bar.style.left = Math.min(left, right) + '%';
+      bar.style.width = width + '%';
       bar.style.background = groupColor;
-      bar.title = `${evt.name} | 发布: ${formatDate(evt.createdAt)} | 更新: ${formatDate(evt.updatedAt)}`;
+      bar.title = evt.name + ' | \u53D1\u5E03: ' + formatDate(evt.createdAt) + ' | \u66F4\u65B0: ' + formatDate(evt.updatedAt);
 
-      const label = createNode('div', 'timeline-label');
+      var label = createNode('div', 'timeline-label');
       label.textContent = evt.name;
-      label.style.left = `${Math.min(left, right)}%`;
+      label.style.left = Math.min(left, right) + '%';
 
-      const markers = createNode('div', 'timeline-markers');
-      const publishMark = createNode('span', 'timeline-marker publish');
-      publishMark.style.left = `${left}%`;
-      const updateMark = createNode('span', 'timeline-marker update');
-      updateMark.style.left = `${right}%`;
+      var markers = createNode('div', 'timeline-markers');
+      var publishMark = createNode('span', 'timeline-marker publish');
+      publishMark.style.left = left + '%';
+      var updateMark = createNode('span', 'timeline-marker update');
+      updateMark.style.left = right + '%';
       markers.appendChild(publishMark);
       markers.appendChild(updateMark);
 
@@ -156,39 +169,41 @@
   }
 
   function renderAxis(container, scope) {
-    const axis = createNode('div', 'timeline-axis');
-    const min = new Date(scope.min);
-    const max = new Date(scope.max);
-    const totalDays = Math.max(1, Math.round((max - min) / DAY));
-    const ticks = totalDays > 240 ? 6 : totalDays > 120 ? 8 : 10;
-    for (let i = 0; i <= ticks; i += 1) {
-      const ratio = i / ticks;
-      const tickDate = new Date(scope.min + ratio * (scope.max - scope.min));
-      const tick = createNode('div', 'timeline-axis-tick');
-      tick.style.left = `${ratio * 100}%`;
+    var axis = createNode('div', 'timeline-axis');
+    var min = new Date(scope.min);
+    var max = new Date(scope.max);
+    var totalDays = Math.max(1, Math.round((max - min) / DAY));
+    var ticks = totalDays > 240 ? 6 : totalDays > 120 ? 8 : 10;
+    for (var i = 0; i <= ticks; i += 1) {
+      var ratio = i / ticks;
+      var tickDate = new Date(scope.min + ratio * (scope.max - scope.min));
+      var tick = createNode('div', 'timeline-axis-tick');
+      tick.style.left = (ratio * 100) + '%';
       tick.textContent = formatDate(tickDate);
       axis.appendChild(tick);
     }
     container.appendChild(axis);
   }
 
-  function renderTimeline(mount, inputData = [], options = {}) {
+  function renderTimeline(mount, inputData, options) {
+    if (!inputData) inputData = [];
+    if (!options) options = {};
     if (!mount || typeof mount !== 'object') {
-      return { destroy: () => {} };
+      return { destroy: function () {} };
     }
-    const events = normalizeEvents(inputData);
-    const groups = normalizeGroups(options.groups, events);
-    const scope = buildScope(events);
+    var events = normalizeEvents(inputData);
+    var groups = normalizeGroups(options.groups, events);
+    var scope = buildScope(events);
 
     clearElement(mount);
     mount.classList.add('timeline-root');
 
-    const header = createNode('div', 'timeline-header');
-    const title = createNode('div', 'timeline-title', options.title || '成本要素版本时间线');
-    const subtitle = createNode(
+    var header = createNode('div', 'timeline-header');
+    var title = createNode('div', 'timeline-title', options.title || '\u6210\u672C\u8981\u7D20\u7248\u672C\u65F6\u95F4\u7EBF');
+    var subtitle = createNode(
       'div',
       'timeline-subtitle',
-      options.subtitle || '显示各成本要素版本的发布时间与更新时间'
+      options.subtitle || '\u663E\u793A\u5404\u6210\u672C\u8981\u7D20\u7248\u672C\u7684\u53D1\u5E03\u65F6\u95F4\u4E0E\u66F4\u65B0\u65F6\u95F4'
     );
     header.appendChild(title);
     header.appendChild(subtitle);
@@ -197,18 +212,18 @@
 
     if (!events.length) {
       createEmptyState(mount);
-      return { destroy: () => clearElement(mount) };
+      return { destroy: function () { clearElement(mount); } };
     }
 
     renderLegend(mount, groups);
     renderAxis(mount, scope);
 
-    const lanes = createNode('div', 'timeline-lanes');
-    groups.forEach((group) => {
-      const lane = createNode('div', 'timeline-lane');
-      const label = createNode('div', 'timeline-lane-label', group.label);
-      const track = createNode('div', 'timeline-track');
-      const filtered = events.filter((evt) => evt.group === group.label);
+    var lanes = createNode('div', 'timeline-lanes');
+    groups.forEach(function (group) {
+      var lane = createNode('div', 'timeline-lane');
+      var label = createNode('div', 'timeline-lane-label', group.label);
+      var track = createNode('div', 'timeline-track');
+      var filtered = events.filter(function (evt) { return evt.group === group.label; });
       renderEvents(track, filtered, scope, group.color);
       lane.appendChild(label);
       lane.appendChild(track);
@@ -216,11 +231,16 @@
     });
     mount.appendChild(lanes);
 
-    return { destroy: () => clearElement(mount) };
+    return { destroy: function () { clearElement(mount); } };
   }
 
-  window.G281VersionTimeline = {
-    renderTimeline,
-    normalizeEvents,
+  // \u5411\u540E\u517C\u5BB9\u522B\u540D
+  global.G281VersionTimeline = {
+    renderTimeline: renderTimeline,
+    normalizeEvents: normalizeEvents,
   };
-})();
+
+  // P2#8: \u7EDF\u4E00\u547D\u540D\u7A7A\u95F4
+  global.G281UI = global.G281UI || {};
+  global.G281UI.VersionTimeline = global.G281VersionTimeline;
+})(globalThis);

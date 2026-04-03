@@ -1,12 +1,12 @@
 /**
  * ui/renderers/annual_table.js
  * Issue #6: 年度利润表渲染器
- * 纯函数：接收年度行数据，输出 <table> DOM
+ * P1: error boundary 防护
  */
 (function (global) {
   'use strict';
 
-  const COLUMNS = [
+  var COLUMNS = [
     { key: 'year',     label: '年度',     format: 'plain' },
     { key: 'volume',   label: '销量',     format: 'integer' },
     { key: 'asp',      label: 'ASP',      format: 'decimal2' },
@@ -44,36 +44,41 @@
       container.innerHTML = '<p style="color:#666">暂无年度数据</p>';
       return;
     }
-    const table = document.createElement('table');
-    table.className = 'annual-table';
-    // 表头
-    const thead = document.createElement('thead');
-    const headRow = document.createElement('tr');
-    COLUMNS.forEach(col => {
-      const th = document.createElement('th');
-      th.textContent = col.label;
-      headRow.appendChild(th);
-    });
-    thead.appendChild(headRow);
-    table.appendChild(thead);
-    // 表体
-    const tbody = document.createElement('tbody');
-    rows.forEach(row => {
-      const tr = document.createElement('tr');
-      COLUMNS.forEach(col => {
-        const td = document.createElement('td');
-        const value = row[col.key];
-        td.textContent = formatCell(value, col.format);
-        const style = cellColor(value, col.colorize);
-        if (style) td.setAttribute('style', style);
-        tr.appendChild(td);
+    try {
+      var table = document.createElement('table');
+      table.className = 'annual-table';
+      // 表头
+      var thead = document.createElement('thead');
+      var headRow = document.createElement('tr');
+      COLUMNS.forEach(function (col) {
+        var th = document.createElement('th');
+        th.textContent = col.label;
+        headRow.appendChild(th);
       });
-      tbody.appendChild(tr);
-    });
-    table.appendChild(tbody);
-    container.appendChild(table);
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+      // 表体
+      var tbody = document.createElement('tbody');
+      rows.forEach(function (row) {
+        var tr = document.createElement('tr');
+        COLUMNS.forEach(function (col) {
+          var td = document.createElement('td');
+          var value = row[col.key];
+          td.textContent = formatCell(value, col.format);
+          var style = cellColor(value, col.colorize);
+          if (style) td.setAttribute('style', style);
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      container.appendChild(table);
+    } catch (err) {
+      console.error('[AnnualTable] render error:', err);
+      container.innerHTML = '<div style="padding:12px;color:#f87171;">\u26A0 年度表渲染出错</div>';
+    }
   }
 
   global.G281UI = global.G281UI || {};
-  global.G281UI.AnnualTable = { COLUMNS, render, formatCell };
-})(typeof window !== 'undefined' ? window : globalThis);
+  global.G281UI.AnnualTable = { COLUMNS: COLUMNS, render: render, formatCell: formatCell };
+})(globalThis);
