@@ -83,5 +83,11 @@
     },
   };
 
+  // P2#7: 统一 G281 前缀，保留旧名向后兼容
+  global.G281ComputationPath = ComputationPath;
   global.ComputationPath = ComputationPath;
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ComputationPath;
+  }
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

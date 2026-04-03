@@ -107,4 +107,9 @@
     getErrorLog,
     clearErrorLog,
   };
+
+  // P2#8: Node.js module.exports
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = global.G281ErrorBoundary;
+  }
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

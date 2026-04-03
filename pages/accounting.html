@@ -74,6 +74,11 @@
   <script src="../engine/config_bridge.js"></script>
   <script src="../engine/computation_path.js"></script>
   <script src="../engine/profit_shapley.js"></script>
+
+  <!-- 性能与健壮性 (Issue #12) — 必须在 compute_model 之前加载 -->
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+
   <script src="../engine/compute_model.js"></script>
   <script src="../engine/harness_profit.js"></script>
   <script src="../engine/target_price_solver.js"></script>
@@ -81,10 +86,6 @@
   <script src="../engine/bom_schema.js"></script>
   <script src="../engine/bom_db.js"></script>
   <script src="../engine/align_key_enhancer.js"></script>
-
-  <!-- 性能与健壮性 (Issue #12) -->
-  <script src="../engine/error_boundary.js"></script>
-  <script src="../engine/computation_cache.js"></script>
 
   <!-- Schema 迁移 (Issue #11) -->
   <script src="../engine/schema_migrator.js"></script>

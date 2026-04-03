@@ -186,4 +186,8 @@
       sourceType: 'bom',
     },
   };
-})(window);
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = global.G281BomSchema;
+  }
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

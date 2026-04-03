@@ -30,7 +30,7 @@
 
   <div class="page-header">
     <h1>📌 跟踪</h1>
-    <p>协议价落实 · 进度价差距 · 一次性费用分摊执行</p>
+    <p>协议价落实 · 进度价差距 · 一次性费用分摆执行</p>
   </div>
 
   <div class="tracking-content">
@@ -44,8 +44,8 @@
       <div id="trkConnectorTable"><p style="color:#666; font-size:13px;">各料号协议状态 · 已确认 / 未确认 / 进度价混合</p></div>
     </div>
     <div class="trk-section" id="trkOneTimeCost">
-      <h2>一次性费用分摊</h2>
-      <div id="trkOneTimeTable"><p style="color:#666; font-size:13px;">模具/检具/研发 · 按年度实际销量分摊进度 · 未分摊余额</p></div>
+      <h2>一次性费用分摆</h2>
+      <div id="trkOneTimeTable"><p style="color:#666; font-size:13px;">模具/检具/研发 · 按年度实际销量分摆进度 · 未分摆余额</p></div>
     </div>
     <div class="trk-section" id="trkAnnualDrop">
       <h2>年降执行</h2>
@@ -69,11 +69,12 @@
   <script src="../engine/config_bridge.js"></script>
   <script src="../engine/progress_price_tracker.js"></script>
   <script src="../engine/residual_pool_handler.js"></script>
-  <script src="../engine/compute_model.js"></script>
 
-  <!-- 性能与健壮性 (Issue #12) -->
+  <!-- 性能与健壮性 (Issue #12) — 必须在 compute_model 之前加载 -->
   <script src="../engine/error_boundary.js"></script>
   <script src="../engine/computation_cache.js"></script>
+
+  <script src="../engine/compute_model.js"></script>
 
   <!-- Core -->
   <script src="../core/config_loader.js"></script>
