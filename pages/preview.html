@@ -60,13 +60,14 @@
   <script src="../engine/profit_shapley.js"></script>
   <script src="../engine/progress_price_tracker.js"></script>
   <script src="../engine/residual_pool_handler.js"></script>
+
+  <!-- 性能与健壮性 (Issue #12) — 必须在 compute_model 之前加载 -->
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+
   <script src="../engine/compute_model.js"></script>
   <script src="../engine/harness_profit.js"></script>
   <script src="../engine/target_price_solver.js"></script>
-
-  <!-- 性能与健壮性 (Issue #12) -->
-  <script src="../engine/error_boundary.js"></script>
-  <script src="../engine/computation_cache.js"></script>
 
   <!-- Core -->
   <script src="../core/config_loader.js"></script>
