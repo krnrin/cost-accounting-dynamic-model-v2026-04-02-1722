@@ -1,0 +1,177 @@
+﻿{
+    "schemaVersion":  1,
+    "versionTag":  "v2026.04.04-2309",
+    "requestedVersionTag":  "v2026.04.04-2309",
+    "generatedAt":  "2026-04-04T23:09:20.1518919+08:00",
+    "workspace":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型",
+    "folderName":  "v2026.04.04-2309",
+    "folderPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.04-2309",
+    "entryFile":  "index.html",
+    "entryFilePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.04-2309\\index.html",
+    "mainFile":  "g281_profit_dashboard_v2026.04.04-2309.html",
+    "mainFilePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.04-2309\\g281_profit_dashboard_v2026.04.04-2309.html",
+    "gitCommit":  "1f11769",
+    "newStructure":  true,
+    "offlineReady":  true,
+    "entryPoints":  {
+                        "preview":  "pages/preview.html",
+                        "accounting":  "pages/accounting.html",
+                        "tracking":  "pages/tracking.html",
+                        "archive":  "pages/archive.html",
+                        "newProject":  "pages/new_project.html"
+                    },
+    "directories":  [
+                        "config",
+                        "core",
+                        "engine",
+                        "pages",
+                        "shared",
+                        "ui",
+                        "utils",
+                        "charts",
+                        "vendor"
+                    ],
+    "missingPageAssets":  [
+
+                          ],
+    "generatedPlaceholderAssets":  [
+
+                                   ],
+    "assets":  [
+                   {
+                       "logicalName":  "g281_bom_validation.css",
+                       "releaseName":  "g281_bom_validation_v2026.04.04-2309.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_bom_validation.css"
+                   },
+                   {
+                       "logicalName":  "g281_factory_efficiency_view.css",
+                       "releaseName":  "g281_factory_efficiency_view_v2026.04.04-2309.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_factory_efficiency_view.css"
+                   },
+                   {
+                       "logicalName":  "g281_factor_version_repo.js",
+                       "releaseName":  "g281_factor_version_repo_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_factor_version_repo.js"
+                   },
+                   {
+                       "logicalName":  "g281_scenario_repo.js",
+                       "releaseName":  "g281_scenario_repo_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_scenario_repo.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_semantic_repo.js",
+                       "releaseName":  "g281_bom_semantic_repo_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_bom_semantic_repo.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_alignment_engine.js",
+                       "releaseName":  "g281_bom_alignment_engine_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_bom_alignment_engine.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_diff_engine.js",
+                       "releaseName":  "g281_bom_diff_engine_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_bom_diff_engine.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_io.js",
+                       "releaseName":  "g281_bom_io_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_bom_io.js"
+                   },
+                   {
+                       "logicalName":  "g281_data_bundle.js",
+                       "releaseName":  "g281_data_bundle_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_data_bundle.js"
+                   },
+                   {
+                       "logicalName":  "g281_operating_labor_rate_data.js",
+                       "releaseName":  "g281_operating_labor_rate_data_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_operating_labor_rate_data.js"
+                   },
+                   {
+                       "logicalName":  "g281_factory_efficiency_view.js",
+                       "releaseName":  "g281_factory_efficiency_view_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_factory_efficiency_view.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_template_runtime.js",
+                       "releaseName":  "g281_bom_template_runtime_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_bom_template_runtime.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_validation_view.js",
+                       "releaseName":  "g281_bom_validation_view_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_bom_validation_view.js"
+                   },
+                   {
+                       "logicalName":  "g281_capital_validation_view.js",
+                       "releaseName":  "g281_capital_validation_view_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_capital_validation_view.js"
+                   },
+                   {
+                       "logicalName":  "g281_labor_validation_view.js",
+                       "releaseName":  "g281_labor_validation_view_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_labor_validation_view.js"
+                   },
+                   {
+                       "logicalName":  "g281_packaging_validation_view.js",
+                       "releaseName":  "g281_packaging_validation_view_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\g281_packaging_validation_view.js"
+                   },
+                   {
+                       "logicalName":  "ui/dashboard.js",
+                       "releaseName":  "ui/dashboard_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\ui\\dashboard.js"
+                   },
+                   {
+                       "logicalName":  "ui/landing_workbench.js",
+                       "releaseName":  "ui/landing_workbench_v2026.04.04-2309.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\ui\\landing_workbench.js"
+                   },
+                   {
+                       "logicalName":  "ui/landing_workbench.css",
+                       "releaseName":  "ui/landing_workbench_v2026.04.04-2309.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\ui\\landing_workbench.css"
+                   }
+               ],
+    "passthroughPaths":  [
+                             "config",
+                             "core",
+                             "engine",
+                             "pages",
+                             "shared",
+                             "ui",
+                             "utils",
+                             "charts",
+                             "vendor\\\\xlsx",
+                             "vendor\\\\univer-editor"
+                         ],
+    "sourceFileUpdatedAtUtc":  {
+                                   "g281_bom_validation.css":  "2026-03-31T17:02:00.8145353Z",
+                                   "g281_factory_efficiency_view.css":  "2026-03-29T13:53:04.6516212Z",
+                                   "g281_factor_version_repo.js":  "2026-04-02T16:38:04.0803738Z",
+                                   "g281_scenario_repo.js":  "2026-03-30T15:10:37.0548421Z",
+                                   "g281_bom_semantic_repo.js":  "2026-03-30T15:55:34.4336550Z",
+                                   "g281_bom_alignment_engine.js":  "2026-04-02T16:38:04.0753717Z",
+                                   "g281_bom_diff_engine.js":  "2026-03-31T07:32:43.6727470Z",
+                                   "g281_bom_io.js":  "2026-03-27T01:33:56.1342349Z",
+                                   "g281_data_bundle.js":  "2026-04-02T07:22:52.8459762Z",
+                                   "g281_operating_labor_rate_data.js":  "2026-03-27T18:53:40.2379791Z",
+                                   "g281_factory_efficiency_view.js":  "2026-03-29T13:52:51.4049261Z",
+                                   "g281_bom_template_runtime.js":  "2026-03-30T10:57:44.7698503Z",
+                                   "g281_bom_validation_view.js":  "2026-03-31T17:01:12.7053553Z",
+                                   "g281_capital_validation_view.js":  "2026-03-29T14:09:42.3252499Z",
+                                   "g281_labor_validation_view.js":  "2026-03-29T13:48:33.9313389Z",
+                                   "g281_packaging_validation_view.js":  "2026-03-30T14:07:54.2017074Z"
+                               },
+    "timelineEvents":  [
+                           {
+                               "id":  "release/v2026.04.04-2309",
+                               "type":  "release",
+                               "title":  "release_published",
+                               "versionTag":  "v2026.04.04-2309",
+                               "publishedAt":  "2026-04-04T23:09:20.1518919+08:00",
+                               "updatedAt":  "2026-04-04T23:09:20.1518919+08:00"
+                           }
+                       ]
+}

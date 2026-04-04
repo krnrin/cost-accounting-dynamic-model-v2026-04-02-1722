@@ -3,7 +3,12 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: path.resolve(__dirname),
-  testMatch: ['accounting_workflow.spec.js'],
+  testMatch: [
+    'accounting_workflow.spec.js',
+    'financial_adapter_contract.spec.js',
+    'accounting_export.spec.js',
+    'multi_project_config_smoke.spec.js',
+  ],
   timeout: 90000,
   fullyParallel: false,
   retries: 0,
@@ -18,7 +23,7 @@ module.exports = defineConfig({
     command: 'python -m http.server 4175 --directory .',
     url: 'http://127.0.0.1:4175/',
     cwd: path.resolve(__dirname, '..'),
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 30000,
   },
 });

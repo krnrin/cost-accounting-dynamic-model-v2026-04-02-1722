@@ -6,14 +6,16 @@
   <title>高压线束通用成本核算平台</title>
   <link rel="icon" href="data:," />
   <link rel="stylesheet" href="../vendor/univer-editor/g281_univer_template_editor.css?v=20260329b" />
+  <link rel="stylesheet" href="./base.css?v=20260403a" />
+  <link rel="stylesheet" href="./layout.css?v=20260403a" />
   <link rel="stylesheet" href="./dashboard.css?v=20260331d" />
+  <link rel="stylesheet" href="./landing_workbench.css?v=20260404a" />
   <link rel="stylesheet" href="../g281_bom_validation.css?v=20260331g" />
   <link rel="stylesheet" href="./insights.css?v=20260328b" />
   <link rel="stylesheet" href="./logic_drawer.css?v=20260331a" />
   <link rel="stylesheet" href="../g281_factory_efficiency_view.css?v=20260327b" data-fe-style="factory-efficiency" />
   <link rel="stylesheet" href="./version_timeline.css?v=20260329a" />
   <link rel="stylesheet" href="./workbook_viewer.css?v=20260330e" />
-  <link rel="stylesheet" href="./landing_workbench.css?v=20260404a" />
 </head>
 <body>
   <div class="app">
@@ -132,8 +134,6 @@
         </div>
         <div id="versionTimelineMount" class="timeline-strip-mount"></div>
       </section>
-
-      <section class="landing-workbench-mount" id="landingWorkbenchMount" aria-label="报价工作台概览"></section>
 
       <section class="hero" id="legacyHeroSection">
         <div class="hero-badges" id="scenarioTags"></div>
@@ -662,8 +662,6 @@
 <script src="../g281_bom_diff_engine.js?v=20260331b"></script>
   <script src="../g281_bom_io.js?v=20260327b"></script>
   <script src="../g281_data_bundle.js?v=20260331b"></script>
-  <script src="../core/config_loader.js"></script>
-  <script src="../engine/config_bridge.js"></script>
   <script src="../engine/compute_model.js?v=20260331b"></script>
   <script src="../core/repo.js"></script>
   <script src="../engine/target_price_solver.js"></script>
@@ -678,8 +676,12 @@
   <script src="../engine/harness_profit.js?v=20260328a"></script>
   <script src="./version_timeline.js?v=20260329a"></script>
   <script src="../vendor/univer-editor/g281_univer_template_editor.js?v=20260329b"></script>
-<script src="./dashboard.js?v=20260404c"></script>
-  <script src="./landing_workbench.js?v=20260404b"></script>
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+  <script src="./dashboard_utils.js?v=20260403a"></script>
+  <script src="./modals/modal_base.js?v=20260403a"></script>
+<script src="./dashboard.js?v=20260403c"></script>
+  <script src="./landing_workbench.js?v=20260404a"></script>
   <script src="./workbook_viewer.js?v=20260330f"></script>
 <script src="../g281_bom_validation_view.js?v=20260331h"></script>
   <script src="../g281_capital_validation_view.js"></script>

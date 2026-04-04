@@ -1,0 +1,29 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G281 Release Entry</title>
+</head>
+<body>
+  <script>
+    (function () {
+      var previewTarget = './pages/preview.html';
+      var newProjectTarget = './pages/new_project.html';
+      try {
+        var activeCode = localStorage.getItem('g281_active_project') || '';
+        var registry = JSON.parse(localStorage.getItem('g281_project_registry') || '{}') || {};
+        var hasRegisteredProjects = Object.keys(registry).length > 0;
+        var hasActiveProject = !!(activeCode && registry[activeCode]);
+        location.replace(hasActiveProject || hasRegisteredProjects ? previewTarget : newProjectTarget);
+      } catch (error) {
+        location.replace(newProjectTarget);
+      }
+    })();
+  </script>
+  <p>姝ｅ湪鎵撳紑椤圭洰鍏ュ彛鈥?/p>
+  <p>鏃犻」鐩椂杩涘叆 <a href="./pages/new_project.html">pages/new_project.html</a></p>
+  <p>宸叉湁椤圭洰鏃惰繘鍏?<a href="./pages/preview.html">pages/preview.html</a></p>
+  <p>鏃х増鐪嬫澘鍏ュ彛浠嶅彲浣跨敤锛?a href="./g281_profit_dashboard_v2026.04.04-2309.html">g281_profit_dashboard_v2026.04.04-2309.html</a></p>
+</body>
+</html>

@@ -3,7 +3,10 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: path.resolve(__dirname),
-  testMatch: ['archive_workbench.spec.js'],
+  testMatch: [
+    'archive_workbench.spec.js',
+    'archive_export_registry.spec.js',
+  ],
   timeout: 90000,
   fullyParallel: false,
   retries: 0,

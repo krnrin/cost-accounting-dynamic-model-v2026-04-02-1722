@@ -1,31 +1,21 @@
 ﻿{
-    "schemaVersion":  2,
-    "versionTag":  "v2026.04.04-1901",
-    "mainFile":  "dashboard_v2026.04.04-1901.html",
-    "folderName":  "v2026.04.04-1901",
-    "folderPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\repo_target\\releases\\v2026.04.04-1901",
+    "schemaVersion":  1,
+    "versionTag":  "v2026.04.04-2309",
     "structure":  "new",
     "offlineReady":  true,
-    "directories":  [
-                        "ui",
-                        "engine",
-                        "core",
-                        "charts",
-                        "config",
-                        "shared",
-                        "pages",
-                        "utils",
-                        "vendor"
-                    ],
+    "entryFile":  "index.html",
+    "mainFile":  "g281_profit_dashboard_v2026.04.04-2309.html",
+    "folderName":  "v2026.04.04-2309",
+    "folderPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.04-2309",
+    "metadataFile":  "release_metadata.json",
+    "metadataPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.04-2309\\release_metadata.json",
+    "timelinePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\release_timeline.json",
     "entryPoints":  {
-                        "dashboard":  "dashboard_v2026.04.04-1901.html",
                         "preview":  "pages/preview.html",
                         "accounting":  "pages/accounting.html",
                         "tracking":  "pages/tracking.html",
-                        "archive":  "pages/archive.html"
+                        "archive":  "pages/archive.html",
+                        "newProject":  "pages/new_project.html"
                     },
-    "metadataFile":  "release_metadata.json",
-    "metadataPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\repo_target\\releases\\v2026.04.04-1901\\release_metadata.json",
-    "timelinePath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\repo_target\\releases\\release_timeline.json",
-    "publishedAt":  "2026-04-04T19:01:17.0176824+08:00"
+    "publishedAt":  "2026-04-04T23:09:20.1518919+08:00"
 }
