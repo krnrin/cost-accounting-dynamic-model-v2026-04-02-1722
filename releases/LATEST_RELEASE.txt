@@ -1,6 +1,6 @@
-﻿Version=v2026.04.04-1455
-MainFile=dashboard_v2026.04.04-1455.html
-Folder=C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\releases\v2026.04.04-1455
+﻿Version=v2026.04.04-1713
+MainFile=dashboard_v2026.04.04-1713.html
+Folder=C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\releases\v2026.04.04-1713
 Structure=new
 OfflineReady=True
 Preview=pages/preview.html
