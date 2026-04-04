@@ -1,9 +1,9 @@
 ﻿{
     "schemaVersion":  2,
-    "versionTag":  "v2026.04.04-1308",
-    "mainFile":  "dashboard_v2026.04.04-1308.html",
-    "folderName":  "v2026.04.04-1308",
-    "folderPath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.04-1308",
+    "versionTag":  "v2026.04.04-1425",
+    "mainFile":  "dashboard_v2026.04.04-1425.html",
+    "folderName":  "v2026.04.04-1425",
+    "folderPath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.04-1425",
     "structure":  "new",
     "offlineReady":  true,
     "directories":  [
@@ -18,14 +18,14 @@
                         "vendor"
                     ],
     "entryPoints":  {
-                        "dashboard":  "dashboard_v2026.04.04-1308.html",
+                        "dashboard":  "dashboard_v2026.04.04-1425.html",
                         "preview":  "pages/preview.html",
                         "accounting":  "pages/accounting.html",
                         "tracking":  "pages/tracking.html",
                         "archive":  "pages/archive.html"
                     },
     "metadataFile":  "release_metadata.json",
-    "metadataPath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.04-1308\\release_metadata.json",
+    "metadataPath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.04-1425\\release_metadata.json",
     "timelinePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\release_timeline.json",
-    "publishedAt":  "2026-04-04T13:08:59.3022338+08:00"
+    "publishedAt":  "2026-04-04T14:25:15.6634672+08:00"
 }
