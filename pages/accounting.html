@@ -28,6 +28,36 @@
     .summary-card span { display: block; margin-top: 8px; font-size: 22px; font-weight: 700; }
     .summary-card small { display: block; margin-top: 6px; font-size: 12px; color: #93c5fd; }
     .sheet-mount { min-height: 240px; }
+    .sheet-workbench { display: flex; flex-direction: column; gap: 16px; }
+    .sheet-jump-list { margin-bottom: 0; }
+    .sheet-stage-grid { display: grid; gap: 16px; }
+    .sheet-stage {
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #27273a;
+      background: #111125;
+    }
+    .sheet-stage-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .sheet-stage-header strong { display: block; font-size: 14px; color: #f3f4f6; }
+    .sheet-stage-note { margin-top: 4px; font-size: 12px; color: #9ca3af; }
+    .sheet-stage-status {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      font-size: 11px;
+      color: #cbd5e1;
+      white-space: nowrap;
+    }
+    .sheet-stage-body { display: flex; flex-direction: column; gap: 12px; }
+    .sheet-stage-submount { min-height: 80px; }
+    .mini-table th, .mini-table td { white-space: nowrap; }
     .workflow-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
     .workflow-node { padding: 12px; border-radius: 10px; border: 1px solid #27273a; background: #111125; }
     .workflow-node strong { display: block; font-size: 13px; color: #e5e7eb; }
@@ -195,6 +225,25 @@
         approval: '批准发布',
       };
 
+      const WORKBENCH_STAGE_LABELS = {
+        harness: 'Harness intake',
+        bom: 'BOM review',
+        quotation: 'Quotation baseline',
+        labor: 'Labor validation',
+        packaging: 'Packaging and logistics',
+        capital: 'Capital and NRE',
+        approval: 'Approval publish',
+      };
+      const WORKBENCH_STAGE_NOTES = {
+        harness: 'Harness-first cost rows, mix, and per-set totals.',
+        bom: 'Workbook sections, sheet roles, and harness sheet previews.',
+        quotation: 'Quote baseline matrix, key cells, and per-harness baseline totals.',
+        labor: 'Direct labor and manufacturing validation with workbook source traces.',
+        packaging: 'Packaging and logistics values sourced per harness or customer part.',
+        capital: 'Equipment, tooling, fixtures, and R&D source details.',
+        approval: 'Approval records, project publish state, and audit handoff.',
+      };
+
       function textOf(value, fallback) {
         const text = String(value == null ? '' : value).trim();
         return text || (fallback == null ? '' : fallback);
@@ -216,6 +265,10 @@
 
       function uniqueList(values) {
         return Array.from(new Set((Array.isArray(values) ? values : []).map((value) => textOf(value, '')).filter(Boolean)));
+      }
+
+      function arrayOf(values) {
+        return Array.isArray(values) ? values : [];
       }
 
       function looksBroken(text) {
@@ -297,6 +350,7 @@
           : window.G281Engine.computeModel(runtime, draft, state);
         const baselineKey = textOf(model && model.financialContext && (model.financialContext.referenceKey || model.financialContext.exactKey), 'quote');
         const matrix = window.G281FinancialWorkbookAdapter.load(runtime, baselineKey);
+        const bomSnapshot = window.G281BomWorkbookAdapter.load(runtime, baselineKey);
         const stageCost = model && model.stageCosts && model.stageCosts[baselineKey]
           ? model.stageCosts[baselineKey]
           : window.G281HarnessStageCostBuilder.build(runtime, baselineKey);
@@ -306,7 +360,7 @@
         const templateKey = resolveTemplateKey(config);
         const template = window.G281CustomerQuoteTemplateAdapter.build(runtime, templateKey, baselineKey, { projectRollup: rollup });
         const changeImpact = window.G281ChangeImpactBuilder.build(runtime, baselineKey, { templateKey, projectRollup: rollup });
-        return { runtime, repo, config, model, baselineKey, matrix, stageCost, rollup, templateKey, template, changeImpact, session };
+        return { runtime, repo, config, model, baselineKey, matrix, bomSnapshot, stageCost, rollup, templateKey, template, changeImpact, session };
       }
 
       function renderStatus(context) {
@@ -340,6 +394,302 @@
           const label = item && item.formulaSource ? `${item.value} (${item.formulaSource})` : textOf(item && item.value, '--');
           return `<span class="chip">${escapeHtml(address)}: ${escapeHtml(label)}</span>`;
         }).join('');
+      }
+
+      function renderChipItems(items) {
+        const chips = arrayOf(items).filter(Boolean);
+        if (!chips.length) return '';
+        return `<div class="chip-list">${chips.map((item) => `<span class="chip">${escapeHtml(item)}</span>`).join('')}</div>`;
+      }
+
+      function summarizeSource(detail) {
+        if (!detail) return '--';
+        const summary = detail.sourceSummary || {};
+        const sourceSheets = uniqueList(summary.sourceSheets || []);
+        if (sourceSheets.length) return sourceSheets.join(', ');
+        const references = arrayOf(detail.references).map((ref) => {
+          const source = textOf(ref && ref.source, '');
+          if (source) return source;
+          const sheetName = textOf(ref && ref.sheetName, '');
+          const address = textOf(ref && ref.address, '');
+          return sheetName && address ? `${sheetName}!${address}` : '';
+        }).filter(Boolean);
+        if (references.length) return references.slice(0, 3).join(' + ');
+        return textOf(detail.formula, textOf(detail.displayValue, '--'));
+      }
+
+      function stageNodeMap(context) {
+        const board = window.G281WorkflowStageBoard.build(context.repo, {
+          baselineKey: context.baselineKey,
+          config: context.config,
+        });
+        return arrayOf(board && board.nodes).reduce((accumulator, node) => {
+          accumulator[node.key] = node;
+          if (node.key === 'quotation') accumulator.quote = node;
+          return accumulator;
+        }, {});
+      }
+
+      function stageLabel(stageNode, stageKey) {
+        return textOf(stageNode && stageNode.label, WORKBENCH_STAGE_LABELS[stageKey] || stageKey);
+      }
+
+      function stageStatusText(stageNode) {
+        return textOf(stageNode && stageNode.statusText, 'status unavailable');
+      }
+
+      function renderMiniTable(columns, rows, emptyText) {
+        const safeColumns = arrayOf(columns);
+        const safeRows = arrayOf(rows);
+        if (!safeColumns.length || !safeRows.length) {
+          return `<div class="empty">${escapeHtml(textOf(emptyText, 'No records.'))}</div>`;
+        }
+        const headerHtml = safeColumns.map((column) => `<th>${escapeHtml(textOf(column && column.label, '--'))}</th>`).join('');
+        const bodyHtml = safeRows.map((row) => `
+          <tr>
+            ${safeColumns.map((column) => {
+              const rendered = column && typeof column.render === 'function'
+                ? column.render(row)
+                : escapeHtml(textOf(row && column && column.key ? row[column.key] : '--', '--'));
+              const tag = column && column.header ? 'th' : 'td';
+              return `<${tag}>${rendered}</${tag}>`;
+            }).join('')}
+          </tr>
+        `).join('');
+        return `
+          <div class="table-wrap">
+            <table class="mini-table">
+              <thead><tr>${headerHtml}</tr></thead>
+              <tbody>${bodyHtml}</tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderStageShell(section) {
+        return `
+          <section class="sheet-stage" data-stage-key="${escapeHtml(section.key)}" id="sheetStage-${escapeHtml(section.key)}">
+            <div class="sheet-stage-header">
+              <div>
+                <strong>${escapeHtml(section.label)}</strong>
+                <div class="sheet-stage-note">${escapeHtml(section.note)}</div>
+              </div>
+              <div class="sheet-stage-status">${escapeHtml(section.statusText)}</div>
+            </div>
+            ${section.chipsHtml || ''}
+            <div class="sheet-stage-body">${section.bodyHtml || ''}</div>
+          </section>
+        `;
+      }
+
+      function buildSheetWorkbenchSections(context) {
+        const stageNodes = stageNodeMap(context);
+        const harnessRows = arrayOf(context.matrix && context.matrix.harnessRows);
+        const stageRows = arrayOf(context.stageCost && context.stageCost.rows);
+        const bomSnapshot = context.bomSnapshot || {};
+        const bomSections = arrayOf(bomSnapshot.sections);
+        const approvals = context.repo.getApprovals();
+        const approvalState = context.repo.getArtifactPublishStates({ versionKey: context.baselineKey, artifactType: 'approval' })[0] || null;
+        const roleCounts = bomSections.reduce((accumulator, section) => {
+          const role = textOf(section && section.role, 'sheet');
+          accumulator[role] = numberOf(accumulator[role], 0) + 1;
+          return accumulator;
+        }, {});
+        const roleSummary = Object.keys(roleCounts).slice(0, 5).map((role) => `${role} ${roleCounts[role]}`);
+        const harnessDetailRows = stageRows.slice(0, 12);
+        const quotationRows = harnessRows.slice(0, 12);
+        const bomPreviewRows = bomSections.slice(0, 8);
+        const laborRows = quotationRows.map((row) => ({
+          harnessId: row.harnessId,
+          directLabor: row.metrics && row.metrics.directLabor,
+          manufacturing: row.metrics && row.metrics.manufacturing,
+          laborSource: summarizeSource(row.sourceDetails && row.sourceDetails.directLabor),
+          manufacturingSource: summarizeSource(row.sourceDetails && row.sourceDetails.manufacturing),
+        }));
+        const packagingRows = quotationRows.map((row) => ({
+          harnessId: row.harnessId,
+          packaging: row.metrics && row.metrics.packaging,
+          packagingSource: summarizeSource(row.sourceDetails && row.sourceDetails.packaging),
+        }));
+        const capitalRows = quotationRows.map((row) => ({
+          harnessId: row.harnessId,
+          equipment: row.metrics && row.metrics.equipment,
+          tooling: row.values && row.values.toolingAndFixtures,
+          rnd: row.metrics && row.metrics.rnd,
+          capitalSource: uniqueList([
+            summarizeSource(row.sourceDetails && row.sourceDetails.equipment),
+            summarizeSource(row.sourceDetails && row.sourceDetails.toolingAndFixtures),
+            summarizeSource(row.sourceDetails && row.sourceDetails.rnd),
+          ]).filter((value) => value && value !== '--').join(' | ') || '--',
+        }));
+        const approvalRows = approvals.slice(0, 10);
+
+        return [
+          {
+            key: 'harness',
+            label: stageLabel(stageNodes.harness, 'harness'),
+            note: WORKBENCH_STAGE_NOTES.harness,
+            statusText: stageStatusText(stageNodes.harness),
+            chipsHtml: renderChipItems([
+              `baseline ${context.baselineKey}`,
+              `harness rows ${stageRows.length}`,
+              `project rollup ${(context.rollup && context.rollup.harnessCount) || harnessRows.length}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Harness', header: true, render: (row) => escapeHtml(textOf(row && row.harnessId, '--')) },
+              { label: 'Mix', render: (row) => escapeHtml(percent(row && row.usageRatio)) },
+              { label: 'Material', render: (row) => escapeHtml(currency(row && row.materialPerSet)) },
+              { label: 'Labor', render: (row) => escapeHtml(currency(row && row.directLaborPerSet)) },
+              { label: 'Packaging', render: (row) => escapeHtml(currency(row && row.packagingPerSet)) },
+              { label: 'Total', render: (row) => escapeHtml(currency(row && row.totalCostPerSet)) },
+            ], harnessDetailRows, 'No harness stage rows available.'),
+          },
+          {
+            key: 'bom',
+            label: stageLabel(stageNodes.bom, 'bom'),
+            note: WORKBENCH_STAGE_NOTES.bom,
+            statusText: stageStatusText(stageNodes.bom),
+            chipsHtml: renderChipItems([
+              `workbook ${textOf(bomSnapshot.workbookName, bomSnapshot.versionKey || '--')}`,
+              `sections ${bomSections.length}`,
+              `harness sheets ${arrayOf(bomSnapshot.harnesses).length}`,
+            ].concat(roleSummary)),
+            bodyHtml: `
+              ${renderMiniTable([
+                { label: 'Sheet', header: true, render: (row) => escapeHtml(textOf(row && row.sheetName, '--')) },
+                { label: 'Role', render: (row) => escapeHtml(textOf(row && row.role, '--')) },
+                { label: 'Rows', render: (row) => escapeHtml(textOf(row && row.rowCount, '--')) },
+                { label: 'Cols', render: (row) => escapeHtml(textOf(row && row.columnCount, '--')) },
+              ], bomPreviewRows, 'No BOM workbook sections available.')}
+              <div class="sheet-stage-submount" data-bom-preview="true"></div>
+            `,
+          },
+          {
+            key: 'quotation',
+            label: stageLabel(stageNodes.quotation || stageNodes.quote, 'quotation'),
+            note: WORKBENCH_STAGE_NOTES.quotation,
+            statusText: stageStatusText(stageNodes.quotation || stageNodes.quote),
+            chipsHtml: renderChipItems([
+              `sheet ${textOf(context.matrix && context.matrix.summarySheetName, '--')}`,
+              `workbook ${textOf(context.matrix && context.matrix.workbookName, context.matrix && context.matrix.financialKey)}`,
+              `harness columns ${arrayOf(context.matrix && context.matrix.harnessColumns).length}`,
+              `key cells ${KEY_CELLS.length}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Harness', header: true, render: (row) => escapeHtml(textOf(row && row.harnessId, '--')) },
+              { label: 'Qty', render: (row) => escapeHtml(currency(row && row.quantityFactor)) },
+              { label: 'Mix', render: (row) => escapeHtml(percent(row && row.usageRatio)) },
+              { label: 'Total', render: (row) => escapeHtml(currency(row && row.metrics && row.metrics.totalCost)) },
+              { label: 'Material', render: (row) => escapeHtml(currency(row && row.metrics && row.metrics.material)) },
+              { label: 'Sources', render: (row) => escapeHtml(uniqueList(row && row.sourceSummary && row.sourceSummary.sourceSheets).join(', ') || '--') },
+            ], quotationRows, 'No quotation baseline rows available.'),
+          },
+          {
+            key: 'labor',
+            label: stageLabel(stageNodes.labor, 'labor'),
+            note: WORKBENCH_STAGE_NOTES.labor,
+            statusText: stageStatusText(stageNodes.labor),
+            chipsHtml: renderChipItems([
+              `labor rows ${laborRows.length}`,
+              `direct labor traced ${laborRows.filter((row) => row.laborSource !== '--').length}`,
+              `manufacturing traced ${laborRows.filter((row) => row.manufacturingSource !== '--').length}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Harness', header: true, render: (row) => escapeHtml(textOf(row && row.harnessId, '--')) },
+              { label: 'Direct labor', render: (row) => escapeHtml(currency(row && row.directLabor)) },
+              { label: 'Manufacturing', render: (row) => escapeHtml(currency(row && row.manufacturing)) },
+              { label: 'Labor source', render: (row) => escapeHtml(textOf(row && row.laborSource, '--')) },
+              { label: 'Manufacturing source', render: (row) => escapeHtml(textOf(row && row.manufacturingSource, '--')) },
+            ], laborRows, 'No labor validation rows available.'),
+          },
+          {
+            key: 'packaging',
+            label: stageLabel(stageNodes.packaging, 'packaging'),
+            note: WORKBENCH_STAGE_NOTES.packaging,
+            statusText: stageStatusText(stageNodes.packaging),
+            chipsHtml: renderChipItems([
+              `packaging rows ${packagingRows.length}`,
+              `sheet ${textOf(context.matrix && context.matrix.summarySheetName, '--')}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Harness', header: true, render: (row) => escapeHtml(textOf(row && row.harnessId, '--')) },
+              { label: 'Packaging per set', render: (row) => escapeHtml(currency(row && row.packaging)) },
+              { label: 'Source', render: (row) => escapeHtml(textOf(row && row.packagingSource, '--')) },
+            ], packagingRows, 'No packaging validation rows available.'),
+          },
+          {
+            key: 'capital',
+            label: stageLabel(stageNodes.capital, 'capital'),
+            note: WORKBENCH_STAGE_NOTES.capital,
+            statusText: stageStatusText(stageNodes.capital),
+            chipsHtml: renderChipItems([
+              `capital rows ${capitalRows.length}`,
+              `R&D traced ${capitalRows.filter((row) => row.capitalSource !== '--').length}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Harness', header: true, render: (row) => escapeHtml(textOf(row && row.harnessId, '--')) },
+              { label: 'Equipment', render: (row) => escapeHtml(currency(row && row.equipment)) },
+              { label: 'Tooling/fixtures', render: (row) => escapeHtml(currency(row && row.tooling)) },
+              { label: 'R&D', render: (row) => escapeHtml(currency(row && row.rnd)) },
+              { label: 'Source', render: (row) => escapeHtml(textOf(row && row.capitalSource, '--')) },
+            ], capitalRows, 'No capital validation rows available.'),
+          },
+          {
+            key: 'approval',
+            label: stageLabel(stageNodes.approval, 'approval'),
+            note: WORKBENCH_STAGE_NOTES.approval,
+            statusText: stageStatusText(stageNodes.approval),
+            chipsHtml: renderChipItems([
+              `records ${approvals.length}`,
+              `publish ${textOf(approvalState && approvalState.status, 'draft')}`,
+              `baseline ${context.baselineKey}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Approval', header: true, render: (row) => escapeHtml(textOf(row && (row.title || row.id), '--')) },
+              { label: 'Status', render: (row) => escapeHtml(textOf(row && row.status, '--')) },
+              { label: 'Submitted', render: (row) => escapeHtml(textOf(row && (row.submittedAt || row.createdAt), '--')) },
+              { label: 'Approved', render: (row) => escapeHtml(textOf(row && row.approvedAt, '--')) },
+              { label: 'Snapshot', render: (row) => escapeHtml(textOf(row && row.relatedVersionId, '--')) },
+            ], approvalRows, 'No approval records available yet.'),
+          },
+        ];
+      }
+
+      function renderSheetWorkbench(context) {
+        const mount = document.getElementById('sheetWorkbenchMount');
+        if (!mount) return;
+        const sections = buildSheetWorkbenchSections(context);
+        mount.innerHTML = `
+          <div class="sheet-workbench">
+            <div class="chip-list sheet-jump-list">
+              ${sections.map((section) => `
+                <button
+                  type="button"
+                  class="secondary"
+                  data-jump-stage="${escapeHtml(section.key)}"
+                >${escapeHtml(section.label)}</button>
+              `).join('')}
+            </div>
+            <div class="sheet-stage-grid">
+              ${sections.map(renderStageShell).join('')}
+            </div>
+          </div>
+        `;
+
+        mount.querySelectorAll('button[data-jump-stage]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const stageKey = textOf(button.getAttribute('data-jump-stage'), '');
+            const section = mount.querySelector(`[data-stage-key="${stageKey}"]`);
+            if (section && typeof section.scrollIntoView === 'function') {
+              section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+        });
+
+        const bomPreviewMount = mount.querySelector('[data-bom-preview="true"]');
+        if (bomPreviewMount && window.G281BomWorkbookAdapter && typeof window.G281BomWorkbookAdapter.renderWorkbench === 'function') {
+          window.G281BomWorkbookAdapter.renderWorkbench(bomPreviewMount, context.bomSnapshot);
+        }
       }
 
       function renderHarnessCost(stageCost) {
@@ -702,6 +1052,7 @@
       function refreshInteractive(context) {
         renderStatus(context);
         renderWorkflowBoard(context);
+        renderSheetWorkbench(context);
         renderPublishBoard(context);
         renderApprovalActions(context);
         renderApprovalRecords(context);
@@ -720,11 +1071,8 @@
         const context = buildContext(runtime, repo, config, session);
         renderStatus(context);
         renderWorkflowBoard(context);
+        renderSheetWorkbench(context);
         renderQuoteKeyCells(context.matrix);
-        window.G281BomWorkbookAdapter.renderWorkbench(
-          document.getElementById('sheetWorkbenchMount'),
-          window.G281BomWorkbookAdapter.load(runtime, context.baselineKey)
-        );
         window.G281FinancialWorkbookAdapter.renderMatrix(document.getElementById('quoteBaselineDetails'), context.matrix);
         renderHarnessCost(context.stageCost);
         renderProjectRollup(context.rollup);

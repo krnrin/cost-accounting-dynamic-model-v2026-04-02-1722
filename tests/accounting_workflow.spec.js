@@ -91,10 +91,12 @@ async function openAccountingPage(page) {
   await page.goto(accountingTarget.relativeUrl, { waitUntil: 'load' });
   await page.waitForSelector('#workflowBoardMount', { state: 'visible', timeout: 60000 });
   await page.waitForSelector('#artifactPublishMount', { state: 'visible', timeout: 60000 });
+  await page.waitForSelector('#sheetWorkbenchMount [data-stage-key]', { state: 'visible', timeout: 60000 });
   await page.waitForFunction(() => {
     const workflowText = String(document.querySelector('#workflowBoardMount')?.textContent || '').trim();
     const publishText = String(document.querySelector('#artifactPublishMount')?.textContent || '').trim();
-    return workflowText.length > 0 && publishText.length > 0;
+    const workbenchSections = document.querySelectorAll('#sheetWorkbenchMount [data-stage-key]').length;
+    return workflowText.length > 0 && publishText.length > 0 && workbenchSections > 0;
   }, null, { timeout: 60000 });
   await page.waitForTimeout(250);
   return errors;
@@ -234,6 +236,31 @@ async function readApprovalPublishState(page) {
 }
 
 test.describe('accounting workflow smoke', () => {
+  test('sheet workbench renders workflow stage sections with node-level detail areas', async ({ page }) => {
+    test.skip(!accountingTarget.exists, accountingTarget.reason);
+
+    const errors = await openAccountingPage(page);
+    const stageKeys = await page.locator('#sheetWorkbenchMount [data-stage-key]').evaluateAll((nodes) => {
+      return nodes.map((node) => node.getAttribute('data-stage-key')).filter(Boolean);
+    });
+
+    expect(stageKeys).toEqual(expect.arrayContaining([
+      'harness',
+      'bom',
+      'quotation',
+      'labor',
+      'packaging',
+      'capital',
+      'approval',
+    ]));
+    expect(stageKeys.length).toBeGreaterThanOrEqual(7);
+
+    await expect(page.locator('#sheetWorkbenchMount [data-stage-key="bom"]')).toContainText(/workbook|sections|harness sheets/i);
+    await expect(page.locator('#sheetWorkbenchMount [data-stage-key="quotation"]')).toContainText(/key cells|harness columns|sheet/i);
+    await expect(page.locator('#sheetWorkbenchMount [data-stage-key="approval"]')).toContainText(/records|publish|baseline/i);
+    expect(errors).toEqual([]);
+  });
+
   test('publish buttons write artifact publish state and update workflow board status', async ({ page }) => {
     test.skip(!accountingTarget.exists, accountingTarget.reason);
 

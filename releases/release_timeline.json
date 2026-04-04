@@ -1,7 +1,34 @@
 ﻿{
     "schemaVersion":  2,
-    "updatedAt":  "2026-04-04T17:13:13.8262357+08:00",
+    "updatedAt":  "2026-04-04T17:40:14.6602173+08:00",
     "releases":  [
+                     {
+                         "versionTag":  "v2026.04.04-1713",
+                         "folderName":  "v2026.04.04-1713",
+                         "mainFile":  "dashboard_v2026.04.04-1713.html",
+                         "structure":  "new",
+                         "offlineReady":  true,
+                         "entryPoints":  {
+                                             "dashboard":  "dashboard_v2026.04.04-1713.html",
+                                             "preview":  "pages/preview.html",
+                                             "accounting":  "pages/accounting.html",
+                                             "tracking":  "pages/tracking.html",
+                                             "archive":  "pages/archive.html"
+                                         },
+                         "publishedAt":  "2026-04-04T17:13:13.8262357+08:00",
+                         "updatedAt":  "2026-04-04T17:13:13.8262357+08:00",
+                         "metadataPath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.04-1713\\release_metadata.json",
+                         "timelineEvents":  [
+                                                {
+                                                    "id":  "release/v2026.04.04-1713",
+                                                    "type":  "release",
+                                                    "title":  "release_published",
+                                                    "versionTag":  "v2026.04.04-1713",
+                                                    "publishedAt":  "2026-04-04T17:13:13.8262357+08:00",
+                                                    "updatedAt":  "2026-04-04T17:13:13.8262357+08:00"
+                                                }
+                                            ]
+                     },
                      {
                          "versionTag":  "v2026.04.04-1658",
                          "folderName":  "v2026.04.04-1658",
@@ -1464,29 +1491,29 @@
                                             ]
                      },
                      {
-                         "versionTag":  "v2026.04.04-1713",
-                         "folderName":  "v2026.04.04-1713",
-                         "mainFile":  "dashboard_v2026.04.04-1713.html",
+                         "versionTag":  "v2026.04.04-1740",
+                         "folderName":  "v2026.04.04-1740",
+                         "mainFile":  "dashboard_v2026.04.04-1740.html",
                          "structure":  "new",
                          "offlineReady":  true,
                          "entryPoints":  {
-                                             "dashboard":  "dashboard_v2026.04.04-1713.html",
+                                             "dashboard":  "dashboard_v2026.04.04-1740.html",
                                              "preview":  "pages/preview.html",
                                              "accounting":  "pages/accounting.html",
                                              "tracking":  "pages/tracking.html",
                                              "archive":  "pages/archive.html"
                                          },
-                         "publishedAt":  "2026-04-04T17:13:13.8262357+08:00",
-                         "updatedAt":  "2026-04-04T17:13:13.8262357+08:00",
-                         "metadataPath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.04-1713\\release_metadata.json",
+                         "publishedAt":  "2026-04-04T17:40:14.6602173+08:00",
+                         "updatedAt":  "2026-04-04T17:40:14.6602173+08:00",
+                         "metadataPath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.04-1740\\release_metadata.json",
                          "timelineEvents":  [
                                                 {
-                                                    "id":  "release/v2026.04.04-1713",
+                                                    "id":  "release/v2026.04.04-1740",
                                                     "type":  "release",
                                                     "title":  "release_published",
-                                                    "versionTag":  "v2026.04.04-1713",
-                                                    "publishedAt":  "2026-04-04T17:13:13.8262357+08:00",
-                                                    "updatedAt":  "2026-04-04T17:13:13.8262357+08:00"
+                                                    "versionTag":  "v2026.04.04-1740",
+                                                    "publishedAt":  "2026-04-04T17:40:14.6602173+08:00",
+                                                    "updatedAt":  "2026-04-04T17:40:14.6602173+08:00"
                                                 }
                                             ]
                      }
