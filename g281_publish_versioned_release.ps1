@@ -86,6 +86,12 @@ $pageEntryPointCandidates = [ordered]@{
   newProject = "pages/new_project.html"
 }
 
+$requiredReleaseAssets = @(
+  "pages/new_project.html",
+  "ui/new_project_wizard.css",
+  "ui/new_project_wizard.js"
+)
+
 function Get-VersionedName {
   param([string]$FileName, [string]$Tag)
   $base = [System.IO.Path]::GetFileNameWithoutExtension($FileName)
@@ -174,6 +180,26 @@ foreach ($path in $passthroughPaths) {
   if (Test-Path -LiteralPath $sourcePath) {
     New-Item -ItemType Directory -Path (Split-Path -Parent $targetPath) -Force | Out-Null
     Copy-Item -LiteralPath $sourcePath -Destination $targetPath -Recurse -Force
+  }
+}
+
+$missingRequiredAssets = @()
+foreach ($asset in $requiredReleaseAssets) {
+  $assetSourcePath = Join-Path $workspace $asset
+  if (-not (Test-Path -LiteralPath $assetSourcePath)) {
+    $missingRequiredAssets += $asset
+  }
+}
+if ($missingRequiredAssets.Count -gt 0) {
+  $errorMessage = "Required release assets missing: $($missingRequiredAssets -join ', '); aborting release."
+  Write-Error $errorMessage
+  throw $errorMessage
+}
+foreach ($asset in $requiredReleaseAssets) {
+  $assetMappings += [PSCustomObject]@{
+    logicalName = $asset
+    releaseName = (Normalize-ReleaseRelativePath $asset)
+    sourcePath = Join-Path $workspace $asset
   }
 }
 

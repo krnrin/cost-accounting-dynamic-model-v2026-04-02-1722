@@ -4,24 +4,35 @@ const { test, expect } = require('@playwright/test');
 
 const PAGE_DEFINITIONS = [
   {
+    id: 'newProject',
+    sourcePath: 'pages/new_project.html',
+    mountSelector: '#newProjectWizardRoot',
+    headerSelector: '.wizard-page__hero',
+    expectedStyle: 'ui/new_project_wizard.css',
+  },
+  {
     id: 'preview',
     sourcePath: 'pages/preview.html',
     mountSelector: '#previewBaselineMount',
+    expectedStyle: 'ui/dashboard.css',
   },
   {
     id: 'accounting',
     sourcePath: 'pages/accounting.html',
     mountSelector: '#workflowBoardMount',
+    expectedStyle: 'ui/dashboard.css',
   },
   {
     id: 'tracking',
     sourcePath: 'pages/tracking.html',
     mountSelector: '#trkProgressPrice',
+    expectedStyle: 'ui/dashboard.css',
   },
   {
     id: 'archive',
     sourcePath: 'pages/archive.html',
     mountSelector: '#arcTimelineMount',
+    expectedStyle: 'ui/dashboard.css',
   },
 ];
 
@@ -56,22 +67,35 @@ function attachPageErrorCapture(page) {
   return errors;
 }
 
-async function openLifecyclePage(page, relativeUrl, mountSelector) {
+async function openLifecyclePage(page, relativeUrl, pageDefinition) {
   const pageErrors = attachPageErrorCapture(page);
   await page.goto(relativeUrl, { waitUntil: 'load' });
-  await page.waitForSelector('.g281-nav', { state: 'visible', timeout: 60000 });
-  await page.waitForSelector('.page-header', { state: 'visible', timeout: 60000 });
-  await page.waitForSelector(mountSelector, { state: 'visible', timeout: 60000 });
+  const navSelector = pageDefinition.navSelector || '.g281-nav';
+  const headerSelector = pageDefinition.headerSelector || '.page-header';
+  if (navSelector) {
+    await page.waitForSelector(navSelector, { state: 'visible', timeout: 60000 });
+  }
+  if (headerSelector) {
+    await page.waitForSelector(headerSelector, { state: 'visible', timeout: 60000 });
+  }
+  await page.waitForSelector(pageDefinition.mountSelector, { state: 'visible', timeout: 60000 });
   await page.waitForTimeout(250);
   return pageErrors;
 }
 
 async function assertLifecycleShell(page, pageDefinition) {
-  await expect(page.locator('.g281-nav')).toBeVisible();
-  await expect(page.locator('.page-header')).toBeVisible();
+  const navSelector = pageDefinition.navSelector || '.g281-nav';
+  const headerSelector = pageDefinition.headerSelector || '.page-header';
+  if (navSelector) {
+    await expect(page.locator(navSelector)).toBeVisible();
+  }
+  if (headerSelector) {
+    await expect(page.locator(headerSelector)).toBeVisible();
+  }
   await expect(page.locator(pageDefinition.mountSelector)).toBeVisible();
 
-  const activeHref = await page.locator('.g281-nav-link.active').getAttribute('href');
+  const activeLinkSelector = navSelector ? `${navSelector} .g281-nav-link.active` : '.g281-nav-link.active';
+  const activeHref = await page.locator(activeLinkSelector).getAttribute('href');
   expect(activeHref).toContain(path.basename(pageDefinition.sourcePath));
 }
 
@@ -92,7 +116,7 @@ for (const pageDefinition of PAGE_DEFINITIONS) {
     test.skip(!fs.existsSync(sourceFilePath), `source page missing in worktree: ${pageDefinition.sourcePath}`);
 
     const relativeUrl = `/${pageDefinition.sourcePath}?smoke=source-${pageDefinition.id}`;
-    const pageErrors = await openLifecyclePage(page, relativeUrl, pageDefinition.mountSelector);
+    const pageErrors = await openLifecyclePage(page, relativeUrl, pageDefinition);
 
     await assertLifecycleShell(page, pageDefinition);
     expect(pageErrors).toEqual([]);
@@ -108,7 +132,7 @@ for (const pageDefinition of PAGE_DEFINITIONS) {
     test.skip(!relativePath, `release entrypoint missing from metadata: ${pageDefinition.id}`);
 
     const relativeUrl = `/releases/${latest.folderName}/${relativePath}?smoke=release-${pageDefinition.id}`;
-    const pageErrors = await openLifecyclePage(page, relativeUrl, pageDefinition.mountSelector);
+    const pageErrors = await openLifecyclePage(page, relativeUrl, pageDefinition);
 
     await assertLifecycleShell(page, pageDefinition);
 
@@ -116,7 +140,7 @@ for (const pageDefinition of PAGE_DEFINITIONS) {
     expect(assetState.scripts.some((src) => src.includes(`/releases/${latest.folderName}/shared/nav.js`))).toBeTruthy();
     expect(assetState.scripts.some((src) => src.includes(`/releases/${latest.folderName}/core/config_loader.js`))).toBeTruthy();
     expect(assetState.styles.some((href) => href.includes(`/releases/${latest.folderName}/shared/nav.css`))).toBeTruthy();
-    expect(assetState.styles.some((href) => href.includes(`/releases/${latest.folderName}/ui/dashboard.css`))).toBeTruthy();
+    expect(assetState.styles.some((href) => href.includes(`/releases/${latest.folderName}/${pageDefinition.expectedStyle || 'ui/dashboard.css'}`))).toBeTruthy();
 
     expect(latest.structure).toBe('new');
     expect(latest.offlineReady).toBe(true);

@@ -43,12 +43,12 @@ test('new project flow smoke', async ({ page }) => {
   await page.fill('#customer', 'Smoke Customer');
   await page.click('[data-action="next-step"]');
 
-  await expect(page.locator('text=线束清单')).toBeVisible();
+  await expect(page.locator('button[data-action="add-harness-row"]')).toBeVisible();
   await page.click('[data-action="next-step"]');
 
-  await expect(page.locator('text=JSON 预览')).toBeVisible();
+  await expect(page.locator('pre.wizard-preview__json')).toBeVisible();
   await page.click('[data-action="create-project"]');
-  await page.waitForURL(`**/pages/preview.html`, { timeout: 15000 });
+  await page.waitForURL(`**/pages/preview.html*`, { timeout: 15000 });
   await page.waitForLoadState('networkidle');
 
   result.previewUrl = page.url();
@@ -79,7 +79,10 @@ test('new project flow smoke', async ({ page }) => {
   await page.fill('#customer', 'Smoke Customer');
   await page.click('[data-action="next-step"]');
   await page.click('[data-action="next-step"]');
-  await expect(page.locator('text=项目编号 SMOKEA 已存在。')).toBeVisible();
+  const duplicateAlert = page.locator('.wizard-alert--error');
+  await expect(duplicateAlert).toBeVisible();
+  const duplicateIssue = page.locator('.wizard-list li', { hasText: PROJECT_CODE });
+  await expect(duplicateIssue).toContainText('已存在');
   result.duplicateBlocked = true;
 
   await page.goto(`${BASE}/pages/accounting.html`, { waitUntil: 'networkidle' });

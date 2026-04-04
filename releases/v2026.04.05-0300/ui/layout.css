@@ -1,0 +1,8 @@
+.app {
+  min-height: 100vh;
+}
+
+.main,
+.sidebar {
+  min-width: 0;
+}

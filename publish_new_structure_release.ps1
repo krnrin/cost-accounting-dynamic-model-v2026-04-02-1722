@@ -24,18 +24,23 @@ $versionDir = Join-Path $releaseDir $VersionTag
 
 # New directory structure assets
 $uiAssets = @(
+  "ui/base.css",
   "ui/dashboard.css",
+  "ui/dashboard_utils.js",
   "ui/dashboard.js",
   "ui/insights.css",
   "ui/insights.js",
   "ui/landing_workbench.css",
   "ui/landing_workbench.js",
+  "ui/layout.css",
   "ui/logic_drawer.css",
   "ui/logic_drawer.js",
   "ui/version_timeline.css",
   "ui/version_timeline.js",
   "ui/workbook_viewer.css",
-  "ui/workbook_viewer.js"
+  "ui/workbook_viewer.js",
+  "ui/new_project_wizard.css",
+  "ui/new_project_wizard.js"
 )
 
 $engineAssets = @(
@@ -78,7 +83,8 @@ $pageAssets = @(
   "pages/preview.html",
   "pages/accounting.html",
   "pages/tracking.html",
-  "pages/archive.html"
+  "pages/archive.html",
+  "pages/new_project.html"
 )
 
 $offlineMirrorDirectories = @(
@@ -174,25 +180,6 @@ function Get-PageReferencedAssets {
   }
 
   return @($references)
-}
-
-function New-PlaceholderReleaseAsset {
-  param(
-    [string]$RelativePath,
-    [string]$ReleaseRoot
-  )
-
-  $targetPath = Join-Path $ReleaseRoot $RelativePath
-  Ensure-Directory -Path (Split-Path -Parent $targetPath)
-
-  $content = if ($RelativePath.ToLowerInvariant().EndsWith(".css")) {
-    "/* Placeholder generated for offline release: source asset missing in workspace. */`r`n"
-  } else {
-    "/* Placeholder generated for offline release: source asset missing in workspace. */`r`n"
-  }
-
-  Set-Content -LiteralPath $targetPath -Value $content -Encoding UTF8
-  return $targetPath
 }
 
 New-Item -ItemType Directory -Path $versionDir -Force | Out-Null
@@ -348,14 +335,12 @@ foreach ($asset in $rootAssets) {
 
 foreach ($asset in $pageReferencedAssets) {
   $sourcePath = Join-Path $workspace $asset
-  $targetPath = Join-Path $versionDir $asset
-  if (-not (Test-Path -LiteralPath $sourcePath) -and -not (Test-Path -LiteralPath $targetPath)) {
-    $placeholderPath = New-PlaceholderReleaseAsset -RelativePath $asset -ReleaseRoot $versionDir
+  if (-not (Test-Path -LiteralPath $sourcePath)) {
     $generatedPlaceholderAssets += [PSCustomObject]@{
       logicalName = $asset
       releaseName = $asset
       sourcePath = $sourcePath
-      placeholderPath = $placeholderPath
+      reason = "source_missing"
     }
   }
 }
@@ -363,6 +348,8 @@ foreach ($asset in $pageReferencedAssets) {
 # Fix vendor paths in HTML
 $html = $html.Replace("../vendor/", "./vendor/")
 $html = $html.Replace("./vendor/", "./vendor/")
+$html = $html.Replace("../utils/", "./utils/")
+$html = $html.Replace("./modals/", "./ui/modals/")
 
 $html = "<!-- Release: $VersionTag -->`r`n<!-- New structure: ui/, engine/, core/, charts/, config/, pages/, shared/, utils/ -->`r`n" + $html
 Set-Content -LiteralPath $htmlTargetPath -Value $html -Encoding UTF8
@@ -385,9 +372,27 @@ foreach ($pageAsset in $pageAssets) {
   if (Test-Path -LiteralPath $pageSourcePath) {
     $pageKey = [System.IO.Path]::GetFileNameWithoutExtension($pageAsset)
     $entryPoints[$pageKey] = $pageAsset
+    if ($pageKey -eq "new_project") {
+      $entryPoints["newProject"] = $pageAsset
+    }
   } else {
     $missingPageAssets += $pageAsset
   }
+}
+
+$failureMessages = @()
+if ($missingPageAssets.Count -gt 0) {
+  $failureMessages += "required pages missing: $($missingPageAssets -join ', ')"
+}
+if ($generatedPlaceholderAssets.Count -gt 0) {
+  $missingReferences = $generatedPlaceholderAssets | ForEach-Object { $_.logicalName }
+  $failureMessages += "referenced assets missing: $($missingReferences -join ', ')"
+}
+if ($failureMessages.Count -gt 0) {
+  $failureSummary = $failureMessages -join "; "
+  $errorMessage = "Release aborted because $failureSummary"
+  Write-Error $errorMessage
+  throw $errorMessage
 }
 
 $trackedSourceAssets = @($uiAssets + $engineAssets + $coreAssets + $chartAssets + $configAssets + $sharedAssets + $pageAssets + $rootAssets + $pageReferencedAssets)
@@ -445,6 +450,8 @@ $entryPointLabels = [ordered]@{
   accounting = "Accounting"
   tracking = "Tracking"
   archive = "Archive"
+  new_project = "NewProject"
+  newProject = "NewProject"
 }
 $latestContentLines = @(
   "Version=$VersionTag"
@@ -453,9 +460,14 @@ $latestContentLines = @(
   "Structure=new"
   "OfflineReady=True"
 )
+$writtenLatestLabels = @{}
 foreach ($entryKey in $entryPointLabels.Keys) {
   if ($entryPoints.Contains($entryKey)) {
-    $latestContentLines += "$($entryPointLabels[$entryKey])=$($entryPoints[$entryKey])"
+    $label = $entryPointLabels[$entryKey]
+    if (-not $writtenLatestLabels.ContainsKey($label)) {
+      $latestContentLines += "$label=$($entryPoints[$entryKey])"
+      $writtenLatestLabels[$label] = $true
+    }
   }
 }
 $latestContent = $latestContentLines -join "`r`n"

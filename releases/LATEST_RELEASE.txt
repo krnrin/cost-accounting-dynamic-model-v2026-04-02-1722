@@ -1,4 +1,10 @@
-﻿Version=v2026.04.04-2309
-EntryFile=index.html
-MainFile=g281_profit_dashboard_v2026.04.04-2309.html
-Folder=C:\Users\lyvee\.openclaw\workspace\成本核算动态模型\releases\v2026.04.04-2309
+﻿Version=v2026.04.05-0300
+MainFile=dashboard_v2026.04.05-0300.html
+Folder=C:\Users\lyvee\.openclaw\workspace\成本核算动态模型\releases\v2026.04.05-0300
+Structure=new
+OfflineReady=True
+Preview=pages/preview.html
+Accounting=pages/accounting.html
+Tracking=pages/tracking.html
+Archive=pages/archive.html
+NewProject=pages/new_project.html
