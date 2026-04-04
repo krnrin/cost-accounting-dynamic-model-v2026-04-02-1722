@@ -66,6 +66,32 @@ $configAssets = @(
   "config/g281.project.json"
 )
 
+$sharedAssets = @(
+  "shared/nav.css",
+  "shared/nav.js",
+  "shared/page_router.js",
+  "shared/project_switcher.css",
+  "shared/project_switcher.js"
+)
+
+$pageAssets = @(
+  "pages/preview.html",
+  "pages/accounting.html",
+  "pages/tracking.html",
+  "pages/archive.html"
+)
+
+$offlineMirrorDirectories = @(
+  "pages",
+  "shared",
+  "core",
+  "engine",
+  "config",
+  "utils",
+  "ui",
+  "charts"
+)
+
 $rootAssets = @(
   "g281_data_bundle.js",
   "g281_bom_alignment_engine.js",
@@ -99,6 +125,76 @@ function Get-VersionedName {
   return "{0}_{1}{2}" -f $base, $Tag, $ext
 }
 
+function Ensure-Directory {
+  param([string]$Path)
+  if (-not (Test-Path -LiteralPath $Path)) {
+    New-Item -ItemType Directory -Path $Path -Force | Out-Null
+  }
+}
+
+function Copy-DirectoryContents {
+  param(
+    [string]$SourceDir,
+    [string]$TargetDir
+  )
+
+  if (-not (Test-Path -LiteralPath $SourceDir)) {
+    return $false
+  }
+
+  Ensure-Directory -Path $TargetDir
+  Get-ChildItem -LiteralPath $SourceDir -Force | ForEach-Object {
+    Copy-Item -LiteralPath $_.FullName -Destination $TargetDir -Recurse -Force
+  }
+  return $true
+}
+
+function Get-PageReferencedAssets {
+  param(
+    [string[]]$Pages,
+    [string]$WorkspaceRoot
+  )
+
+  $references = New-Object 'System.Collections.Generic.List[string]'
+  foreach ($page in $Pages) {
+    $pagePath = Join-Path $WorkspaceRoot $page
+    if (-not (Test-Path -LiteralPath $pagePath)) {
+      continue
+    }
+
+    $content = Get-Content -LiteralPath $pagePath -Raw -Encoding UTF8
+    $matches = [regex]::Matches($content, '(?:src|href)="(\.\./[^"#]+)"')
+    foreach ($match in $matches) {
+      $relativePath = $match.Groups[1].Value -replace '^\.\./', ''
+      $relativePath = $relativePath -replace '\?.*$', ''
+      if (-not [string]::IsNullOrWhiteSpace($relativePath) -and -not $references.Contains($relativePath)) {
+        $references.Add($relativePath)
+      }
+    }
+  }
+
+  return @($references)
+}
+
+function New-PlaceholderReleaseAsset {
+  param(
+    [string]$RelativePath,
+    [string]$ReleaseRoot
+  )
+
+  $targetPath = Join-Path $ReleaseRoot $RelativePath
+  Ensure-Directory -Path (Split-Path -Parent $targetPath)
+
+  $content = if ($RelativePath.ToLowerInvariant().EndsWith(".css")) {
+    "/* Placeholder generated for offline release: source asset missing in workspace. */`r`n"
+  } else {
+    "/* Placeholder generated for offline release: source asset missing in workspace. */`r`n"
+  }
+
+  Set-Content -LiteralPath $targetPath -Value $content -Encoding UTF8
+  return $targetPath
+}
+
 New-Item -ItemType Directory -Path $versionDir -Force | Out-Null
 
 # Create subdirectories
@@ -108,12 +204,16 @@ New-Item -ItemType Directory -Path (Join-Path $versionDir "core") -Force | Out-N
 New-Item -ItemType Directory -Path (Join-Path $versionDir "charts") -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $versionDir "config") -Force | Out-Null
 
+# release structure now includes shared assets and all Lifecycle pages
+
 $htmlSource = Join-Path $workspace "ui/dashboard.html"
 $htmlTargetName = "dashboard_{0}.html" -f $VersionTag
 $htmlTargetPath = Join-Path $versionDir $htmlTargetName
 
 $html = Get-Content -LiteralPath $htmlSource -Raw -Encoding UTF8
 $assetMappings = @()
+$pageReferencedAssets = Get-PageReferencedAssets -Pages $pageAssets -WorkspaceRoot $workspace
+$generatedPlaceholderAssets = @()
 
 # Process UI assets
 foreach ($asset in $uiAssets) {
@@ -227,11 +327,44 @@ foreach ($path in $passthroughPaths) {
   }
 }
 
+$mirroredDirectories = @()
+foreach ($relativeDir in $offlineMirrorDirectories) {
+  $sourcePath = Join-Path $workspace $relativeDir
+  $targetPath = Join-Path $versionDir $relativeDir
+  if (Copy-DirectoryContents -SourceDir $sourcePath -TargetDir $targetPath) {
+    $mirroredDirectories += $relativeDir
+  }
+}
+
+$mirroredRootAssets = @()
+foreach ($asset in $rootAssets) {
+  $sourcePath = Join-Path $workspace $asset
+  $targetPath = Join-Path $versionDir $asset
+  if (Test-Path -LiteralPath $sourcePath) {
+    Copy-Item -LiteralPath $sourcePath -Destination $targetPath -Force
+    $mirroredRootAssets += $asset
+  }
+}
+
+foreach ($asset in $pageReferencedAssets) {
+  $sourcePath = Join-Path $workspace $asset
+  $targetPath = Join-Path $versionDir $asset
+  if (-not (Test-Path -LiteralPath $sourcePath) -and -not (Test-Path -LiteralPath $targetPath)) {
+    $placeholderPath = New-PlaceholderReleaseAsset -RelativePath $asset -ReleaseRoot $versionDir
+    $generatedPlaceholderAssets += [PSCustomObject]@{
+      logicalName = $asset
+      releaseName = $asset
+      sourcePath = $sourcePath
+      placeholderPath = $placeholderPath
+    }
+  }
+}
+
 # Fix vendor paths in HTML
 $html = $html.Replace("../vendor/", "./vendor/")
 $html = $html.Replace("./vendor/", "./vendor/")
 
-$html = "<!-- Release: $VersionTag -->`r`n<!-- New structure: ui/, engine/, core/, charts/, config/ -->`r`n" + $html
+$html = "<!-- Release: $VersionTag -->`r`n<!-- New structure: ui/, engine/, core/, charts/, config/, pages/, shared/, utils/ -->`r`n" + $html
 Set-Content -LiteralPath $htmlTargetPath -Value $html -Encoding UTF8
 
 $publishedAt = (Get-Date).ToString("o")
@@ -242,8 +375,26 @@ try {
   $gitCommit = ""
 }
 
+$releaseDirectories = @("ui", "engine", "core", "charts", "config", "shared", "pages", "utils", "vendor")
+$entryPoints = [ordered]@{
+  dashboard = $htmlTargetName
+}
+$missingPageAssets = @()
+foreach ($pageAsset in $pageAssets) {
+  $pageSourcePath = Join-Path $workspace $pageAsset
+  if (Test-Path -LiteralPath $pageSourcePath) {
+    $pageKey = [System.IO.Path]::GetFileNameWithoutExtension($pageAsset)
+    $entryPoints[$pageKey] = $pageAsset
+  } else {
+    $missingPageAssets += $pageAsset
+  }
+}
+
+$trackedSourceAssets = @($uiAssets + $engineAssets + $coreAssets + $chartAssets + $configAssets + $sharedAssets + $pageAssets + $rootAssets + $pageReferencedAssets)
+$trackedSourceAssets = @($trackedSourceAssets | Sort-Object -Unique)
+
 $sourceFileUpdatedAtUtc = [ordered]@{}
-foreach ($asset in ($uiAssets + $engineAssets + $coreAssets + $chartAssets + $configAssets + $rootAssets)) {
+foreach ($asset in $trackedSourceAssets) {
   $sourcePath = Join-Path $workspace $asset
   if (Test-Path -LiteralPath $sourcePath) {
     $sourceFileUpdatedAtUtc[$asset] = (Get-Item -LiteralPath $sourcePath).LastWriteTimeUtc.ToString("o")
@@ -271,8 +422,15 @@ $versionMetadata = [ordered]@{
   mainFilePath = $htmlTargetPath
   gitCommit = $gitCommit
   newStructure = $true
-  directories = @("ui", "engine", "core", "charts", "config", "vendor")
+  offlineReady = $true
+  directories = $releaseDirectories
+  mirroredDirectories = $mirroredDirectories
+  mirroredRootAssets = $mirroredRootAssets
+  entryPoints = $entryPoints
+  missingPageAssets = $missingPageAssets
   assets = $assetMappings
+  generatedPlaceholderAssets = $generatedPlaceholderAssets
+  pageReferencedAssets = $pageReferencedAssets
   passthroughPaths = $passthroughPaths
   sourceFileUpdatedAtUtc = $sourceFileUpdatedAtUtc
   timelineEvents = @($timelineEvent)
@@ -282,12 +440,25 @@ $versionMetadataPath = Join-Path $versionDir "release_metadata.json"
 Set-Content -LiteralPath $versionMetadataPath -Value ($versionMetadata | ConvertTo-Json -Depth 8) -Encoding UTF8
 
 $latestPath = Join-Path $releaseDir "LATEST_RELEASE.txt"
-$latestContent = @(
+$entryPointLabels = [ordered]@{
+  preview = "Preview"
+  accounting = "Accounting"
+  tracking = "Tracking"
+  archive = "Archive"
+}
+$latestContentLines = @(
   "Version=$VersionTag"
   "MainFile=$htmlTargetName"
   "Folder=$versionDir"
   "Structure=new"
-) -join "`r`n"
+  "OfflineReady=True"
+)
+foreach ($entryKey in $entryPointLabels.Keys) {
+  if ($entryPoints.Contains($entryKey)) {
+    $latestContentLines += "$($entryPointLabels[$entryKey])=$($entryPoints[$entryKey])"
+  }
+}
+$latestContent = $latestContentLines -join "`r`n"
 Set-Content -LiteralPath $latestPath -Value $latestContent -Encoding UTF8
 
 $latestJsonPath = Join-Path $releaseDir "LATEST_RELEASE.json"
@@ -298,6 +469,9 @@ $latestJson = [ordered]@{
   folderName = (Split-Path -Leaf $versionDir)
   folderPath = $versionDir
   structure = "new"
+  offlineReady = $true
+  directories = $releaseDirectories
+  entryPoints = $entryPoints
   metadataFile = "release_metadata.json"
   metadataPath = $versionMetadataPath
   timelinePath = (Join-Path $releaseDir "release_timeline.json")
@@ -328,6 +502,8 @@ $timelineRecord = [ordered]@{
   folderName = (Split-Path -Leaf $versionDir)
   mainFile = $htmlTargetName
   structure = "new"
+  offlineReady = $true
+  entryPoints = $entryPoints
   publishedAt = $publishedAt
   updatedAt = $publishedAt
   metadataPath = $versionMetadataPath

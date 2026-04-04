@@ -7,6 +7,13 @@ function readLatestRelease() {
   return JSON.parse(fs.readFileSync(latestPath, 'utf8').replace(/^\uFEFF/, ''));
 }
 
+function readReleaseMetadata(latest) {
+  const metadataPath = latest && latest.metadataPath
+    ? latest.metadataPath
+    : path.resolve(__dirname, '..', 'releases', latest.folderName, 'release_metadata.json');
+  return JSON.parse(fs.readFileSync(metadataPath, 'utf8').replace(/^\uFEFF/, ''));
+}
+
 function attachRuntimeErrorCapture(page) {
   const errors = [];
   page.on('pageerror', (error) => {
@@ -65,9 +72,43 @@ async function exerciseLandingWorkbench(page) {
     hasCloseVersionTimeline: true,
     hasOpenBomValidation: true,
   });
+
+  const workbenchCapabilities = await page.evaluate(() => ({
+    hasGetStateSnapshot: typeof window.G281LandingWorkbench?.getStateSnapshot === 'function',
+    hasListHarnessIds: typeof window.G281LandingWorkbench?.listHarnessIds === 'function',
+    hasSetRole: typeof window.G281LandingWorkbench?.setRole === 'function',
+    hasSelectHarness: typeof window.G281LandingWorkbench?.selectHarness === 'function',
+  }));
+  expect(workbenchCapabilities).toEqual({
+    hasGetStateSnapshot: true,
+    hasListHarnessIds: true,
+    hasSetRole: true,
+    hasSelectHarness: true,
+  });
+
+  const initialWorkbenchState = await page.evaluate(() => window.G281LandingWorkbench.getStateSnapshot());
+  expect(initialWorkbenchState.harnessCount).toBeGreaterThan(0);
+  expect(initialWorkbenchState.harnessIds.length).toBe(initialWorkbenchState.harnessCount);
+  expect(initialWorkbenchState.selectedHarnessId).toBeTruthy();
+
   await expect
     .poll(() => page.evaluate(() => window.G281DashboardBridge.getWorkspacePage()))
     .toBe('profit');
+
+  const financeSetResult = await page.evaluate(() => window.G281LandingWorkbench.setRole('finance'));
+  expect(financeSetResult).toBe(true);
+  await expect
+    .poll(() => page.evaluate(() => window.G281LandingWorkbench.getStateSnapshot().roleKey))
+    .toBe('finance');
+
+  const harnessTargetId = initialWorkbenchState.harnessIds.find((harnessId) => harnessId !== initialWorkbenchState.selectedHarnessId)
+    || initialWorkbenchState.selectedHarnessId;
+  const harnessSelectResult = await page.evaluate((harnessId) => window.G281LandingWorkbench.selectHarness(harnessId), harnessTargetId);
+  expect(harnessSelectResult).toBe(true);
+  await expect
+    .poll(() => page.evaluate(() => window.G281LandingWorkbench.getStateSnapshot().selectedHarnessId))
+    .toBe(harnessTargetId);
+  await expect(detailTitle).toContainText(harnessTargetId);
 
   await page.evaluate(() => window.G281DashboardBridge.setWorkspacePage('data'));
   await expect(page.locator('#workspaceTabData')).toHaveAttribute('aria-selected', 'true');
@@ -85,6 +126,19 @@ async function exerciseLandingWorkbench(page) {
   await expect
     .poll(() => page.evaluate(() => window.G281DashboardBridge.getWorkspacePage()))
     .toBe('profit');
+  await expect
+    .poll(() => page.evaluate(() => {
+      const snapshot = window.G281LandingWorkbench.getStateSnapshot();
+      return JSON.stringify({
+        roleKey: snapshot.roleKey,
+        selectedHarnessId: snapshot.selectedHarnessId,
+      });
+    }))
+    .toBe(JSON.stringify({
+      roleKey: 'finance',
+      selectedHarnessId: harnessTargetId,
+    }));
+  await expect(page.locator('#harnessProfitTable tr[data-landing-selected=\"true\"]')).toHaveCount(1);
 
   await page.evaluate(() => window.G281DashboardBridge.openVersionTimeline());
   await expect(page.locator('#versionTimelineDrawer')).toBeVisible();
@@ -94,7 +148,16 @@ async function exerciseLandingWorkbench(page) {
   const initialTitle = (await detailTitle.textContent()) || '';
   const harnessCount = await harnessItems.count();
   if (harnessCount > 1) {
-    await harnessItems.nth(1).click();
+    const currentHarnessId = await page.evaluate(() => window.G281LandingWorkbench.getStateSnapshot().selectedHarnessId);
+    const nextHarnessIndex = await page.evaluate(() => {
+      return Array.from(document.querySelectorAll('.landing-harness-list__item')).findIndex((node) => {
+        return node.getAttribute('data-harness-id') !== window.G281LandingWorkbench.getStateSnapshot().selectedHarnessId;
+      });
+    });
+    expect(nextHarnessIndex).toBeGreaterThanOrEqual(0);
+    const nextHarnessId = await harnessItems.nth(nextHarnessIndex).getAttribute('data-harness-id');
+    expect(nextHarnessId).not.toBe(currentHarnessId);
+    await harnessItems.nth(nextHarnessIndex).click();
     await expect(detailTitle).not.toHaveText(initialTitle);
   }
 
@@ -130,6 +193,7 @@ test('source dashboard shows landing workbench as the default profit homepage', 
 
 test('latest release keeps versioned landing workbench assets and behavior', async ({ page }) => {
   const latest = readLatestRelease();
+  const metadata = readReleaseMetadata(latest);
   const relativeUrl = `/releases/${latest.folderName}/${latest.mainFile}?smoke=landing-release`;
   const errors = await openDashboard(page, relativeUrl);
 
@@ -143,5 +207,9 @@ test('latest release keeps versioned landing workbench assets and behavior', asy
   expect(assetState.scripts.some((src) => src.includes(`/ui/dashboard_${latest.versionTag}.js`))).toBeTruthy();
   expect(assetState.scripts.some((src) => src.includes(`/ui/landing_workbench_${latest.versionTag}.js`))).toBeTruthy();
   expect(assetState.styles.some((href) => href.includes(`/ui/landing_workbench_${latest.versionTag}.css`))).toBeTruthy();
+  expect(latest.structure).toBe('new');
+  expect(metadata.newStructure).toBe(true);
+  expect(metadata.assets.some((asset) => asset.logicalName === 'ui/dashboard.js')).toBeTruthy();
+  expect(metadata.assets.some((asset) => asset.logicalName === 'ui/landing_workbench.js')).toBeTruthy();
   expect(errors).toEqual([]);
 });
