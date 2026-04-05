@@ -1,0 +1,546 @@
+{
+  "$schema": "./project-config.schema.md",
+  "projectId": "G281",
+  "projectName": "G281 高压线束",
+  "customer": "",
+  "createdAt": "2026-04-02T12:00:00Z",
+  "projectCode": "G281",
+  "defaultCustomerTemplateKey": "customer_quote_standard",
+  "sampleProject": true,
+
+  "stageDefinitions": [
+    {
+      "id": "harness",
+      "name": "Harness intake",
+      "sequence": 10,
+      "category": "workflow",
+      "page": "pages/accounting.html",
+      "ownerRoles": ["program", "costing"],
+      "artifactType": "harness",
+      "scope": "harness",
+      "supportsPartialPublish": true
+    },
+    {
+      "id": "bom",
+      "name": "BOM review",
+      "sequence": 20,
+      "category": "workflow",
+      "page": "pages/accounting.html",
+      "ownerRoles": ["engineering", "costing"],
+      "artifactType": "bom",
+      "scope": "harness",
+      "supportsPartialPublish": true
+    },
+    {
+      "id": "quotation",
+      "name": "Quotation baseline",
+      "sequence": 30,
+      "category": "workflow",
+      "page": "pages/accounting.html",
+      "ownerRoles": ["sales", "finance"],
+      "artifactType": "quotation",
+      "scope": "harness",
+      "supportsPartialPublish": true
+    },
+    {
+      "id": "labor",
+      "name": "Labor validation",
+      "sequence": 40,
+      "category": "workflow",
+      "page": "pages/accounting.html",
+      "ownerRoles": ["manufacturing", "finance"],
+      "artifactType": "labor",
+      "scope": "harness",
+      "supportsPartialPublish": true
+    },
+    {
+      "id": "packaging",
+      "name": "Packaging validation",
+      "sequence": 50,
+      "category": "workflow",
+      "page": "pages/accounting.html",
+      "ownerRoles": ["logistics", "finance"],
+      "artifactType": "packaging",
+      "scope": "harness",
+      "supportsPartialPublish": true
+    },
+    {
+      "id": "capital",
+      "name": "Equipment tooling fixture",
+      "sequence": 60,
+      "category": "workflow",
+      "page": "pages/accounting.html",
+      "ownerRoles": ["industrialization", "finance"],
+      "artifactType": "capital",
+      "scope": "harness",
+      "supportsPartialPublish": true
+    },
+    {
+      "id": "approval",
+      "name": "Approval release",
+      "sequence": 70,
+      "category": "workflow",
+      "page": "pages/archive.html",
+      "ownerRoles": ["management", "finance"],
+      "artifactType": "approval",
+      "scope": "project",
+      "supportsPartialPublish": false
+    }
+  ],
+
+  "workbookRoles": [
+    {
+      "id": "bom_source",
+      "name": "BOM source workbook",
+      "scope": "harness",
+      "allowMultiple": true
+    },
+    {
+      "id": "financial_quote_baseline",
+      "name": "Financial quote baseline workbook",
+      "scope": "project",
+      "allowMultiple": false
+    },
+    {
+      "id": "customer_quote_template",
+      "name": "Customer quote template workbook",
+      "scope": "project",
+      "allowMultiple": true
+    },
+    {
+      "id": "project_rollup_pack",
+      "name": "Project rollup workbook pack",
+      "scope": "project",
+      "allowMultiple": false
+    },
+    {
+      "id": "release_archive_pack",
+      "name": "Release archive workbook pack",
+      "scope": "release",
+      "allowMultiple": true
+    }
+  ],
+
+  "sheetMappings": [
+    {
+      "id": "bom_change_history",
+      "workbookRole": "bom_source",
+      "sheetRole": "change_history",
+      "matchStrategy": "keyword",
+      "matchValue": "鍙樻洿灞ュ巻"
+    },
+    {
+      "id": "bom_assembly_parts",
+      "workbookRole": "bom_source",
+      "sheetRole": "assembly_parts",
+      "matchStrategy": "keyword",
+      "matchValue": "鎬绘垚鏁ｄ欢"
+    },
+    {
+      "id": "bom_secondary_materials",
+      "workbookRole": "bom_source",
+      "sheetRole": "secondary_materials",
+      "matchStrategy": "keyword",
+      "matchValue": "浜屾鐗╂枡"
+    },
+    {
+      "id": "bom_harness_detail",
+      "workbookRole": "bom_source",
+      "sheetRole": "harness",
+      "matchStrategy": "pattern",
+      "matchValue": "^\\d{4,}"
+    },
+    {
+      "id": "finance_quote_baseline",
+      "workbookRole": "financial_quote_baseline",
+      "sheetRole": "quote_baseline",
+      "matchStrategy": "exact",
+      "matchValue": "project assessment summary"
+    },
+    {
+      "id": "template_rollup_summary",
+      "workbookRole": "customer_quote_template",
+      "sheetRole": "project_rollup",
+      "matchStrategy": "exact",
+      "matchValue": "project rollup"
+    }
+  ],
+
+  "customerTemplates": [
+    {
+      "id": "customer_quote_standard",
+      "key": "customer_quote_standard",
+      "legacyKey": "geely",
+      "aliases": ["geelyQuote", "standardQuote"],
+      "name": "Customer quote standard",
+      "channel": "customer",
+      "output": "xlsx",
+      "seedProjectCodes": ["G281", "E281"],
+        "stageMapping": {
+          "quote": "quotation",
+          "fixed": "quotation",
+          "change": "quotation",
+          "annualDrop": "quotation"
+        },
+        "exportSheets": [
+          {
+            "sheetRole": "project_rollup",
+            "fileName": "Customer quote template",
+            "format": "xlsx"
+          },
+          {
+            "sheetRole": "quote_baseline",
+            "fileName": "Quote baseline export",
+            "format": "xlsx"
+          }
+        ],
+        "cells": [
+        { "cellKey": "A1", "label": "Project code", "valueKey": "projectCode" },
+        { "cellKey": "A2", "label": "Project name", "valueKey": "projectName" },
+        { "cellKey": "B1", "label": "Stage", "valueKey": "stageKey" },
+        { "cellKey": "B2", "label": "Baseline key", "valueKey": "baselineKey" },
+        { "cellKey": "C1", "label": "Revenue per set", "valueKey": "revenuePerSet" },
+        { "cellKey": "C2", "label": "Cost per set", "valueKey": "costPerSet" },
+        { "cellKey": "C3", "label": "Margin", "valueKey": "margin" },
+        { "cellKey": "D", "label": "Material per set", "valueKey": "materialPerSet" },
+        { "cellKey": "E", "label": "Direct labor per set", "valueKey": "directLaborPerSet" },
+        { "cellKey": "F", "label": "Packaging per set", "valueKey": "packagingPerSet" },
+        { "cellKey": "G", "label": "Profit per set", "valueKey": "profitPerSet" }
+      ]
+    },
+    {
+      "id": "internal_project_rollup",
+      "key": "internal_project_rollup",
+      "aliases": ["internalRollup"],
+      "name": "Internal project rollup",
+      "channel": "internal",
+        "output": "xlsx",
+        "seedProjectCodes": ["G281", "E281"],
+        "exportSheets": [
+          {
+            "sheetRole": "project_rollup",
+            "fileName": "Internal rollup export",
+            "format": "xlsx"
+          }
+        ],
+        "cells": [
+        { "cellKey": "A1", "label": "Project code", "valueKey": "projectCode" },
+        { "cellKey": "A2", "label": "Project name", "valueKey": "projectName" },
+        { "cellKey": "B1", "label": "Baseline key", "valueKey": "baselineKey" },
+        { "cellKey": "B2", "label": "Lifecycle years", "valueKey": "lifecycleYears" },
+        { "cellKey": "C1", "label": "Revenue per set", "valueKey": "revenuePerSet" },
+        { "cellKey": "C2", "label": "Cost per set", "valueKey": "costPerSet" },
+        { "cellKey": "C3", "label": "Profit per set", "valueKey": "profitPerSet" },
+        { "cellKey": "D1", "label": "Material per set", "valueKey": "materialPerSet" },
+        { "cellKey": "D2", "label": "Direct labor per set", "valueKey": "directLaborPerSet" },
+        { "cellKey": "D3", "label": "Packaging per set", "valueKey": "packagingPerSet" },
+        { "cellKey": "E1", "label": "Lifecycle revenue", "valueKey": "lifecycleRevenue" },
+        { "cellKey": "E2", "label": "Lifecycle cost", "valueKey": "lifecycleCost" },
+        { "cellKey": "E3", "label": "Lifecycle profit", "valueKey": "lifecycleProfit" }
+      ]
+    }
+  ],
+
+  "allocationProfiles": [
+    {
+      "id": "lifecycle_volume_seed",
+      "name": "Lifecycle volume first",
+      "costBuckets": ["equipment", "tooling", "fixture"],
+      "defaultDriver": "lifecycle_volume",
+      "supportedDrivers": ["lifecycle_volume", "vehicle_mix", "harness_share"],
+      "mode": "lifecycleAmortized",
+      "seedProjectCodes": ["G281", "E281"]
+    },
+    {
+      "id": "vehicle_mix_seed",
+      "name": "Vehicle mix overlay",
+      "costBuckets": ["packaging", "commercial"],
+      "defaultDriver": "vehicle_mix",
+      "supportedDrivers": ["vehicle_mix", "harness_share"],
+      "mode": "perSetWorkbook",
+      "seedProjectCodes": ["G281", "E281"]
+    },
+    {
+      "id": "customer_recoverable_seed",
+      "name": "Customer recoverable",
+      "costBuckets": ["tooling", "fixture", "rnd"],
+      "defaultDriver": "customer_recoverable",
+      "supportedDrivers": ["customer_recoverable", "lifecycle_volume"],
+      "mode": "customerRecoverable",
+      "seedProjectCodes": ["G281", "E281"]
+    },
+    {
+      "id": "direct_expense_seed",
+      "name": "Direct expense",
+      "costBuckets": ["commercial"],
+      "defaultDriver": "direct_expense",
+      "supportedDrivers": ["direct_expense"],
+      "mode": "directExpense",
+      "seedProjectCodes": ["G281", "E281"]
+    }
+  ],
+
+  "workflowNodes": [
+    {
+      "id": "preview_page",
+      "nodeType": "page",
+      "page": "pages/preview.html",
+      "thresholds": {
+        "completionRate": 0.65,
+        "blockedCount": 2,
+        "exceptionCount": 1
+      },
+      "stageIds": ["quotation"],
+      "next": ["accounting_page"]
+    },
+    {
+      "id": "accounting_page",
+      "nodeType": "page",
+      "page": "pages/accounting.html",
+      "thresholds": {
+        "completionRate": 0.82,
+        "blockedCount": 3,
+        "exceptionCount": 2
+      },
+      "stageIds": ["harness", "bom", "quotation", "labor", "packaging", "capital", "approval"],
+      "next": ["tracking_page", "archive_page"]
+    },
+    {
+      "id": "tracking_page",
+      "nodeType": "page",
+      "page": "pages/tracking.html",
+      "thresholds": {
+        "completionRate": 0.55,
+        "blockedCount": 1,
+        "exceptionCount": 2
+      },
+      "stageIds": ["quotation", "labor", "packaging", "capital"],
+      "next": ["archive_page"]
+    },
+    {
+      "id": "archive_page",
+      "nodeType": "page",
+      "page": "pages/archive.html",
+      "thresholds": {
+        "completionRate": 0.9,
+        "blockedCount": 0,
+        "exceptionCount": 0
+      },
+      "stageIds": ["approval"],
+      "next": []
+    }
+  ],
+
+  "financialWorkbook": {
+    "summarySheetAliases": ["Project assessment summary", "quote baseline", "cost summary"],
+    "rowSpecs": [
+      { "key": "totalCost", "rowNumber": 14, "label": "Total cost / set", "category": "metric" },
+      { "key": "material", "rowNumber": 15, "label": "Material / set", "category": "material" },
+      { "key": "directLabor", "rowNumber": 16, "label": "Direct labor / set", "category": "labor" },
+      { "key": "equipment", "rowNumber": 20, "label": "Equipment / set", "category": "capital" },
+      { "key": "manufacturing", "rowNumber": 23, "label": "Manufacturing / set", "category": "manufacturing" },
+      { "key": "rnd", "rowNumber": 31, "label": "R&D / set", "category": "rnd" },
+      { "key": "packaging", "rowNumber": 32, "label": "Packaging / set", "category": "packaging" }
+    ],
+    "keyCells": [
+      { "address": "P3", "key": "harnessId", "label": "Harness / line item" },
+      { "address": "P4", "key": "quantityFactor", "label": "Quantity factor" },
+      { "address": "P14", "key": "totalCost", "label": "Total cost / set" },
+      { "address": "P16", "key": "directLabor", "label": "Direct labor per set" },
+      { "address": "P20", "key": "equipment", "label": "Equipment cost" },
+      { "address": "P21", "key": "sharedEquipment", "label": "Shared equipment" },
+      { "address": "P22", "key": "specialEquipment", "label": "Special equipment" },
+      { "address": "P23", "key": "manufacturing", "label": "Manufacturing per set" },
+      { "address": "P31", "key": "rnd", "label": "R&D per set" },
+      { "address": "P32", "key": "packaging", "label": "Packaging per set" }
+    ],
+    "keyCellSpecs": [
+      { "address": "P3", "key": "harnessId", "label": "Harness / line item" },
+      { "address": "P4", "key": "quantityFactor", "label": "Quantity factor" },
+      { "address": "P14", "key": "totalCost", "label": "Total cost / set" },
+      { "address": "P16", "key": "directLabor", "label": "Direct labor per set" },
+      { "address": "P20", "key": "equipment", "label": "Equipment cost" },
+      { "address": "P21", "key": "sharedEquipment", "label": "Shared equipment" },
+      { "address": "P22", "key": "specialEquipment", "label": "Special equipment" },
+      { "address": "P23", "key": "manufacturing", "label": "Manufacturing per set" },
+      { "address": "P31", "key": "rnd", "label": "R&D per set" },
+      { "address": "P32", "key": "packaging", "label": "Packaging per set" }
+    ],
+    "detailSheetBindings": [
+      {
+        "id": "packaging_detail",
+        "label": "Packaging detail",
+        "matchStrategy": "exact",
+        "matchValue": "Packaging detail",
+        "previewRows": 6,
+        "previewColumns": 6
+      },
+      {
+        "id": "capital_detail",
+        "label": "Capital detail",
+        "matchStrategy": "keyword",
+        "matchValue": "capital",
+        "previewRows": 8,
+        "previewColumns": 8
+      }
+    ]
+  },
+
+  "authProviders": [
+    {
+      "id": "offline_local",
+      "type": "offline",
+      "enabled": true,
+      "storage": "localStorage"
+    },
+    {
+      "id": "workspace_registry",
+      "type": "workspace",
+      "enabled": false,
+      "storage": "project_registry"
+    }
+  ],
+
+  "baseline": {
+    "version": 1,
+    "lockedAt": "2026-04-02T12:00:00Z",
+    "lifecycle": {
+      "startYear": 2026,
+      "years": 6
+    },
+    "vehicleConfigs": [
+      {
+        "name": "高配",
+        "ratio": 0.3,
+        "harnesses": ["H1", "H2", "H3"],
+        "_note": "从 runtime.master.baselineMix + priceMixIndexes/costMixIndexes 提取"
+      },
+      {
+        "name": "低配",
+        "ratio": 0.5,
+        "harnesses": ["H1", "H3"]
+      },
+      {
+        "name": "出口",
+        "ratio": 0.2,
+        "harnesses": ["H1", "H2"]
+      }
+    ],
+    "annualVolumes": [
+      { "year": 2026, "volume": 0, "_note": "从 runtime.master.volumes 提取，此处为占位" },
+      { "year": 2027, "volume": 0 },
+      { "year": 2028, "volume": 0 },
+      { "year": 2029, "volume": 0 },
+      { "year": 2030, "volume": 0 },
+      { "year": 2031, "volume": 0 }
+    ]
+  },
+
+  "harnesses": [
+    {
+      "id": "H1",
+      "name": "主线束",
+      "partNumber": "",
+      "unit": "set",
+      "_note": "从 bomValidation.harnessOrder + BOM header 提取"
+    }
+  ],
+
+  "dimensions": {
+    "currency": "CNY",
+    "currencySymbol": "¥",
+    "lengthUnit": "mm",
+    "weightUnit": "g",
+    "volumeUnit": "套",
+    "priceDecimalPlaces": 4,
+    "ratioDecimalPlaces": 2
+  },
+
+  "materialComposition": {
+    "connector": 0.24,
+    "copper": 0.38,
+    "aluminum": 0.18,
+    "other": 0.20,
+    "_note": "四项之和 = 1.00，来自 engine.js matBase 公式"
+  },
+
+  "metalSensitivity": {
+    "copper": 0.65,
+    "aluminum": 0.45,
+    "_note": "价格变动对材料成本的传导系数，<1 因为导线含绝缘层等非金属成分"
+  },
+
+  "bom": {
+    "sheetRoleMap": [
+      { "role": "change_history", "matchKeyword": "变更履历" },
+      { "role": "assembly_parts", "matchKeyword": "总成散件清单" },
+      { "role": "secondary_materials", "matchKeyword": "二次物料明细" },
+      { "role": "ksk_bom_detail", "matchKeyword": "KSK线束BOM明细" },
+      { "role": "harness", "matchPattern": "^\\d{6,}" }
+    ],
+    "endGroupAliases": {
+      "接电池端": ["接电池端", "接电池", "电池端"],
+      "接电驱端": ["接电驱端", "接电驱", "电驱端", "电驱"],
+      "接ACCM端": ["接accm端", "接accm", "accm端", "accm"],
+      "接PTC端": ["接ptc端", "接ptc", "ptc端", "ptc"],
+      "二分四分线器": ["二分四分线器", "分线器"],
+      "组合式充电插座": ["组合式充电插座", "充电插座"],
+      "快充端": ["快充连接器", "快充端", "直流充电", "dc充电", "dc端", "直流端", "快充"],
+      "慢充端": ["慢充连接器", "慢充端", "交流充电", "ac充电", "ac端", "交流端", "慢充"],
+      "电子锁": ["电子锁"],
+      "低压INLINE": ["低压inline", "inline"],
+      "DC接地端子": ["dc接地", "直流接地"],
+      "AC接地端子": ["ac接地", "交流接地"]
+    },
+    "itemClassificationKeywords": {
+      "connector": ["连接器", "护套", "主体组合件", "尾盖", "密封圈", "挡板", "插头", "插座", "屏蔽环", "线卡"],
+      "terminal": ["端子"],
+      "ipt_terminal": ["ipt", "压接端子", "焊接端子"],
+      "wire": ["导线", "电缆", "cable"],
+      "bracket_rubber": ["支架", "橡胶"],
+      "tape_tube": ["胶带", "套管", "热缩管", "编织套管"]
+    },
+    "assemblyUnitKeyword": "set",
+    "headerMetaLayout": {
+      "versionText": { "row": 2, "col": 1 },
+      "projectName": { "row": 2, "col": 3 },
+      "harnessNo": { "row": 2, "col": 4 },
+      "harnessName": { "row": 2, "col": 5 },
+      "drawVersion": { "row": 2, "col": 6 },
+      "quoteDate": { "row": 2, "col": 7 }
+    },
+    "dataStartRow": 5,
+    "maxColumns": 17,
+    "fallbackRowCount": 2000
+  },
+
+  "costElements": [
+    { "id": "connector", "name": "连接器", "hasProtocolPrice": true, "hasMaterialCalc": false },
+    { "id": "wire", "name": "导线", "hasProtocolPrice": false, "hasMaterialCalc": true },
+    { "id": "terminal", "name": "端子", "hasProtocolPrice": true, "hasMaterialCalc": false },
+    { "id": "ipt_terminal", "name": "IPT端子", "hasProtocolPrice": true, "hasMaterialCalc": false },
+    { "id": "tape_tube", "name": "胶带套管", "hasProtocolPrice": false, "hasMaterialCalc": false },
+    { "id": "bracket_rubber", "name": "支架橡胶", "hasProtocolPrice": false, "hasMaterialCalc": false }
+  ],
+
+  "nreCostTypes": ["模具", "检具", "研发", "样品", "认证"],
+
+  "stateDefaults": {
+    "bom": "freeze",
+    "metal": "quote",
+    "connector": "quote",
+    "labor": "base",
+    "equipment": "base",
+    "packaging": "base",
+    "sales": "quote",
+    "mix": "quote",
+    "annualDrop": "quote",
+    "oneTimeCustomer": "quote",
+    "rebate": "quote",
+    "vave": "none"
+  },
+
+  "storageKeyPrefix": "g281",
+  "globalNamespacePrefix": "G281",
+  "changeHistory": []
+}

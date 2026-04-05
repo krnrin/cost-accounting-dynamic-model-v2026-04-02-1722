@@ -382,6 +382,19 @@
           : fallbackKey;
       }
 
+      function cachedLifecycleStageKey(candidate) {
+        return textOf(
+          candidate && candidate.stageMeta && (candidate.stageMeta.lifecycleStageKey || candidate.stageMeta.stageKey || candidate.stageMeta.financialKey),
+          textOf(candidate && (candidate.lifecycleStageKey || candidate.stageKey || candidate.financialKey), '')
+        );
+      }
+
+      function cachedStageMatchesLifecycle(candidate, lifecycleStageKey) {
+        const cachedKey = cachedLifecycleStageKey(candidate);
+        const targetKey = textOf(lifecycleStageKey, '');
+        return Boolean(candidate) && Boolean(cachedKey) && cachedKey === targetKey;
+      }
+
       function buildRouterState(context, extraState) {
         const nextState = {
           projectId: textOf(context.config && (context.config.projectId || context.config.projectCode), ''),
@@ -462,11 +475,17 @@
         const baselineKey = resolveContextBaselineKey(repo, modelBaselineKey, routerState);
         const matrix = window.G281FinancialWorkbookAdapter.load(runtime, baselineKey, { lifecycleStageKey });
         const bomSnapshot = window.G281BomWorkbookAdapter.load(runtime, baselineKey);
-        const stageCost = model && model.stageCosts && model.stageCosts[baselineKey]
+        const cachedStageCost = model && model.stageCosts && model.stageCosts[baselineKey]
           ? model.stageCosts[baselineKey]
+          : null;
+        const stageCost = cachedStageMatchesLifecycle(cachedStageCost, lifecycleStageKey)
+          ? cachedStageCost
           : window.G281HarnessStageCostBuilder.build(runtime, baselineKey, { lifecycleStageKey });
-        const rollup = model && model.projectRollups && model.projectRollups[baselineKey]
+        const cachedRollup = model && model.projectRollups && model.projectRollups[baselineKey]
           ? model.projectRollups[baselineKey]
+          : null;
+        const rollup = cachedStageMatchesLifecycle(cachedRollup, lifecycleStageKey)
+          ? cachedRollup
           : window.G281ProjectRollupBuilder.build(stageCost.rows || [], runtime, { baselineKey, lifecycleStageKey });
         const templateKey = resolveTemplateKey(config);
         const template = window.G281CustomerQuoteTemplateAdapter.build(runtime, templateKey, baselineKey, { projectRollup: rollup, lifecycleStageKey });
@@ -481,7 +500,7 @@
         const projectName = textOf(context.config && context.config.projectName, '生命周期成本平台');
         const harnessCount = resolveHarnessIds(context).length;
         const pathLabel = textOf(context.model && context.model.computationPath && context.model.computationPath.label, '未知路径');
-        element.textContent = `${projectName} / 基线 ${context.baselineKey} / 线束 ${harnessCount} 条 / 发布状态 ${publishStates.length} 条 / 审批 ${approvals.length} 条 / 登录 ${textOf(context.session && context.session.mode, 'local-mock')} / 路径 ${pathLabel}`;
+        element.textContent = `${projectName} / 基线 ${context.baselineKey} / 阶段 ${context.lifecycleStageKey} / 线束 ${harnessCount} 条 / 发布状态 ${publishStates.length} 条 / 审批 ${approvals.length} 条 / 登录 ${textOf(context.session && context.session.mode, 'local-mock')} / 路径 ${pathLabel}`;
       }
 
       function renderPageActions(context) {

@@ -29,6 +29,7 @@ test.describe('preview workbench', () => {
     await page.waitForSelector('#previewBaselineCompare', { state: 'visible', timeout: 60000 });
 
     await expect(page.locator('#previewBaselineSelect')).toBeVisible();
+    await expect(page.locator('#previewLifecycleStageSelect')).toBeVisible();
     await expect(page.locator('#targetMargin')).toBeVisible();
     await expect(page.locator('#solveTarget')).toBeVisible();
     await expect(page.locator('#goAccountingButton')).toBeVisible();
@@ -51,13 +52,23 @@ test.describe('preview workbench', () => {
     await page.goto(PREVIEW_PATH, { waitUntil: 'load' });
 
     await page.waitForSelector('#previewBaselineSelect', { state: 'visible', timeout: 60000 });
+    await expect(page.locator('#previewLifecycleStageSelect')).toBeVisible();
     await page.selectOption('#previewBaselineSelect', 'fixed');
+    await page.selectOption('#previewLifecycleStageSelect', 'massProduction');
+    await expect(page).toHaveURL(/lifecycleStageKey=massProduction/);
     await expect(page).toHaveURL(/baselineKey=fixed/);
+    await page.selectOption('#previewLifecycleStageSelect', 'massProduction');
+    await expect(page.locator('#previewLifecycleStageSelect')).toHaveValue('massProduction');
+    await expect(page).toHaveURL(/lifecycleStageKey=massProduction/);
+    await expect(page.locator('#previewStatus')).toContainText('massProduction');
 
     await page.click('#goAccountingButton');
     await page.waitForURL(/\/pages\/accounting\.html/, { timeout: 60000 });
+    await expect(page).toHaveURL(/lifecycleStageKey=massProduction/);
     await page.waitForSelector('#accStatus', { state: 'visible', timeout: 60000 });
     await expect(page.locator('#accStatus')).toContainText('fixed');
+    await expect(page.locator('#accStatus')).toContainText('massProduction');
+    await expect(page.locator('#accStatus')).toContainText('massProduction');
     await expect(page.locator('#accountingGoTrackingButton')).toBeVisible();
 
     expect(errors).toEqual([]);
