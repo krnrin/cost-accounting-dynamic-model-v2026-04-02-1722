@@ -21,6 +21,7 @@ import { computeHarnessCost } from '@/engine/harness_costing';
 import type { HarnessInput, BomItem, WireItem, HarnessResult } from '@/types/harness';
 import { BomImportDialog } from '@/components/BomImportDialog';
 import { UniverSheet, type SheetDef } from '@/components/UniverSheet';
+import ScenarioSelector from '@/components/ScenarioSelector';
 
 const { Text } = Typography;
 
@@ -133,19 +134,20 @@ function buildSummarySheet(
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function BomWorkbookPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, sid } = useParams<{ id: string; sid: string }>();
   const navigate = useNavigate();
 
-  // Load project + all harnesses
+  // Load project + scenario + all harnesses
   const data = useLiveQuery(async () => {
     if (!id) return null;
     const project = await db.projects.get(id);
     if (!project) return null;
+    const scenario = sid ? await db.scenarios.get(sid) : null;
     const harnesses = await db.harnesses.where({ projectId: id }).toArray();
     // Sort by harnessId for consistent sheet order
     harnesses.sort((a, b) => a.harnessId.localeCompare(b.harnessId));
-    return { project, harnesses };
-  }, [id]);
+    return { project, scenario: scenario ?? null, harnesses };
+  }, [id, sid]);
 
   // Track modified harness inputs (keyed by harnessId)
   const [modifiedInputs, setModifiedInputs] = useState<Map<string, HarnessInput>>(new Map());
@@ -166,17 +168,17 @@ export default function BomWorkbookPage() {
   // Compute results for all harnesses (for status bar preview)
   const resultsMap = useMemo(() => {
     const map = new Map<string, HarnessResult>();
-    if (!data?.project) return map;
+    if (!data?.scenario) return map;
     modifiedInputs.forEach((input, hId) => {
       if (input.harnessId && input.bom.length > 0) {
         try {
-          const r = computeHarnessCost(input, data.project!.config.costRates, data.project!.config.metalPrices);
+          const r = computeHarnessCost(input, data.scenario!.config.costRates, data.scenario!.config.metalPrices);
           map.set(hId, r);
         } catch { /* skip */ }
       }
     });
     return map;
-  }, [data?.project, modifiedInputs]);
+  }, [data?.scenario, modifiedInputs]);
 
   // Check dirty state
   const isDirty = useMemo(() => {
@@ -371,6 +373,7 @@ export default function BomWorkbookPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      <ScenarioSelector />
       {/* ── Toolbar ── */}
       <div style={{
         height: TOOLBAR_HEIGHT,
@@ -388,7 +391,7 @@ export default function BomWorkbookPage() {
           <Button
             icon={<IconArrowLeft />}
             theme="borderless"
-            onClick={() => navigate(`/project/${id}`)}
+            onClick={() => navigate(`/project/${id}/s/${sid}`)}
           />
           <Text strong style={{ fontSize: 16 }}>
             {project.meta.projectName || project.meta.projectCode} · BOM工作簿
@@ -474,7 +477,7 @@ export default function BomWorkbookPage() {
       {/* ── Status Bar ── */}
       <div style={{
         height: STATUS_BAR_HEIGHT,
-        backgroundColor: '#0f172a',
+        backgroundColor: 'var(--text-primary)',
         borderTop: '1px solid rgba(255,255,255,0.08)',
         display: 'flex',
         alignItems: 'center',
@@ -483,17 +486,17 @@ export default function BomWorkbookPage() {
         color: '#fff'
       }}>
         <Space spacing={24}>
-          <Text size="small" style={{ color: '#94a3b8' }}>
+          <Text size="small" style={{ color: 'var(--text-secondary)' }}>
             共 <Text strong style={{ color: '#fff' }}>{harnesses.length}</Text> 款线束 | 已加载 <Text strong style={{ color: '#fff' }}>{totals.count}</Text>
           </Text>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <Text size="small" style={{ color: '#64748b' }}>项目总计估算 :</Text>
-            <Text size="small" style={{ color: '#94a3b8' }}>材料: <Text strong style={{ color: '#06b6d4', fontFamily: 'JetBrains Mono' }}>¥{totals.material.toFixed(2)}</Text></Text>
-            <Text size="small" style={{ color: '#94a3b8' }}>人工: <Text strong style={{ color: '#fff', fontFamily: 'JetBrains Mono' }}>¥{totals.labor.toFixed(2)}</Text></Text>
-            <Text size="small" style={{ color: '#94a3b8' }}>制造: <Text strong style={{ color: '#fff', fontFamily: 'JetBrains Mono' }}>¥{totals.mfg.toFixed(2)}</Text></Text>
-            <Text size="small" style={{ color: '#94a3b8' }}>出厂: <Text strong style={{ color: '#fbbf24', fontFamily: 'JetBrains Mono' }}>¥{totals.exFactory.toFixed(2)}</Text></Text>
-            <Text size="small" style={{ color: '#94a3b8' }}>到厂: <Text strong style={{ color: '#f87171', fontFamily: 'JetBrains Mono' }}>¥{totals.delivered.toFixed(2)}</Text></Text>
+            <Text size="small" style={{ color: 'var(--text-secondary)' }}>材料: <Text strong style={{ color: '#06b6d4', fontFamily: 'JetBrains Mono' }}>¥{totals.material.toFixed(2)}</Text></Text>
+            <Text size="small" style={{ color: 'var(--text-secondary)' }}>人工: <Text strong style={{ color: '#fff', fontFamily: 'JetBrains Mono' }}>¥{totals.labor.toFixed(2)}</Text></Text>
+            <Text size="small" style={{ color: 'var(--text-secondary)' }}>制造: <Text strong style={{ color: '#fff', fontFamily: 'JetBrains Mono' }}>¥{totals.mfg.toFixed(2)}</Text></Text>
+            <Text size="small" style={{ color: 'var(--text-secondary)' }}>出厂: <Text strong style={{ color: '#fbbf24', fontFamily: 'JetBrains Mono' }}>¥{totals.exFactory.toFixed(2)}</Text></Text>
+            <Text size="small" style={{ color: 'var(--text-secondary)' }}>到厂: <Text strong style={{ color: '#f87171', fontFamily: 'JetBrains Mono' }}>¥{totals.delivered.toFixed(2)}</Text></Text>
           </div>
         </Space>
       </div>

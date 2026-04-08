@@ -38,8 +38,12 @@ AGENTS.md
 Thumbs.db
 
 # === Environment ===
+.env
+.env.*
 .env.local
 .env.*.local
+!.env.example
+!.env.*.example
 
 # === Local worktrees ===
 .worktrees/

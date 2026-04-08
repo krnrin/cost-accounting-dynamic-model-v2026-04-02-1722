@@ -1,34 +1,33 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Typography, Spin, Button, Card, Table, Tabs, TabPane, InputNumber, Toast, Tag, Space, Radio, RadioGroup, Banner, Select } from '@douyinfe/semi-ui';
-import { IconArrowLeft, IconDownload, IconSimilarity, IconHistogram, IconList } from '@douyinfe/semi-icons';
+import { Typography, Spin, Button, Card, Table, Tabs, TabPane, InputNumber, Toast, Tag, Space, Radio, RadioGroup, Select } from '@douyinfe/semi-ui';
+import { IconArrowLeft, IconDownload, IconSimilarity, IconList } from '@douyinfe/semi-icons';
 import { db } from '@/data/db';
-import type { HarnessRecord, ProjectRecord } from '@/data/db';
+import type { HarnessRecord, ProjectRecord, ScenarioRecord } from '@/data/db';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
-import { computeChangePricing, buildChangeComparisonTable, computeAnnualDrop } from '@/engine/change_pricing';
+import { computeChangePricing, buildChangeComparisonTable } from '@/engine/change_pricing';
 import { buildQuoteSheet } from '@/engine/quote_template';
-import { computeMetalEscalation, computeSensitivityMatrix, DEFAULT_CONTRACT } from '@/engine/metal_escalation';
 import { 
   exportGeelyQuoteExcel, 
   exportBydQuoteExcel, 
   exportGenericQuoteExcel, 
   exportFullQuoteExcel,
   exportChangePricingExcel,
-  exportMetalEscalationExcel
 } from '@/engine/excel_export';
 import type { HarnessInput } from '@/types/harness';
-import type { MetalPrices } from '@/types/project';
-import type { MetalEscalationResult, TemplateType } from '@/types/quote';
+import type { TemplateType } from '@/types/quote';
 import { RoleGuard } from '@/components/RoleGuard';
+import ScenarioSelector from '@/components/ScenarioSelector';
 
 const { Title, Text } = Typography;
 
 export default function QuotePage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, sid } = useParams<{ id: string; sid: string }>();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [project, setProject] = useState<ProjectRecord | null>(null);
+  const [scenario, setScenario] = useState<ScenarioRecord | null>(null);
   const [harnesses, setHarnesses] = useState<HarnessRecord[]>([]);
 
   // Tab 1 Quote Template State
@@ -37,30 +36,25 @@ export default function QuotePage() {
   // Tab 2 Simulation State
   const [changeMode, setChangeMode] = useState<'bom' | 'hours' | 'config'>('bom');
   const [modifiedHarnesses, setModifiedHarnesses] = useState<Record<string, Partial<HarnessInput>>>({});
-  const [annualDropRate, setAnnualDropRate] = useState(2);
-
-  // Tab 3 Metal Escalation State
-  const [metalPrices, setMetalPrices] = useState<MetalPrices>({ copper: 68400, aluminum: 18200 });
-  const [baseMetalPrices, setBaseMetalPrices] = useState<MetalPrices>({ copper: 68400, aluminum: 18200 });
-  const [threshold, setThreshold] = useState(5);
-  const [escalationRatio, setEscalationRatio] = useState(100);
-  const [period, setPeriod] = useState<'quarterly' | 'semiannual' | 'annual'>('quarterly');
-  const [metalResult, setMetalResult] = useState<MetalEscalationResult | null>(null);
 
   useEffect(() => {
     async function loadData() {
-      if (!id) return;
+      if (!id || !sid) return;
       try {
         const p = await db.projects.get(id);
         if (!p) {
           Toast.error('项目不存在');
           return;
         }
-        const h = await db.harnesses.where('projectId').equals(id).toArray();
+        const s = await db.scenarios.get(sid);
+        if (!s) {
+          Toast.error('场景不存在');
+          return;
+        }
+        const h = await db.harnesses.where('scenarioId').equals(sid).toArray();
         setProject(p);
+        setScenario(s);
         setHarnesses(h);
-        setBaseMetalPrices(p.config.metalPrices);
-        setMetalPrices(p.config.metalPrices);
       } catch (err) {
         console.error(err);
         Toast.error('数据加载失败');
@@ -69,13 +63,13 @@ export default function QuotePage() {
       }
     }
     loadData();
-  }, [id]);
+  }, [id, sid]);
 
   // Baseline results
   const baselineResults = useMemo(() => {
-    if (!project) return [];
-    return harnesses.map(h => computeHarnessCost(h.input, project.config.costRates, project.config.metalPrices));
-  }, [project, harnesses]);
+    if (!scenario) return [];
+    return harnesses.map(h => computeHarnessCost(h.input, scenario.config.costRates, scenario.config.metalPrices));
+  }, [scenario, harnesses]);
 
   const baselineProject = useMemo(() => {
     return computeProjectFromHarnesses(baselineResults);
@@ -83,22 +77,22 @@ export default function QuotePage() {
 
   // Tab 1: Quote Template derived data
   const quoteSheet = useMemo(() => {
-    if (!project || baselineResults.length === 0) return null;
+    if (!project || !scenario || baselineResults.length === 0) return null;
     return buildQuoteSheet(baselineResults, templateType, {
       projectName: project.meta.projectName,
       customer: project.meta.customer
-    }, project.config.nreData, project.config.volumes);
-  }, [project, baselineResults, templateType]);
+    }, scenario.config.nreData, scenario.config.volumes);
+  }, [project, scenario, baselineResults, templateType]);
 
   // Tab 2: Change Pricing Simulation
   const simulatedResults = useMemo(() => {
-    if (!project) return [];
+    if (!scenario) return [];
     return harnesses.map(h => {
       const modifications = modifiedHarnesses[h.harnessId] || {};
       const simulatedInput = { ...h.input, ...modifications };
-      return computeHarnessCost(simulatedInput as HarnessInput, project.config.costRates, project.config.metalPrices);
+      return computeHarnessCost(simulatedInput as HarnessInput, scenario.config.costRates, scenario.config.metalPrices);
     });
-  }, [project, harnesses, modifiedHarnesses]);
+  }, [scenario, harnesses, modifiedHarnesses]);
 
   const simulatedProject = useMemo(() => {
     return computeProjectFromHarnesses(simulatedResults);
@@ -107,35 +101,6 @@ export default function QuotePage() {
   const changePricingResult = useMemo(() => {
     return computeChangePricing(baselineProject, simulatedProject, changeMode);
   }, [baselineProject, simulatedProject, changeMode]);
-
-  const annualDropData = useMemo(() => {
-    return computeAnnualDrop(baselineProject.vehicleCost, annualDropRate / 100, 7);
-  }, [baselineProject.vehicleCost, annualDropRate]);
-
-  // Tab 3: Metal Escalation Sensitivity Matrix
-  const sensitivityMatrix = useMemo(() => {
-    if (baselineResults.length === 0) return null;
-    const baseCu = baseMetalPrices.copper;
-    const steps = [-0.2, -0.15, -0.1, -0.05, 0, 0.05, 0.1, 0.15, 0.2];
-    const copperRange = steps.map(s => baseCu * (1 + s));
-    return computeSensitivityMatrix(baselineResults, baseMetalPrices, copperRange, [baseMetalPrices.aluminum]);
-  }, [baselineResults, baseMetalPrices]);
-
-  const handleCalculateMetal = () => {
-    if (!project) return;
-    const contract = {
-      ...DEFAULT_CONTRACT,
-      baseCopperPrice: baseMetalPrices.copper,
-      baseAluminumPrice: baseMetalPrices.aluminum,
-      thresholdPercent: threshold / 100,
-      escalationRatio: escalationRatio / 100,
-      period: period,
-    };
-    const res = computeMetalEscalation(baselineResults, baseMetalPrices, metalPrices, contract, {
-      annualVolumes: project.config.volumes.map(v => v.volume)
-    });
-    setMetalResult(res);
-  };
 
   const formatCurrency = (val: number | undefined) => {
     if (val === undefined) return '-';
@@ -150,7 +115,7 @@ export default function QuotePage() {
   };
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
-  if (!project) return <div>Project not found</div>;
+  if (!project || !scenario) return <div>Project not found</div>;
 
   const geelyColumns = [
     { title: '零件号', render: (_: any, h: any) => h.harnessId, width: 120, fixed: 'left' as const },
@@ -420,8 +385,7 @@ export default function QuotePage() {
                       changePricingResult,
                       baselineResults,
                       project.meta.projectName,
-                      project.meta.customer,
-                      annualDropData
+                      project.meta.customer
                     );
                     Toast.success('设变报价对比报表已导出');
                   }}
@@ -441,156 +405,19 @@ export default function QuotePage() {
           </div>
           <Table columns={comparisonColumns} dataSource={comp.rows} pagination={false} />
         </Card>
-
-        <Card className="glass-card" title="年度降价模拟 (Annual Drop)" style={{ width: '100%' }}>
-          <Space align="center" style={{ marginBottom: 16 }}>
-            <Text>年降率:</Text>
-            <InputNumber value={annualDropRate} onChange={v => setAnnualDropRate(v as number)} suffix="%" style={{ width: 100 }} />
-          </Space>
-          <Table
-            dataSource={annualDropData}
-            pagination={false}
-            columns={[
-              { title: '年度', render: (_: any, r: any) => `Year ${r.year}` },
-              { title: '到厂价', render: (_: any, r: any) => formatCurrency(r.deliveredPrice) },
-              { title: '降幅', render: (_: any, r: any) => formatCurrency(r.dropFromBase) },
-              { title: '累计降幅%', render: (_: any, r: any) => `${r.dropPercent.toFixed(2)}%` },
-            ]}
-          />
-        </Card>
-      </Space>
-    );
-  };
-
-  const renderMetalEscalation = () => {
-    const metalColumns = [
-      { title: '零件号', render: (_: any, r: any) => r.harnessId },
-      { title: '名称', render: (_: any, r: any) => r.harnessName },
-      { title: '铜重(kg)', render: (_: any, r: any) => r.copperWeight.toFixed(3) },
-      { title: '铝重(kg)', render: (_: any, r: any) => r.aluminumWeight.toFixed(3) },
-      { title: '铜价变化', render: (_: any, r: any) => formatDelta(r.copperPriceDelta) },
-      { title: '铝价变化', render: (_: any, r: any) => formatDelta(r.aluminumPriceDelta) },
-      { title: '材料变化', render: (_: any, r: any) => formatDelta(r.deltaMaterialCost) },
-      { title: '废品联动', render: (_: any, r: any) => formatDelta(r.deltaWasteCost) },
-      { title: '管理费联动', render: (_: any, r: any) => formatDelta(r.deltaMgmtFee) },
-      { title: '利润联动', render: (_: any, r: any) => formatDelta(r.deltaProfit) },
-      { title: '到厂价变化', render: (_: any, r: any) => formatDelta(r.deltaDeliveredPrice) },
-      { title: '加权影响', render: (_: any, r: any) => formatDelta(r.weightedDelta) },
-    ];
-
-    return (
-      <Space vertical align="start" style={{ width: '100%' }}>
-        <Card className="glass-card" title="金属价格参数" style={{ width: '100%' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
-            <div>
-              <Text style={{ display: 'block', color: 'var(--semi-color-text-2)' }}>基准铜价 (元/吨)</Text>
-              <InputNumber value={baseMetalPrices.copper} onChange={v => setBaseMetalPrices({ ...baseMetalPrices, copper: v as number })} style={{ width: '100%' }} />
-            </div>
-            <div>
-              <Text style={{ display: 'block', color: 'var(--semi-color-text-2)' }}>基准铝价 (元/吨)</Text>
-              <InputNumber value={baseMetalPrices.aluminum} onChange={v => setBaseMetalPrices({ ...baseMetalPrices, aluminum: v as number })} style={{ width: '100%' }} />
-            </div>
-            <div>
-              <Text style={{ display: 'block', color: 'var(--semi-color-text-2)' }}>新铜价 (元/吨)</Text>
-              <InputNumber value={metalPrices.copper} onChange={v => setMetalPrices({ ...metalPrices, copper: v as number })} style={{ width: '100%' }} />
-            </div>
-            <div>
-              <Text style={{ display: 'block', color: 'var(--semi-color-text-2)' }}>新铝价 (元/吨)</Text>
-              <InputNumber value={metalPrices.aluminum} onChange={v => setMetalPrices({ ...metalPrices, aluminum: v as number })} style={{ width: '100%' }} />
-            </div>
-            <div>
-              <Text style={{ display: 'block', color: 'var(--semi-color-text-2)' }}>联动阈值 (%)</Text>
-              <InputNumber value={threshold} onChange={v => setThreshold(v as number)} style={{ width: '100%' }} />
-            </div>
-            <div>
-              <Text style={{ display: 'block', color: 'var(--semi-color-text-2)' }}>联动比例 (%)</Text>
-              <InputNumber value={escalationRatio} onChange={v => setEscalationRatio(v as number)} style={{ width: '100%' }} />
-            </div>
-            <div>
-              <Text style={{ display: 'block', color: 'var(--semi-color-text-2)' }}>联动周期</Text>
-              <RadioGroup value={period} onChange={e => setPeriod(e.target.value as any)} type="button" style={{ width: '100%' }}>
-                <Radio value="quarterly">季度</Radio>
-                <Radio value="semiannual">半年</Radio>
-                <Radio value="annual">年度</Radio>
-              </RadioGroup>
-            </div>
-          </div>
-          <Space>
-            <Button theme="solid" icon={<IconHistogram />} onClick={handleCalculateMetal}>计算联动</Button>
-            {metalResult && (
-              <RoleGuard field="quoteExport">
-              <Button 
-                icon={<IconDownload />} 
-                onClick={() => {
-                  exportMetalEscalationExcel(metalResult, project.meta.projectName, project.meta.customer);
-                  Toast.success('金属联动分析报表已导出');
-                }}
-              >
-                导出联动报表
-              </Button>
-              </RoleGuard>
-            )}
-          </Space>
-        </Card>
-
-        {metalResult && (
-          <>
-            <div style={{ display: 'flex', gap: 16, width: '100%' }}>
-              <Card className="glass-card" style={{ flex: 1 }}>
-                <Text style={{ color: 'var(--semi-color-text-2)' }}>单车影响金额</Text>
-                <Title heading={2}>{formatDelta(metalResult.summary.totalWeightedDelta)}</Title>
-              </Card>
-              <Card className="glass-card" style={{ flex: 1 }}>
-                <Text style={{ color: 'var(--semi-color-text-2)' }}>全生命周期影响 (预计)</Text>
-                <Title heading={2} style={{ color: metalResult.summary.totalWeightedDelta > 0 ? 'var(--semi-color-danger)' : 'var(--semi-color-success)' }}>
-                  {metalResult.annualImpact ? formatCurrency(metalResult.annualImpact.totalLifecycleImpact) : '-'}
-                </Title>
-              </Card>
-              <Card className="glass-card" style={{ flex: 1 }}>
-                <Text style={{ color: 'var(--semi-color-text-2)' }}>受影响线束</Text>
-                <Title heading={2}>{metalResult.summary.affectedCount}</Title>
-              </Card>
-            </div>
-            <Card className="glass-card" title="联动计算明细" style={{ width: '100%' }}>
-              <Table columns={metalColumns} dataSource={metalResult.harnesses} pagination={false} scroll={{ x: 1200 }} />
-            </Card>
-          </>
-        )}
-
-        <Card className="glass-card" title="铜价敏感度矩阵 (Sensitivity Matrix)" style={{ width: '100%' }}>
-          <Banner
-            type="info"
-            description="基于基准铜价 ±20% 范围波动，展示对单车总成本的影响金额 (铝价保持基准值)。"
-            style={{ marginBottom: 16 }}
-          />
-          {sensitivityMatrix && (
-            <Table
-              dataSource={sensitivityMatrix.matrix}
-              pagination={false}
-              columns={[
-                { title: '铜价 (元/吨)', render: (_: any, row: any) => row[0].copper.toLocaleString() },
-                { title: '价格变动%', render: (_: any, row: any) => {
-                    const pct = (row[0].copper / sensitivityMatrix.baseMetal.copper - 1) * 100;
-                    return `${pct > 0 ? '+' : ''}${pct.toFixed(0)}%`;
-                  }
-                },
-                { title: '单车影响 (元)', render: (_: any, row: any) => formatDelta(row[0].deltaPerVehicle) }
-              ]}
-            />
-          )}
-        </Card>
       </Space>
     );
   };
 
   return (
     <div className="page-container">
+      <ScenarioSelector />
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, padding: '16px 0' }}>
         <Button
           icon={<IconArrowLeft />}
           aria-label="返回"
           theme="borderless"
-          onClick={() => navigate(`/project/${id}`)}
+          onClick={() => navigate(`/project/${id}/s/${sid}`)}
         />
         <div>
           <Title heading={4} style={{ margin: 0 }}>报价工作台</Title>
@@ -607,11 +434,6 @@ export default function QuotePage() {
         <TabPane tab={<span><IconSimilarity style={{ marginRight: 8 }} />设变报价</span>} itemKey="2">
           <div style={{ padding: '16px 0' }}>
             {renderChangePricing()}
-          </div>
-        </TabPane>
-        <TabPane tab={<span><IconHistogram style={{ marginRight: 8 }} />金属联动</span>} itemKey="3">
-          <div style={{ padding: '16px 0' }}>
-            {renderMetalEscalation()}
           </div>
         </TabPane>
       </Tabs>

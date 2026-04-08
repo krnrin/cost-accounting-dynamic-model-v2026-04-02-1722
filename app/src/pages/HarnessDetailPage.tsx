@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Typography, 
@@ -20,39 +20,44 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import ReactECharts from 'echarts-for-react/lib/core';
 import echarts from '@/lib/echarts';
 
-import { db } from '@/data/db';
+import { db, type ScenarioRecord } from '@/data/db';
 import { computeHarnessCost } from '@/engine/harness_costing';
 import type { HarnessResult } from '@/types/harness';
 import { usePermission } from '@/hooks/usePermission';
 import { RoleGuard } from '@/components/RoleGuard';
 import { UniverSheet } from '@/components/UniverSheet';
+import ScenarioSelector from '@/components/ScenarioSelector';
 
 const { Title, Text } = Typography;
 const { Content } = Layout;
 
 export default function HarnessDetailPage() {
-  const { id, harnessId } = useParams<{ id: string; harnessId: string }>();
+  const { id, sid, harnessId } = useParams<{ id: string; sid: string; harnessId: string }>();
   const navigate = useNavigate();
   const { can } = usePermission();
+
+  const [scenario, setScenario] = useState<ScenarioRecord | null>(null);
 
   // 1. Data Loading
   const data = useLiveQuery(async () => {
     if (!id || !harnessId) return null;
     const project = await db.projects.get(id);
     const harness = await db.harnesses.where({ projectId: id, harnessId: harnessId }).first();
+    const sc = sid ? await db.scenarios.get(sid) : null;
+    setScenario(sc ?? null);
     return { project, harness };
-  }, [id, harnessId]);
+  }, [id, sid, harnessId]);
 
   // 2. Cost Computation
   const result: HarnessResult | null = useMemo(() => {
-    if (!data?.project || !data?.harness) return null;
-    const { project, harness } = data;
+    if (!scenario || !data?.harness) return null;
+    const { harness } = data;
     return computeHarnessCost(
-      harness.input, 
-      project.config.costRates, 
-      project.config.metalPrices
+      harness.input,
+      scenario.config.costRates,
+      scenario.config.metalPrices
     );
-  }, [data]);
+  }, [data, scenario]);
 
   // 2.5 BOM data conversion for UniverSheet
   const bomSheetData = useMemo(() => {
@@ -106,7 +111,7 @@ export default function HarnessDetailPage() {
     return (
       <div style={{ padding: 100 }}>
         <Empty description="未找到该线束或项目信息" />
-        <Button onClick={() => navigate(`/project/${id}`)}>返回项目</Button>
+        <Button onClick={() => navigate(`/project/${id}/s/${sid}`)}>返回项目</Button>
       </div>
     );
   }
@@ -131,7 +136,7 @@ export default function HarnessDetailPage() {
     };
     await db.harnesses.add(copied);
     Toast.success('复制成功');
-    navigate(`/project/${id}/harness/${newId}`);
+    navigate(`/project/${id}/s/${sid}/harness/${newId}`);
   };
 
 
@@ -250,6 +255,7 @@ export default function HarnessDetailPage() {
 
   return (
     <div style={{ padding: '0 0 40px 0' }}>
+      <ScenarioSelector />
       {/* Section 1: Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -257,7 +263,7 @@ export default function HarnessDetailPage() {
             icon={<IconArrowLeft />}
             aria-label="返回"
             theme="borderless"
-            onClick={() => navigate(`/project/${id}`)}
+            onClick={() => navigate(`/project/${id}/s/${sid}`)}
           />
           <Title heading={4} style={{ color: 'var(--semi-color-text-0)', margin: 0 }}>
             线束详情: {res.harnessId} — {res.harnessName}
@@ -269,7 +275,7 @@ export default function HarnessDetailPage() {
         <div style={{ display: 'flex', gap: 12 }}>
           <Button 
             icon={<IconEdit />} 
-            onClick={() => navigate(`/project/${id}/harness/${harnessId}/edit`)}
+            onClick={() => navigate(`/project/${id}/s/${sid}/harness/${harnessId}/edit`)}
           >
             编辑
           </Button>
@@ -288,7 +294,7 @@ export default function HarnessDetailPage() {
                 if (data.harness) {
                   await db.harnesses.delete(data.harness.id!);
                   Toast.success('线束已删除');
-                  navigate(`/project/${id}`);
+                  navigate(`/project/${id}/s/${sid}`);
                 }
               }}
             >
@@ -317,7 +323,7 @@ export default function HarnessDetailPage() {
                   fontWeight: 600, 
                   color: card.color, 
                   marginTop: 4,
-                  fontFamily: 'SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace'
+                  fontFamily: "'JetBrains Mono', 'Consolas', monospace"
                 }}>
                   ¥{card.value.toFixed(2)}
                 </div>
@@ -336,7 +342,7 @@ export default function HarnessDetailPage() {
             echarts={echarts}
             option={getWaterfallOption()}
             style={{ height: 400 }}
-            theme="dark"
+            theme=""
 
           />
         </Card>

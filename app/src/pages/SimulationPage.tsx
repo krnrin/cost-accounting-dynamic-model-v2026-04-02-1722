@@ -10,7 +10,7 @@ import echarts from '@/lib/echarts';
 import * as XLSX from 'xlsx';
 
 import { db } from '@/data/db';
-import type { HarnessRecord, ProjectRecord } from '@/data/db';
+import type { HarnessRecord, ProjectRecord, ScenarioRecord } from '@/data/db';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
 import { compareFactoryCosts } from '@/engine/factory_comparison';
 import type { FactoryComparisonResult } from '@/engine/factory_comparison';
@@ -24,6 +24,7 @@ import type { EquipmentConfig, FactoryConfig } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { usePermission } from '@/hooks/usePermission';
+import ScenarioSelector from '@/components/ScenarioSelector';
 
 const { Title, Text } = Typography;
 
@@ -36,13 +37,14 @@ const DEFAULT_EQUIPMENT: EquipmentConfig = {
 };
 
 export default function SimulationPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, sid } = useParams<{ id: string; sid: string }>();
   const navigate = useNavigate();
   const { setCurrentProject } = useProjectStore();
   const { can } = usePermission();
   const { factories: settingsFactories } = useSettingsStore();
 
   const [project, setProject] = useState<ProjectRecord | null>(null);
+  const [scenario, setScenario] = useState<ScenarioRecord | null>(null);
   const [harnesses, setHarnesses] = useState<HarnessRecord[]>([]);
   const [loading, setLocalLoading] = useState(true);
 
@@ -54,18 +56,20 @@ export default function SimulationPage() {
   const [hoursAdj, setHoursAdj] = useState(0);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id || !sid) return;
 
     const loadData = async () => {
       setLocalLoading(true);
       try {
         const projectData = await db.projects.get(id);
-        if (projectData) {
+        const scenarioData = await db.scenarios.get(sid!);
+        if (projectData && scenarioData) {
           setProject(projectData);
+          setScenario(scenarioData);
           setCurrentProject(projectData.id, projectData.meta.projectName);
-          setDropRate(projectData.config.annualDropRate || 0);
+          setDropRate(scenarioData.config.annualDropRate || 0);
 
-          const harnessData = await db.harnesses.where('projectId').equals(id).toArray();
+          const harnessData = await db.harnesses.where('scenarioId').equals(sid!).toArray();
           setHarnesses(harnessData);
         }
       } catch (error) {
@@ -77,17 +81,17 @@ export default function SimulationPage() {
     };
 
     loadData();
-  }, [id, setCurrentProject]);
+  }, [id, sid, setCurrentProject]);
 
   const baselineResults = useMemo(() => {
-    if (!project || harnesses.length === 0) return null;
-    const results = harnesses.map(h => computeHarnessCost(h.input, project.config.costRates, project.config.metalPrices));
+    if (!scenario || harnesses.length === 0) return null;
+    const results = harnesses.map(h => computeHarnessCost(h.input, scenario.config.costRates, scenario.config.metalPrices));
     return computeProjectFromHarnesses(results);
-  }, [project, harnesses]);
+  }, [scenario, harnesses]);
 
   // DAG baseline: compute all cost nodes for each harness
   const dagBaseline = useMemo(() => {
-    if (!project || harnesses.length === 0) return null;
+    if (!scenario || harnesses.length === 0) return null;
     return harnesses.map(h => {
       const input = h.input;
       const bom = input.bom || [];
@@ -95,29 +99,29 @@ export default function SimulationPage() {
       const processHours = (input.frontHours || 0) + (input.backHours || 0);
       const packTotal = input.packaging?.subtotal || 0;
       const freightTotal = input.freight?.subtotal || 0;
-      
+
       const params: CostParams = {
         rawMaterialCost,
         processHours,
-        laborRate: project.config.costRates.laborRate,
-        mfgRate: project.config.costRates.mfgRate,
-        wasteRate: project.config.costRates.wasteRate,
-        mgmtRate: project.config.costRates.mgmtRate,
-        profitRate: project.config.costRates.profitRate,
+        laborRate: scenario.config.costRates.laborRate,
+        mfgRate: scenario.config.costRates.mfgRate,
+        wasteRate: scenario.config.costRates.wasteRate,
+        mgmtRate: scenario.config.costRates.mgmtRate,
+        profitRate: scenario.config.costRates.profitRate,
         packTotal,
         freightTotal,
       };
-      
+
       return { params, values: computeAll(params), harnessId: h.input.harnessId };
     });
-  }, [project, harnesses]);
+  }, [scenario, harnesses]);
 
   const simulatedResults = useMemo(() => {
-    if (!project || harnesses.length === 0) return null;
+    if (!scenario || harnesses.length === 0) return null;
 
     const simMetalPrices = {
-      copper: project.config.metalPrices.copper * (1 + copperAdj / 100),
-      aluminum: project.config.metalPrices.aluminum * (1 + aluminumAdj / 100),
+      copper: scenario.config.metalPrices.copper * (1 + copperAdj / 100),
+      aluminum: scenario.config.metalPrices.aluminum * (1 + aluminumAdj / 100),
     };
 
     const hoursFactor = 1 + hoursAdj / 100;
@@ -128,14 +132,14 @@ export default function SimulationPage() {
         frontHours: h.input.frontHours * hoursFactor,
         backHours: h.input.backHours * hoursFactor,
       };
-      return computeHarnessCost(simInput, project.config.costRates, simMetalPrices);
+      return computeHarnessCost(simInput, scenario.config.costRates, simMetalPrices);
     });
 
     return computeProjectFromHarnesses(results);
-  }, [project, harnesses, copperAdj, aluminumAdj, hoursAdj]);
+  }, [scenario, harnesses, copperAdj, aluminumAdj, hoursAdj]);
 
   const dagSimulation = useMemo(() => {
-    if (!dagBaseline || !project) return null;
+    if (!dagBaseline || !scenario) return null;
     
     const changedRootNodes = new Set<CostNodeId>();
     if (copperAdj !== 0 || aluminumAdj !== 0) {
@@ -172,10 +176,10 @@ export default function SimulationPage() {
         skipped: totalNodes - totalRecomputed,
       },
     };
-  }, [dagBaseline, project, copperAdj, aluminumAdj, hoursAdj]);
+  }, [dagBaseline, scenario, copperAdj, aluminumAdj, hoursAdj]);
 
   // 产量计算
-  const volumeSchedule = project?.config?.volumes ?? [];
+  const volumeSchedule = scenario?.config?.volumes ?? [];
   const baseVolume = (volumeSchedule.length > 0 && volumeSchedule[0]) ? volumeSchedule[0].volume : 100000;
   const simVolume = Math.round(baseVolume * (1 + volumeAdj / 100));
   const baseAnnualCost = baselineResults ? baselineResults.vehicleCost * baseVolume : 0;
@@ -183,28 +187,28 @@ export default function SimulationPage() {
 
   // ── Factory comparison ──
   const activeFactories = useMemo<FactoryConfig[]>(() => {
-    const projFactories = project?.config?.factories ?? [];
+    const projFactories = scenario?.config?.factories ?? [];
     return projFactories.length > 0 ? projFactories : settingsFactories;
-  }, [project, settingsFactories]);
+  }, [scenario, settingsFactories]);
 
   const factoryComparison = useMemo<FactoryComparisonResult[]>(() => {
-    if (!project || harnesses.length === 0 || activeFactories.length === 0) return [];
+    if (!scenario || harnesses.length === 0 || activeFactories.length === 0) return [];
     return harnesses.map(h =>
-      compareFactoryCosts(h.input, activeFactories, project.config.metalPrices)
+      compareFactoryCosts(h.input, activeFactories, scenario.config.metalPrices)
     );
-  }, [project, harnesses, activeFactories]);
+  }, [scenario, harnesses, activeFactories]);
 
   // ── Annualized cost ──
   const annualizedResult = useMemo(() => {
-    if (!project || !baselineResults) return null;
-    const equipment = project.config.equipmentConfig ?? DEFAULT_EQUIPMENT;
+    if (!scenario || !baselineResults) return null;
+    const equipment = scenario.config.equipmentConfig ?? DEFAULT_EQUIPMENT;
     const volumes = volumeSchedule.length > 0
       ? volumeSchedule
       : Array.from({ length: 7 }, (_, i) => ({ year: i + 1, volume: baseVolume }));
     return computeProjectAnnualizedCost(baselineResults.harnesses, equipment, volumes);
-  }, [project, baselineResults, volumeSchedule, baseVolume]);
+  }, [scenario, baselineResults, volumeSchedule, baseVolume]);
 
-  if (loading || !project || !baselineResults || !simulatedResults) {
+  if (loading || !project || !scenario || !baselineResults || !simulatedResults) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 120 }}>
         <Spin size="large" />
@@ -215,11 +219,11 @@ export default function SimulationPage() {
   // Waterfall Chart data
   const waterfallOptions = buildWaterfallOptions(baselineResults, simulatedResults);
   // Lifecycle Line Chart
-  const lifecycleOptions = buildLifecycleOptions(baselineResults, simulatedResults, project, dropRate, volumeAdj, volumeSchedule, baseVolume);
+  const lifecycleOptions = buildLifecycleOptions(baselineResults, simulatedResults, scenario!, dropRate, volumeAdj, volumeSchedule, baseVolume);
 
   const cuWeight = simulatedResults.weightedCopperWeight;
   const cuBreakPrice = cuWeight > 0 && baselineResults.weightedProfit > 0
-    ? (baselineResults.weightedProfit / cuWeight) * 1000 + project.config.metalPrices.copper
+    ? (baselineResults.weightedProfit / cuWeight) * 1000 + scenario!.config.metalPrices.copper
     : 0;
 
   const handleExport = () => {
@@ -228,9 +232,9 @@ export default function SimulationPage() {
       ['单车成本 (元)', baselineResults.vehicleCost.toFixed(2), simulatedResults.vehicleCost.toFixed(2), (simulatedResults.vehicleCost - baselineResults.vehicleCost).toFixed(2)],
       ['材料成本 (元)', baselineResults.weightedMaterial.toFixed(2), simulatedResults.weightedMaterial.toFixed(2), (simulatedResults.weightedMaterial - baselineResults.weightedMaterial).toFixed(2)],
       ['出厂价 (元)', baselineResults.weightedExFactory.toFixed(2), simulatedResults.weightedExFactory.toFixed(2), (simulatedResults.weightedExFactory - baselineResults.weightedExFactory).toFixed(2)],
-      ['铜价 (元/吨)', project.config.metalPrices.copper, project.config.metalPrices.copper * (1 + copperAdj / 100), `${copperAdj}%`],
-      ['铝价 (元/吨)', project.config.metalPrices.aluminum, project.config.metalPrices.aluminum * (1 + aluminumAdj / 100), `${aluminumAdj}%`],
-      ['年降率 (%)', project.config.annualDropRate, dropRate, `${(dropRate - project.config.annualDropRate).toFixed(1)}%`],
+      ['铜价 (元/吨)', scenario!.config.metalPrices.copper, scenario!.config.metalPrices.copper * (1 + copperAdj / 100), `${copperAdj}%`],
+      ['铝价 (元/吨)', scenario!.config.metalPrices.aluminum, scenario!.config.metalPrices.aluminum * (1 + aluminumAdj / 100), `${aluminumAdj}%`],
+      ['年降率 (%)', scenario!.config.annualDropRate, dropRate, `${(dropRate - scenario!.config.annualDropRate).toFixed(1)}%`],
       ['年产量', baseVolume, simVolume, `${volumeAdj}%`],
       ['年产值 (万元)', (baseAnnualCost / 10000).toFixed(1), (simAnnualCost / 10000).toFixed(1), `${baseAnnualCost > 0 ? ((simAnnualCost / baseAnnualCost - 1) * 100).toFixed(1) : 0}%`],
     ];
@@ -242,15 +246,16 @@ export default function SimulationPage() {
 
   return (
     <Layout style={{ padding: '0 24px 24px', background: 'transparent', minHeight: '100vh' }}>
+      <ScenarioSelector />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Button
             icon={<IconArrowLeft />}
             aria-label="返回"
             theme="borderless"
-            onClick={() => navigate(`/project/${id}`)}
+            onClick={() => navigate(`/project/${id}/s/${sid}`)}
           />
-          <Title heading={3} style={{ margin: 0, color: 'var(--semi-color-text-0)' }}>What-if 成本模拟分析</Title>
+          <Title heading={3} style={{ margin: 0, color: 'var(--semi-color-text-0)' }}>成本分析工作台</Title>
           {dagSimulation?.stats && (
             <Tag color="green" size="small" style={{ marginLeft: 12 }}>
               增量计算: {dagSimulation.stats.recomputed}/{dagSimulation.stats.total} 节点 (跳过 {dagSimulation.stats.skipped})
@@ -263,7 +268,7 @@ export default function SimulationPage() {
       <Tabs type="line" defaultActiveKey="whatif">
         <TabPane tab="What-if 模拟" itemKey="whatif">
           <WhatIfTab
-            project={project}
+            scenario={scenario}
             baselineResults={baselineResults}
             simulatedResults={simulatedResults}
             copperAdj={copperAdj} setCopperAdj={setCopperAdj}
@@ -277,13 +282,13 @@ export default function SimulationPage() {
             can={can}
           />
         </TabPane>
-        <TabPane tab="多工厂比价" itemKey="factoryCompare">
+        <TabPane tab="工厂成本对比" itemKey="factoryCompare">
           <FactoryCompareTab
             factoryComparison={factoryComparison}
             activeFactories={activeFactories}
           />
         </TabPane>
-        <TabPane tab="年度差异化" itemKey="annualized">
+        <TabPane tab="年度成本分摊" itemKey="annualized">
           <AnnualizedTab annualizedResult={annualizedResult} />
         </TabPane>
       </Tabs>
@@ -294,7 +299,7 @@ export default function SimulationPage() {
 // ── What-if Tab (original content) ──
 function WhatIfTab(props: any) {
   const {
-    project, baselineResults, simulatedResults,
+    scenario, baselineResults, simulatedResults,
     copperAdj, setCopperAdj, aluminumAdj, setAluminumAdj,
     volumeAdj, setVolumeAdj, dropRate, setDropRate,
     hoursAdj, setHoursAdj,
@@ -335,9 +340,9 @@ function WhatIfTab(props: any) {
   };
 
   const handleApplyPrice = () => {
-    if (!latestPrice || !project) return;
-    const baseCu = project.config.metalPrices.copper;
-    const baseAl = project.config.metalPrices.aluminum;
+    if (!latestPrice || !scenario) return;
+    const baseCu = scenario.config.metalPrices.copper;
+    const baseAl = scenario.config.metalPrices.aluminum;
     if (baseCu > 0) {
       setCopperAdj(Math.round(((latestPrice.copper - baseCu) / baseCu) * 100));
     }
@@ -433,7 +438,7 @@ function WhatIfTab(props: any) {
               {sparklineOption && (
                 <div>
                   <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>价格趋势</Text>
-                  <ReactECharts echarts={echarts} option={sparklineOption} style={{ height: 50 }} theme="dark" />
+                  <ReactECharts echarts={echarts} option={sparklineOption} style={{ height: 50 }} theme="" />
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Text size="small" style={{ color: '#F5A623' }}>铜</Text>
                     <Text size="small" style={{ color: '#4FC3F7' }}>铝</Text>
@@ -463,7 +468,7 @@ function WhatIfTab(props: any) {
                 <InputNumber value={hoursAdj} onChange={(v: any) => setHoursAdj(v as number || 0)} style={{ width: 70 }} disabled={!can('simulation')} />
               </div>
             </div>
-            <Button block onClick={() => { setCopperAdj(0); setAluminumAdj(0); setVolumeAdj(0); setDropRate(project.config.annualDropRate || 0); setHoursAdj(0); }} disabled={!can('simulation')}>
+            <Button block onClick={() => { setCopperAdj(0); setAluminumAdj(0); setVolumeAdj(0); setDropRate(scenario.config.annualDropRate || 0); setHoursAdj(0); }} disabled={!can('simulation')}>
               重置参数
             </Button>
           </div>
@@ -518,12 +523,12 @@ function WhatIfTab(props: any) {
         <Row gutter={16}>
           <Col span={12}>
             <Card className='glass-card' style={{  }}>
-              <ReactECharts echarts={echarts} option={waterfallOptions} style={{ height: 350 }} theme="dark" />
+              <ReactECharts echarts={echarts} option={waterfallOptions} style={{ height: 350 }} theme="" />
             </Card>
           </Col>
           <Col span={12}>
             <Card className='glass-card' style={{  }}>
-              <ReactECharts echarts={echarts} option={lifecycleOptions} style={{ height: 350 }} theme="dark" />
+              <ReactECharts echarts={echarts} option={lifecycleOptions} style={{ height: 350 }} theme="" />
             </Card>
           </Col>
         </Row>
@@ -629,7 +634,7 @@ function FactoryCompareTab({ factoryComparison, activeFactories }: {
       <Row gutter={16}>
         <Col span={24}>
           <Card className='glass-card' style={{  }}>
-            <ReactECharts echarts={echarts} option={barOptions} style={{ height: 380 }} theme="dark" />
+            <ReactECharts echarts={echarts} option={barOptions} style={{ height: 380 }} theme="" />
           </Card>
         </Col>
       </Row>
@@ -768,7 +773,7 @@ function AnnualizedTab({ annualizedResult }: { annualizedResult: any }) {
 
       {/* Chart */}
       <Card className='glass-card' style={{  }}>
-        <ReactECharts echarts={echarts} option={lineOptions} style={{ height: 380 }} theme="dark" />
+        <ReactECharts echarts={echarts} option={lineOptions} style={{ height: 380 }} theme="" />
       </Card>
 
       {/* Table */}
@@ -846,7 +851,7 @@ function buildWaterfallOptions(baselineResults: any, simulatedResults: any) {
   };
 }
 
-function buildLifecycleOptions(baselineResults: any, simulatedResults: any, project: any, dropRate: number, volumeAdj: number, volumeSchedule: any[], baseVolume: number) {
+function buildLifecycleOptions(baselineResults: any, simulatedResults: any, scenario: any, dropRate: number, volumeAdj: number, volumeSchedule: any[], baseVolume: number) {
   const lifecycleYears = 7;
   const years = Array.from({ length: lifecycleYears }, (_, i) => i + 1);
   return {
@@ -863,7 +868,7 @@ function buildLifecycleOptions(baselineResults: any, simulatedResults: any, proj
       {
         name: '基准单车成本',
         type: 'line',
-        data: years.map(y => (baselineResults.vehicleCost * Math.pow(1 - (project.config.annualDropRate || 0) / 100, y - 1)).toFixed(2)),
+        data: years.map(y => (baselineResults.vehicleCost * Math.pow(1 - (scenario.config.annualDropRate || 0) / 100, y - 1)).toFixed(2)),
         smooth: true,
       },
       {

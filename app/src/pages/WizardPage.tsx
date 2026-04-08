@@ -13,6 +13,7 @@ import {
   InputNumber,
   Input,
   Space,
+  Toast,
 } from '@douyinfe/semi-ui';
 import { IconPlus, IconDelete, IconArrowRight, IconArrowLeft, IconTick } from '@douyinfe/semi-icons';
 import { db, type ProjectRecord } from '@/data/db';
@@ -114,8 +115,13 @@ const WizardPage: React.FC = () => {
       },
     };
 
-    await db.projects.put(newProject);
-    navigate(`/project/${id}`);
+    try {
+      await db.projects.put(newProject);
+      navigate(`/project/${id}`);
+    } catch (err) {
+      console.error('Failed to create project:', err);
+      Toast.error('创建项目失败，请重试');
+    }
   };
 
   const renderStep1 = () => (

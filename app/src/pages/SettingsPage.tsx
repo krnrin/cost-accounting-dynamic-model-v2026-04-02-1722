@@ -36,7 +36,6 @@ const ALLOCATION_DRIVER_OPTIONS: { value: AllocationDriver; label: string }[] = 
 
 export default function SettingsPage() {
   const {
-    themeMode, setThemeMode,
     defaultCostRates, defaultMetalPrices, alertThresholds,
     defaultTemplateType, defaultAnnualDropRate,
     updateCostRates, updateMetalPrices, updateAlertThresholds,
@@ -71,7 +70,6 @@ export default function SettingsPage() {
       <Tabs type="line" defaultActiveKey="basic">
         <TabPane tab="基础配置" itemKey="basic">
           <BasicSettings
-            themeMode={themeMode} setThemeMode={setThemeMode}
             defaultCostRates={defaultCostRates} updateCostRates={updateCostRates}
             defaultMetalPrices={defaultMetalPrices} updateMetalPrices={updateMetalPrices}
             alertThresholds={alertThresholds} updateAlertThresholds={updateAlertThresholds}
@@ -118,7 +116,7 @@ export default function SettingsPage() {
 // ── Basic Settings (original) ──
 function BasicSettings(props: any) {
   const {
-    themeMode, setThemeMode, defaultCostRates, updateCostRates,
+    defaultCostRates, updateCostRates,
     defaultMetalPrices, updateMetalPrices, alertThresholds, updateAlertThresholds,
     defaultTemplateType, setDefaultTemplateType, defaultAnnualDropRate,
     setDefaultAnnualDropRate, resetCostRates, handleClearData,
@@ -126,16 +124,6 @@ function BasicSettings(props: any) {
 
   return (
     <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-      <Col span={12}>
-        <Card className="glass-card" title="外观设置" headerLine={false} style={{ height: '100%' }}>
-          <Text strong style={{ display: 'block', marginBottom: 8, fontSize: 13 }}>主题模式</Text>
-          <RadioGroup value={themeMode} onChange={(e: any) => setThemeMode(e.target.value)} type="button">
-            <Radio value="light">浅色</Radio>
-            <Radio value="dark">深色</Radio>
-            <Radio value="system">跟随系统</Radio>
-          </RadioGroup>
-        </Card>
-      </Col>
       <Col span={12}>
         <RoleGuard field="costRates" readOnlyFallback>
           <Card className="glass-card" title="费率配置" headerLine={false} style={{ height: '100%' }}>
@@ -440,6 +428,27 @@ function FactoryPanel({ factories, addFactory, updateFactory, removeFactory }: {
       ),
     },
     {
+      title: '废品率', dataIndex: 'wasteRate', width: 90,
+      render: (_: any, record: FactoryConfig) => (
+        <InputNumber size="small" value={record.costRates.wasteRate} step={0.001} style={{ width: 75 }}
+          onChange={(v: any) => updateFactory(record.factoryId, { costRates: { ...record.costRates, wasteRate: Number(v) } })} />
+      ),
+    },
+    {
+      title: '管理费率', dataIndex: 'mgmtRate', width: 90,
+      render: (_: any, record: FactoryConfig) => (
+        <InputNumber size="small" value={record.costRates.mgmtRate} step={0.001} style={{ width: 75 }}
+          onChange={(v: any) => updateFactory(record.factoryId, { costRates: { ...record.costRates, mgmtRate: Number(v) } })} />
+      ),
+    },
+    {
+      title: '利润率', dataIndex: 'profitRate', width: 90,
+      render: (_: any, record: FactoryConfig) => (
+        <InputNumber size="small" value={record.costRates.profitRate} step={0.001} style={{ width: 75 }}
+          onChange={(v: any) => updateFactory(record.factoryId, { costRates: { ...record.costRates, profitRate: Number(v) } })} />
+      ),
+    },
+    {
       title: '效率系数', dataIndex: 'efficiencyFactor', width: 100,
       render: (_: any, record: FactoryConfig) => (
         <InputNumber size="small" value={record.efficiencyFactor} step={0.01} style={{ width: 80 }}
@@ -475,7 +484,7 @@ function FactoryPanel({ factories, addFactory, updateFactory, removeFactory }: {
       >
         {factories.length > 0 ? (
           <Table columns={columns} dataSource={factories} pagination={false} size="small"
-            rowKey="factoryId" />
+            rowKey="factoryId" scroll={{ x: 900 }} />
         ) : (
           <div style={{ textAlign: 'center', padding: 24, color: 'var(--semi-color-text-2)' }}>
             <Text type="quaternary">尚未配置工厂，点击下方按钮添加</Text>

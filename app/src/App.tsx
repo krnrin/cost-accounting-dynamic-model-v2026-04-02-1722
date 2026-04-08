@@ -14,7 +14,15 @@ import SimulationPage from '@/pages/SimulationPage';
 import AnnualDropPage from '@/pages/AnnualDropPage';
 import SettingsPage from '@/pages/SettingsPage';
 import ManagerDashboardPage from '@/pages/ManagerDashboardPage';
+import AllocManagerPage from '@/pages/AllocManagerPage';
+import ChangeEnginePage from '@/pages/ChangeEnginePage';
+import TrackingPage from '@/pages/TrackingPage';
+import AlertsPage from '@/pages/AlertsPage';
+import ProfilePage from '@/pages/ProfilePage';
 import NotFoundPage from '@/pages/NotFoundPage';
+import ProjectScenariosPage from '@/pages/ProjectScenariosPage';
+import ScenarioComparePage from '@/pages/ScenarioComparePage';
+import ConfigMatrixPage from '@/pages/ConfigMatrixPage';
 import SWUpdatePrompt from '@/components/SWUpdatePrompt';
 import { useAuthStore } from '@/store/authStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -42,17 +50,30 @@ export default function App() {
       <SWUpdatePrompt />
       <Routes>
         {/* Full-screen pages (no sidebar/header) for immersive Excel experience */}
+        <Route path="/project/:id/s/:sid/harness/:harnessId/edit" element={<HarnessEditPage />} />
+        <Route path="/project/:id/s/:sid/bom-workbook" element={<BomWorkbookPage />} />
+        {/* Legacy full-screen routes (backward compat) */}
         <Route path="/project/:id/harness/:harnessId/edit" element={<HarnessEditPage />} />
         <Route path="/project/:id/bom-workbook" element={<BomWorkbookPage />} />
         <Route element={<MainLayout />}>
           <Route path="/" element={<ProjectListPage />} />
           <Route path="/manager" element={<ManagerDashboardPage />} />
           <Route path="/wizard" element={<WizardPage />} />
-          <Route path="/project/:id" element={<DashboardPage />} />
-          <Route path="/project/:id/harness/:harnessId" element={<HarnessDetailPage />} />
-          <Route path="/project/:id/quote" element={<QuotePage />} />
-          <Route path="/project/:id/simulation" element={<SimulationPage />} />
-          <Route path="/project/:id/annual-drop" element={<AnnualDropPage />} />
+          {/* 项目场景列表 */}
+          <Route path="/project/:id" element={<ProjectScenariosPage />} />
+          <Route path="/project/:id/compare" element={<ScenarioComparePage />} />
+          {/* 场景级页面 */}
+          <Route path="/project/:id/s/:sid" element={<DashboardPage />} />
+          <Route path="/project/:id/s/:sid/harness/:harnessId" element={<HarnessDetailPage />} />
+          <Route path="/project/:id/s/:sid/quote" element={<QuotePage />} />
+          <Route path="/project/:id/s/:sid/simulation" element={<SimulationPage />} />
+          <Route path="/project/:id/s/:sid/annual-drop" element={<AnnualDropPage />} />
+          <Route path="/project/:id/s/:sid/alloc" element={<AllocManagerPage />} />
+          <Route path="/project/:id/s/:sid/change-engine" element={<ChangeEnginePage />} />
+          <Route path="/project/:id/s/:sid/tracking" element={<TrackingPage />} />
+          <Route path="/project/:id/s/:sid/config" element={<ConfigMatrixPage />} />
+          <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

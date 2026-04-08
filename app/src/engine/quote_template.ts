@@ -11,7 +11,7 @@ import type {
   QuoteSheet,
   QuoteSheetMeta
 } from '@/types/quote';
-import { GapStatus } from '@/types/financial_schema';
+import type { GapStatus as _GapStatus } from '@/types/financial_schema';
 import type { VolumeSchedule } from '@/types/project';
 
 /** 吉利标准费率 */

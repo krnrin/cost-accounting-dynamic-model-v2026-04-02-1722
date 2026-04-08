@@ -74,9 +74,9 @@ export function buildCostDAG(): Map<CostNodeId, CostNode> {
     },
     {
       id: 'mgmtFee',
-      dependencies: ['material', 'waste', 'labor', 'manufacturing'],
+      dependencies: ['material', 'labor', 'manufacturing'],
       compute: (deps, params) =>
-        (deps.material + deps.waste + deps.labor + deps.manufacturing) * params.mgmtRate,
+        (deps.material + deps.labor + deps.manufacturing) * params.mgmtRate,
     },
     {
       id: 'profit',

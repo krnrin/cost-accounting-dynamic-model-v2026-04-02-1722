@@ -65,8 +65,8 @@ export interface ProjectMeta {
   customer: string;
   /** 平台/车型 */
   platform?: string;
-  /** 项目生命周期 (年) */
-  lifecycleYears: number;
+  /** @deprecated 已移至 ScenarioRecord.lifecycleYears */
+  lifecycleYears?: number;
   /** 创建时间 */
   createdAt: string;
   /** 最后更新时间 */
@@ -122,6 +122,8 @@ export interface ProjectConfig {
   allocationConfig?: AllocationConfig;
   /** Level 1 系数近似参数 (可选, 无则使用引擎默认值) */
   level1Coefficients?: Level1Coefficients;
+  /** 返点/返利配置 (如 QS 返点) */
+  rebate?: RebateConfig;
 }
 
 /** 工厂配置 */
@@ -159,7 +161,8 @@ export interface EquipmentConfig {
 /** 完整项目定义 */
 export interface Project {
   meta: ProjectMeta;
-  config: ProjectConfig;
+  /** @deprecated 已移至 ScenarioRecord.config */
+  config?: ProjectConfig;
 }
 
 /** BOM 分类规则 */
@@ -219,6 +222,16 @@ export interface CostStructureSchema {
   version?: string;
   /** 成本项列表 (按 order 排序) */
   items: CostItemDef[];
+}
+
+/** 返点/返利配置 */
+export interface RebateConfig {
+  /** 返点总额 (元) */
+  totalAmount: number;
+  /** 返点类型描述 (如 "QS返点") */
+  label: string;
+  /** 按年分配金额 (与 volumes 对齐) */
+  yearDistribution: number[];
 }
 
 /** 间接费用分摊驱动因子 */

@@ -9,13 +9,13 @@
 
 import * as XLSX from 'xlsx';
 import type { HarnessResult, ProjectHarnessResult, InternalHarnessResult } from '@/types/harness';
-import type { 
-  GeelyTemplateResult, 
-  BydTemplateResult, 
-  GenericTemplateResult, 
+import type {
+  GeelyTemplateResult,
+  BydTemplateResult,
+  GenericTemplateResult,
   TemplateType,
   ChangePricingResult,
-  MetalEscalationResult,
+  MetalEscalationResult as MetalEscalationResultType,
   AnnualDropResult,
 } from '@/types/quote';
 import { mapToGeelyTemplate, mapToBydTemplate, mapToGenericTemplate, mapInternalToOem } from './quote_template';
@@ -769,7 +769,11 @@ export function exportOemQuoteFromInternal(
 /**
  * 导出金属联动分析 Excel
  */
-export function exportMetalEscalationExcel() {
+export function exportMetalEscalationExcel(
+  _result: MetalEscalationResultType,
+  _projectName: string,
+  _customer: string,
+) {
   // Placeholder for metal escalation export logic
   console.log("Metal escalation export not yet implemented.");
 }

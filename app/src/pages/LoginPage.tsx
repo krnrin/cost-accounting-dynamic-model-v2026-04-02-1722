@@ -133,10 +133,10 @@ export default function LoginPage() {
         >
           <div style={{ textAlign: 'center', marginBottom: 32 }}>
             <div style={{ display: 'inline-flex', padding: 12, borderRadius: 16, background: 'rgba(59, 130, 246, 0.1)', marginBottom: 16 }}>
-              <IconGridView style={{ fontSize: 42, color: '#3b82f6', filter: 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))' }} />
+              <IconGridView style={{ fontSize: 42, color: 'var(--semi-color-primary)', filter: 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))' }} />
             </div>
             <Title heading={3} style={{ margin: '0 0 8px', fontWeight: 700, letterSpacing: '-0.5px' }}>
-              COST ENGINE <span style={{ color: '#3b82f6' }}>PRO</span>
+              COST ENGINE <span style={{ color: 'var(--semi-color-primary)' }}>PRO</span>
             </Title>
             <Text type="tertiary" style={{ fontSize: 14 }}>高压线束精算与决策引擎</Text>
           </div>

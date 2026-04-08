@@ -54,7 +54,7 @@ export const VersionPanel: React.FC<Props> = ({ projectId }) => {
 
       const versionNumber = await versionRepo.getNextVersionNumber(projectId);
       
-      const results = harnesses.map(h => computeHarnessCost(h.input, project.config.costRates, project.config.metalPrices));
+      const results = harnesses.map(h => computeHarnessCost(h.input, project.config!.costRates, project.config!.metalPrices));
       const projSummary = computeProjectFromHarnesses(results);
 
       const record: VersionRecord = {
@@ -71,7 +71,7 @@ export const VersionPanel: React.FC<Props> = ({ projectId }) => {
             harnessName: h.harnessName,
             input: h.input,
           })),
-          config: project.config,
+          config: project.config!,
           summary: {
             vehicleCost: projSummary.vehicleCost,
             totalMaterial: projSummary.weightedMaterial,

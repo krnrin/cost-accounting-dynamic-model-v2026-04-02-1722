@@ -465,6 +465,26 @@
   }
 
   function buildHarnessMetrics(model) {
+    // ── 精算引擎路径 (harness_costing.js) ──
+    if (model && model.harnessDetail && safeArray(model.harnessDetail.harnesses).length > 0) {
+      const detail = model.harnessDetail;
+      const proj = safeObject(detail.project);
+      const harnesses = detail.harnesses;
+      const params = safeObject(detail.params);
+      const maxH = harnesses.reduce((b, h) => ((h.deliveredPrice || 0) > (b.deliveredPrice || 0) ? h : b), harnesses[0]);
+      const activeH = harnesses.filter(h => (h.vehicleRatio || 0) > 0);
+      const minH = activeH.length
+        ? activeH.reduce((w, h) => ((h.deliveredPrice || 0) < (w.deliveredPrice || 0) ? h : w), activeH[0])
+        : harnesses[0];
+      return [
+        { label: '零件号数', value: `${harnesses.length} 个`, note: '单线束号级精算引擎 (v2)' },
+        { label: '项目单车成本', value: `${formatCurrency(proj.vehicleCost)} 元`, note: 'Σ(到厂价 × 装车比)' },
+        { label: '最高到厂价', value: toText(maxH && maxH.harnessId, '—'), note: `${toText(maxH && maxH.harnessName, '')} / ${formatCurrency(maxH && maxH.deliveredPrice)} 元` },
+        { label: '最低到厂价', value: toText(minH && minH.harnessId, '—'), note: `${toText(minH && minH.harnessName, '')} / ${formatCurrency(minH && minH.deliveredPrice)} 元` },
+        { label: '费率配置', value: `废${((params.wasteRate || 0) * 100).toFixed(0)}% / 管${((params.mgmtRate || 0) * 100).toFixed(0)}% / 利${((params.profitRate || 0) * 100).toFixed(2)}%`, note: `人工费率 ${params.laborRate || 35} + 制造费率 ${params.mfgRate || 46.69}` },
+      ];
+    }
+    // ── 旧版路径 (revenueShare 分摍) ──
     const breakdown = safeObject(model && model.harnessProfit);
     const harnesses = safeArray(breakdown.harnesses);
     if (!harnesses.length) {
@@ -503,25 +523,36 @@
       },
       {
         label: '线束拆解口径',
-        value: '整套利润回推',
+        value: '旧版 revenueShare 分摍',
         note: '用于定位拖利润线束，不代表真实单根采购/报价单价。',
       },
     ];
   }
 
   function buildHarnessExtra(model) {
+    // 精算引擎路径
+    if (model && model.harnessDetail && safeArray(model.harnessDetail.harnesses).length > 0) {
+      const proj = safeObject(model.harnessDetail.project);
+      return [
+        { label: '材料核算', value: 'BOM行级独立计算', note: '导线: 铜重×铜价 + 铝重×铝价 + 非金属; 其他: 单价×用量' },
+        { label: '费用计算', value: '每个零件号独立', note: '材料→废品(×1%)→人工(工时×35)→制造(工时×46.69)→管理(×6%)→利润(×5.66%)' },
+        { label: '加权材料/车', value: `${formatCurrency(proj.weightedMaterial)} 元`, note: 'Σ(材料 × 装车比)' },
+        { label: '加权工时/车', value: `${formatCurrency(proj.weightedLaborPlusMfg)} 元`, note: 'Σ((人工+制造) × 装车比)' },
+      ];
+    }
+    // 旧版路径
     const breakdown = safeObject(model && model.harnessProfit);
     const warnings = safeArray(breakdown.meta && breakdown.meta.warnings);
     const items = [
       {
         label: '材料拆解',
-        value: '导线目录 + 残余池分摊',
+        value: '导线目录 + 残余池分摍',
         note: '导线命中目录时按铜铝基价估算，未命中时回落到残余材料池。',
       },
       {
         label: '非材料拆解',
-        value: '按材料占比分摊',
-        note: '人工 / 包装 / 资源投入 / R&D 按线束材料占比分摊。',
+        value: '按材料占比分摍',
+        note: '人工 / 包装 / 资源投入 / R&D 按线束材料占比分摍。',
       },
     ];
     warnings.slice(0, 2).forEach((warning, index) => {
@@ -813,12 +844,12 @@
         },
       },
       {
-        title: '单根线束利润拆解',
-        summary: '整套利润计算完成后，程序会把整套口径分摊到各线束号，用于定位哪一根线束在拖利润；这不是单根线束真实报价，而是定位口径。',
+        title: '单线束号级成本核算',
+        summary: '每个零件号独立核算: 材料 + 废品 + 人工 + 制造 + 管理费 + 利润 = 出厂价，加包装和运输 = 到厂价，再按装车比加权到项目级。当无种子数据时回退到旧版利润分摍逻辑。',
         metrics: buildHarnessMetrics(model),
-        formula: 'HarnessProfit = 整套利润口径 + BOM 对齐结果 + 导线目录估算 + 残余材料池 + 非材料占比分摊',
+        formula: model && model.harnessDetail ? '到厂价 = 材料 + 废品(1%) + 人工(35×工时) + 制造(46.69×工时) + 管理(6%) + 利润(5.66%) + 包装 + 运输' : 'HarnessProfit = 整套利润口径 + revenueShare 分摍',
         extra: {
-          title: '线束拆解说明',
+          title: '线束核算说明',
           list: buildHarnessExtra(model),
         },
       },

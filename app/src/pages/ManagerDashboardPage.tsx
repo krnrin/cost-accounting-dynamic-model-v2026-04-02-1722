@@ -40,7 +40,7 @@ export default function ManagerDashboardPage() {
         const summaries = projects.map(proj => {
           const projHarnesses = allHarnesses.filter(h => h.projectId === proj.id);
           const results = projHarnesses.map(h => 
-            computeHarnessCost(h.input, proj.config.costRates, proj.config.metalPrices)
+            computeHarnessCost(h.input, proj.config!.costRates, proj.config!.metalPrices)
           );
           const summary = computeProjectFromHarnesses(results);
           const harnessInputs = projHarnesses.map(h => h.input);
@@ -99,11 +99,11 @@ export default function ManagerDashboardPage() {
       projectId: s.project.id,
       projectName: s.project.meta.projectName,
       customer: s.project.meta.customer || '未知',
-      annualVolume: s.project.config.volumes?.[0]?.volume || 10000,
+      annualVolume: s.project.config!.volumes?.[0]?.volume || 10000,
       projectResult: s.summary,
       harnessInputs: s.harnessInputs,
-      costRates: s.project.config.costRates,
-      metalPrices: s.project.config.metalPrices,
+      costRates: s.project.config!.costRates,
+      metalPrices: s.project.config!.metalPrices,
     }));
   }, [projectSummaries]);
 
@@ -260,7 +260,7 @@ export default function ManagerDashboardPage() {
     if (selectedSummaries.length === 0) return {};
     const years = [1, 2, 3, 4, 5, 6, 7];
     const series = selectedSummaries.map(s => {
-      const volumeMap = new Map(s.project.config.volumes?.map(v => [v.year, v.volume]) || []);
+      const volumeMap = new Map(s.project.config!.volumes?.map(v => [v.year, v.volume]) || []);
       const data = years.map(y => {
         const vol = volumeMap.get(y) || 0;
         return (s.summary.weightedProfit * vol).toFixed(0);
@@ -294,7 +294,7 @@ export default function ManagerDashboardPage() {
     const customerDataMap = new Map<string, number>();
     projectSummaries.forEach(s => {
       const customer = s.project.meta.customer || '未知客户';
-      const totalVol = s.project.config.volumes?.reduce((sum, v) => sum + v.volume, 0) || 0;
+      const totalVol = s.project.config!.volumes?.reduce((sum, v) => sum + v.volume, 0) || 0;
       const revenue = s.summary.vehicleCost * totalVol;
       customerDataMap.set(customer, (customerDataMap.get(customer) || 0) + revenue);
     });
@@ -535,7 +535,7 @@ export default function ManagerDashboardPage() {
                         echarts={echarts} 
                         option={costChartOption} 
                         style={{ height: 400 }} 
-                        theme="dark" 
+                        theme="" 
                         onEvents={{ click: handleProjectChartClick }}
                       />
                     ) : (
@@ -550,7 +550,7 @@ export default function ManagerDashboardPage() {
                     headerStyle={{ borderBottom: '1px solid var(--semi-color-border)' }}
                   >
                     {selectedSummaries.length > 0 ? (
-                      <ReactECharts echarts={echarts} option={profitTrendOption} style={{ height: 400 }} theme="dark" />
+                      <ReactECharts echarts={echarts} option={profitTrendOption} style={{ height: 400 }} theme="" />
                     ) : (
                       <Empty description="请在上方表格选择项目进行对比" />
                     )}
@@ -560,14 +560,14 @@ export default function ManagerDashboardPage() {
 
               {/* Charts Row 2 */}
               <Row gutter={16} style={{ width: '100%' }}>
-                <Col span={12}>
-                  <Card 
-                    title="客户营收占比" 
+                <Col span={24}>
+                  <Card
+                    title="客户营收占比"
                     className='glass-card' style={{ border: 'none' }}
                     headerStyle={{ borderBottom: '1px solid var(--semi-color-border)' }}
                   >
                     {projectSummaries.length > 0 ? (
-                      <ReactECharts echarts={echarts} option={customerPieOption} style={{ height: 400 }} theme="dark" />
+                      <ReactECharts echarts={echarts} option={customerPieOption} style={{ height: 400 }} theme="" />
                     ) : (
                       <Empty description="暂无项目数据" />
                     )}
@@ -601,19 +601,19 @@ export default function ManagerDashboardPage() {
               <Row gutter={16} style={{ width: '100%' }}>
                 <Col span={12}>
                   <Card title="产值占比" className='glass-card' style={{ border: 'none' }}>
-                    <ReactECharts echarts={echarts} option={revenuePieOption} style={{ height: 400 }} theme="dark" />
+                    <ReactECharts echarts={echarts} option={revenuePieOption} style={{ height: 400 }} theme="" />
                   </Card>
                 </Col>
                 <Col span={12}>
                   <Card title="利润占比" className='glass-card' style={{ border: 'none' }}>
-                    <ReactECharts echarts={echarts} option={profitPieOption} style={{ height: 400 }} theme="dark" />
+                    <ReactECharts echarts={echarts} option={profitPieOption} style={{ height: 400 }} theme="" />
                   </Card>
                 </Col>
               </Row>
 
               {/* Metal Risk Exposure */}
               <Card className="glass-card" title="金属价格风险敞口分析" style={{ width: '100%' }}>
-                <ReactECharts echarts={echarts} option={riskChartOption} style={{ height: 400 }} theme="dark" />
+                <ReactECharts echarts={echarts} option={riskChartOption} style={{ height: 400 }} theme="" />
                 <div style={{ marginTop: 24 }}>
                   <Text strong style={{ marginBottom: 12, display: 'block' }}>项目级影响汇总 (±10% 场景)</Text>
                   <Table 

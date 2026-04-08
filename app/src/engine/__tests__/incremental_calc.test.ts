@@ -59,10 +59,9 @@ describe('Incremental Calc Engine', () => {
       const waste = mat * 0.01;
       const labor = 0.15 * 35;
       const mfg = 0.15 * 46.69;
-      const subtotal = mat + waste + labor + mfg;
-      const mgmt = subtotal * 0.06;
-      const profit = (subtotal + mgmt) * 0.056627;
-      const exFactory = subtotal + mgmt + profit;
+      const mgmt = (mat + labor + mfg) * 0.06;
+      const profit = (mat + waste + labor + mfg + mgmt) * 0.056627;
+      const exFactory = mat + waste + labor + mfg + mgmt + profit;
       const delivered = exFactory + 5 + 3;
       
       expect(values.exFactoryPrice).toBeCloseTo(exFactory, 4);

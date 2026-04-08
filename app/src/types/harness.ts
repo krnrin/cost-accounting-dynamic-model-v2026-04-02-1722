@@ -97,6 +97,10 @@ export interface HarnessInput {
   packaging: PackagingCost;
   /** 运输费 */
   freight: FreightCost;
+  /** 标配/选配 ('S' = 标配, 'O' = 选配) */
+  configType?: 'S' | 'O';
+  /** 功能位置 (同族线束共享, 如 "直流母线", "电动压缩机线束") */
+  functionalSlot?: string;
 }
 
 /** 材料成本拆分 */
@@ -371,4 +375,52 @@ export interface PrecisionMeta {
   missingData: string[];
   /** 数据完整度 (0~1) */
   completeness: number;
+}
+
+/** 车型配置发布状态 */
+export type ConfigPublishState = 'draft' | 'engineer_published' | 'sales_published';
+
+/** 车型配置 */
+export interface VehicleConfig {
+  /** 配置ID (如 'cfg-520-qihang') */
+  configId: string;
+  /** 配置名称 (如 '520启航版', '52.4无PTC') */
+  configName: string;
+  /** 该配置的销售比例 (0~1) */
+  salesRatio: number;
+  /** 该配置装配的线束ID列表 */
+  harnessIds: string[];
+  /** 备注 */
+  note?: string;
+}
+
+/** 场景级车型配置发布状态 */
+export interface VehicleConfigMeta {
+  publishState: ConfigPublishState;
+  engineerPublishedAt?: string;
+  salesPublishedAt?: string;
+}
+
+/** 线束变更关系类型 */
+export type HarnessRelationType =
+  | 'replaces'        // 替代: 新件替代旧件 (同功能位置)
+  | 'replaced_by'     // 被替代: 旧件被新件替代 (反向)
+  | 'split_from'      // 拆分自: 从父配置拆分出来
+  | 'merged_into'     // 合并入: 合并到新配置
+  | 'cancelled'       // 取消: 该线束在本场景中取消
+  | 'added'           // 新增: 本场景新增的线束
+  | 'config_changed'; // 配置变更: 标配↔选配切换
+
+/** 线束间关联关系 */
+export interface HarnessRelation {
+  /** 源线束ID (本场景中的线束) */
+  harnessId: string;
+  /** 关联类型 */
+  relationType: HarnessRelationType;
+  /** 关联目标线束ID (父场景中的线束, cancelled/added 时可为 null) */
+  targetHarnessId: string | null;
+  /** 关联目标场景ID (通常是父场景) */
+  targetScenarioId: string;
+  /** 备注 */
+  note?: string;
 }

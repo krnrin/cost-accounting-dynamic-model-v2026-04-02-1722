@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  name       String
+  role       String   @default("ENGINEER") // ADMIN, MANAGER, ENGINEER, VIEWER
+  feishuId   String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  projects   Project[]
+  auditLogs  AuditLog[]
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  projectCode String   @unique
+  projectName String
+  customer    String
+  platform    String?
+  status      String   @default("active")
+  
+  costRates   String   @default("{}") // JSON string
+  metalPrices String   @default("{}") // JSON string
+  volumes     String?  // JSON string
+  
+  createdBy   String
+  creator     User     @relation(fields: [createdBy], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  harnesses   Harness[]
+  quotes      Quote[]
+  versions    Version[]
+  auditLogs   AuditLog[]
+}
+
+model Harness {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  harnessId   String   // Part number like 6608442966
+  harnessName String
+  
+  input       String   @default("{}") // JSON string (HarnessInput)
+  result      String?  // JSON string (computed HarnessResult)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([projectId, harnessId])
+}
+
+model Quote {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  version     String
+  status      String   @default("draft")
+  template    String   @default("geely")
+  data        String   @default("{}") // JSON string
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Version {
+  id             String   @id @default(uuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  versionNumber  Int
+  label          String
+  status         String   @default("draft")
+  snapshot       String   @default("{}") // JSON string
+  notes          String?
+  
+  createdBy      String?
+  createdAt      DateTime @default(now())
+
+  @@unique([projectId, versionNumber])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id])
+  
+  action      String   // CREATE, UPDATE, DELETE, STATUS_CHANGE
+  entity      String   // project, harness, quote, version
+  entityId    String
+  details     String?  // JSON string
+  
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+  @@index([userId])
+  @@index([createdAt])
+}

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新建项目向导 - 高压线束成本核算平台</title>
+    <link rel="stylesheet" href="./base.css">
+    <link rel="stylesheet" href="./layout.css">
+    <link rel="stylesheet" href="./wizard.css">
+</head>
+<body class="wizard-page">
+    <div class="wizard-container">
+        <header class="wizard-header">
+            <div class="brand">
+                <div class="eyebrow">UNIVERSAL · HV HARNESS COST ENGINE</div>
+                <h1>新建项目向导</h1>
+            </div>
+            <nav class="wizard-steps">
+                <div class="step active" data-step="1">
+                    <span class="step-number">1</span>
+                    <span class="step-label">基本信息</span>
+                </div>
+                <div class="step" data-step="2">
+                    <span class="step-number">2</span>
+                    <span class="step-label">BOM 导入</span>
+                </div>
+                <div class="step" data-step="3">
+                    <span class="step-number">3</span>
+                    <span class="step-label">费率配置</span>
+                </div>
+                <div class="step" data-step="4">
+                    <span class="step-number">4</span>
+                    <span class="step-label">产量确认</span>
+                </div>
+            </nav>
+        </header>
+
+        <main class="wizard-content">
+            <!-- Step 1: Basic Info -->
+            <section class="wizard-pane active" id="pane-1">
+                <div class="pane-header">
+                    <h2>项目基本信息</h2>
+                    <p>请输入项目的核心标识与生命周期定义</p>
+                </div>
+                <div class="form-grid">
+                    <label class="field">
+                        <span>项目名称</span>
+                        <input type="text" id="projectName" placeholder="例如：G281高压线束" required>
+                    </label>
+                    <label class="field">
+                        <span>客户名称</span>
+                        <input type="text" id="customer" placeholder="例如：吉利" required>
+                    </label>
+                    <label class="field">
+                        <span>项目代号</span>
+                        <input type="text" id="projectId" placeholder="例如：G281" required>
+                    </label>
+                    <label class="field">
+                        <span>平台</span>
+                        <input type="text" id="platform" placeholder="例如：SEA">
+                    </label>
+                    <label class="field">
+                        <span>SOP 年份</span>
+                        <input type="number" id="sopYear" value="2026" min="2020" max="2050">
+                    </label>
+                    <label class="field">
+                        <span>生命周期 (年)</span>
+                        <input type="number" id="lifecycleYears" value="6" min="1" max="20">
+                    </label>
+                </div>
+            </section>
+
+            <!-- Step 2: BOM Import -->
+            <section class="wizard-pane" id="pane-2">
+                <div class="pane-header">
+                    <h2>BOM 数据导入</h2>
+                    <p>支持 Excel 文件拖入，我们将识别其中的线束清单</p>
+                </div>
+                <div class="upload-area" id="dropZone">
+                    <div class="upload-icon">📁</div>
+                    <p>点击选择或拖拽 Excel 文件到这里</p>
+                    <input type="file" id="bomFile" accept=".xlsx, .xls" hidden>
+                    <button class="button secondary" id="selectFileBtn">选择文件</button>
+                </div>
+                <div id="bomPreview" class="bom-preview" hidden>
+                    <h3>识别到的线束清单</h3>
+                    <div class="table-wrap">
+                        <table class="preview-table">
+                            <thead>
+                                <tr>
+                                    <th>零件号</th>
+                                    <th>名称</th>
+                                    <th>分类</th>
+                                    <th>装车比</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="harnessList"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 3: Rate Configuration -->
+            <section class="wizard-pane" id="pane-3">
+                <div class="pane-header">
+                    <h2>成本费率配置</h2>
+                    <p>设置项目基准费率，这些值将作为初始计算的依据</p>
+                </div>
+                <div class="form-grid">
+                    <label class="field">
+                        <span>人工费率 (元/工时)</span>
+                        <input type="number" id="laborRate" value="35" step="0.1">
+                    </label>
+                    <label class="field">
+                        <span>制造费率 (元/工时)</span>
+                        <input type="number" id="mfgRate" value="46.69" step="0.1">
+                    </label>
+                    <label class="field">
+                        <span>废品率 (%)</span>
+                        <input type="number" id="wasteRate" value="1" step="0.1">
+                    </label>
+                    <label class="field">
+                        <span>管理费率 (%)</span>
+                        <input type="number" id="mgmtRate" value="6" step="0.1">
+                    </label>
+                    <label class="field">
+                        <span>利润率 (%)</span>
+                        <input type="number" id="profitRate" value="5.6627" step="0.0001">
+                    </label>
+                    <div class="field-divider"></div>
+                    <label class="field">
+                        <span>铜基价 (元/吨)</span>
+                        <input type="number" id="copperBasePrice" value="68400">
+                    </label>
+                    <label class="field">
+                        <span>铝基价 (元/吨)</span>
+                        <input type="number" id="aluminumBasePrice" value="18200">
+                    </label>
+                </div>
+            </section>
+
+            <!-- Step 4: Volume Confirmation -->
+            <section class="wizard-pane" id="pane-4">
+                <div class="pane-header">
+                    <h2>产量与装车比确认</h2>
+                    <p>设置各年度预测产量与单线束装车比例</p>
+                </div>
+                <div class="volume-section">
+                    <h3>年度预测产量</h3>
+                    <div class="year-grid" id="yearVolumeGrid"></div>
+                </div>
+                <div class="ratio-section">
+                    <h3>线束装车比 (Ratio)</h3>
+                    <div id="harnessRatioGrid" class="ratio-grid"></div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="wizard-footer">
+            <button class="button ghost" id="prevBtn" disabled>上一步</button>
+            <div class="spacer"></div>
+            <button class="button secondary" id="cancelBtn">取消</button>
+            <button class="button primary" id="nextBtn">下一步</button>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="../vendor/xlsx/xlsx.full.min.js"></script>
+    <script src="../engine/bom_schema.js"></script>
+    <script src="../engine/bom_db.js"></script>
+    <script src="../engine/bom_parser.js"></script>
+    <script src="./wizard.js"></script>
+</body>
+</html>

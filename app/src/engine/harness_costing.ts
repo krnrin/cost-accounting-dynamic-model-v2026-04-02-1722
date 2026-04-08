@@ -261,22 +261,34 @@ export function computeBomLineCost(
     const cuCost = (cuWeight * cuPrice) / 1000; // kg × 元/吨 ÷ 1000 = 元
     const alCost = (alWeight * alPrice) / 1000;
 
-    // 如果没有任何重量信息且有单价，回退到单价模式
-    if (!wireEntry && cuWeight === 0 && alWeight === 0 && item.unitPrice) {
+    // ── unitPrice 优先策略 ──
+    // 当 BOM 行同时提供了 unitPrice（权威采购总价）和金属重量时：
+    //   - lineCost 取 unitPrice × qty（权威材料总成本）
+    //   - cuCost/alCost 仍从金属重量算出（用于敏感性分析）
+    //   - nonMetalCost = lineCost - cuCost - alCost（差额即非金属部分）
+    // 当没有 unitPrice 时，回退到纯金属重量计算。
+    const hasUnitPrice = item.unitPrice !== undefined && item.unitPrice !== null && numberOr(item.unitPrice, 0) > 0;
+
+    if (hasUnitPrice) {
       const lineCost = numberOr(item.unitPrice, 0) * qty;
+      const metalCostPerUnit = cuCost + alCost;
+      // 非金属部分 = 单价 - 金属成本（可能包含绝缘层、护套、屏蔽层、端子压接等）
+      const impliedNonMetal = Math.max(0, numberOr(item.unitPrice, 0) - metalCostPerUnit);
+
       return {
         partNo,
         type: 'wire',
-        cuWeight: 0,
-        alWeight: 0,
-        cuCost: 0,
-        alCost: 0,
-        nonMetalCost: 0,
+        cuWeight: cuWeight * qty,
+        alWeight: alWeight * qty,
+        cuCost: cuCost * qty,
+        alCost: alCost * qty,
+        nonMetalCost: impliedNonMetal * qty,
         lineCost,
         qty,
       };
     }
 
+    // 无 unitPrice 时：纯金属重量计算模式
     const wireCost = (cuCost + alCost + nonMetalCost) * qty;
 
     return {
