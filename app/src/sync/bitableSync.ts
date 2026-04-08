@@ -113,6 +113,8 @@ export class BitableSync {
           const record: HarnessRecord = {
             id: h.id || h._recordId,
             projectId: h.projectId || '',
+            scenarioId: h.scenarioId || '',
+            eopYear: h.eopYear ?? null,
             harnessId: h.harnessId || '',
             harnessName: h.harnessName || '',
             input: h.input || {},

@@ -110,13 +110,13 @@ export default function HarnessEditPage() {
 
     if (pricingContext) {
       // 注入动态工厂费率 (Issue #45)
-      return computeHarnessCostDynamic(formData, pricingContext, data.project.factoryId /* factoryId on project */ || 'K1K2_Factory');
+      return computeHarnessCostDynamic(formData, pricingContext, data.project.config!.factories?.[0]?.factoryId || 'K1K2_Factory');
     }
 
     return computeHarnessCost(
       formData,
-      data.project.config.costRates,
-      data.project.config.metalPrices
+      data.project.config!.costRates,
+      data.project.config!.metalPrices
     );
   }, [data, formData, pricingContext]);
 
@@ -124,7 +124,7 @@ export default function HarnessEditPage() {
     if (!data?.project || !formData || !pricingContext) return null;
     if (!formData.harnessId) return null;
 
-    const rates = getInternalFactoryRates(data.project.factoryId /* factoryId on project */ || 'K1K2_Factory', pricingContext.benchmark, pricingContext.simulation);
+    const rates = getInternalFactoryRates(data.project.config!.factories?.[0]?.factoryId || 'K1K2_Factory', pricingContext.benchmark, pricingContext.simulation);
     return computeInternalHarnessCost(formData, rates, pricingContext.metalPrices, null, pricingContext.benchmark.audit_trace_id);
   }, [data, formData, pricingContext]);
 
@@ -151,6 +151,8 @@ export default function HarnessEditPage() {
         await db.harnesses.put({
           id: newId,
           projectId: id,
+          scenarioId: '',
+          eopYear: null,
           harnessId: formData.harnessId,
           harnessName: formData.harnessName || formData.harnessId,
           input: formData,
@@ -261,13 +263,13 @@ export default function HarnessEditPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
       {/* 1. Single-row Toolbar — all controls merged into one bar */}
-      <div className="green-glass-panel" style={{ 
+      <div className="glass-panel" style={{ 
         height: TOOLBAR_HEIGHT, 
         display: 'flex', 
         alignItems: 'center', 
         justifyContent: 'space-between', 
         padding: '0 12px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        borderBottom: '1px solid var(--border)',
         zIndex: 10
       }}>
         {/* Left: back + title */}
@@ -352,8 +354,9 @@ export default function HarnessEditPage() {
                     <Row gutter={6}>
                       <Col span={6}><Text type="secondary" style={{ fontSize: 11 }}>运费</Text><InputNumber size="small" value={formData.freight.freight} onChange={val => updateFreight({ freight: Number(val) })} style={{ width: '100%' }} /></Col>
                       <Col span={6}><Text type="secondary" style={{ fontSize: 11 }}>超额运费</Text><InputNumber size="small" value={formData.freight.excessFreight} onChange={val => updateFreight({ excessFreight: Number(val) })} style={{ width: '100%' }} /></Col>
-                      <Col span={6}><Text type="secondary" style={{ fontSize: 11 }}>短驳/三方</Text><InputNumber size="small" value={formData.freight.shortHaul + formData.freight.thirdPartyWarehouse} onChange={val => updateFreight({ shortHaul: Number(val) })} style={{ width: '100%' }} /></Col>
-                      <Col span={6}><Text type="secondary" style={{ fontSize: 11 }}>仓储</Text><InputNumber size="small" value={formData.freight.storage} onChange={val => updateFreight({ storage: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={4}><Text type="secondary" style={{ fontSize: 11 }}>短驳</Text><InputNumber size="small" value={formData.freight.shortHaul} onChange={val => updateFreight({ shortHaul: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={4}><Text type="secondary" style={{ fontSize: 11 }}>三方仓</Text><InputNumber size="small" value={formData.freight.thirdPartyWarehouse} onChange={val => updateFreight({ thirdPartyWarehouse: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={4}><Text type="secondary" style={{ fontSize: 11 }}>仓储</Text><InputNumber size="small" value={formData.freight.storage} onChange={val => updateFreight({ storage: Number(val) })} style={{ width: '100%' }} /></Col>
                     </Row>
                   </Col>
                 </Row>
@@ -367,11 +370,11 @@ export default function HarnessEditPage() {
 
           <Popover
             content={
-              <div className="glass-card" style={{ padding: 12, width: 300, color: '#fff' }}>
-                <Title heading={6} style={{ marginBottom: 12, color: '#8BC34A' }}>内部实绩精算模拟 (决策舱)</Title>
+              <div className="glass-card" style={{ padding: 12, width: 300, color: 'var(--text-primary)' }}>
+                <Title heading={6} style={{ marginBottom: 12, color: 'var(--text-primary)' }}>内部实绩精算模拟 (决策舱)</Title>
                 <Space vertical align="start" style={{ width: '100%' }}>
                   <div style={{ width: '100%' }}>
-                    <Text type="secondary" style={{ color: '#94a3b8' }}>出勤工时效率 (基准: {(0.9 * 100).toFixed(0)}%)</Text>
+                    <Text type="secondary" style={{ color: 'var(--text-secondary)' }}>出勤工时效率 (基准: {(0.9 * 100).toFixed(0)}%)</Text>
                     <Slider 
                       step={0.01} min={0.5} max={1.2} 
                       value={simulation.efficiency} 
@@ -388,7 +391,7 @@ export default function HarnessEditPage() {
                   <Divider style={{ margin: '8px 0', opacity: 0.1 }} />
                   
                   <div style={{ width: '100%' }}>
-                    <Text type="secondary" style={{ color: '#94a3b8' }}>年度产量预测 (LRP)</Text>
+                    <Text type="secondary" style={{ color: 'var(--text-secondary)' }}>年度产量预测 (LRP)</Text>
                     <InputNumber 
                       size="small" 
                       value={simulation.annualVolume} 
@@ -400,7 +403,7 @@ export default function HarnessEditPage() {
                   <Divider style={{ margin: '8px 0', opacity: 0.1 }} />
 
                   <div style={{ width: '100%' }}>
-                    <Text type="secondary" style={{ color: '#94a3b8' }}>自动化设备利用率 (基准: 85%)</Text>
+                    <Text type="secondary" style={{ color: 'var(--text-secondary)' }}>自动化设备利用率 (基准: 85%)</Text>
                     <Slider 
                       step={0.05} min={0.4} max={1.0} 
                       value={simulation.utilizationFactor} 
@@ -417,7 +420,7 @@ export default function HarnessEditPage() {
                   <Divider style={{ margin: '8px 0', opacity: 0.1 }} />
 
                   <div style={{ width: '100%' }}>
-                    <Text type="secondary" style={{ color: '#94a3b8' }}>金属行情实时穿透 (LME/SMM)</Text>
+                    <Text type="secondary" style={{ color: 'var(--text-secondary)' }}>金属行情实时穿透 (LME/SMM)</Text>
                     <Row gutter={8} style={{ marginTop: 8 }}>
                       <Col span={12}>
                         <Text size="small" style={{ color: '#fff' }}>铜 (Cu)</Text>
@@ -475,9 +478,9 @@ export default function HarnessEditPage() {
       {/* 4. Status Bar */}
       <div style={{ 
         height: STATUS_BAR_HEIGHT, 
-        backgroundColor: 'rgba(0, 0, 0, 0.4)', 
-        backdropFilter: 'blur(10px)',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
+        backgroundColor: 'rgba(255, 255, 255, 0.85)', 
+        backdropFilter: 'blur(16px)',
+        borderTop: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
         padding: '0 16px',
@@ -489,20 +492,20 @@ export default function HarnessEditPage() {
           <Divider layout="vertical" />
           {result ? (
             <>
-              <Text style={{ color: '#94a3b8' }}>材料: <Text strong style={{ color: '#06b6d4', fontFamily: 'JetBrains Mono' }}>¥{result.materialCost.toFixed(2)}</Text></Text>
-              <Text style={{ color: '#94a3b8' }}>人工: <Text strong style={{ color: '#fff', fontFamily: 'JetBrains Mono' }}>¥{result.directLabor.toFixed(2)}</Text></Text>
-              <Text style={{ color: '#94a3b8' }}>制造: <Text strong style={{ color: '#fff', fontFamily: 'JetBrains Mono' }}>¥{result.manufacturing.toFixed(2)}</Text></Text>
-              <Text style={{ color: '#94a3b8' }}>出厂: <Text strong style={{ color: '#fbbf24', fontFamily: 'JetBrains Mono' }}>¥{result.exFactoryPrice.toFixed(2)}</Text></Text>
-              <Text style={{ color: '#94a3b8' }}>到厂: <Text strong style={{ color: '#f87171', fontFamily: 'JetBrains Mono' }}>¥{result.deliveredPrice.toFixed(2)}</Text></Text>
+              <Text style={{ color: 'var(--text-secondary)' }}>材料: <Text strong style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono' }}>¥{result.materialCost.toFixed(2)}</Text></Text>
+              <Text style={{ color: 'var(--text-secondary)' }}>人工: <Text strong style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono' }}>¥{result.directLabor.toFixed(2)}</Text></Text>
+              <Text style={{ color: 'var(--text-secondary)' }}>制造: <Text strong style={{ color: 'var(--text-primary)', fontFamily: 'JetBrains Mono' }}>¥{result.manufacturing.toFixed(2)}</Text></Text>
+              <Text style={{ color: 'var(--text-secondary)' }}>出厂: <Text strong style={{ color: 'var(--warning)', fontFamily: 'JetBrains Mono' }}>¥{result.exFactoryPrice.toFixed(2)}</Text></Text>
+              <Text style={{ color: 'var(--text-secondary)' }}>到厂: <Text strong style={{ color: 'var(--danger)', fontFamily: 'JetBrains Mono' }}>¥{result.deliveredPrice.toFixed(2)}</Text></Text>
               
               {internalResult && (
                 <>
                   <Divider layout="vertical" />
                   <Tooltip content={
                     <div>
-                      <Text strong style={{ color: '#06b6d4' }}>内部实绩精算 (Actual): ¥{internalResult.internalCost.toFixed(2)}</Text>
+                      <Text strong style={{ color: '#0f172a' }}>内部实绩精算 (Actual): ¥{internalResult.internalCost.toFixed(2)}</Text>
                       <br />
-                      <Text size="small" style={{ color: '#94a3b8' }}>Audit Trace: {internalResult.auditTraceId || 'N/A'}</Text>
+                      <Text size="small" style={{ color: 'var(--text-secondary)' }}>Audit Trace: {internalResult.auditTraceId || 'N/A'}</Text>
                     </div>
                   }>
                     <Tag 

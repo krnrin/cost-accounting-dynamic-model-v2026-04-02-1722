@@ -199,22 +199,23 @@ describe('computeInternalHarnessCost', () => {
 
     // 工时 = 1.0
     expect(result.processHours).toBe(1.0);
-    // 直接人工 = 1.0 × 29.19
-    expect(result.directLabor).toBeCloseTo(29.19, 2);
-    // 间接人工 = 1.0 × 8.4991
-    expect(result.indirectLabor).toBeCloseTo(8.4991, 4);
+    // 直接人工 = 1.0 × 28.58 (INTERNAL_DEFAULTS.laborRate)
+    expect(result.directLabor).toBeCloseTo(28.58, 2);
+    // 间接人工 = 1.0 × 8.50 (INTERNAL_DEFAULTS.indirectLaborRate)
+    expect(result.indirectLabor).toBeCloseTo(8.50, 2);
     // 材料损耗 = 100 × 0.005 = 0.5
     expect(result.materialWaste).toBeCloseTo(0.5, 2);
     // 自动化仓 = 1.0 × 2.03
-    expect(result.autoWarehouse).toBeCloseTo(2.03, 2);
-    
-    // 制造费小计 (除直接人工外)
-    const mfgExpected = 
-      8.4991 + 1.45 + 1.8563 + 1.4234 + 0.5 + 0.8764 + 2.03;
-    expect(result.mfgOverheadTotal).toBeCloseTo(mfgExpected, 4);
+    expect(result.automationAmortization).toBeCloseTo(2.03, 2);
 
-    // 内部总成本 = 材料(100) + 直接人工(29.19) + 制造费(mfgExpected) + 包装运输(3)
-    const totalExpected = 100 + 29.19 + mfgExpected + 3;
+    // 制造费小计 (除直接人工外)
+    // indirectLabor(8.50) + factoryAmortization(1.45) + materialConsumption(1.86) + otherOverhead(1.42) + materialWaste(0.5) + lowValueConsumables(0.88) + automationAmortization(2.03)
+    const mfgExpected =
+      8.50 + 1.45 + 1.86 + 1.42 + 0.5 + 0.88 + 2.03;
+    expect(result.mfgOverheadTotal).toBeCloseTo(mfgExpected, 2);
+
+    // 内部总成本 = 材料(100) + 直接人工(28.58) + 制造费(mfgExpected) + 包装运输(3)
+    const totalExpected = 100 + 28.58 + mfgExpected + 3;
     expect(result.internalCost).toBeCloseTo(totalExpected, 2);
   });
 });

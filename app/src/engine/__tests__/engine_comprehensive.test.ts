@@ -9,7 +9,7 @@ import fs from 'fs';
 import path from 'path';
 
 // 读取种子数据
-const seedDataPath = path.resolve(__dirname, '../../../../_e281_harness_seed_data.json');
+const seedDataPath = path.resolve(__dirname, '../../../../data/_e281_harness_seed_data.json');
 const seed = JSON.parse(fs.readFileSync(seedDataPath, 'utf8'));
 
 const RATES: CostRates = {

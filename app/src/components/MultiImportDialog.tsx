@@ -182,6 +182,8 @@ export function MultiImportDialog({ visible, projectId, onClose, onImported }: M
             await db.harnesses.add({
               id: crypto.randomUUID(),
               projectId,
+              scenarioId: '',
+              eopYear: null,
               harnessId,
               harnessName: harnessId,
               input,

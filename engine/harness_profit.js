@@ -1,5 +1,8 @@
 /**
  * engine/harness_profit.js
+ * @deprecated 已被 harness_costing.js 完全替代 (Issue #195)。
+ * 底层逻辑从基于 revenueShare 的间接分摊转向基于线束号的独立核算精算路径。
+ *
  * Issue #9: 线束级利润拆分引擎
  * Issue #33: 残余分摊死代码清除（residualMaterialPool 恒 = 0）
  * 职责：

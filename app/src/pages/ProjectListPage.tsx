@@ -6,9 +6,8 @@ import { projectRepo } from '../data/repositories';
 import { db, type ProjectRecord } from '../data/db';
 import { downloadProjectPackage, importProjectPackage, validateProjectPackage } from '@/engine/project_io';
 import { exportProjectZip } from '@/engine/zip_export';
-import { 
-  computeProjectFromHarnesses,
-  computeInternalProjectDynamic 
+import {
+  computeInternalProjectDynamic
 } from '@/engine/harness_costing';
 import { usePricingStore } from '@/store/pricingStore';
 import { RoleGuard } from '@/components/RoleGuard';
@@ -35,7 +34,7 @@ export default function ProjectListPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [extraInfo, setExtraInfo] = useState<Record<string, { harnessCount: number; unitCost?: number }>>({});
+  const [extraInfo, setExtraInfo] = useState<Record<string, { harnessCount: number; scenarioCount: number; unitCost?: number; internalCost?: number }>>({});
   const navigate = useNavigate();
   const handleImport = () => {
     const input = document.createElement('input');
@@ -76,28 +75,29 @@ export default function ProjectListPage() {
 
   useEffect(() => {
     const fetchExtra = async () => {
-      const info: Record<string, { harnessCount: number; unitCost?: number; /* internalCost removed */ unitCost?: number }> = {};
+      const info: Record<string, { harnessCount: number; scenarioCount: number; unitCost?: number; internalCost?: number }> = {};
       for (const p of projects) {
         const count = await db.harnesses.where('projectId').equals(p.id).count();
+        const scenarioCount = await db.scenarios.where('projectId').equals(p.id).count();
         // Latest Quote (Customer Quote)
         const latestQuote = await db.quotes.where('projectId').equals(p.id).reverse().sortBy('updatedAt').then(qs => qs[0]);
         const unitCost = latestQuote?.totals?.deliveredPrice;
 
         // Internal Actual Cost (Dynamic Simulation)
-        let /* internalCost removed */ unitCost: number | undefined;
+        let internalCost: number | undefined;
         if (pricingContext) {
           const harnesses = await db.harnesses.where('projectId').equals(p.id).toArray();
           if (harnesses.length > 0) {
             const projectResult = computeInternalProjectDynamic(
               harnesses.map(h => h.input),
               pricingContext,
-              p.config?.factoryId || 'Chongqing'
+              p.config?.factories?.[0]?.factoryId || 'Chongqing'
             );
-            /* internalCost removed */ unitCost = projectResult.vehicleCost;
+            internalCost = projectResult.vehicleCost;
           }
         }
         
-        info[p.id] = { harnessCount: count, unitCost, /* internalCost removed */ unitCost };
+        info[p.id] = { harnessCount: count, scenarioCount, unitCost, internalCost };
       }
       setExtraInfo(info);
     };
@@ -213,10 +213,7 @@ export default function ProjectListPage() {
         {filteredProjects.map((p) => (
           <div key={p.id} onClick={() => navigate(`/project/${p.id}`)} style={{ cursor: 'pointer' }}>
           <Card className="elite-card animate-fade-up"
-            style={{
-              /* removed solid background */
-              /* removed solid background */
-            }}
+            style={{}}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
@@ -270,6 +267,10 @@ export default function ProjectListPage() {
                 <Text strong>{extraInfo[p.id]?.harnessCount ?? 0}</Text>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <Text type="tertiary" size="small">场景数</Text>
+                <Text strong>{extraInfo[p.id]?.scenarioCount ?? 0}</Text>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
                 <Text type="tertiary" size="small">报价金额</Text>
                 <Text strong>
                   {extraInfo[p.id]?.unitCost 
@@ -277,18 +278,17 @@ export default function ProjectListPage() {
                     : '-'}
                 </Text>
               </div>
-              <RoleGuard field="/* internalCost removed */ unitCost">
+              <RoleGuard field="internalCost">
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
                   <Text type="tertiary" size="small">内部核算 (实绩)</Text>
                   <Text strong style={{ color: 'var(--semi-color-warning)' }}>
-                    {extraInfo[p.id]?./* internalCost removed */ unitCost 
-                      ? `¥${extraInfo[p.id]?./* internalCost removed */ unitCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
+                    {extraInfo[p.id]?.internalCost 
+                      ? `¥${extraInfo[p.id]?.internalCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` 
                       : '-'}
                   </Text>
                 </div>
               </RoleGuard>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <Text type="tertiary" size="small">当前状态</Text>
                 <Text type="tertiary" size="small">当前状态</Text>
                 <Tag color={
                   p.meta.status === 'draft' ? 'grey' :

@@ -198,6 +198,8 @@ export async function seedG281Project(): Promise<string> {
   const harnessRecords: HarnessRecord[] = HARNESS_SEED_DATA.map((seed) => ({
     id: `g281-${seed.harnessId}`,
     projectId: projectId,
+    scenarioId: '',
+    eopYear: null,
     harnessId: seed.harnessId,
     harnessName: seed.name,
     updatedAt: now,

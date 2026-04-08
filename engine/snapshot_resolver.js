@@ -6,9 +6,13 @@
 (function (global) {
   'use strict';
 
-  // P0#1: 防御性解构
+  // P0#1: 防御性解构 — 提供内联 fallback
   const U = global.G281SharedUtils || {};
-  const { numberOr, safeArray, approxEqual, arraysClose, normalizeMix } = U;
+  const numberOr = U.numberOr || function (v, fb) { var n = Number(v); return Number.isFinite(n) ? n : fb; };
+  const safeArray = U.safeArray || function (v) { return Array.isArray(v) ? v : []; };
+  const approxEqual = U.approxEqual || function (a, b, eps) { return Math.abs(a - b) <= (eps || 1e-9); };
+  const arraysClose = U.arraysClose || function (a, b, eps) { if (!a || !b || a.length !== b.length) return false; for (var i = 0; i < a.length; i++) { if (Math.abs(a[i] - b[i]) > (eps || 1e-9)) return false; } return true; };
+  const normalizeMix = U.normalizeMix || function (m) { return Array.isArray(m) ? m : []; };
 
   // ── financial version 访问 ──────────────────
   function financialVersionEntries(runtime) {

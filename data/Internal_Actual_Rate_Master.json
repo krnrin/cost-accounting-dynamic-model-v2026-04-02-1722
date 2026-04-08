@@ -1,0 +1,121 @@
+{
+  "version": "2026-Q2-V1.1",
+  "effective_date": "2026-04-06",
+  "base_currency": "CNY",
+  "audit_trace_id": "RATE-2026Q2-002",
+  "targetScrapRate": 0.005,
+  "factories": {
+    "K1K2_Factory": {
+      "name": "K1K2 总部工厂",
+      "labor_rates": { "cut": 30.20, "public": 28.19, "assembly": 28.58 },
+      "moh_components": {
+        "indirect_labor": 8.50,
+        "low_value_consumables": 0.88,
+        "material_consumption": 1.86,
+        "factory_amortization": 1.45,
+        "automation_amortization": 2.03,
+        "other_overhead": 1.42
+      },
+      "scrap_rate_param": 0.005,
+      "efficiency_base": 0.90,
+      "automation_utilization_factor": 1.0,
+      "lrp_volume_base": 120000
+    },
+    "Chongqing_HV": {
+      "name": "重庆高压线束基地",
+      "labor_rates": { "cut": 32.03, "public": 30.00, "assembly": 30.50 },
+      "moh_components": {
+        "indirect_labor": 9.20,
+        "low_value_consumables": 0.95,
+        "material_consumption": 1.95,
+        "factory_amortization": 1.60,
+        "automation_amortization": 2.20,
+        "other_overhead": 1.50
+      },
+      "scrap_rate_param": 0.006,
+      "efficiency_base": 0.88,
+      "automation_utilization_factor": 1.05,
+      "lrp_volume_base": 80000
+    },
+    "K3_Factory": {
+      "name": "昆山 K3 工厂",
+      "labor_rates": { "cut": 31.50, "public": 29.00, "assembly": 29.50 },
+      "moh_components": {
+        "indirect_labor": 8.80,
+        "low_value_consumables": 0.90,
+        "material_consumption": 1.90,
+        "factory_amortization": 1.50,
+        "automation_amortization": 2.10,
+        "other_overhead": 1.45
+      },
+      "scrap_rate_param": 0.005,
+      "efficiency_base": 0.89,
+      "automation_utilization_factor": 1.02,
+      "lrp_volume_base": 100000
+    },
+    "Ningbo_Factory": {
+      "name": "宁波生产基地",
+      "labor_rates": { "cut": 29.80, "public": 27.50, "assembly": 28.00 },
+      "moh_components": {
+        "indirect_labor": 8.20,
+        "low_value_consumables": 0.85,
+        "material_consumption": 1.80,
+        "factory_amortization": 1.40,
+        "automation_amortization": 1.95,
+        "other_overhead": 1.35
+      },
+      "scrap_rate_param": 0.005,
+      "efficiency_base": 0.91,
+      "automation_utilization_factor": 1.0,
+      "lrp_volume_base": 150000
+    },
+    "Baoding_Factory": {
+      "name": "保定工厂",
+      "labor_rates": { "cut": 28.50, "public": 26.00, "assembly": 26.50 },
+      "moh_components": {
+        "indirect_labor": 7.80,
+        "low_value_consumables": 0.80,
+        "material_consumption": 1.75,
+        "factory_amortization": 1.35,
+        "automation_amortization": 1.85,
+        "other_overhead": 1.30
+      },
+      "scrap_rate_param": 0.0055,
+      "efficiency_base": 0.85,
+      "automation_utilization_factor": 0.98,
+      "lrp_volume_base": 90000
+    },
+    "Chongqing_LV": {
+      "name": "重庆低压线束基地",
+      "labor_rates": { "cut": 28.00, "public": 25.50, "assembly": 26.00 },
+      "moh_components": {
+        "indirect_labor": 7.50,
+        "low_value_consumables": 0.78,
+        "material_consumption": 1.70,
+        "factory_amortization": 1.30,
+        "automation_amortization": 1.80,
+        "other_overhead": 1.25
+      },
+      "scrap_rate_param": 0.005,
+      "efficiency_base": 0.86,
+      "automation_utilization_factor": 0.95,
+      "lrp_volume_base": 200000
+    },
+    "Tianjin_Factory": {
+      "name": "天津工厂",
+      "labor_rates": { "cut": 30.50, "public": 28.50, "assembly": 29.00 },
+      "moh_components": {
+        "indirect_labor": 8.60,
+        "low_value_consumables": 0.89,
+        "material_consumption": 1.88,
+        "factory_amortization": 1.48,
+        "automation_amortization": 2.05,
+        "other_overhead": 1.44
+      },
+      "scrap_rate_param": 0.005,
+      "efficiency_base": 0.88,
+      "automation_utilization_factor": 1.03,
+      "lrp_volume_base": 110000
+    }
+  }
+}

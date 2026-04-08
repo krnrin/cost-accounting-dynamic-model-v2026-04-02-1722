@@ -59,23 +59,44 @@ export const useAuthStore = create<AuthState>()(
         authSource: null,
 
         login: async (email, password) => {
-          const res = await fetch(`${API_BASE}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password }),
-          });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({ error: 'Login failed' }));
-            throw new Error(err.error || 'Login failed');
+          try {
+            const res = await fetch(`${API_BASE}/auth/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password }),
+            });
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({ error: 'Login failed' }));
+              throw new Error(err.error || 'Login failed');
+            }
+            const { data } = await res.json();
+            syncService.setToken(data.token);
+            set({
+              user: data.user,
+              token: data.token,
+              isAuthenticated: true,
+              authSource: 'local',
+            });
+          } catch (e: any) {
+            // Dev fallback: if backend is unreachable, allow offline login
+            if (import.meta.env.DEV) {
+              console.warn('[DEV] Backend unreachable, using offline login');
+              const devUser: AuthUser = {
+                id: 'dev-admin',
+                email: email || 'admin@harness.dev',
+                name: 'Admin (离线)',
+                role: 'ADMIN',
+              };
+              set({
+                user: devUser,
+                token: 'dev-offline-token',
+                isAuthenticated: true,
+                authSource: 'local',
+              });
+              return;
+            }
+            throw e;
           }
-          const { data } = await res.json();
-          syncService.setToken(data.token);
-          set({
-            user: data.user,
-            token: data.token,
-            isAuthenticated: true,
-            authSource: 'local',
-          });
         },
 
         register: async (email, password, name, role) => {

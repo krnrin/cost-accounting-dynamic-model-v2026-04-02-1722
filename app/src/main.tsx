@@ -2,7 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { db } from './data/db';
-import { seedG281Project } from './data/seeds/g281';
+import { seedE281Project } from './data/seeds/e281';
 import App from './App';
 import './index.css';
 
@@ -20,9 +20,9 @@ if ('serviceWorker' in navigator) {
 
 // Auto-seed on first launch
 db.on('ready', async () => {
-  const count = await db.projects.count();
-  if (count === 0) {
-    await seedG281Project();
+  const e281 = await db.projects.get('e281-quote');
+  if (!e281) {
+    await seedE281Project();
   }
 });
 
