@@ -92,7 +92,7 @@ export class QuoteService {
 
   static async updateQuote(id: string, data: any) {
     const current = await this.getQuoteById(id);
-    const lockedFields = Array.isArray(current.lockedFields) ? current.lockedFields : [];
+    const lockedFields: string[] = Array.isArray(current.lockedFields) ? current.lockedFields as string[] : [];
     const illegalField = Object.keys(data).find((field) => current.customerAccepted && lockedFields.includes(field));
     if (illegalField) {
       const err: any = new Error(`Field is locked after confirmation: ${illegalField}`);

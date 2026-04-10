@@ -9,6 +9,8 @@ import {
 } from '../quote_template';
 import type { HarnessResult } from '@/types/harness';
 import type { NreData } from '@/types/quote';
+import type { CustomerQuoteSnapshot } from '@/types/project';
+import type { CustomerQuoteSnapshot } from '@/types/project';
 
 const mockHarnessResult: HarnessResult = {
   harnessId: 'H001',
@@ -146,12 +148,36 @@ describe('quote_template', () => {
       { year: 3, volume: 3000 },
       { year: 4, volume: 4000 },
     ];
-    
+
     // Default vol should be 1000 + 2000 + 3000 = 6000
     // E2 = 30000 / 6000 = 5
     const sheet = buildQuoteSheet(results, 'geely', {}, nreWithoutVol, volumes);
     const h = sheet.harnesses[0] as any;
     expect(h.E2_newTooling).toBe(5);
+  });
+
+  it('buildQuoteSheet prefers customer snapshot prices when provided', () => {
+    const snapshots: Record<string, CustomerQuoteSnapshot> = {
+      H001: {
+        exFactoryPrice: 1300,
+        deliveredPrice: 1350,
+      },
+    };
+
+    const sheet = buildQuoteSheet(
+      [mockHarnessResult],
+      'geely',
+      {},
+      mockNreData,
+      undefined,
+      snapshots,
+    );
+    const h = sheet.harnesses[0] as any;
+
+    expect(h.exFactoryPrice).toBe(1300);
+    expect(h.deliveredPrice).toBe(1350);
+    expect(sheet.totals.exFactoryPrice).toBe(1300);
+    expect(sheet.totals.deliveredPrice).toBe(1350);
   });
 
   it('handles zero values correctly', () => {

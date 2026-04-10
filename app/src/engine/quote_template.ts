@@ -12,7 +12,7 @@ import type {
   QuoteSheetMeta
 } from '@/types/quote';
 import type { GapStatus as _GapStatus } from '@/types/financial_schema';
-import type { VolumeSchedule } from '@/types/project';
+import type { VolumeSchedule, CustomerQuoteSnapshot } from '@/types/project';
 
 /** 吉利标准费率 */
 export const GEELY_RATES: GeelyRates = {
@@ -416,11 +416,12 @@ export function mapInternalToOem(
  * @returns 完整的报价单数据
  */
 export function buildQuoteSheet(
-  harnessResults: HarnessResult[], 
-  templateName: string, 
-  projectMeta?: Partial<QuoteSheetMeta>, 
+  harnessResults: HarnessResult[],
+  templateName: string,
+  projectMeta?: Partial<QuoteSheetMeta>,
   nreData?: NreData,
-  volumes?: VolumeSchedule[]
+  volumes?: VolumeSchedule[],
+  customerQuoteSnapshots?: Record<string, CustomerQuoteSnapshot>
 ): QuoteSheet {
   const meta = projectMeta || {};
   
@@ -436,7 +437,16 @@ export function buildQuoteSheet(
   }
 
   const harnesses = (harnessResults || []).map((h) => {
-    return mapToTemplate(h, templateName, null, effectiveNre);
+    const item = mapToTemplate(h, templateName, null, effectiveNre);
+    const snapshot = customerQuoteSnapshots?.[h.harnessId];
+    if (!snapshot) {
+      return item;
+    }
+    return {
+      ...item,
+      exFactoryPrice: snapshot.exFactoryPrice ?? item.exFactoryPrice,
+      deliveredPrice: snapshot.deliveredPrice,
+    };
   });
 
   // 计算合计

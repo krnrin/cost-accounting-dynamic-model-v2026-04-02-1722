@@ -1,0 +1,7 @@
+You are in D:\harness-project. Read CLAUDE.md for project rules, then read task.json.
+
+IMPORTANT STATE RULE: Use git log --oneline to check which tasks have already been committed. If a task has a commit like "feat(...): ... [TXX]" in git history but task.json still shows it as "pending", update task.json to mark it as "done" FIRST. Then find the next truly pending task.
+
+Also run "git add -A && git diff --cached --stat" to check for uncommitted changes. If there are uncommitted changes from a previous session, commit them with message "chore: sync uncommitted changes from previous session" before starting new work.
+
+After syncing state, find the next pending task (respect depends_on, pick smallest id with all deps done). Implement it fully including backend and frontend code, run tests, update progress.txt, mark task done in task.json, and git commit all changes. Complete ONE task then exit.

@@ -7,24 +7,33 @@ import { requireRole } from '../middleware/rbac.js';
 
 const router = Router();
 
+const projectStatusEnum = z.enum(['draft', 'quoted', 'awarded', 'production', 'eol']);
+
 const projectSchema = z.object({
-  projectCode: z.string().min(3),
-  projectName: z.string().min(3),
+  projectCode: z.string().min(2),
+  projectName: z.string().min(2),
   customer: z.string().min(2),
   platform: z.string().optional(),
-  status: z.string().optional(),
-  costRates: z.any(),
-  metalPrices: z.any(),
+  status: projectStatusEnum.optional(),
+  costRates: z.any().default({}),
+  metalPrices: z.any().default({}),
   volumes: z.any().optional(),
+});
+
+const listQuerySchema = z.object({
+  search: z.string().trim().optional(),
+  status: projectStatusEnum.optional(),
 });
 
 router.use(authMiddleware);
 
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const search = typeof req.query.search === 'string' ? req.query.search : undefined;
-    const status = typeof req.query.status === 'string' ? req.query.status : undefined;
-    const projects = await ProjectService.getAllProjects({ search, status });
+    const query = listQuerySchema.parse({
+      search: typeof req.query.search === 'string' ? req.query.search : undefined,
+      status: typeof req.query.status === 'string' ? req.query.status : undefined,
+    });
+    const projects = await ProjectService.getAllProjects(query);
     res.json({ data: projects });
   } catch (error) {
     next(error);

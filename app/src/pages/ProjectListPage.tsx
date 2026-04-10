@@ -497,6 +497,9 @@ export default function ProjectListPage() {
           onChange={setSearchTerm}
           style={{ width: 320 }}
           showClear
+          onEnterPress={() => {
+            void fetchProjects();
+          }}
         />
         <RadioGroup type="button" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
           <Radio value="all">全部</Radio>

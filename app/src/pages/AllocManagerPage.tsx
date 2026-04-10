@@ -18,6 +18,7 @@ import ReactECharts from 'echarts-for-react/lib/core';
 import echarts from '@/lib/echarts';
 import { db } from '@/data/db';
 import type { ProjectRecord, ScenarioRecord } from '@/data/db';
+import { getScenarioOnetimeCostFallback } from '@/utils/e281Fallback';
 import { useAllocStore } from '@/store/allocStore';
 import {
   computeProjectAlloc,
@@ -90,9 +91,12 @@ export default function AllocManagerPage() {
       }
 
       // 初始化编辑行
-      const existingCosts = sid
+      const storedCosts = sid
         ? await db.onetimeCosts.where('scenarioId').equals(sid).toArray()
         : await db.onetimeCosts.where('projectId').equals(projectId).toArray();
+      const existingCosts = sid && storedCosts.length === 0
+        ? getScenarioOnetimeCostFallback(sc)
+        : storedCosts;
       const costMap = new Map(existingCosts.map(c => [c.harnessId, c.input]));
       const trackerRecords = sid
         ? await db.allocTrackers.where('scenarioId').equals(sid).toArray()

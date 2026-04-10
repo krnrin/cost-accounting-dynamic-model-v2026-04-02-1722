@@ -92,8 +92,8 @@ router.post('/scenario/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), asy
     const validatedData = quoteSchema.parse({ ...req.body, scenarioId: req.params.sid as string });
     const projectId = validatedData.projectId;
     if (!projectId) throw Object.assign(new Error('projectId is required'), { status: 400 });
-    const { projectId: pid, ...data } = validatedData;
-    const quote = await QuoteService.createQuote(pid, data);
+    const data = { ...validatedData, projectId: undefined };
+    const quote = await QuoteService.createQuote(projectId, data);
     res.status(201).json({ data: quote });
   } catch (error) {
     next(error);

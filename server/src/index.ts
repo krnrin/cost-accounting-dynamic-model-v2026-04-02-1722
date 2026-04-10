@@ -18,6 +18,7 @@ import recoveryRoutes from './routes/recoveries.js';
 import scenarioChangeRoutes, { changeRouter } from './routes/changes.js';
 import scenarioTrackingRoutes, { trackingRouter } from './routes/tracking.js';
 import syncRoutes from './routes/sync.js';
+import settingsRoutes from './routes/settings.js';
 import feishuRoutes from './routes/feishu.js';
 
 const app = express();
@@ -48,6 +49,7 @@ app.use('/api/tracking', trackingRouter);
 app.use('/api/projects/:pid/harnesses', harnessRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/versions', versionRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/feishu', feishuRoutes);
 

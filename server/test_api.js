@@ -231,6 +231,20 @@ async function runTests() {
   }, token);
   assert('PUT /api/projects/:id', projUp.status === 200 && projUp.json.data?.projectName?.includes('更新'));
 
+  // 8b. Settings CRUD / publish / history / snapshot
+  const settingsAll = await api('GET', '/api/settings', null, token);
+  assert('GET /api/settings', settingsAll.status === 200 && Array.isArray(settingsAll.json.data));
+  const settingsCategory = await api('GET', '/api/settings/cost_structure', null, token);
+  assert('GET /api/settings/:category', settingsCategory.status === 200 && Array.isArray(settingsCategory.json.data));
+  const settingsUpdate = await api('PUT', '/api/settings/cost_structure/defaultCostRates', { value: { laborRate: 36, mfgRate: 46.69 } }, token);
+  assert('PUT /api/settings/:category/:key', settingsUpdate.status === 200 && settingsUpdate.json.data?.value?.laborRate === 36);
+  const settingsPublish = await api('POST', '/api/settings/publish', {}, token);
+  assert('POST /api/settings/publish', settingsPublish.status === 200 && settingsPublish.json.data?.status === 'published');
+  const settingsHistory = await api('GET', '/api/settings/history', null, token);
+  assert('GET /api/settings/history', settingsHistory.status === 200 && Array.isArray(settingsHistory.json.data));
+  const settingsSnapshot = await api('GET', '/api/settings/snapshot/v1', null, token);
+  assert('GET /api/settings/snapshot/:version', settingsSnapshot.status === 200 && Array.isArray(settingsSnapshot.json.data));
+
   // 9. List harnesses
   const hList = await api('GET', `/api/projects/${projectId}/harnesses`, null, token);
   assert('GET /api/projects/:pid/harnesses', hList.status === 200 && Array.isArray(hList.json.data));

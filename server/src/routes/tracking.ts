@@ -38,8 +38,8 @@ scenarioTrackingRouter.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), 
     const input = trackingSchema.parse(req.body);
     const projectId = input.projectId;
     if (!projectId) throw Object.assign(new Error('projectId is required'), { status: 400 });
-    const { projectId: pid, ...data } = input;
-    const created = await TrackingService.create(pid, req.params.sid as string, data);
+    const data = { ...input, projectId: undefined };
+    const created = await TrackingService.create(projectId, req.params.sid as string, data);
     res.status(201).json({ data: created });
   } catch (error) {
     next(error);
