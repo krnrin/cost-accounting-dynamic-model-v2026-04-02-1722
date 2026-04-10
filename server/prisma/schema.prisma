@@ -198,6 +198,28 @@ model ChangeEvent {
   @@index([scenarioId])
 }
 
+model TrackingItem {
+  id            String   @id @default(uuid())
+  projectId     String
+  scenarioId    String
+  trackingType  String
+  title         String
+  sourceRef     String?
+  currentStatus String   @default("pending")
+  severity      String   @default("medium")
+  owner         String?
+  plannedAction String?
+  actualResult  String?
+  closeReason   String?
+  warningRef    String?
+  closedAt      DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([scenarioId])
+}
+
 model Version {
   id             String   @id @default(uuid())
   projectId      String

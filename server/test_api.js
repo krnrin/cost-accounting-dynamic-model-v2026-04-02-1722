@@ -199,7 +199,27 @@ async function runTests() {
   const changeUpdate = await api('PUT', `/api/changes/${changeId}`, { status: 'confirmed' }, token);
   assert('PUT /api/changes/:cid', changeUpdate.status === 200 && changeUpdate.json.data?.status === 'confirmed');
 
-  // 7c. Audit log test (added)
+  // 7c. Tracking CRUD
+  const trackingCreate = await api('POST', `/api/projects/${e281Id}/scenarios/${scenarioId}/tracking`, {
+    projectId: e281Id,
+    trackingType: 'progress_price',
+    title: '协议价差异跟踪',
+    severity: 'high',
+    owner: 'sales-001',
+    plannedAction: '与客户确认进度价'
+  }, token);
+  assert('POST /api/projects/:id/scenarios/:sid/tracking', trackingCreate.status === 201 && trackingCreate.json.data?.id);
+  const trackingId = trackingCreate.json.data?.id;
+  const trackingList = await api('GET', `/api/projects/${e281Id}/scenarios/${scenarioId}/tracking`, null, token);
+  assert('GET /api/projects/:id/scenarios/:sid/tracking', trackingList.status === 200 && Array.isArray(trackingList.json.data));
+  const trackingGet = await api('GET', `/api/tracking/${trackingId}`, null, token);
+  assert('GET /api/tracking/:tid', trackingGet.status === 200 && trackingGet.json.data?.id === trackingId);
+  const trackingUpdate = await api('PUT', `/api/tracking/${trackingId}`, { currentStatus: 'in_progress', actualResult: '已和客户沟通' }, token);
+  assert('PUT /api/tracking/:tid', trackingUpdate.status === 200 && trackingUpdate.json.data?.currentStatus === 'in_progress');
+  const trackingClose = await api('POST', `/api/tracking/${trackingId}/close`, { closeReason: '客户已确认' }, token);
+  assert('POST /api/tracking/:tid/close', trackingClose.status === 200 && trackingClose.json.data?.currentStatus === 'closed');
+
+  // 7d. Audit log test (added)
   const auditLogs = await api('GET', `/api/projects/${e281Id}/audit-logs`, null, token);
   assert('GET /api/projects/:id/audit-logs', auditLogs.status === 200 && auditLogs.json.data?.length >= 1);
   const createLog = auditLogs.json.data?.find(l => l.action === 'CREATE' && l.entity === 'project');
