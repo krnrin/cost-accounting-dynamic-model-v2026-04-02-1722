@@ -220,6 +220,21 @@ model TrackingItem {
   @@index([scenarioId])
 }
 
+model Setting {
+  id         String   @id @default(uuid())
+  category   String
+  key        String
+  value      String   @default("{}")
+  isGlobal   Boolean  @default(true)
+  versionRef String?
+  updatedBy  String?
+  updatedAt  DateTime @updatedAt
+  createdAt  DateTime @default(now())
+
+  @@unique([category, key])
+  @@index([category])
+}
+
 model Version {
   id             String   @id @default(uuid())
   projectId      String
