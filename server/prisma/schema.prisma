@@ -41,6 +41,7 @@ model Project {
   scenarios   Scenario[]
   harnesses   Harness[]
   quotes      Quote[]
+  allocations AllocationItem[]
   versions    Version[]
   auditLogs   AuditLog[]
 }
@@ -115,6 +116,39 @@ model Quote {
   editableFields             String   @default("[]")
   approvalFields             String   @default("[]")
 
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([scenarioId])
+  @@index([harnessId])
+}
+
+model AllocationItem {
+  id                         String   @id @default(uuid())
+  projectId                  String
+  project                    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  scenarioId                 String
+  harnessId                  String
+  expenseType                String
+  expenseName                String
+  totalAmount                Float    @default(0)
+  allocationBasis            String?
+  baselineVolume             Int      @default(0)
+  unitAllocation             Float    @default(0)
+  plannedRecovery            Float    @default(0)
+  actualRecovered            Float    @default(0)
+  remainingRecovery          Float    @default(0)
+  recoveryProgress           Float    @default(0)
+  burdenSide                 String   @default("supplier")
+  pricingEffect              String   @default("internal_only")
+  recoveryCompletionBehavior String   @default("notify_only")
+  priceAdjustReminder        Boolean  @default(false)
+  targetRecoveryDate         DateTime?
+  completedAt                DateTime?
+  status                     String   @default("pending")
+  sourceVersionId            String?
   createdAt                  DateTime @default(now())
   updatedAt                  DateTime @updatedAt
 

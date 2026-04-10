@@ -12,6 +12,7 @@ import scenarioRoutes, { compareRouter as scenarioCompareRoutes } from './routes
 import harnessRoutes from './routes/harnesses.js';
 import scenarioBomRoutes, { bomRowRouter } from './routes/bom.js';
 import quoteRoutes from './routes/quotes.js';
+import scenarioAllocationRoutes, { allocationRouter } from './routes/allocations.js';
 import versionRoutes from './routes/versions.js';
 import syncRoutes from './routes/sync.js';
 import feishuRoutes from './routes/feishu.js';
@@ -34,6 +35,8 @@ app.use('/api/projects/:id/scenarios', scenarioRoutes);
 app.use('/api/scenarios', scenarioCompareRoutes);
 app.use('/api/scenarios/:sid/bom', scenarioBomRoutes);
 app.use('/api/bom', bomRowRouter);
+app.use('/api/scenarios/:sid/allocations', scenarioAllocationRoutes);
+app.use('/api/allocations', allocationRouter);
 app.use('/api/projects/:pid/harnesses', harnessRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/versions', versionRoutes);
