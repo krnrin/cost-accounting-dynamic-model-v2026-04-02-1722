@@ -1,29 +1,97 @@
 import prisma from '../lib/prisma.js';
 import { hydrateJsonFields, dehydrateJsonFields } from '../lib/json.js';
 
+const QUOTE_JSON_FIELDS = ['data', 'quoteParams', 'quoteResult', 'lockedFields', 'editableFields', 'approvalFields'] as const;
+
+function computeProfitGap(quote: any) {
+  const effectivePrice = Number(quote.effectivePrice ?? quote.arrivalPrice ?? 0);
+  const internalCostBaseline = Number(quote.internalCostBaseline ?? 0);
+  return effectivePrice - internalCostBaseline;
+}
+
 export class QuoteService {
   static async getQuotesByProject(projectId: string) {
     const quotes = await prisma.quote.findMany({
       where: { projectId },
       orderBy: { createdAt: 'desc' },
     });
-    return quotes.map((q) => hydrateJsonFields(q, ['data']));
+    return quotes.map((q) => hydrateJsonFields(q, [...QUOTE_JSON_FIELDS]));
+  }
+
+  static async getQuotesByScenario(scenarioId: string) {
+    const quotes = await prisma.quote.findMany({
+      where: { scenarioId },
+      orderBy: { createdAt: 'desc' },
+    });
+    return quotes.map((q) => hydrateJsonFields(q, [...QUOTE_JSON_FIELDS]));
+  }
+
+  static async getQuoteById(id: string) {
+    const quote = await prisma.quote.findUnique({ where: { id } });
+    if (!quote) {
+      const err: any = new Error('Quote not found');
+      err.status = 404;
+      throw err;
+    }
+    return hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
   }
 
   static async createQuote(projectId: string, data: any) {
-    const dbData = dehydrateJsonFields({ ...data, projectId }, ['data']);
+    const normalized = {
+      ...data,
+      scenarioId: data.scenarioId ?? null,
+      harnessId: data.harnessId ?? null,
+      effectivePrice: data.effectivePrice ?? data.arrivalPrice ?? 0,
+      profitGap: computeProfitGap(data),
+    };
+    const dbData = dehydrateJsonFields({ ...normalized, projectId }, [...QUOTE_JSON_FIELDS]);
     const quote = await prisma.quote.create({ data: dbData });
-    return hydrateJsonFields(quote, ['data']);
+    return hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
   }
 
   static async updateQuote(id: string, data: any) {
-    const dbData = dehydrateJsonFields(data, ['data']);
+    const current = await this.getQuoteById(id);
+    const merged = {
+      ...current,
+      ...data,
+      effectivePrice: data.effectivePrice ?? current.effectivePrice ?? data.arrivalPrice ?? current.arrivalPrice ?? 0,
+    };
+    merged.profitGap = computeProfitGap(merged);
+    const dbData = dehydrateJsonFields(data && Object.keys(data).length > 0 ? merged : data, [...QUOTE_JSON_FIELDS]);
     const quote = await prisma.quote.update({ where: { id }, data: dbData });
-    return hydrateJsonFields(quote, ['data']);
+    return hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
   }
 
   static async deleteQuote(id: string) {
     return prisma.quote.delete({ where: { id } });
+  }
+
+  static async compareQuote(id: string) {
+    const quote = await this.getQuoteById(id);
+    return {
+      id: quote.id,
+      projectId: quote.projectId,
+      scenarioId: quote.scenarioId,
+      harnessId: quote.harnessId,
+      internalCostBaseline: quote.internalCostBaseline,
+      effectivePrice: quote.effectivePrice,
+      arrivalPrice: quote.arrivalPrice,
+      exWorksPrice: quote.exWorksPrice,
+      profitGap: computeProfitGap(quote),
+      effectivePriceMode: quote.effectivePriceMode,
+    };
+  }
+
+  static async getEffectivePrice(id: string) {
+    const quote = await this.getQuoteById(id);
+    return {
+      id: quote.id,
+      effectivePrice: quote.effectivePrice,
+      effectivePriceMode: quote.effectivePriceMode,
+      arrivalPrice: quote.arrivalPrice,
+      exWorksPrice: quote.exWorksPrice,
+      customerAccepted: quote.customerAccepted,
+    };
   }
 }
 

@@ -238,20 +238,44 @@ async function runTests() {
   // 13. Create quote
   const qCreate = await api('POST', '/api/quotes', {
     projectId,
+    scenarioId,
+    harnessId: TEST_HARNESS.harnessId,
     version: 'v1.0',
     template: 'geely',
     data: { items: [{ name: '总价', value: 526.63 }] },
+    quoteParams: { source: 'api-test' },
+    quoteResult: { arrivalPrice: 526.63 },
+    internalCostBaseline: 500,
+    exWorksPrice: 520,
+    arrivalPrice: 526.63,
+    effectivePrice: 526.63,
+    effectivePriceMode: 'arrival',
+    customerBurdenMode: 'customer_full',
+    recoveryCompletionBehavior: 'auto_switch_price',
+    lockedFields: ['arrivalPrice'],
+    editableFields: ['effectivePrice'],
+    approvalFields: ['exWorksPrice']
   }, token);
   assert('POST /api/quotes (create)', qCreate.status === 201);
   const quoteId = qCreate.json.data?.id;
 
-  // 14. List quotes
+  // 14. List / get / compare quotes
   const qList = await api('GET', `/api/quotes/project/${projectId}`, null, token);
   assert('GET /api/quotes/project/:pid', qList.status === 200 && qList.json.data?.length >= 1);
+  const qScenarioList = await api('GET', `/api/quotes/scenario/${scenarioId}`, null, token);
+  assert('GET /api/quotes/scenario/:sid', qScenarioList.status === 200 && qScenarioList.json.data?.length >= 1);
+  const qGet = await api('GET', `/api/quotes/${quoteId}`, null, token);
+  assert('GET /api/quotes/:id', qGet.status === 200 && qGet.json.data?.id === quoteId);
+  const qCompare = await api('GET', `/api/quotes/${quoteId}/compare`, null, token);
+  assert('GET /api/quotes/:id/compare', qCompare.status === 200 && typeof qCompare.json.data?.profitGap === 'number');
+  const qEffective = await api('GET', `/api/quotes/${quoteId}/effective-price`, null, token);
+  assert('GET /api/quotes/:id/effective-price', qEffective.status === 200 && qEffective.json.data?.effectivePriceMode === 'arrival');
 
   // 15. Update quote
   const qUp = await api('PUT', `/api/quotes/${quoteId}`, {
     status: 'approved',
+    effectivePriceMode: 'custom',
+    effectivePrice: 530,
   }, token);
   assert('PUT /api/quotes/:id', qUp.status === 200 && qUp.json.data?.status === 'approved');
 
