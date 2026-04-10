@@ -270,6 +270,8 @@ async function runTests() {
   assert('GET /api/quotes/:id/compare', qCompare.status === 200 && typeof qCompare.json.data?.profitGap === 'number');
   const qEffective = await api('GET', `/api/quotes/${quoteId}/effective-price`, null, token);
   assert('GET /api/quotes/:id/effective-price', qEffective.status === 200 && qEffective.json.data?.effectivePriceMode === 'arrival');
+  const qCompareMulti = await api('GET', `/api/quotes/compare?ids=${quoteId},${quoteId}`, null, token);
+  assert('GET /api/quotes/compare?ids=a,b', qCompareMulti.status === 200 && Array.isArray(qCompareMulti.json.data));
 
   // 15. Update quote
   const qUp = await api('PUT', `/api/quotes/${quoteId}`, {
@@ -278,6 +280,14 @@ async function runTests() {
     effectivePrice: 530,
   }, token);
   assert('PUT /api/quotes/:id', qUp.status === 200 && qUp.json.data?.status === 'approved');
+
+  // 15b. Confirm quote and enforce lock
+  const qConfirm = await api('POST', `/api/quotes/${quoteId}/confirm`, null, token);
+  assert('POST /api/quotes/:id/confirm', qConfirm.status === 200 && qConfirm.json.data?.customerAccepted === true);
+  const qLockedUpdate = await api('PUT', `/api/quotes/${quoteId}`, {
+    arrivalPrice: 999,
+  }, token);
+  assert('locked_fields enforced after confirm', qLockedUpdate.status === 400);
 
   // 16. Create version
   const vCreate = await api('POST', '/api/versions', {

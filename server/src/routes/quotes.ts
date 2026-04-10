@@ -50,52 +50,11 @@ router.get('/scenario/:sid', async (req: Request, res: Response, next: NextFunct
   }
 });
 
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/compare', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const quote = await QuoteService.getQuoteById(req.params.id as string);
-    res.json({ data: quote });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/:id/compare', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const quote = await QuoteService.compareQuote(req.params.id as string);
-    res.json({ data: quote });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/:id/effective-price', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const quote = await QuoteService.getEffectivePrice(req.params.id as string);
-    res.json({ data: quote });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.post('/scenario/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const validatedData = quoteSchema.parse({ ...req.body, scenarioId: req.params.sid as string });
-    const projectId = validatedData.projectId;
-    if (!projectId) {
-      throw Object.assign(new Error('projectId is required'), { status: 400 });
-    }
-    const { projectId: pid, ...data } = validatedData;
-    const quote = await QuoteService.createQuote(pid, data);
-    res.status(201).json({ data: quote });
-  } catch (error) {
-    next(error);
-  }
-});
-
-router.get('/scenario/:sid', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const quotes = await QuoteService.getQuotesByScenario(req.params.sid as string);
-    res.json({ data: quotes });
+    const ids = String(req.query.ids || '').split(',').filter(Boolean);
+    const data = await QuoteService.compareQuotes(ids);
+    res.json({ data });
   } catch (error) {
     next(error);
   }
@@ -132,9 +91,7 @@ router.post('/scenario/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), asy
   try {
     const validatedData = quoteSchema.parse({ ...req.body, scenarioId: req.params.sid as string });
     const projectId = validatedData.projectId;
-    if (!projectId) {
-      throw Object.assign(new Error('projectId is required'), { status: 400 });
-    }
+    if (!projectId) throw Object.assign(new Error('projectId is required'), { status: 400 });
     const { projectId: pid, ...data } = validatedData;
     const quote = await QuoteService.createQuote(pid, data);
     res.status(201).json({ data: quote });
@@ -147,9 +104,7 @@ router.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Requ
   try {
     const validatedData = quoteSchema.parse(req.body);
     const { projectId, ...data } = validatedData;
-    if (!projectId) {
-      throw Object.assign(new Error('projectId is required'), { status: 400 });
-    }
+    if (!projectId) throw Object.assign(new Error('projectId is required'), { status: 400 });
     const quote = await QuoteService.createQuote(projectId, data);
 
     await AuditService.log({
@@ -167,11 +122,28 @@ router.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Requ
   }
 });
 
+router.post('/:id/confirm', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const quote = await QuoteService.confirmQuote(req.params.id as string);
+    await AuditService.log({
+      userId: req.user!.id,
+      projectId: quote.projectId,
+      action: 'STATUS_CHANGE',
+      entity: 'quote',
+      entityId: quote.id,
+      details: { customerAccepted: true },
+    });
+    res.json({ data: quote });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.put('/:id', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const validatedData = quoteSchema.partial().parse(req.body);
     const quote = await QuoteService.updateQuote(req.params.id as string, validatedData);
-    
+
     await AuditService.log({
       userId: req.user!.id,
       projectId: quote.projectId,
@@ -190,7 +162,7 @@ router.put('/:id', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Re
 router.delete('/:id', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const quote = await QuoteService.deleteQuote(req.params.id as string);
-    
+
     await AuditService.log({
       userId: req.user!.id,
       projectId: quote.projectId,

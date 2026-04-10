@@ -51,19 +51,61 @@ export class QuoteService {
 
   static async updateQuote(id: string, data: any) {
     const current = await this.getQuoteById(id);
+    const lockedFields = Array.isArray(current.lockedFields) ? current.lockedFields : [];
+    const illegalField = Object.keys(data).find((field) => current.customerAccepted && lockedFields.includes(field));
+    if (illegalField) {
+      const err: any = new Error(`Field is locked after confirmation: ${illegalField}`);
+      err.status = 400;
+      throw err;
+    }
+
     const merged = {
       ...current,
       ...data,
       effectivePrice: data.effectivePrice ?? current.effectivePrice ?? data.arrivalPrice ?? current.arrivalPrice ?? 0,
     };
     merged.profitGap = computeProfitGap(merged);
-    const dbData = dehydrateJsonFields(data && Object.keys(data).length > 0 ? merged : data, [...QUOTE_JSON_FIELDS]);
+    const dbData = dehydrateJsonFields(merged, [...QUOTE_JSON_FIELDS]);
+    const quote = await prisma.quote.update({ where: { id }, data: dbData });
+    return hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
+  }
+
+  static async confirmQuote(id: string) {
+    const current = await this.getQuoteById(id);
+    const merged = {
+      ...current,
+      customerAccepted: true,
+      status: 'confirmed',
+    };
+    const dbData = dehydrateJsonFields(merged, [...QUOTE_JSON_FIELDS]);
     const quote = await prisma.quote.update({ where: { id }, data: dbData });
     return hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
   }
 
   static async deleteQuote(id: string) {
     return prisma.quote.delete({ where: { id } });
+  }
+
+  static async compareQuotes(ids: string[]) {
+    const quotes = await prisma.quote.findMany({
+      where: { id: { in: ids } },
+      orderBy: { createdAt: 'asc' },
+    });
+    return quotes.map((quote) => {
+      const hydrated = hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
+      return {
+        id: hydrated.id,
+        scenarioId: hydrated.scenarioId,
+        harnessId: hydrated.harnessId,
+        status: hydrated.status,
+        customerAccepted: hydrated.customerAccepted,
+        effectivePrice: hydrated.effectivePrice,
+        arrivalPrice: hydrated.arrivalPrice,
+        exWorksPrice: hydrated.exWorksPrice,
+        internalCostBaseline: hydrated.internalCostBaseline,
+        profitGap: computeProfitGap(hydrated),
+      };
+    });
   }
 
   static async compareQuote(id: string) {
