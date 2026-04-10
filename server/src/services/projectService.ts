@@ -62,6 +62,41 @@ export class ProjectService {
     return hydrateJsonFields(project, [...JSON_FIELDS]);
   }
 
+  static async getProjectDashboard(id: string) {
+    const project = await prisma.project.findUnique({
+      where: { id },
+      include: {
+        harnesses: true,
+        quotes: { orderBy: { updatedAt: 'desc' }, take: 1 },
+        versions: true,
+      },
+    });
+    if (!project) {
+      const err: any = new Error('Project not found');
+      err.status = 404;
+      throw err;
+    }
+
+    const hydrated = hydrateJsonFields(project, [...JSON_FIELDS]);
+    const latestQuote = hydrated.quotes?.[0];
+    const quoteData = latestQuote ? hydrateJsonFields(latestQuote as any, ['data']) : null;
+    const quoteTotal = quoteData?.data?.totals?.deliveredPrice ?? null;
+
+    return {
+      id: hydrated.id,
+      projectCode: hydrated.projectCode,
+      projectName: hydrated.projectName,
+      customer: hydrated.customer,
+      platform: hydrated.platform,
+      status: hydrated.status,
+      harnessCount: hydrated.harnesses?.length ?? 0,
+      quoteCount: hydrated.quotes?.length ?? 0,
+      versionCount: hydrated.versions?.length ?? 0,
+      latestQuoteTotal: quoteTotal,
+      updatedAt: hydrated.updatedAt,
+    };
+  }
+
   static async deleteProject(id: string) {
     return prisma.project.delete({ where: { id } });
   }

@@ -135,6 +135,11 @@ async function runTests() {
   const projGet = await api('GET', `/api/projects/${projectId}`, null, token);
   assert('GET /api/projects/:id', projGet.status === 200 && projGet.json.data?.projectCode === 'G281');
 
+  // 6b. Project dashboard summary
+  const projDash = await api('GET', `/api/projects/${projectId}/dashboard`, null, token);
+  assert('GET /api/projects/:id/dashboard', projDash.status === 200 && projDash.json.data?.projectCode === 'G281');
+  assert('  → dashboard contains harness count', typeof projDash.json.data?.harnessCount === 'number');
+
   // 7. Create new project
   const projCreate = await api('POST', '/api/projects', TEST_PROJECT, token);
   assert(`POST /api/projects (create ${TEST_PROJECT.projectCode})`, projCreate.status === 201 && projCreate.json.data?.projectCode === TEST_PROJECT.projectCode);

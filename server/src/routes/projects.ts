@@ -51,6 +51,15 @@ router.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Requ
   }
 });
 
+router.get('/:id/dashboard', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const dashboard = await ProjectService.getProjectDashboard(req.params.id as string);
+    res.json({ data: dashboard });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const project = await ProjectService.getProjectById(req.params.id as string);
