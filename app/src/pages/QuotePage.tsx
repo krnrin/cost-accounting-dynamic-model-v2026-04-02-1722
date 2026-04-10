@@ -3,17 +3,19 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Typography, Spin, Button, Card, Table, Tabs, TabPane, InputNumber, Toast, Tag, Space, Radio, RadioGroup, Select } from '@douyinfe/semi-ui';
 import { IconArrowLeft, IconDownload, IconSimilarity, IconList } from '@douyinfe/semi-icons';
 import { db } from '@/data/db';
+import { applyE281ScenarioFallback } from '@/data/e281Fallback';
 import type { HarnessRecord, ProjectRecord, ScenarioRecord } from '@/data/db';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
 import { computeChangePricing, buildChangeComparisonTable } from '@/engine/change_pricing';
 import { buildQuoteSheet } from '@/engine/quote_template';
-import { 
-  exportGeelyQuoteExcel, 
-  exportBydQuoteExcel, 
-  exportGenericQuoteExcel, 
+import {
+  exportGeelyQuoteExcel,
+  exportBydQuoteExcel,
+  exportGenericQuoteExcel,
   exportFullQuoteExcel,
   exportChangePricingExcel,
 } from '@/engine/excel_export';
+import { applyCustomerQuoteSnapshot } from '@/utils/customerQuoteSnapshots';
 import type { HarnessInput } from '@/types/harness';
 import type { TemplateType } from '@/types/quote';
 import { RoleGuard } from '@/components/RoleGuard';
@@ -51,9 +53,10 @@ export default function QuotePage() {
           Toast.error('场景不存在');
           return;
         }
+        const scenarioWithFallback = applyE281ScenarioFallback(s);
         const h = await db.harnesses.where('scenarioId').equals(sid).toArray();
         setProject(p);
-        setScenario(s);
+        setScenario(scenarioWithFallback);
         setHarnesses(h);
       } catch (err) {
         console.error(err);
@@ -65,11 +68,24 @@ export default function QuotePage() {
     loadData();
   }, [id, sid]);
 
+  const customerQuoteSnapshots = useMemo(() => {
+    return scenario?.config.customerQuoteSnapshots;
+  }, [scenario]);
+
+  const baselineComputedResults = useMemo(() => {
+    if (!scenario) return [];
+    return harnesses
+      .map(h => computeHarnessCost(h.input, scenario.config.costRates, scenario.config.metalPrices))
+      .sort((a, b) => a.harnessId.localeCompare(b.harnessId));
+  }, [scenario, harnesses]);
+
   // Baseline results
   const baselineResults = useMemo(() => {
-    if (!scenario) return [];
-    return harnesses.map(h => computeHarnessCost(h.input, scenario.config.costRates, scenario.config.metalPrices));
-  }, [scenario, harnesses]);
+    return baselineComputedResults.map(result => applyCustomerQuoteSnapshot(
+      result,
+      customerQuoteSnapshots?.[result.harnessId],
+    ));
+  }, [baselineComputedResults, customerQuoteSnapshots]);
 
   const baselineProject = useMemo(() => {
     return computeProjectFromHarnesses(baselineResults);
@@ -77,12 +93,27 @@ export default function QuotePage() {
 
   // Tab 1: Quote Template derived data
   const quoteSheet = useMemo(() => {
-    if (!project || !scenario || baselineResults.length === 0) return null;
-    return buildQuoteSheet(baselineResults, templateType, {
-      projectName: project.meta.projectName,
-      customer: project.meta.customer
-    }, scenario.config.nreData, scenario.config.volumes);
-  }, [project, scenario, baselineResults, templateType]);
+    if (!project || !scenario || baselineComputedResults.length === 0) return null;
+    return buildQuoteSheet(
+      baselineComputedResults,
+      templateType,
+      {
+        projectName: project.meta.projectName,
+        customer: project.meta.customer,
+      },
+      scenario.config.nreData,
+      scenario.config.volumes,
+      customerQuoteSnapshots,
+    );
+  }, [project, scenario, baselineComputedResults, templateType, customerQuoteSnapshots]);
+
+  const sortedHarnesses = useMemo(() => {
+    return [...harnesses].sort((a, b) => a.harnessId.localeCompare(b.harnessId));
+  }, [harnesses]);
+
+  const baselineResultsById = useMemo(() => {
+    return new Map(baselineResults.map(result => [result.harnessId, result]));
+  }, [baselineResults]);
 
   // Tab 2: Change Pricing Simulation
   const simulatedResults = useMemo(() => {
@@ -90,7 +121,10 @@ export default function QuotePage() {
     return harnesses.map(h => {
       const modifications = modifiedHarnesses[h.harnessId] || {};
       const simulatedInput = { ...h.input, ...modifications };
-      return computeHarnessCost(simulatedInput as HarnessInput, scenario.config.costRates, scenario.config.metalPrices);
+      return applyCustomerQuoteSnapshot(
+        computeHarnessCost(simulatedInput as HarnessInput, scenario.config.costRates, scenario.config.metalPrices),
+        customerQuoteSnapshots?.[h.harnessId],
+      );
     });
   }, [scenario, harnesses, modifiedHarnesses]);
 
@@ -325,16 +359,17 @@ export default function QuotePage() {
             </RadioGroup>
             
             <Table
-              dataSource={harnesses}
+              dataSource={sortedHarnesses}
               pagination={false}
               size="small"
               columns={[
                 { title: '零件号', render: (_: any, h: any) => h.harnessId },
                 { title: '名称', render: (_: any, h: any) => h.harnessName },
                 { title: '当前值', render: (_: any, h: any) => {
-                    if (changeMode === 'bom') return formatCurrency(baselineResults.find(r => r.harnessId === h.harnessId)?.materialCost);
-                    if (changeMode === 'hours') return `${baselineResults.find(r => r.harnessId === h.harnessId)?.processHours.toFixed(2)} h`;
-                    return `${(h.input.vehicleRatio * 100).toFixed(0)}%`;
+                    const current = baselineResultsById.get(h.harnessId);
+                    if (changeMode === 'bom') return formatCurrency(current?.materialCost);
+                    if (changeMode === 'hours') return current ? `${current.processHours.toFixed(2)} h` : '-';
+                    return `${(h.input.vehicleRatio * 100).toFixed(1)}%`;
                   }
                 },
                 { title: changeMode === 'bom' ? '新材料成本' : changeMode === 'hours' ? '新工时' : '新装车比',

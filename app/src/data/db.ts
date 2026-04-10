@@ -4,6 +4,7 @@ import type { HarnessInput, HarnessResult, HarnessRelation, VehicleConfig, Vehic
 import type { QuoteSheet } from '../types/quote';
 import type { VersionRecord } from '../types/version';
 import type { OnetimeCostInput } from '../engine/onetime_alloc';
+import { applyE281ScenarioFallback } from './e281Fallback';
 
 /** 场景类型 */
 export type ScenarioType =
@@ -242,3 +243,10 @@ class CostWorkbenchDB extends Dexie {
 }
 
 export const db = new CostWorkbenchDB();
+
+db.scenarios.hook('reading', (obj) => {
+  if (!obj) {
+    return obj;
+  }
+  return applyE281ScenarioFallback(obj as ScenarioRecord);
+});

@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { db } from '@/data/db';
 import type { OnetimeCostRecord, AllocTrackerRecord } from '@/data/db';
+import { getScenarioOnetimeCostFallback } from '@/utils/e281Fallback';
 import {
   computeProjectAlloc,
   computeProjectRecovery,
@@ -88,8 +89,12 @@ export const useAllocStore = create<AllocState>()(
       loadScenarioAlloc: async (scenarioId: string) => {
         set({ loading: true });
         try {
-          const costRecords = await db.onetimeCosts
+          const storedCostRecords = await db.onetimeCosts
             .where('scenarioId').equals(scenarioId).toArray();
+          const scenario = await db.scenarios.get(scenarioId);
+          const costRecords = storedCostRecords.length > 0
+            ? storedCostRecords
+            : getScenarioOnetimeCostFallback(scenario);
           const inputs = costRecords.map(r => r.input);
           const allocSummary = inputs.length > 0 ? computeProjectAlloc(inputs) : null;
 
@@ -98,7 +103,6 @@ export const useAllocStore = create<AllocState>()(
           const cumProducedMap: Record<string, number> = {};
           for (const t of trackerRecords) cumProducedMap[t.harnessId] = t.cumProduced;
 
-          const scenario = await db.scenarios.get(scenarioId);
           const annualCapacity = (scenario?.config as any)?.annualCapacity || 100000;
           const lifecycleYears = scenario?.lifecycleYears || undefined;
 

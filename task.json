@@ -46,7 +46,7 @@
         "models": []
       },
       "depends_on": ["T01"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T03",
@@ -74,7 +74,7 @@
         ]
       },
       "depends_on": ["T01"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T04",
