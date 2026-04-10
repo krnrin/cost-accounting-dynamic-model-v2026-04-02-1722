@@ -164,6 +164,17 @@ async function runTests() {
   assert('GET /api/projects/:id/scenarios/:sid', scenarioGet.status === 200 && scenarioGet.json.data?.id === scenarioId);
   const scenarioUpdate = await api('PUT', `/api/projects/${e281Id}/scenarios/${scenarioId}`, { name: TEST_SCENARIO.name + '-更新' }, token);
   assert('PUT /api/projects/:id/scenarios/:sid', scenarioUpdate.status === 200 && scenarioUpdate.json.data?.name?.includes('更新'));
+  const scenarioFreeze = await api('POST', `/api/projects/${e281Id}/scenarios/${scenarioId}/freeze`, {}, token);
+  assert('POST /api/projects/:id/scenarios/:sid/freeze', scenarioFreeze.status === 200 && scenarioFreeze.json.data?.status === 'frozen');
+  const scenarioRelease = await api('POST', `/api/projects/${e281Id}/scenarios/${scenarioId}/release`, {}, token);
+  assert('POST /api/projects/:id/scenarios/:sid/release', scenarioRelease.status === 200 && scenarioRelease.json.data?.status === 'released');
+  const scenarioSummary = await api('GET', `/api/projects/${e281Id}/scenarios/${scenarioId}/summary`, null, token);
+  assert('GET /api/projects/:id/scenarios/:sid/summary', scenarioSummary.status === 200 && scenarioSummary.json.data?.id === scenarioId);
+  const scenarioClone = await api('POST', `/api/projects/${e281Id}/scenarios/${scenarioId}/clone`, {}, token);
+  assert('POST /api/projects/:id/scenarios/:sid/clone', scenarioClone.status === 201 && scenarioClone.json.data?.sourceScenarioId === scenarioId);
+  const clonedScenarioId = scenarioClone.json.data?.id;
+  const scenarioCompare = await api('GET', `/api/scenarios/compare?ids=${scenarioId},${clonedScenarioId}`, null, token);
+  assert('GET /api/scenarios/compare?ids=a,b', scenarioCompare.status === 200 && scenarioCompare.json.data?.length === 2);
 
   // 7b. Audit log test (added)
   const auditLogs = await api('GET', `/api/projects/${e281Id}/audit-logs`, null, token);
