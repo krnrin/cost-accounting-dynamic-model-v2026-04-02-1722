@@ -1,0 +1,23 @@
+# 高压线束精算与决策引擎 — 开发进度日志
+# 每个 Claude Code session 完成任务后在此追加记录
+# ============================================
+
+## [2026-04-11 02:30] - Task: [T01] Project CRUD + 项目列表页
+
+### 完成的工作:
+- 完成项目 CRUD 所依赖的后端链路验证：GET/POST/GET by id/PUT/DELETE `/api/projects` 已通过集成测试
+- 重写 `app/src/pages/ProjectListPage.tsx`，实现项目表格视图、搜索、状态筛选、新建/编辑/删除、导入导出与进入项目
+- 修复前端项目列表页白屏问题，移除导致类型递归的弹窗表单写法
+- 修复 `server/prisma/schema.prisma` 中重复的 `Setting` 模型定义
+- 执行 Prisma `db push` 让本地 SQLite 补齐 `Setting` 表，打通 settings 相关接口测试
+
+### 测试:
+- 后端：`cd D:/harness-project/server && node test_api.js` → 77 passed, 0 failed
+- 前端类型：`cd D:/harness-project/app && npx tsc --noEmit` → 通过
+- 前端构建：`cd D:/harness-project/app && npx vite build` → 成功
+- 浏览器：Playwright 访问 `http://127.0.0.1:5290/`，验证项目列表页渲染、打开“新建项目”弹窗、点击“进入项目”跳转到 `/project/:id`
+- 截图：`test-screenshots/t01-project-list.png`、`test-screenshots/t01-project-create-modal.png`
+
+### 备注:
+- `init.ps1` 目前有 PowerShell 语法损坏，未能用于本次初始化，后续 session 应先修复它
+- Playwright 控制台剩余的是 React StrictMode 下 Semi UI 的 `findDOMNode` 警告，不影响本任务验收

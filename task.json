@@ -46,7 +46,7 @@
         "models": []
       },
       "depends_on": ["T01"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T03",
@@ -74,7 +74,7 @@
         ]
       },
       "depends_on": ["T01"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T04",
@@ -101,7 +101,7 @@
         ]
       },
       "depends_on": ["T03"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T05",
@@ -130,7 +130,7 @@
         ]
       },
       "depends_on": ["T03"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T06",
@@ -147,7 +147,7 @@
         ]
       },
       "depends_on": ["T05"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T07",
@@ -182,7 +182,7 @@
         ]
       },
       "depends_on": ["T05"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T08",
@@ -205,7 +205,7 @@
         ]
       },
       "depends_on": ["T07"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T09",
@@ -235,7 +235,7 @@
         ]
       },
       "depends_on": ["T05"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T10",
@@ -267,7 +267,7 @@
         ]
       },
       "depends_on": ["T09"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T11",
@@ -292,7 +292,7 @@
         ]
       },
       "depends_on": ["T07", "T10"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T12",
@@ -321,7 +321,7 @@
         ]
       },
       "depends_on": ["T05"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T13",
@@ -348,7 +348,7 @@
         ]
       },
       "depends_on": ["T03"],
-      "status": "done"
+      "status": "pending"
     },
     {
       "id": "T14",
