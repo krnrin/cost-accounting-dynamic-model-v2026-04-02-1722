@@ -131,4 +131,35 @@ export class BomService {
       categorySummary,
     };
   }
+
+  static async diffScenarioBom(scenarioId: string, baseScenarioId: string) {
+    const currentRows = await this.listScenarioBomRows(scenarioId);
+    const baseRows = await this.listScenarioBomRows(baseScenarioId);
+
+    const baseMap = new Map(baseRows.map((row) => [`${row.harnessId}::${row.partNo}::${row.rowIndex}`, row]));
+    const currentMap = new Map(currentRows.map((row) => [`${row.harnessId}::${row.partNo}::${row.rowIndex}`, row]));
+
+    const diff: Array<{ changeType: 'added' | 'replaced' | 'cancelled'; current?: any; base?: any }> = [];
+
+    for (const [key, row] of currentMap) {
+      const base = baseMap.get(key);
+      if (!base) {
+        diff.push({ changeType: 'added', current: row });
+        continue;
+      }
+      const changed = ['partName', 'qty', 'unitPrice', 'amount', 'itemCategory', 'spec', 'supplier']
+        .some((field) => row[field] !== base[field]);
+      if (changed) {
+        diff.push({ changeType: 'replaced', current: row, base });
+      }
+    }
+
+    for (const [key, row] of baseMap) {
+      if (!currentMap.has(key)) {
+        diff.push({ changeType: 'cancelled', base: row });
+      }
+    }
+
+    return diff;
+  }
 }

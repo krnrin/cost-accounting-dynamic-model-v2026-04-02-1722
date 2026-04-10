@@ -198,6 +198,8 @@ async function runTests() {
   assert('GET /api/scenarios/:sid/bom', bomList.status === 200 && Array.isArray(bomList.json.data));
   const bomSummary = await api('GET', `/api/scenarios/${scenarioId}/bom/summary`, null, token);
   assert('GET /api/scenarios/:sid/bom/summary', bomSummary.status === 200 && typeof bomSummary.json.data?.rowCount === 'number');
+  const bomDiff = await api('GET', `/api/scenarios/${scenarioId}/bom/diff?base=${scenarioId}`, null, token);
+  assert('GET /api/scenarios/:sid/bom/diff?base=:sid2', bomDiff.status === 200 && Array.isArray(bomDiff.json.data));
 
   // 10. Create harness
   const hCreate = await api('POST', `/api/projects/${projectId}/harnesses`, { ...TEST_HARNESS, scenarioId }, token);
