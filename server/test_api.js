@@ -227,6 +227,20 @@ async function runTests() {
   assert('GET /api/allocations/:aid', allocGet.status === 200 && allocGet.json.data?.id === allocId);
   const allocUpdate = await api('PUT', `/api/allocations/${allocId}`, { actualRecovered: 1000, status: 'recovering' }, token);
   assert('PUT /api/allocations/:aid', allocUpdate.status === 200 && allocUpdate.json.data?.status === 'recovering');
+  const recoveryCreate = await api('POST', `/api/allocations/${allocId}/recovery-records`, {
+    period: '2026-Q3',
+    cumulativeVolume: 1000,
+    installRatioSnapshot: 1,
+    recoveredAmount: 1000,
+    status: 'normal'
+  }, token);
+  assert('POST /api/allocations/:aid/recovery-records', recoveryCreate.status === 201 && recoveryCreate.json.data?.allocationItemId === allocId);
+  const recoveryHistory = await api('GET', `/api/allocations/${allocId}/recovery-history`, null, token);
+  assert('GET /api/allocations/:aid/recovery-history', recoveryHistory.status === 200 && Array.isArray(recoveryHistory.json.data));
+  const recoveryForecast = await api('GET', `/api/allocations/${allocId}/recovery-forecast`, null, token);
+  assert('GET /api/allocations/:aid/recovery-forecast', recoveryForecast.status === 200 && typeof recoveryForecast.json.data?.recoveryProgress === 'number');
+  const recoveryComplete = await api('POST', `/api/allocations/${allocId}/complete`, {}, token);
+  assert('POST /api/allocations/:aid/complete', recoveryComplete.status === 200 && recoveryComplete.json.data?.status === 'completed');
 
   // 10b. BOM row create/update/import/delete
   const bomCreate = await api('POST', `/api/scenarios/${scenarioId}/bom`, {
