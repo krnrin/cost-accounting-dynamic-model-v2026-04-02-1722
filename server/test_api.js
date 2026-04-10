@@ -206,6 +206,28 @@ async function runTests() {
   assert(`POST harness (create ${TEST_HARNESS.harnessId})`, hCreate.status === 201 && hCreate.json.data?.harnessId === TEST_HARNESS.harnessId);
   const newHarnessId = hCreate.json.data?.id;
 
+  // 10a. Allocation CRUD
+  const allocCreate = await api('POST', `/api/scenarios/${scenarioId}/allocations`, {
+    projectId,
+    harnessId: TEST_HARNESS.harnessId,
+    expenseType: 'tooling',
+    expenseName: '压接工装',
+    totalAmount: 50000,
+    allocationBasis: '按根分摊',
+    baselineVolume: 50000,
+    burdenSide: 'customer',
+    pricingEffect: 'included_in_price',
+    recoveryCompletionBehavior: 'trigger_price_adjust'
+  }, token);
+  assert('POST /api/scenarios/:sid/allocations', allocCreate.status === 201 && allocCreate.json.data?.id);
+  const allocId = allocCreate.json.data?.id;
+  const allocList = await api('GET', `/api/scenarios/${scenarioId}/allocations?burden_side=customer`, null, token);
+  assert('GET /api/scenarios/:sid/allocations', allocList.status === 200 && Array.isArray(allocList.json.data));
+  const allocGet = await api('GET', `/api/allocations/${allocId}`, null, token);
+  assert('GET /api/allocations/:aid', allocGet.status === 200 && allocGet.json.data?.id === allocId);
+  const allocUpdate = await api('PUT', `/api/allocations/${allocId}`, { actualRecovered: 1000, status: 'recovering' }, token);
+  assert('PUT /api/allocations/:aid', allocUpdate.status === 200 && allocUpdate.json.data?.status === 'recovering');
+
   // 10b. BOM row create/update/import/delete
   const bomCreate = await api('POST', `/api/scenarios/${scenarioId}/bom`, {
     harnessId: TEST_HARNESS.harnessId,
