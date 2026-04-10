@@ -22,7 +22,9 @@ router.use(authMiddleware);
 
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const projects = await ProjectService.getAllProjects();
+    const search = typeof req.query.search === 'string' ? req.query.search : undefined;
+    const status = typeof req.query.status === 'string' ? req.query.status : undefined;
+    const projects = await ProjectService.getAllProjects({ search, status });
     res.json({ data: projects });
   } catch (error) {
     next(error);

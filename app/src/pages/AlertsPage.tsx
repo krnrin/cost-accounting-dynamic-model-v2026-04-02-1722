@@ -3,12 +3,12 @@
  */
 import { useEffect, useState, useMemo } from 'react';
 import {
-  Typography, Table, Tag, Empty, Tabs, TabPane, Select, Spin,
+  Typography, Table, Empty, Tabs, TabPane, Select, Spin,
 } from '@douyinfe/semi-ui';
 import { IconAlertTriangle } from '@douyinfe/semi-icons';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/data/db';
-import { computeMetalAlerts, estimateMetalImpact, type MetalAlertItem, type AlertLevel } from '@/engine/metal_alert';
+import { computeMetalAlerts, type AlertLevel } from '@/engine/metal_alert';
 import { useTrackingStore } from '@/store/trackingStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import type { MetalPrices } from '@/types/project';
@@ -71,7 +71,7 @@ export default function AlertsPage() {
             level: item.level,
             impact: item.deltaPrice,
             detail: item.message,
-            project: proj.name,
+            project: proj.meta?.projectName,
             date: now,
           });
         }
@@ -89,7 +89,7 @@ export default function AlertsPage() {
           level: item.priority === 'high' ? 'danger' : item.priority === 'medium' ? 'warn' : 'normal',
           impact: item.costImpact,
           detail: item.description || '',
-          project: proj?.name,
+          project: proj?.meta?.projectName,
           date: item.createdAt?.slice(0, 10) || now,
         });
       }

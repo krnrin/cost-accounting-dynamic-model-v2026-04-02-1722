@@ -6,6 +6,7 @@ import ReactECharts from 'echarts-for-react/lib/core';
 import echarts from '@/lib/echarts';
 
 import { db } from '@/data/db';
+import { applyE281ScenarioFallback } from '@/data/e281Fallback';
 import type { ProjectRecord, ScenarioRecord } from '@/data/db';
 import {
   computeHarnessCost,
@@ -17,6 +18,7 @@ import {
 import { exportInternalCostExcel } from '@/engine/excel_export';
 import { computeSensitivityMatrix } from '@/engine/metal_escalation';
 import type { HarnessResult, ProjectHarnessResult, InternalHarnessResult, InternalProjectResult } from '@/types/harness';
+import { applyCustomerQuoteSnapshot } from '@/utils/customerQuoteSnapshots';
 import { useProjectStore } from '@/store/projectStore';
 import { useAllocStore } from '@/store/allocStore';
 import { MultiImportDialog } from '@/components/MultiImportDialog';
@@ -51,7 +53,8 @@ export default function DashboardPage() {
         setCurrentProject(p.id, p.meta?.projectName || p.id);
 
         // 加载场景
-        const sc = sid ? await db.scenarios.get(sid) : null;
+        const rawScenario = sid ? await db.scenarios.get(sid) : null;
+        const sc = rawScenario ? applyE281ScenarioFallback(rawScenario) : null;
         setScenario(sc ?? null);
         if (sc) {
           setCurrentScenario(sc.id, sc.scenarioName);
@@ -65,10 +68,14 @@ export default function DashboardPage() {
         const rates = sc!.config.costRates;
         const metalPrices = sc!.config.metalPrices;
         const internalRates = sc!.config.internalRates || INTERNAL_DEFAULTS;
+        const customerQuoteSnapshots = sc?.config?.customerQuoteSnapshots;
 
         // 1. 每条线束客户报价
         const harnessResults: HarnessResult[] = hRecords.map(rec =>
-          computeHarnessCost(rec.input, rates, metalPrices)
+          applyCustomerQuoteSnapshot(
+            computeHarnessCost(rec.input, rates, metalPrices),
+            customerQuoteSnapshots?.[rec.harnessId],
+          )
         );
         const projectResult = computeProjectFromHarnesses(harnessResults);
         setHarnesses(projectResult);
@@ -102,11 +109,37 @@ export default function DashboardPage() {
 
   const summary = harnesses;
   const internalSummary = internalProject;
+  const snapshotCustomerVehicleCost = summary?.vehicleCost || 0;
+
+  const allocTrackerByHarnessId = useMemo(() => {
+    return new Map((recoverySummary?.trackers || []).map(tracker => [tracker.harnessId, tracker]));
+  }, [recoverySummary]);
+
+  const allocByHarnessId = useMemo(() => {
+    return new Map((allocSummary?.allocations || []).map(allocation => [allocation.harnessId, allocation]));
+  }, [allocSummary]);
+
+  const effectiveCustomerHarnesses = useMemo(() => {
+    return (summary?.harnesses || []).map(harness => {
+      const tracker = allocTrackerByHarnessId.get(harness.harnessId);
+      const allocation = allocByHarnessId.get(harness.harnessId);
+      const activeAllocPerUnit = tracker?.fullyRecovered ? 0 : (allocation?.totalPerUnit || 0);
+      const effectiveDeliveredPrice = tracker?.fullyRecovered ? harness.exFactoryPrice : harness.deliveredPrice;
+      return {
+        harness,
+        effectiveDeliveredPrice,
+        activeAllocPerUnit,
+      };
+    });
+  }, [summary, allocByHarnessId, allocTrackerByHarnessId]);
 
   // ═══════════════════════════════════════════
   // 计算派生指标
   // ═══════════════════════════════════════════
-  const customerVehicleCost = summary?.vehicleCost || 0;
+  const customerVehicleCost = effectiveCustomerHarnesses.reduce(
+    (sum, item) => sum + item.effectiveDeliveredPrice * item.harness.vehicleRatio,
+    0,
+  );
   const internalVehicleCost = internalSummary?.vehicleCost || 0;
 
   // 内部毛利率 = (客户报价 - 内部实绩) / 客户报价
@@ -114,9 +147,11 @@ export default function DashboardPage() {
     ? ((customerVehicleCost - internalVehicleCost) / customerVehicleCost) * 100
     : 0;
 
-  // 单车成本（含分摊）
-  const allocPerVehicle = allocSummary?.weightedAllocPerVehicle || 0;
-  const costWithAlloc = customerVehicleCost + allocPerVehicle;
+  // 客户承担的一次性分摊已包含在到厂价中；仅统计当前仍生效的附加额
+  const allocPerVehicle = effectiveCustomerHarnesses.reduce(
+    (sum, item) => sum + item.activeAllocPerUnit * item.harness.vehicleRatio,
+    0,
+  );
 
   const vehicleCost = mode === 'internal' ? internalVehicleCost : customerVehicleCost;
   const harnessCount = summary?.harnessCount || 0;
@@ -131,10 +166,10 @@ export default function DashboardPage() {
     const years = volumes.length;
     if (!years) return null;
 
-    const unitRevenue = summary.vehicleCost;        // 单车收入（中标价加权）
+    const unitRevenue = customerVehicleCost;        // 单车收入（客户当前有效价格）
     const unitCost = internalProject.vehicleCost;    // 单车内部成本
     const rebate = scenario.config.rebate;
-    const allocUnit = allocSummary?.weightedAllocPerVehicle || 0;
+    const allocUnit = allocPerVehicle;
 
     const rows: {
       year: number; volume: number;
@@ -270,8 +305,8 @@ export default function DashboardPage() {
   // ═══════════════════════════════════════════
   const profitCompareChart = useMemo(() => {
     if (!summary || !internalSummary) return {};
-    const labels = (summary.harnesses || []).map(h => h.harnessId.slice(-4));
-    const customerPrices = (summary.harnesses || []).map(h => +h.deliveredPrice.toFixed(2));
+    const labels = effectiveCustomerHarnesses.map(item => item.harness.harnessId.slice(-4));
+    const customerPrices = effectiveCustomerHarnesses.map(item => +item.effectiveDeliveredPrice.toFixed(2));
     const internalCosts = internalHarnesses.map(h => +h.internalCost.toFixed(2));
     const margins = customerPrices.map((c, i) => +(c - (internalCosts[i] ?? 0)).toFixed(2));
 
@@ -308,7 +343,7 @@ export default function DashboardPage() {
         },
       ],
     };
-  }, [summary, internalSummary, internalHarnesses]);
+  }, [effectiveCustomerHarnesses, internalSummary, internalHarnesses]);
 
   // ═══════════════════════════════════════════
   // 成本构成堆叠柱图
@@ -407,11 +442,13 @@ export default function DashboardPage() {
   // 线束利润明细表数据
   const harnessTableData = (summary?.harnesses || []).map((h, i) => {
     const ih = internalHarnesses.find(x => x.harnessId === h.harnessId);
-    const allocItem = allocSummary?.allocations?.find(a => a.harnessId === h.harnessId);
-    const allocPerUnit = allocItem?.totalPerUnit || 0;
+    const allocItem = allocByHarnessId.get(h.harnessId);
+    const tracker = allocTrackerByHarnessId.get(h.harnessId);
+    const allocPerUnit = tracker?.fullyRecovered ? 0 : (allocItem?.totalPerUnit || 0);
+    const effectiveDeliveredPrice = tracker?.fullyRecovered ? h.exFactoryPrice : h.deliveredPrice;
     const intCost = ih?.internalCost || 0;
-    const netProfit = h.deliveredPrice - intCost - allocPerUnit;
-    const margin = h.deliveredPrice > 0 ? (netProfit / h.deliveredPrice) * 100 : 0;
+    const netProfit = effectiveDeliveredPrice - intCost;
+    const margin = effectiveDeliveredPrice > 0 ? (netProfit / effectiveDeliveredPrice) * 100 : 0;
     const vehicleContrib = netProfit * h.vehicleRatio;
 
     // 成本占比诊断
@@ -429,7 +466,7 @@ export default function DashboardPage() {
       harnessId: h.harnessId,
       name: h.harnessName,
       ratio: h.vehicleRatio,
-      delivered: h.deliveredPrice,
+      delivered: effectiveDeliveredPrice,
       material: ih?.materialCost || 0,
       directLabor: ih?.directLabor || 0,
       mfgTotal: ih?.mfgOverheadTotal || 0,
@@ -505,7 +542,9 @@ export default function DashboardPage() {
         <Col span={4}>
           <div className="glass-card" style={{ padding: 20, height: '100%' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <Text style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>单车成本</Text>
+              <Text style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>
+              {mode === 'internal' ? '内部单车成本' : '当前有效客户价'}
+            </Text>
               <RadioGroup type="button" buttonSize="small" value={mode} onChange={(e) => setMode(e.target.value)}>
                 <Radio value="customer">客户</Radio>
                 <Radio value="internal">内部</Radio>
@@ -514,6 +553,11 @@ export default function DashboardPage() {
             <div className="ledger-number" style={{ fontSize: 28, marginTop: 8 }}>
               ¥{vehicleCost?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '--'}
             </div>
+            {mode === 'customer' && (
+              <Text style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+                定点快照 ¥{snapshotCustomerVehicleCost.toFixed(2)}
+              </Text>
+            )}
           </div>
         </Col>
 
@@ -530,18 +574,24 @@ export default function DashboardPage() {
             <Text style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
               差额 ¥{(customerVehicleCost - internalVehicleCost).toFixed(2)}/车
             </Text>
+            <Text style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, display: 'block' }}>
+              按当前有效客户价计算
+            </Text>
           </div>
         </Col>
 
         {/* 含分摊单车成本 */}
         <Col span={4}>
           <div className="glass-card" style={{ padding: 20, height: '100%' }}>
-            <Text style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>含分摊单车</Text>
+            <Text style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-muted)' }}>定点快照价</Text>
             <div className="ledger-number" style={{ fontSize: 28, marginTop: 8, color: 'var(--accent)' }}>
-              ¥{costWithAlloc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              ¥{snapshotCustomerVehicleCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <Text style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-              分摊 +¥{allocPerVehicle.toFixed(2)}/车
+              当前有效价较定点快照 {customerVehicleCost >= snapshotCustomerVehicleCost ? '+' : ''}¥{(customerVehicleCost - snapshotCustomerVehicleCost).toFixed(2)}/车
+            </Text>
+            <Text style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, display: 'block' }}>
+              当前生效分摊 ¥{allocPerVehicle.toFixed(2)}/车
             </Text>
           </div>
         </Col>

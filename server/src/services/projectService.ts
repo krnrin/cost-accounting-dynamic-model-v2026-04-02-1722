@@ -4,8 +4,23 @@ import { hydrateJsonFields, dehydrateJsonFields } from '../lib/json.js';
 const JSON_FIELDS = ['costRates', 'metalPrices', 'volumes'] as const;
 
 export class ProjectService {
-  static async getAllProjects() {
+  static async getAllProjects(filters?: { search?: string; status?: string }) {
+    const search = filters?.search?.trim();
+    const status = filters?.status?.trim();
+
     const projects = await prisma.project.findMany({
+      where: {
+        ...(status ? { status } : {}),
+        ...(search
+          ? {
+              OR: [
+                { projectCode: { contains: search } },
+                { projectName: { contains: search } },
+                { customer: { contains: search } },
+              ],
+            }
+          : {}),
+      },
       include: {
         creator: { select: { id: true, name: true, email: true } },
       },

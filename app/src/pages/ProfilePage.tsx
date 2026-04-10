@@ -20,13 +20,6 @@ const ROLE_LABELS: Record<UserRole, string> = {
   VIEWER: '只读用户',
 };
 
-const ROLE_COLORS: Record<UserRole, string> = {
-  ADMIN: '#000000',
-  MANAGER: '#27272a',
-  ENGINEER: '#3f3f46',
-  VIEWER: '#71717a',
-};
-
 const PERMISSION_LABELS: Record<PermissionField, string> = {
   profit: '利润查看',
   profitRate: '利润率查看',
