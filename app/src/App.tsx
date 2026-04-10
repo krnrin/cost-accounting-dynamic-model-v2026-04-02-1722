@@ -64,6 +64,7 @@ export default function App() {
           {/* 项目级页面 */}
           <Route path="/project/:id" element={<ProjectDashboardOverviewPage />} />
           <Route path="/project/:id/scenarios" element={<ProjectScenariosPage />} />
+          <Route path="/project/:id/scenario/:sid" element={<DashboardPage />} />
           <Route path="/project/:id/compare" element={<ScenarioComparePage />} />
           <Route path="/project/:id/bom/diff" element={<BomDiffPage />} />
           {/* 场景级页面 */}
