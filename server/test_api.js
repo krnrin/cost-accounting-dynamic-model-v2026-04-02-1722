@@ -193,10 +193,35 @@ async function runTests() {
   assert('GET /api/projects/:pid/harnesses', hList.status === 200 && Array.isArray(hList.json.data));
   assert('  → 2 seeded harnesses', hList.json.data?.length === 2);
 
+  // 9b. Scenario BOM list/summary
+  const bomList = await api('GET', `/api/scenarios/${scenarioId}/bom`, null, token);
+  assert('GET /api/scenarios/:sid/bom', bomList.status === 200 && Array.isArray(bomList.json.data));
+  const bomSummary = await api('GET', `/api/scenarios/${scenarioId}/bom/summary`, null, token);
+  assert('GET /api/scenarios/:sid/bom/summary', bomSummary.status === 200 && typeof bomSummary.json.data?.rowCount === 'number');
+
   // 10. Create harness
-  const hCreate = await api('POST', `/api/projects/${projectId}/harnesses`, TEST_HARNESS, token);
+  const hCreate = await api('POST', `/api/projects/${projectId}/harnesses`, { ...TEST_HARNESS, scenarioId }, token);
   assert(`POST harness (create ${TEST_HARNESS.harnessId})`, hCreate.status === 201 && hCreate.json.data?.harnessId === TEST_HARNESS.harnessId);
   const newHarnessId = hCreate.json.data?.id;
+
+  // 10b. BOM row create/update/import/delete
+  const bomCreate = await api('POST', `/api/scenarios/${scenarioId}/bom`, {
+    harnessId: TEST_HARNESS.harnessId,
+    bomRow: { partNo: 'P-001', partName: '端子', itemCategory: 'terminal', qty: 2, unit: '个', unitPrice: 3.5, amount: 7 }
+  }, token);
+  assert('POST /api/scenarios/:sid/bom', bomCreate.status === 201 && bomCreate.json.data?.rowId);
+  const bomRowId = bomCreate.json.data?.rowId;
+  const bomUpdate = await api('PUT', `/api/bom/${encodeURIComponent(bomRowId)}?projectId=${projectId}`, {
+    patch: { partName: '端子-V2', amount: 8 }
+  }, token);
+  assert('PUT /api/bom/:rowId', bomUpdate.status === 200 && bomUpdate.json.data?.partName === '端子-V2');
+  const bomImport = await api('POST', `/api/scenarios/${scenarioId}/bom/import`, {
+    harnessId: TEST_HARNESS.harnessId,
+    rows: [{ partNo: 'P-002', partName: '护套', itemCategory: 'connector', qty: 1, unit: '个', unitPrice: 5, amount: 5 }]
+  }, token);
+  assert('POST /api/scenarios/:sid/bom/import', bomImport.status === 201 && bomImport.json.data?.importedCount === 1);
+  const bomDelete = await api('DELETE', `/api/bom/${encodeURIComponent(bomRowId)}?projectId=${projectId}`, null, token);
+  assert('DELETE /api/bom/:rowId', bomDelete.status === 204);
 
   // 11. Update harness
   const hUp = await api('PUT', `/api/projects/${projectId}/harnesses/${newHarnessId}`, {

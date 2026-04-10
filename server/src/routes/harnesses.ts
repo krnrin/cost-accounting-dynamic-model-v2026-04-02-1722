@@ -10,6 +10,7 @@ const router = Router({ mergeParams: true });
 const harnessSchema = z.object({
   harnessId: z.string().min(3),
   harnessName: z.string().min(3),
+  scenarioId: z.string().optional(),
   input: z.any(),
   result: z.any().optional(),
 });
