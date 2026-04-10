@@ -21,6 +21,7 @@ import TrackingPage from '@/pages/TrackingPage';
 import AlertsPage from '@/pages/AlertsPage';
 import ProfilePage from '@/pages/ProfilePage';
 import NotFoundPage from '@/pages/NotFoundPage';
+import ProjectDashboardOverviewPage from '@/pages/ProjectDashboardOverviewPage';
 import ProjectScenariosPage from '@/pages/ProjectScenariosPage';
 import ScenarioComparePage from '@/pages/ScenarioComparePage';
 import ConfigMatrixPage from '@/pages/ConfigMatrixPage';
@@ -60,8 +61,9 @@ export default function App() {
           <Route path="/" element={<ProjectListPage />} />
           <Route path="/manager" element={<ManagerDashboardPage />} />
           <Route path="/wizard" element={<WizardPage />} />
-          {/* 项目场景列表 */}
-          <Route path="/project/:id" element={<ProjectScenariosPage />} />
+          {/* 项目级页面 */}
+          <Route path="/project/:id" element={<ProjectDashboardOverviewPage />} />
+          <Route path="/project/:id/scenarios" element={<ProjectScenariosPage />} />
           <Route path="/project/:id/compare" element={<ScenarioComparePage />} />
           <Route path="/project/:id/bom/diff" element={<BomDiffPage />} />
           {/* 场景级页面 */}

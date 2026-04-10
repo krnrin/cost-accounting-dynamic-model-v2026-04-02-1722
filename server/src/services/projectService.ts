@@ -67,8 +67,10 @@ export class ProjectService {
       where: { id },
       include: {
         harnesses: true,
-        quotes: { orderBy: { updatedAt: 'desc' }, take: 1 },
+        quotes: { orderBy: { updatedAt: 'desc' } },
         versions: true,
+        scenarios: { orderBy: { createdAt: 'asc' } },
+        allocations: true,
       },
     });
     if (!project) {
@@ -78,9 +80,23 @@ export class ProjectService {
     }
 
     const hydrated = hydrateJsonFields(project, [...JSON_FIELDS]);
-    const latestQuote = hydrated.quotes?.[0];
-    const quoteData = latestQuote ? hydrateJsonFields(latestQuote as any, ['data']) : null;
-    const quoteTotal = quoteData?.data?.totals?.deliveredPrice ?? null;
+    const quoteRecords = hydrated.quotes ?? [];
+    const latestQuote = quoteRecords[0] ? hydrateJsonFields(quoteRecords[0] as any, ['data', 'quoteResult', 'quoteParams']) : null;
+    const quoteTotal = latestQuote?.quoteResult?.arrivalPrice
+      ?? latestQuote?.effectivePrice
+      ?? latestQuote?.arrivalPrice
+      ?? latestQuote?.data?.totals?.deliveredPrice
+      ?? null;
+    const internalCostBaseline = latestQuote?.internalCostBaseline ?? null;
+    const effectivePrice = latestQuote?.effectivePrice ?? quoteTotal;
+    const latestProfitGap = typeof effectivePrice === 'number' && typeof internalCostBaseline === 'number'
+      ? effectivePrice - internalCostBaseline
+      : latestQuote?.profitGap ?? null;
+
+    const allocations = hydrated.allocations ?? [];
+    const totalAllocationAmount = allocations.reduce((sum: number, item: any) => sum + Number(item.totalAmount || 0), 0);
+    const totalRecoveredAmount = allocations.reduce((sum: number, item: any) => sum + Number(item.actualRecovered || 0), 0);
+    const recoveryRate = totalAllocationAmount > 0 ? totalRecoveredAmount / totalAllocationAmount : 0;
 
     return {
       id: hydrated.id,
@@ -90,10 +106,33 @@ export class ProjectService {
       platform: hydrated.platform,
       status: hydrated.status,
       harnessCount: hydrated.harnesses?.length ?? 0,
-      quoteCount: hydrated.quotes?.length ?? 0,
+      scenarioCount: hydrated.scenarios?.length ?? 0,
+      quoteCount: quoteRecords.length,
       versionCount: hydrated.versions?.length ?? 0,
       latestQuoteTotal: quoteTotal,
+      internalCostBaseline,
+      latestProfitGap,
+      totalAllocationAmount,
+      totalRecoveredAmount,
+      recoveryRate,
       updatedAt: hydrated.updatedAt,
+      scenarios: (hydrated.scenarios ?? []).map((scenario: any) => ({
+        id: scenario.id,
+        name: scenario.name,
+        type: scenario.type,
+        status: scenario.status,
+        lifecycleYears: scenario.lifecycleYears,
+        createdAt: scenario.createdAt,
+      })),
+      latestQuote: latestQuote ? {
+        id: latestQuote.id,
+        version: latestQuote.version,
+        template: latestQuote.template,
+        status: latestQuote.status,
+        effectivePrice: latestQuote.effectivePrice,
+        effectivePriceMode: latestQuote.effectivePriceMode,
+        updatedAt: latestQuote.updatedAt,
+      } : null,
     };
   }
 

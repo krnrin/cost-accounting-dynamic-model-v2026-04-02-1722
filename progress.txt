@@ -21,3 +21,41 @@
 ### 备注:
 - `init.ps1` 目前有 PowerShell 语法损坏，未能用于本次初始化，后续 session 应先修复它
 - Playwright 控制台剩余的是 React StrictMode 下 Semi UI 的 `findDOMNode` 警告，不影响本任务验收
+
+## [2026-04-11 03:23] - Task: [T02] 项目 Dashboard
+
+### 完成的工作:
+- 扩展 `server/src/services/projectService.ts` 的 `GET /api/projects/:id/dashboard` 聚合结果，补齐场景数、内部成本基线、利润差异、分摊总额、已回收金额、回收率、最近报价与场景摘要
+- 新增 `app/src/pages/ProjectDashboardOverviewPage.tsx`，实现 `/project/:id` 项目级 Dashboard，展示成本/报价/利润/回收指标卡片与模块导航入口
+- 调整 `app/src/App.tsx` 路由：`/project/:id` 现在展示项目 Dashboard，原场景列表迁移到 `/project/:id/scenarios`
+- 更新 `app/src/pages/ProjectScenariosPage.tsx` 返回路径，使项目 Dashboard 与场景列表形成双向导航
+
+### 测试:
+- 后端：`cd D:/harness-project/server && node test_api.js` → 77 passed, 0 failed
+- 前端类型：`cd D:/harness-project/app && npx tsc --noEmit` → 通过
+- 前端构建：`cd D:/harness-project/app && npx vite build` → 成功（保留既有 PostCSS `@import` warning，不影响构建）
+- 浏览器：Playwright 登录 `http://127.0.0.1:5199/`，验证项目列表点击“进入项目”可进入 `/project/:id` Dashboard，点击“管理场景”跳转到 `/project/:id/scenarios`
+- 截图：`project-t02-entered-dashboard.png`、`project-t02-scenarios-from-dashboard.png`
+
+### 备注:
+- 直接访问旧示例路径 `/project/e281-quote` 会因旧本地数据不匹配显示“项目不存在”，本任务按真实项目列表点击链路验收通过
+- Playwright 中 5173 端口被旧 dev server 占用，本次浏览器验收使用新启动的 5199 端口
+
+## [2026-04-11 03:23] - Task: [T02] 项目 Dashboard
+
+### 完成的工作:
+- 扩展 `server/src/services/projectService.ts` 的 `GET /api/projects/:id/dashboard` 聚合结果，补齐场景数、内部成本基线、利润差异、分摊总额、已回收金额、回收率、最近报价与场景摘要
+- 新增 `app/src/pages/ProjectDashboardOverviewPage.tsx`，实现 `/project/:id` 项目级 Dashboard，展示成本/报价/利润/回收指标卡片与模块导航入口
+- 调整 `app/src/App.tsx` 路由：`/project/:id` 现在展示项目 Dashboard，原场景列表迁移到 `/project/:id/scenarios`
+- 更新 `app/src/pages/ProjectScenariosPage.tsx` 返回路径，使项目 Dashboard 与场景列表形成双向导航
+
+### 测试:
+- 后端：`cd D:/harness-project/server && node test_api.js` → 77 passed, 0 failed
+- 前端类型：`cd D:/harness-project/app && npx tsc --noEmit` → 通过
+- 前端构建：`cd D:/harness-project/app && npx vite build` → 成功（保留既有 PostCSS `@import` warning，不影响构建）
+- 浏览器：Playwright 登录 `http://127.0.0.1:5199/`，验证项目列表点击“进入项目”可进入 `/project/:id` Dashboard，点击“管理场景”跳转到 `/project/:id/scenarios`
+- 截图：`project-t02-entered-dashboard.png`、`project-t02-scenarios-from-dashboard.png`
+
+### 备注:
+- 直接访问旧示例路径 `/project/e281-quote` 会因旧本地数据不匹配显示“项目不存在”，本任务按真实项目列表点击链路验收通过
+- Playwright 中 5173 端口被旧 dev server 占用，本次浏览器验收使用新启动的 5199 端口
