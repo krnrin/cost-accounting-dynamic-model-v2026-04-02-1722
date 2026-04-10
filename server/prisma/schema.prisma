@@ -28,33 +28,61 @@ model Project {
   customer    String
   platform    String?
   status      String   @default("active")
-  
+
   costRates   String   @default("{}") // JSON string
   metalPrices String   @default("{}") // JSON string
-  volumes     String?  // JSON string
-  
+  volumes     String?
+
   createdBy   String
   creator     User     @relation(fields: [createdBy], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  scenarios   Scenario[]
   harnesses   Harness[]
   quotes      Quote[]
   versions    Version[]
   auditLogs   AuditLog[]
 }
 
+model Scenario {
+  id                 String   @id @default(uuid())
+  projectId          String
+  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  type               String
+  name               String
+  status             String   @default("draft")
+  lifecycleYears     Int
+  volume             Int      @default(0)
+  installRatio       Float    @default(1)
+  rateSnapshot       String   @default("{}")
+  bomVersionRef      String?
+  quoteParamSnapshot String   @default("{}")
+  sourceScenarioId   String?
+  compareBaselineId  String?
+  frozenAt           DateTime?
+  releasedAt         DateTime?
+  notes              String?
+  createdBy          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([projectId])
+}
+
 model Harness {
   id          String   @id @default(uuid())
   projectId   String
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
-  harnessId   String   // Part number like 6608442966
+
+  scenarioId  String?
+  harnessId   String
   harnessName String
-  
-  input       String   @default("{}") // JSON string (HarnessInput)
-  result      String?  // JSON string (computed HarnessResult)
-  
+
+  input       String   @default("{}")
+  result      String?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -65,12 +93,12 @@ model Quote {
   id          String   @id @default(uuid())
   projectId   String
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
+
   version     String
   status      String   @default("draft")
   template    String   @default("geely")
-  data        String   @default("{}") // JSON string
-  
+  data        String   @default("{}")
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -79,13 +107,13 @@ model Version {
   id             String   @id @default(uuid())
   projectId      String
   project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  
+
   versionNumber  Int
   label          String
   status         String   @default("draft")
-  snapshot       String   @default("{}") // JSON string
+  snapshot       String   @default("{}")
   notes          String?
-  
+
   createdBy      String?
   createdAt      DateTime @default(now())
 
@@ -98,12 +126,12 @@ model AuditLog {
   user        User     @relation(fields: [userId], references: [id])
   projectId   String?
   project     Project? @relation(fields: [projectId], references: [id])
-  
-  action      String   // CREATE, UPDATE, DELETE, STATUS_CHANGE
-  entity      String   // project, harness, quote, version
+
+  action      String
+  entity      String
   entityId    String
-  details     String?  // JSON string
-  
+  details     String?
+
   createdAt   DateTime @default(now())
 
   @@index([projectId])

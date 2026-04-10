@@ -8,6 +8,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 // Routes
 import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
+import scenarioRoutes from './routes/scenarios.js';
 import harnessRoutes from './routes/harnesses.js';
 import quoteRoutes from './routes/quotes.js';
 import versionRoutes from './routes/versions.js';
@@ -28,6 +29,7 @@ app.use(express.json({ limit: '10mb' }));
 // Mount Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/projects/:id/scenarios', scenarioRoutes);
 app.use('/api/projects/:pid/harnesses', harnessRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/versions', versionRoutes);

@@ -30,6 +30,15 @@ const TEST_HARNESS = {
   harnessName: '压缩机线束',
   input: { copperWeight: 0.5, processHours: 0.06 },
 };
+const TEST_SCENARIO = {
+  type: 'initial_quote',
+  name: `Scenario ${suffix}`,
+  lifecycleYears: 5,
+  volume: 100000,
+  installRatio: 1,
+  rateSnapshot: { laborRate: 35, mfgRate: 46.69 },
+  quoteParamSnapshot: { source: 'api-test' },
+};
 const TEST_VERSION_NUM = Math.floor(Math.random() * 1000) + 10;
 
 let server;
@@ -144,6 +153,17 @@ async function runTests() {
   const projCreate = await api('POST', '/api/projects', TEST_PROJECT, token);
   assert(`POST /api/projects (create ${TEST_PROJECT.projectCode})`, projCreate.status === 201 && projCreate.json.data?.projectCode === TEST_PROJECT.projectCode);
   const e281Id = projCreate.json.data?.id;
+
+  // 7a. Create and list scenarios
+  const scenarioCreate = await api('POST', `/api/projects/${e281Id}/scenarios`, TEST_SCENARIO, token);
+  assert('POST /api/projects/:id/scenarios', scenarioCreate.status === 201 && scenarioCreate.json.data?.name === TEST_SCENARIO.name);
+  const scenarioId = scenarioCreate.json.data?.id;
+  const scenarioList = await api('GET', `/api/projects/${e281Id}/scenarios`, null, token);
+  assert('GET /api/projects/:id/scenarios', scenarioList.status === 200 && Array.isArray(scenarioList.json.data));
+  const scenarioGet = await api('GET', `/api/projects/${e281Id}/scenarios/${scenarioId}`, null, token);
+  assert('GET /api/projects/:id/scenarios/:sid', scenarioGet.status === 200 && scenarioGet.json.data?.id === scenarioId);
+  const scenarioUpdate = await api('PUT', `/api/projects/${e281Id}/scenarios/${scenarioId}`, { name: TEST_SCENARIO.name + '-更新' }, token);
+  assert('PUT /api/projects/:id/scenarios/:sid', scenarioUpdate.status === 200 && scenarioUpdate.json.data?.name?.includes('更新'));
 
   // 7b. Audit log test (added)
   const auditLogs = await api('GET', `/api/projects/${e281Id}/audit-logs`, null, token);
