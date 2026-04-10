@@ -101,6 +101,26 @@ router.get('/:sid/summary', async (req: Request, res: Response, next: NextFuncti
 });
 
 compareRouter.use(authMiddleware);
+
+compareRouter.get('/:sid', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await ScenarioService.getById(req.params.sid as string);
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+compareRouter.put('/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = scenarioSchema.partial().parse(req.body);
+    const data = await ScenarioService.update(req.params.sid as string, input);
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 compareRouter.get('/compare', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const ids = String(req.query.ids || '').split(',').filter(Boolean);

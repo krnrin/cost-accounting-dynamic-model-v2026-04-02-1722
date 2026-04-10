@@ -1,41 +1,163 @@
-/**
- * 项目场景列表页 — 展示一个项目下的所有场景
- */
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Typography, Spin, Button, Table, Tag, Toast, Space, Card, Modal, Input, Select, Switch } from '@douyinfe/semi-ui';
-import { IconPlus, IconArrowLeft, IconDelete } from '@douyinfe/semi-icons';
-import { db } from '@/data/db';
-import type { ProjectRecord, ScenarioRecord, ScenarioType } from '@/data/db';
-import { useProjectStore } from '@/store/projectStore';
-import { forkScenario, deleteScenario } from '@/data/scenarioFork';
+import { Typography, Spin, Button, Table, Tag, Toast, Space, Card, Modal, Input, Select } from '@douyinfe/semi-ui';
+import { IconPlus, IconArrowLeft } from '@douyinfe/semi-icons';
 import { apiClient } from '@/lib/apiClient';
+import { db } from '@/data/db';
+import type { ProjectRecord, ScenarioType as LocalScenarioType } from '@/data/db';
+import { useProjectStore } from '@/store/projectStore';
 
-const { Title, Text } = Typography;
+interface ScenarioItem {
+  id: string;
+  projectId: string;
+  type: ScenarioType;
+  name: string;
+  status: string;
+  lifecycleYears: number;
+  volume: number;
+  installRatio: number;
+  rateSnapshot: Record<string, unknown>;
+  bomVersionRef?: string | null;
+  quoteParamSnapshot: Record<string, unknown>;
+  sourceScenarioId?: string | null;
+  compareBaselineId?: string | null;
+  notes?: string | null;
+  createdBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
-const SCENARIO_TYPE_LABELS: Record<string, string> = {
+type ScenarioType = 'initial_quote' | 'fixed_point' | 'change' | 'annual_drop';
+
+interface ScenarioFormState {
+  type: ScenarioType;
+  name: string;
+  lifecycleYears: number;
+  volume: number;
+  installRatio: number;
+  bomVersionRef: string;
+  notes: string;
+  sourceScenarioId?: string;
+  compareBaselineId?: string;
+}
+
+const defaultScenarioForm = (): ScenarioFormState => ({
+  type: 'initial_quote',
+  name: '',
+  lifecycleYears: 5,
+  volume: 0,
+  installRatio: 1,
+  bomVersionRef: '',
+  notes: '',
+  sourceScenarioId: undefined,
+  compareBaselineId: undefined,
+});
+
+const SCENARIO_STATUS_LABELS: Record<string, string> = {
+  draft: '草稿',
+  frozen: '已冻结',
+  released: '已发布',
+};
+
+const STATUS_COLORS: Record<string, 'blue' | 'green' | 'red' | 'cyan' | 'grey' | 'orange'> = {
+  draft: 'grey',
+  frozen: 'orange',
+  released: 'green',
+};
+
+const SCENARIO_TYPE_LABELS: Record<ScenarioType, string> = {
   initial_quote: '初始报价',
-  final_quote: '最终报价',
-  customer_award: '客户定点',
-  ecn: '设变',
-  metal_escalation: '金属联动',
+  fixed_point: '定点',
+  change: '设变',
   annual_drop: '年降',
-  volume_change: '销量变更',
-  eop_change: 'EOP变更',
-  custom: '自定义',
 };
 
 const SCENARIO_TYPE_OPTIONS: { value: ScenarioType; label: string }[] = [
   { value: 'initial_quote', label: '初始报价' },
-  { value: 'final_quote', label: '最终报价' },
-  { value: 'customer_award', label: '客户定点' },
-  { value: 'ecn', label: '设变' },
-  { value: 'metal_escalation', label: '金属联动' },
+  { value: 'fixed_point', label: '定点' },
+  { value: 'change', label: '设变' },
   { value: 'annual_drop', label: '年降' },
-  { value: 'volume_change', label: '销量变更' },
-  { value: 'eop_change', label: 'EOP变更' },
-  { value: 'custom', label: '自定义' },
 ];
+
+function formatDate(value: string) {
+  return new Date(value).toLocaleString('zh-CN');
+}
+
+function normalizeScenarioPayload(form: ScenarioFormState) {
+  return {
+    type: form.type,
+    name: form.name.trim(),
+    lifecycleYears: Number(form.lifecycleYears),
+    volume: Number(form.volume),
+    installRatio: Number(form.installRatio),
+    rateSnapshot: {},
+    bomVersionRef: form.bomVersionRef.trim() || undefined,
+    quoteParamSnapshot: {},
+    sourceScenarioId: form.sourceScenarioId || undefined,
+    compareBaselineId: form.compareBaselineId || undefined,
+    notes: form.notes.trim() || undefined,
+  };
+}
+
+function mapScenarioTypeToLocal(type: ScenarioType): LocalScenarioType {
+  switch (type) {
+    case 'fixed_point':
+      return 'customer_award';
+    case 'change':
+      return 'ecn';
+    default:
+      return type;
+  }
+}
+
+function toLocalScenarioRecord(item: ScenarioItem) {
+  return {
+    id: item.id,
+    projectId: item.projectId,
+    scenarioCode: item.id,
+    scenarioName: item.name,
+    scenarioType: mapScenarioTypeToLocal(item.type),
+    parentScenarioId: item.sourceScenarioId ?? null,
+    isBaseline: !item.sourceScenarioId,
+    lifecycleYears: item.lifecycleYears,
+    config: {
+      costRates: {
+        laborRate: 35,
+        mfgRate: 46.69,
+        wasteRate: 0.01,
+        mgmtRate: 0.06,
+        profitRate: 0.056627,
+        ...(item.rateSnapshot ?? {}),
+      },
+      metalPrices: {
+        copper: 0,
+        aluminum: 0,
+      },
+      volumes: [{ year: 1, volume: item.volume }],
+      annualDropRate: 0,
+    },
+    note: item.notes ?? '',
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+function getScenarioDisplayVolume(item: ScenarioItem) {
+  return Number(item.volume || 0).toLocaleString('zh-CN');
+}
+
+function getScenarioDisplaySource(item: ScenarioItem, scenarios: ScenarioItem[]) {
+  if (!item.sourceScenarioId) {
+    return '—';
+  }
+  return scenarios.find((scenario) => scenario.id === item.sourceScenarioId)?.name ?? item.sourceScenarioId;
+}
+
+/**
+ * 项目场景列表页 — 展示一个项目下的所有场景
+ */
+
+const { Title, Text } = Typography;
 
 export default function ProjectScenariosPage() {
   const { id } = useParams<{ id: string }>();
@@ -43,184 +165,284 @@ export default function ProjectScenariosPage() {
   const { setCurrentProject } = useProjectStore();
 
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [project, setProject] = useState<ProjectRecord | null>(null);
-  const [scenarios, setScenarios] = useState<ScenarioRecord[]>([]);
+  const [scenarios, setScenarios] = useState<ScenarioItem[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [editingScenarioId, setEditingScenarioId] = useState<string | null>(null);
+  const [form, setForm] = useState<ScenarioFormState>(defaultScenarioForm());
 
-  // Fork modal state
-  const [forkVisible, setForkVisible] = useState(false);
-  const [forkParentId, setForkParentId] = useState<string | null>(null);
-  const [forkName, setForkName] = useState('');
-  const [forkType, setForkType] = useState<ScenarioType>('custom');
-  const [forkInheritAlloc, setForkInheritAlloc] = useState(true);
-  const [forkLoading, setForkLoading] = useState(false);
+  const loadProject = async () => {
+    if (!id) return null;
+    let localProject = await db.projects.get(id);
+    if (localProject) {
+      return localProject;
+    }
+
+    const remoteProject = await apiClient<{
+      id: string;
+      projectCode: string;
+      projectName: string;
+      customer: string;
+      platform?: string | null;
+      status: ProjectRecord['meta']['status'];
+      createdAt: string;
+      updatedAt: string;
+    }>(`/projects/${id}`);
+
+    localProject = {
+      id: remoteProject.id,
+      meta: {
+        id: remoteProject.id,
+        projectCode: remoteProject.projectCode,
+        projectName: remoteProject.projectName,
+        customer: remoteProject.customer,
+        platform: remoteProject.platform ?? undefined,
+        status: remoteProject.status,
+        createdAt: remoteProject.createdAt,
+        updatedAt: remoteProject.updatedAt,
+      },
+    } as ProjectRecord;
+
+    await db.projects.put(localProject);
+    return localProject;
+  };
+
+  const loadScenarios = async () => {
+    if (!id) return;
+    const data = await apiClient<ScenarioItem[]>(`/projects/${id}/scenarios`);
+    setScenarios(data.sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
+    await db.scenarios.bulkPut(data.map(toLocalScenarioRecord));
+  };
 
   const reload = async () => {
-    if (!id) return;
-    const s = await db.scenarios.where('projectId').equals(id).toArray();
-    setScenarios(s.sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
+    await loadScenarios();
   };
 
   useEffect(() => {
     async function load() {
       if (!id) return;
-      let p = await db.projects.get(id);
-      if (!p) {
-        try {
-          const remoteProject = await apiClient<{
-            id: string;
-            projectCode: string;
-            projectName: string;
-            customer: string;
-            platform?: string | null;
-            status: ProjectRecord['meta']['status'];
-            createdAt: string;
-            updatedAt: string;
-          }>(`/projects/${id}`);
-          p = {
-            id: remoteProject.id,
-            meta: {
-              id: remoteProject.id,
-              projectCode: remoteProject.projectCode,
-              projectName: remoteProject.projectName,
-              customer: remoteProject.customer,
-              platform: remoteProject.platform ?? undefined,
-              status: remoteProject.status,
-              createdAt: remoteProject.createdAt,
-              updatedAt: remoteProject.updatedAt,
-            },
-          } as ProjectRecord;
-          await db.projects.put(p);
-        } catch {
+      try {
+        setLoading(true);
+        const loadedProject = await loadProject();
+        if (!loadedProject) {
           Toast.error('项目不存在');
-          setLoading(false);
           return;
         }
+        setProject(loadedProject);
+        setCurrentProject(loadedProject.id, loadedProject.meta.projectName);
+        await loadScenarios();
+      } catch (error) {
+        Toast.error(error instanceof Error ? error.message : '场景加载失败');
+      } finally {
+        setLoading(false);
       }
-      setProject(p);
-      setCurrentProject(p.id, p.meta.projectName);
-      const s = await db.scenarios.where('projectId').equals(id).toArray();
-      setScenarios(s.sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
-      setLoading(false);
     }
-    load();
-  }, [id]);
+    void load();
+  }, [id, setCurrentProject]);
 
-  const openForkModal = (parentId: string) => {
-    setForkParentId(parentId);
-    setForkName('');
-    setForkType('custom');
-    setForkInheritAlloc(true);
-    setForkVisible(true);
+  const openCreateModal = () => {
+    setEditingScenarioId(null);
+    setForm(defaultScenarioForm());
+    setModalVisible(true);
   };
 
-  const handleFork = async () => {
-    if (!forkParentId || !forkName.trim()) { Toast.warning('请输入场景名称'); return; }
-    setForkLoading(true);
+  const openEditModal = (scenario: ScenarioItem) => {
+    setEditingScenarioId(scenario.id);
+    setForm({
+      type: scenario.type,
+      name: scenario.name,
+      lifecycleYears: scenario.lifecycleYears,
+      volume: scenario.volume,
+      installRatio: scenario.installRatio,
+      bomVersionRef: scenario.bomVersionRef ?? '',
+      notes: scenario.notes ?? '',
+      sourceScenarioId: scenario.sourceScenarioId ?? undefined,
+      compareBaselineId: scenario.compareBaselineId ?? undefined,
+    });
+    setModalVisible(true);
+  };
+
+  const submitScenario = async () => {
+    if (!id) return;
+    if (!form.name.trim()) {
+      Toast.warning('请输入场景名称');
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      await forkScenario(forkParentId, {
-        name: forkName.trim(),
-        type: forkType,
-        inheritAllocProgress: forkInheritAlloc,
-      });
-      Toast.success('场景创建成功');
-      setForkVisible(false);
+      const payload = normalizeScenarioPayload(form);
+      if (editingScenarioId) {
+        await apiClient(`/scenarios/${editingScenarioId}`, {
+          method: 'PUT',
+          body: payload,
+        });
+        Toast.success('场景已更新');
+      } else {
+        await apiClient(`/projects/${id}/scenarios`, {
+          method: 'POST',
+          body: payload,
+        });
+        Toast.success('场景已创建');
+      }
+      setModalVisible(false);
       await reload();
-    } catch (err: any) {
-      Toast.error(err.message || '创建失败');
+    } catch (error) {
+      Toast.error(error instanceof Error ? error.message : '场景保存失败');
     } finally {
-      setForkLoading(false);
+      setSubmitting(false);
     }
-  };
-
-  const handleDelete = async (scenarioId: string) => {
-    try {
-      await deleteScenario(scenarioId);
-      Toast.success('场景已删除');
-      await reload();
-    } catch (err: any) {
-      Toast.error(err.message || '删除失败');
-    }
-  };
-
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
-
-  const handleRename = async (scenarioId: string) => {
-    const name = editingName.trim();
-    if (!name) { setEditingId(null); return; }
-    await db.scenarios.update(scenarioId, { scenarioName: name, updatedAt: new Date().toISOString() });
-    setEditingId(null);
-    await reload();
-  };
-
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [editingNote, setEditingNote] = useState('');
-
-  const handleRenameNote = async (scenarioId: string) => {
-    await db.scenarios.update(scenarioId, { note: editingNote.trim(), updatedAt: new Date().toISOString() });
-    setEditingNoteId(null);
-    await reload();
   };
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
   if (!project) return <div>项目不存在</div>;
 
-  const totalVolume = (s: ScenarioRecord) =>
-    s.config?.volumes?.reduce((sum, v) => sum + v.volume, 0) ?? 0;
-
   const columns = [
-    { title: '场景名称', dataIndex: 'scenarioName', render: (_: any, r: ScenarioRecord) => (
-      editingId === r.id ? (
-        <Input
-          size="small"
-          value={editingName}
-          onChange={setEditingName}
-          onBlur={() => handleRename(r.id)}
-          onEnterPress={() => handleRename(r.id)}
-          autoFocus
-          style={{ width: 160 }}
-        />
-      ) : (
+    {
+      title: '场景名称',
+      dataIndex: 'name',
+      render: (_: unknown, record: ScenarioItem) => (
         <Space>
-          <Text strong style={{ cursor: 'pointer' }} onClick={() => { setEditingId(r.id); setEditingName(r.scenarioName); }}>
-            {r.scenarioName}
-          </Text>
-          {r.isBaseline && <Tag color="blue" size="small">基准</Tag>}
+          <Text strong>{record.name}</Text>
+          {!record.sourceScenarioId && <Tag color="blue" size="small">根场景</Tag>}
         </Space>
-      )
-    )},
-    { title: '类型', dataIndex: 'scenarioType', render: (_: any, r: ScenarioRecord) => SCENARIO_TYPE_LABELS[r.scenarioType] || r.scenarioType },
-    { title: '生命周期', dataIndex: 'lifecycleYears', render: (_: any, r: ScenarioRecord) => `${r.lifecycleYears}年` },
-    { title: '总销量', render: (_: any, r: ScenarioRecord) => totalVolume(r).toLocaleString() },
-    { title: '备注', dataIndex: 'note', width: 200, render: (_: any, r: ScenarioRecord) => (
-      editingNoteId === r.id ? (
-        <Input
-          size="small"
-          value={editingNote}
-          onChange={setEditingNote}
-          onBlur={() => handleRenameNote(r.id)}
-          onEnterPress={() => handleRenameNote(r.id)}
-          autoFocus
-          style={{ width: 180 }}
-        />
-      ) : (
-        <Text style={{ cursor: 'pointer', color: r.note ? 'inherit' : 'var(--semi-color-text-3)' }} onClick={() => { setEditingNoteId(r.id); setEditingNote(r.note || ''); }}>
-          {r.note || '点击添加备注'}
-        </Text>
-      )
-    )},
-    { title: '创建时间', dataIndex: 'createdAt', render: (_: any, r: ScenarioRecord) => r.createdAt.slice(0, 10) },
-    { title: '操作', render: (_: any, r: ScenarioRecord) => (
-      <Space>
-        <Button size="small" theme="solid" onClick={() => navigate(`/project/${id}/s/${r.id}`)}>进入</Button>
-        <Button size="small" onClick={() => openForkModal(r.id)}>派生</Button>
-        <Button size="small" onClick={() => navigate(`/project/${id}/compare?ids=${r.id}`)}>对比</Button>
-        {!r.isBaseline && (
-          <Button size="small" type="danger" icon={<IconDelete />} onClick={() => handleDelete(r.id)} />
-        )}
-      </Space>
-    )},
+      ),
+    },
+    {
+      title: '类型',
+      dataIndex: 'type',
+      render: (_: unknown, record: ScenarioItem) => SCENARIO_TYPE_LABELS[record.type] ?? record.type,
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      render: (_: unknown, record: ScenarioItem) => <Tag color={STATUS_COLORS[record.status] ?? 'grey'}>{SCENARIO_STATUS_LABELS[record.status] ?? record.status}</Tag>,
+    },
+    {
+      title: '生命周期',
+      dataIndex: 'lifecycleYears',
+      render: (_: unknown, record: ScenarioItem) => `${record.lifecycleYears} 年`,
+    },
+    {
+      title: '销量基线',
+      dataIndex: 'volume',
+      render: (_: unknown, record: ScenarioItem) => getScenarioDisplayVolume(record),
+    },
+    {
+      title: '装车比',
+      dataIndex: 'installRatio',
+      render: (_: unknown, record: ScenarioItem) => record.installRatio,
+    },
+    {
+      title: '来源场景',
+      dataIndex: 'sourceScenarioId',
+      render: (_: unknown, record: ScenarioItem) => getScenarioDisplaySource(record, scenarios),
+    },
+    {
+      title: '备注',
+      dataIndex: 'notes',
+      render: (_: unknown, record: ScenarioItem) => record.notes || '—',
+    },
+    {
+      title: '创建时间',
+      dataIndex: 'createdAt',
+      render: (_: unknown, record: ScenarioItem) => formatDate(record.createdAt),
+    },
+    {
+      title: '操作',
+      render: (_: unknown, record: ScenarioItem) => (
+        <Space>
+          <Button size="small" theme="solid" onClick={() => navigate(`/project/${id}/scenario/${record.id}`)}>进入</Button>
+          <Button size="small" onClick={() => openEditModal(record)}>编辑</Button>
+          <Button size="small" onClick={() => navigate(`/project/${id}/compare?ids=${record.id}`)}>对比</Button>
+        </Space>
+      ),
+    },
   ];
+
+  const scenarioOptions = scenarios.map((scenario) => ({ label: scenario.name, value: scenario.id }));
+  const modalTitle = editingScenarioId ? '编辑场景' : '新建场景';
+  const submitText = editingScenarioId ? '保存' : '创建';
+
+  const updateForm = <K extends keyof ScenarioFormState>(key: K, value: ScenarioFormState[K]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+
+  const selectedCompareBaselineId = form.compareBaselineId ?? '';
+  const selectedSourceScenarioId = form.sourceScenarioId ?? '';
+
+  const renderModal = (
+    <Modal
+      title={modalTitle}
+      visible={modalVisible}
+      onOk={submitScenario}
+      onCancel={() => setModalVisible(false)}
+      okText={submitText}
+      cancelText="取消"
+      confirmLoading={submitting}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <Text style={{ display: 'block', marginBottom: 6 }}>场景名称</Text>
+          <Input value={form.name} onChange={(value) => updateForm('name', value)} placeholder="例如：客户定点 / ECN 设变" />
+        </div>
+        <div>
+          <Text style={{ display: 'block', marginBottom: 6 }}>场景类型</Text>
+          <Select value={form.type} onChange={(value) => updateForm('type', value as ScenarioType)} style={{ width: '100%' }}>
+            {SCENARIO_TYPE_OPTIONS.map((option) => (
+              <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
+            ))}
+          </Select>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <Text style={{ display: 'block', marginBottom: 6 }}>生命周期（年）</Text>
+            <Input type="number" value={String(form.lifecycleYears)} onChange={(value) => updateForm('lifecycleYears', Number(value || 0))} />
+          </div>
+          <div>
+            <Text style={{ display: 'block', marginBottom: 6 }}>销量基线</Text>
+            <Input type="number" value={String(form.volume)} onChange={(value) => updateForm('volume', Number(value || 0))} />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <Text style={{ display: 'block', marginBottom: 6 }}>装车比</Text>
+            <Input type="number" value={String(form.installRatio)} onChange={(value) => updateForm('installRatio', Number(value || 0))} />
+          </div>
+          <div>
+            <Text style={{ display: 'block', marginBottom: 6 }}>BOM 版本引用</Text>
+            <Input value={form.bomVersionRef} onChange={(value) => updateForm('bomVersionRef', value)} placeholder="可选" />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div>
+            <Text style={{ display: 'block', marginBottom: 6 }}>来源场景</Text>
+            <Select value={selectedSourceScenarioId} onChange={(value) => updateForm('sourceScenarioId', String(value) || undefined)} style={{ width: '100%' }}>
+              <Select.Option value="">无</Select.Option>
+              {scenarioOptions.map((option) => (
+                <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
+              ))}
+            </Select>
+          </div>
+          <div>
+            <Text style={{ display: 'block', marginBottom: 6 }}>比较基线</Text>
+            <Select value={selectedCompareBaselineId} onChange={(value) => updateForm('compareBaselineId', String(value) || undefined)} style={{ width: '100%' }}>
+              <Select.Option value="">无</Select.Option>
+              {scenarioOptions.map((option) => (
+                <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
+              ))}
+            </Select>
+          </div>
+        </div>
+        <div>
+          <Text style={{ display: 'block', marginBottom: 6 }}>备注</Text>
+          <Input value={form.notes} onChange={(value) => updateForm('notes', value)} placeholder="说明场景目的、继承链或快照来源" />
+        </div>
+      </div>
+    </Modal>
+  );
 
   return (
     <div className="page-container">
@@ -235,68 +457,45 @@ export default function ProjectScenariosPage() {
       <Card className="glass-card" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Title heading={5} style={{ margin: 0 }}>场景列表</Title>
-          <Button icon={<IconPlus />} theme="light" onClick={() => {
-            const baseline = scenarios.find(s => s.isBaseline) ?? scenarios[0];
-            if (baseline) openForkModal(baseline.id);
-            else Toast.warning('没有可派生的场景');
-          }}>新建场景</Button>
+          <Button icon={<IconPlus />} theme="light" onClick={openCreateModal}>新建场景</Button>
         </div>
-        <Table
-          columns={columns}
-          dataSource={scenarios}
-          rowKey="id"
-          pagination={false}
-        />
+        <Table columns={columns} dataSource={scenarios} rowKey="id" pagination={false} />
       </Card>
 
-      {/* 场景谱系链 */}
-      {scenarios.length > 1 && (
+      {scenarios.length > 0 && (
         <Card className="glass-card">
-          <Title heading={6} style={{ margin: '0 0 12px' }}>场景谱系</Title>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            {scenarios.map((s, i) => (
-              <span key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Tag color={s.isBaseline ? 'blue' : 'grey'} size="large" style={{ cursor: 'pointer' }} onClick={() => navigate(`/project/${id}/s/${s.id}`)}>
-                  {s.scenarioName}
-                </Tag>
-                {i < scenarios.length - 1 && <span style={{ color: 'var(--semi-color-text-3)' }}>→</span>}
-              </span>
+          <Title heading={6} style={{ margin: '0 0 12px' }}>场景继承关系</Title>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {scenarios.map((scenario) => (
+              <div
+                key={scenario.id}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 16,
+                  padding: '10px 12px',
+                  border: '1px solid var(--semi-color-border)',
+                  borderRadius: 10,
+                }}
+              >
+                <Space>
+                  <Tag color={scenario.sourceScenarioId ? 'grey' : 'blue'}>
+                    {scenario.sourceScenarioId ? '继承场景' : '根场景'}
+                  </Tag>
+                  <Text>{scenario.name}</Text>
+                </Space>
+                <Text style={{ color: 'var(--semi-color-text-2)' }}>
+                  来源：{getScenarioDisplaySource(scenario, scenarios)}
+                  {scenario.compareBaselineId ? ` / 基线：${getScenarioDisplaySource({ ...scenario, sourceScenarioId: scenario.compareBaselineId }, scenarios)}` : ''}
+                </Text>
+              </div>
             ))}
           </div>
         </Card>
       )}
-      {/* Fork Modal */}
-      <Modal
-        title="新建场景"
-        visible={forkVisible}
-        onOk={handleFork}
-        onCancel={() => setForkVisible(false)}
-        okText="创建"
-        cancelText="取消"
-        confirmLoading={forkLoading}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <Text style={{ display: 'block', marginBottom: 4 }}>场景名称</Text>
-            <Input value={forkName} onChange={setForkName} placeholder="例如：客户定点、ECN-001 设变后" />
-          </div>
-          <div>
-            <Text style={{ display: 'block', marginBottom: 4 }}>场景类型</Text>
-            <Select value={forkType} onChange={v => setForkType(v as ScenarioType)} style={{ width: '100%' }}>
-              {SCENARIO_TYPE_OPTIONS.map(o => (
-                <Select.Option key={o.value} value={o.value}>{o.label}</Select.Option>
-              ))}
-            </Select>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Switch checked={forkInheritAlloc} onChange={setForkInheritAlloc} />
-            <Text>继承一次性费用回收进度</Text>
-          </div>
-          <Text type="tertiary" size="small">
-            从「{scenarios.find(s => s.id === forkParentId)?.scenarioName ?? ''}」派生，深拷贝所有线束和费用数据
-          </Text>
-        </div>
-      </Modal>
+
+      {renderModal}
     </div>
   );
 }
