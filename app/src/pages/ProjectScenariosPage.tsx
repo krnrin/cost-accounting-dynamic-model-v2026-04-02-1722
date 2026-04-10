@@ -9,6 +9,7 @@ import { db } from '@/data/db';
 import type { ProjectRecord, ScenarioRecord, ScenarioType } from '@/data/db';
 import { useProjectStore } from '@/store/projectStore';
 import { forkScenario, deleteScenario } from '@/data/scenarioFork';
+import { apiClient } from '@/lib/apiClient';
 
 const { Title, Text } = Typography;
 
@@ -62,8 +63,39 @@ export default function ProjectScenariosPage() {
   useEffect(() => {
     async function load() {
       if (!id) return;
-      const p = await db.projects.get(id);
-      if (!p) { Toast.error('项目不存在'); return; }
+      let p = await db.projects.get(id);
+      if (!p) {
+        try {
+          const remoteProject = await apiClient<{
+            id: string;
+            projectCode: string;
+            projectName: string;
+            customer: string;
+            platform?: string | null;
+            status: ProjectRecord['meta']['status'];
+            createdAt: string;
+            updatedAt: string;
+          }>(`/projects/${id}`);
+          p = {
+            id: remoteProject.id,
+            meta: {
+              id: remoteProject.id,
+              projectCode: remoteProject.projectCode,
+              projectName: remoteProject.projectName,
+              customer: remoteProject.customer,
+              platform: remoteProject.platform ?? undefined,
+              status: remoteProject.status,
+              createdAt: remoteProject.createdAt,
+              updatedAt: remoteProject.updatedAt,
+            },
+          } as ProjectRecord;
+          await db.projects.put(p);
+        } catch {
+          Toast.error('项目不存在');
+          setLoading(false);
+          return;
+        }
+      }
       setProject(p);
       setCurrentProject(p.id, p.meta.projectName);
       const s = await db.scenarios.where('projectId').equals(id).toArray();
@@ -193,7 +225,7 @@ export default function ProjectScenariosPage() {
   return (
     <div className="page-container">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, padding: '16px 0' }}>
-        <Button icon={<IconArrowLeft />} aria-label="返回" theme="borderless" onClick={() => navigate('/')} />
+        <Button icon={<IconArrowLeft />} aria-label="返回" theme="borderless" onClick={() => navigate(`/project/${id}`)} />
         <div>
           <Title heading={4} style={{ margin: 0 }}>{project.meta.projectName}</Title>
           <Text style={{ color: 'var(--semi-color-text-2)' }}>{project.meta.projectCode} / {project.meta.customer}</Text>
