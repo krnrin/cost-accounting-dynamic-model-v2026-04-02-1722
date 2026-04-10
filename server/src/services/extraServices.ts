@@ -9,6 +9,47 @@ function computeProfitGap(quote: any) {
   return effectivePrice - internalCostBaseline;
 }
 
+async function computeEffectivePriceForQuote(quote: any) {
+  if (!quote.scenarioId || !quote.harnessId) {
+    return {
+      effectivePrice: quote.effectivePrice ?? quote.arrivalPrice ?? 0,
+      effectivePriceMode: quote.effectivePriceMode ?? 'arrival',
+    };
+  }
+
+  const allocations = await prisma.allocationItem.findMany({
+    where: { scenarioId: quote.scenarioId, harnessId: quote.harnessId },
+  });
+
+  if (allocations.length === 0) {
+    return {
+      effectivePrice: quote.exWorksPrice,
+      effectivePriceMode: 'ex_works',
+    };
+  }
+
+  const allCompleted = allocations.every((item) => item.status === 'completed' || item.status === 'closed');
+  if (allCompleted) {
+    return {
+      effectivePrice: quote.exWorksPrice,
+      effectivePriceMode: 'ex_works',
+    };
+  }
+
+  const anyActive = allocations.some((item) => item.status === 'recovering' || item.status === 'allocated');
+  if (anyActive) {
+    return {
+      effectivePrice: quote.arrivalPrice,
+      effectivePriceMode: 'arrival',
+    };
+  }
+
+  return {
+    effectivePrice: quote.exWorksPrice,
+    effectivePriceMode: 'ex_works',
+  };
+}
+
 export class QuoteService {
   static async getQuotesByProject(projectId: string) {
     const quotes = await prisma.quote.findMany({
@@ -110,26 +151,29 @@ export class QuoteService {
 
   static async compareQuote(id: string) {
     const quote = await this.getQuoteById(id);
+    const effective = await computeEffectivePriceForQuote(quote);
+    const merged = { ...quote, ...effective };
     return {
-      id: quote.id,
-      projectId: quote.projectId,
-      scenarioId: quote.scenarioId,
-      harnessId: quote.harnessId,
-      internalCostBaseline: quote.internalCostBaseline,
-      effectivePrice: quote.effectivePrice,
-      arrivalPrice: quote.arrivalPrice,
-      exWorksPrice: quote.exWorksPrice,
-      profitGap: computeProfitGap(quote),
-      effectivePriceMode: quote.effectivePriceMode,
+      id: merged.id,
+      projectId: merged.projectId,
+      scenarioId: merged.scenarioId,
+      harnessId: merged.harnessId,
+      internalCostBaseline: merged.internalCostBaseline,
+      effectivePrice: merged.effectivePrice,
+      arrivalPrice: merged.arrivalPrice,
+      exWorksPrice: merged.exWorksPrice,
+      profitGap: computeProfitGap(merged),
+      effectivePriceMode: merged.effectivePriceMode,
     };
   }
 
   static async getEffectivePrice(id: string) {
     const quote = await this.getQuoteById(id);
+    const effective = await computeEffectivePriceForQuote(quote);
     return {
       id: quote.id,
-      effectivePrice: quote.effectivePrice,
-      effectivePriceMode: quote.effectivePriceMode,
+      effectivePrice: effective.effectivePrice,
+      effectivePriceMode: effective.effectivePriceMode,
       arrivalPrice: quote.arrivalPrice,
       exWorksPrice: quote.exWorksPrice,
       customerAccepted: quote.customerAccepted,

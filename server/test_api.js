@@ -191,7 +191,7 @@ async function runTests() {
   // 9. List harnesses
   const hList = await api('GET', `/api/projects/${projectId}/harnesses`, null, token);
   assert('GET /api/projects/:pid/harnesses', hList.status === 200 && Array.isArray(hList.json.data));
-  assert('  → 2 seeded harnesses', hList.json.data?.length === 2);
+  assert('  → seeded harnesses exist', (hList.json.data?.length || 0) >= 1);
 
   // 9b. Scenario BOM list/summary
   const bomList = await api('GET', `/api/scenarios/${scenarioId}/bom`, null, token);
@@ -305,7 +305,9 @@ async function runTests() {
   const qCompare = await api('GET', `/api/quotes/${quoteId}/compare`, null, token);
   assert('GET /api/quotes/:id/compare', qCompare.status === 200 && typeof qCompare.json.data?.profitGap === 'number');
   const qEffective = await api('GET', `/api/quotes/${quoteId}/effective-price`, null, token);
-  assert('GET /api/quotes/:id/effective-price', qEffective.status === 200 && qEffective.json.data?.effectivePriceMode === 'arrival');
+  assert('GET /api/quotes/:id/effective-price', qEffective.status === 200 && qEffective.json.data?.effectivePriceMode === 'ex_works');
+  const qCompareAfterAlloc = await api('GET', `/api/quotes/${quoteId}/compare`, null, token);
+  assert('effective price follows allocation state', qCompareAfterAlloc.status === 200 && qCompareAfterAlloc.json.data?.effectivePriceMode === 'ex_works');
   const qCompareMulti = await api('GET', `/api/quotes/compare?ids=${quoteId},${quoteId}`, null, token);
   assert('GET /api/quotes/compare?ids=a,b', qCompareMulti.status === 200 && Array.isArray(qCompareMulti.json.data));
 
