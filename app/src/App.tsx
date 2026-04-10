@@ -9,6 +9,7 @@ import DashboardPage from '@/pages/DashboardPage';
 import HarnessDetailPage from '@/pages/HarnessDetailPage';
 import HarnessEditPage from '@/pages/HarnessEditPage';
 import BomWorkbookPage from '@/pages/BomWorkbookPage';
+import BomDiffPage from '@/pages/BomDiffPage';
 import QuotePage from '@/pages/QuotePage';
 import SimulationPage from '@/pages/SimulationPage';
 import AnnualDropPage from '@/pages/AnnualDropPage';
@@ -62,6 +63,7 @@ export default function App() {
           {/* 项目场景列表 */}
           <Route path="/project/:id" element={<ProjectScenariosPage />} />
           <Route path="/project/:id/compare" element={<ScenarioComparePage />} />
+          <Route path="/project/:id/bom/diff" element={<BomDiffPage />} />
           {/* 场景级页面 */}
           <Route path="/project/:id/s/:sid" element={<DashboardPage />} />
           <Route path="/project/:id/s/:sid/harness/:harnessId" element={<HarnessDetailPage />} />
