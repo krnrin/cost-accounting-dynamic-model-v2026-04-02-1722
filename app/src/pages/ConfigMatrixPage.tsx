@@ -13,6 +13,7 @@ import { detectConfigRisks, detectVehicleConfigRisks } from '@/engine/config_ris
 import ScenarioSelector from '@/components/ScenarioSelector';
 import ConfigSetDiagram from '@/components/ConfigSetDiagram';
 import { UniverSheet } from '@/components/UniverSheet';
+import { getScenarioVehicleConfigMeta, getScenarioVehicleConfigs } from '@/data/e281Fallback';
 
 const { Title } = Typography;
 
@@ -34,8 +35,8 @@ export default function ConfigMatrixPage() {
     if (!sid) return;
     const sc = await db.scenarios.get(sid);
     setScenario(sc ?? null);
-    setVehicleConfigs(sc?.vehicleConfigs ?? []);
-    setPublishState(sc?.vehicleConfigMeta?.publishState ?? 'draft');
+    setVehicleConfigs(getScenarioVehicleConfigs(sc));
+    setPublishState(getScenarioVehicleConfigMeta(sc)?.publishState ?? 'draft');
     const h = await db.harnesses.where('scenarioId').equals(sid).toArray();
     setHarnesses(h);
     setLoading(false);

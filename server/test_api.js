@@ -32,22 +32,44 @@ const TEST_HARNESS = {
 };
 const TEST_VERSION_NUM = Math.floor(Math.random() * 1000) + 10;
 
-// Start server
-const server = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
-  cwd: __dirname,
-  stdio: 'pipe',
-  env: { ...process.env },
-});
-
+let server;
 let serverReady = false;
-server.stdout.on('data', (d) => {
-  if (d.toString().includes('Server running')) serverReady = true;
-});
-server.stderr.on('data', (d) => process.stderr.write(d));
+
+async function pingHealth() {
+  try {
+    const res = await fetch(`${BASE}/health`);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureServer() {
+  if (await pingHealth()) {
+    serverReady = true;
+    return;
+  }
+
+  server = spawn(process.execPath, ['--import', 'tsx', 'src/index.ts'], {
+    cwd: __dirname,
+    stdio: 'pipe',
+    env: { ...process.env },
+  });
+
+  server.stdout.on('data', (d) => {
+    if (d.toString().includes('Server running')) serverReady = true;
+  });
+  server.stderr.on('data', (d) => process.stderr.write(d));
+}
 
 async function waitReady(ms = 8000) {
+  await ensureServer();
   const start = Date.now();
   while (!serverReady && Date.now() - start < ms) {
+    if (await pingHealth()) {
+      serverReady = true;
+      break;
+    }
     await new Promise((r) => setTimeout(r, 200));
   }
   if (!serverReady) throw new Error('Server did not start in time');
@@ -247,11 +269,11 @@ async function runTests() {
 
 runTests()
   .then((fails) => {
-    server.kill();
+    if (server) server.kill();
     process.exit(fails > 0 ? 1 : 0);
   })
   .catch((err) => {
     console.error('Test error:', err);
-    server.kill();
+    if (server) server.kill();
     process.exit(1);
   });

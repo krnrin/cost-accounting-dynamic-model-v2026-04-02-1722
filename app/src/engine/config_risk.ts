@@ -1,7 +1,7 @@
 /**
  * 配置风险检测引擎 — 从线束标配/选配属性自动识别配置拆分不充分
  */
-import type { HarnessInput, HarnessRelation, HarnessRelationType, VehicleConfig } from '@/types/harness';
+import type { HarnessInput, HarnessRelation, VehicleConfig } from '@/types/harness';
 import type { TrackingItemRecord } from '@/data/db';
 
 /** 配置风险检测结果 */
@@ -346,7 +346,6 @@ export function generateConfigTrackingItems(
   risks: ConfigRiskItem[],
   relations: HarnessRelation[],
 ): Omit<TrackingItemRecord, 'id' | 'createdAt' | 'updatedAt'>[] {
-  const now = new Date().toISOString();
   const items: Omit<TrackingItemRecord, 'id' | 'createdAt' | 'updatedAt'>[] = [];
 
   for (const risk of risks) {
