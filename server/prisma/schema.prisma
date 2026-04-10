@@ -157,6 +157,25 @@ model AllocationItem {
   @@index([harnessId])
 }
 
+model RecoveryRecord {
+  id                String   @id @default(uuid())
+  allocationItemId  String
+  projectId         String
+  scenarioId        String
+  period            String
+  cumulativeVolume  Int      @default(0)
+  installRatioSnapshot Float  @default(1)
+  recoveredAmount   Float    @default(0)
+  remainingAmount   Float    @default(0)
+  status            String   @default("normal")
+  remark            String?
+  createdAt         DateTime @default(now())
+
+  @@index([allocationItemId])
+  @@index([projectId])
+  @@index([scenarioId])
+}
+
 model Version {
   id             String   @id @default(uuid())
   projectId      String
