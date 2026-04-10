@@ -15,6 +15,7 @@ import quoteRoutes from './routes/quotes.js';
 import scenarioAllocationRoutes, { allocationRouter } from './routes/allocations.js';
 import versionRoutes from './routes/versions.js';
 import recoveryRoutes from './routes/recoveries.js';
+import scenarioChangeRoutes, { changeRouter } from './routes/changes.js';
 import syncRoutes from './routes/sync.js';
 import feishuRoutes from './routes/feishu.js';
 
@@ -39,6 +40,8 @@ app.use('/api/bom', bomRowRouter);
 app.use('/api/scenarios/:sid/allocations', scenarioAllocationRoutes);
 app.use('/api/allocations', allocationRouter);
 app.use('/api/allocations', recoveryRoutes);
+app.use('/api/projects/:id/scenarios/:sid/changes', scenarioChangeRoutes);
+app.use('/api/changes', changeRouter);
 app.use('/api/projects/:pid/harnesses', harnessRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/versions', versionRoutes);

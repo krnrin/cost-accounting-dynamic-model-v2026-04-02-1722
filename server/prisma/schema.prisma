@@ -176,6 +176,28 @@ model RecoveryRecord {
   @@index([scenarioId])
 }
 
+model ChangeEvent {
+  id                String   @id @default(uuid())
+  projectId         String
+  scenarioId        String
+  changeType        String
+  reason            String?
+  affectedHarnessIds String  @default("[]")
+  affectedBomRows   String   @default("[]")
+  costImpact        Float    @default(0)
+  quoteImpact       Float    @default(0)
+  residualImpact    Float    @default(0)
+  baselineVersionId String?
+  compareVersionId  String?
+  status            String   @default("draft")
+  createdBy         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([scenarioId])
+}
+
 model Version {
   id             String   @id @default(uuid())
   projectId      String

@@ -176,7 +176,30 @@ async function runTests() {
   const scenarioCompare = await api('GET', `/api/scenarios/compare?ids=${scenarioId},${clonedScenarioId}`, null, token);
   assert('GET /api/scenarios/compare?ids=a,b', scenarioCompare.status === 200 && scenarioCompare.json.data?.length === 2);
 
-  // 7b. Audit log test (added)
+  // 7b. Change events CRUD + impact
+  const changeCreate = await api('POST', `/api/projects/${e281Id}/scenarios/${scenarioId}/changes`, {
+    projectId: e281Id,
+    changeType: 'replace',
+    reason: '端子替代',
+    affectedHarnessIds: [TEST_HARNESS.harnessId],
+    affectedBomRows: [{ rowId: 'r1', changeType: 'cancelled', deltaAmount: 12.5 }, { rowId: 'r2', changeType: 'added', deltaAmount: 8.2 }],
+    baselineVersionId: 'v1',
+    compareVersionId: 'v2'
+  }, token);
+  assert('POST /api/projects/:id/scenarios/:sid/changes', changeCreate.status === 201 && changeCreate.json.data?.id);
+  const changeId = changeCreate.json.data?.id;
+  const changeList = await api('GET', `/api/projects/${e281Id}/scenarios/${scenarioId}/changes`, null, token);
+  assert('GET /api/projects/:id/scenarios/:sid/changes', changeList.status === 200 && Array.isArray(changeList.json.data));
+  const changeGet = await api('GET', `/api/changes/${changeId}`, null, token);
+  assert('GET /api/changes/:cid', changeGet.status === 200 && changeGet.json.data?.id === changeId);
+  const changeCalc = await api('POST', `/api/changes/${changeId}/calculate-impact`, {}, token);
+  assert('POST /api/changes/:cid/calculate-impact', changeCalc.status === 200 && changeCalc.json.data?.status === 'calculated');
+  const changeImpact = await api('GET', `/api/changes/${changeId}/impact`, null, token);
+  assert('GET /api/changes/:cid/impact', changeImpact.status === 200 && typeof changeImpact.json.data?.costImpact === 'number');
+  const changeUpdate = await api('PUT', `/api/changes/${changeId}`, { status: 'confirmed' }, token);
+  assert('PUT /api/changes/:cid', changeUpdate.status === 200 && changeUpdate.json.data?.status === 'confirmed');
+
+  // 7c. Audit log test (added)
   const auditLogs = await api('GET', `/api/projects/${e281Id}/audit-logs`, null, token);
   assert('GET /api/projects/:id/audit-logs', auditLogs.status === 200 && auditLogs.json.data?.length >= 1);
   const createLog = auditLogs.json.data?.find(l => l.action === 'CREATE' && l.entity === 'project');
