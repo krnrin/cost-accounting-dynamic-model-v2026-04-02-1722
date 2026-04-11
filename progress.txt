@@ -63,3 +63,41 @@
 - `init.ps1` 当前存在编码/字符串解析错误，未能直接用于初始化；本次改为手动启动并验证前后端
 - 浏览器控制台仍有 Semi UI 的 `findDOMNode` StrictMode 警告，但不影响 T01 功能验收
 
+## [2026-04-11 08:29] - Task: [T14] 系统设置 — 成本结构 + 金属价格 + 费率
+
+### 完成的工作:
+- 确认后端设置接口已完整覆盖 `GET /api/settings`、分类读取、单项更新、发布、历史与快照查询，并由 `server/src/routes/settings.ts` + `server/src/services/settingsService.ts` 落地
+- 完成前端 `app/src/pages/SettingsPage.tsx` 与 `app/src/lib/settingsApi.ts` 的设置页对接，支持基础费率、金属价格、预警阈值、多工厂、分摊配置、BOM 分类的统一加载与保存
+- 补齐设置页“发布流”UI，展示全局基准 → 发布快照 → 项目/场景引用，以及发布历史和快照详情
+- 清理设置页未使用代码，修复 TypeScript 构建错误，确保前端 build 可通过
+
+### 测试:
+- `cd D:/harness-project/server && npm run build` 通过
+- `cd D:/harness-project/server && npm run prisma:generate` 通过
+- `cd D:/harness-project/app && npm run build` 通过
+- `cd D:/harness-project/app && npm run test:run` 未全绿：现有工程存在与本任务无关的失败（`src/data/scenarioFork.test.ts` 的 `getScenarioOnetimeCostFallback` 导出不匹配；多项 UI 测试因 Vitest 将 `src/test/setup.ts` 解析到旧路径 `D:/成本核算动态模型/app/src/test/setup.ts` 失败）
+- Playwright 打开 `http://127.0.0.1:4173/settings`，验证设置页已渲染，页面包含“保存配置并发布”“基础配置”等 UI
+
+### 备注:
+- `init.ps1` 在当前仓库仍有编码/解析问题，未能直接使用；本次改为手动启动 server 与 preview 服务
+- `npm run dev` 当前会因 Vite 依赖重优化异常崩溃，需后续排查；本次用 `vite preview` 完成页面验收
+
+## [2026-04-11 08:29] - Task: [T14] 系统设置 — 成本结构 + 金属价格 + 费率
+
+### 完成的工作:
+- 确认后端设置接口已完整覆盖 `GET /api/settings`、分类读取、单项更新、发布、历史与快照查询，并由 `server/src/routes/settings.ts` + `server/src/services/settingsService.ts` 落地
+- 完成前端 `app/src/pages/SettingsPage.tsx` 与 `app/src/lib/settingsApi.ts` 的设置页对接，支持基础费率、金属价格、预警阈值、多工厂、分摊配置、BOM 分类的统一加载与保存
+- 补齐设置页“发布流”UI，展示全局基准 → 发布快照 → 项目/场景引用，以及发布历史和快照详情
+- 清理设置页未使用代码，修复 TypeScript 构建错误，确保前端 build 可通过
+
+### 测试:
+- `cd D:/harness-project/server && npm run build` 通过
+- `cd D:/harness-project/server && npm run prisma:generate` 通过
+- `cd D:/harness-project/app && npm run build` 通过
+- `cd D:/harness-project/app && npm run test:run` 未全绿：现有工程存在与本任务无关的失败（`src/data/scenarioFork.test.ts` 的 `getScenarioOnetimeCostFallback` 导出不匹配；多项 UI 测试因 Vitest 将 `src/test/setup.ts` 解析到旧路径 `D:/成本核算动态模型/app/src/test/setup.ts` 失败）
+- Playwright 打开 `http://127.0.0.1:4173/settings`，验证设置页已渲染，页面包含“保存配置并发布”“基础配置”等 UI
+
+### 备注:
+- `init.ps1` 在当前仓库仍有编码/解析问题，未能直接使用；本次改为手动启动 server 与 preview 服务
+- `npm run dev` 当前会因 Vite 依赖重优化异常崩溃，需后续排查；本次用 `vite preview` 完成页面验收
+
