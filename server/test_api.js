@@ -239,22 +239,45 @@ async function runTests() {
   }, token);
   assert('PUT /api/projects/:id', projUp.status === 200 && projUp.json.data?.projectName?.includes('更新'));
 
-  // 8b. Settings CRUD / publish / history / snapshot
-  const settingsAll = await api('GET', '/api/settings', null, token);
+  // 8b. Profile / users / auth logout
+  const profileGet = await api('GET', '/api/profile', null, token);
+  assert('GET /api/profile', profileGet.status === 200 && profileGet.json.data?.email === 'admin@harness.dev');
+  const profileUpdate = await api('PUT', '/api/profile', { name: '系统管理员-测试' }, token);
+  assert('PUT /api/profile', profileUpdate.status === 200 && profileUpdate.json.data?.name === '系统管理员-测试');
+  const profilePermissions = await api('GET', '/api/profile/permissions', null, token);
+  assert('GET /api/profile/permissions', profilePermissions.status === 200 && Array.isArray(profilePermissions.json.data?.permissions));
+  const profilePreferences = await api('PUT', '/api/profile/preferences', {
+    themeMode: 'dark',
+    notifications: { alerts: true, system: false, releases: true },
+  }, token);
+  assert('PUT /api/profile/preferences', profilePreferences.status === 200 && profilePreferences.json.data?.themeMode === 'dark');
+  const usersList = await api('GET', '/api/users', null, token);
+  assert('GET /api/users', usersList.status === 200 && Array.isArray(usersList.json.data) && usersList.json.data.length >= 2);
+  const authLogout = await api('POST', '/api/auth/logout', {}, token);
+  assert('POST /api/auth/logout', authLogout.status === 204);
+  const relogin = await api('POST', '/api/auth/login', {
+    email: 'admin@harness.dev',
+    password: 'admin123',
+  });
+  assert('POST /api/auth/login (relogin)', relogin.status === 200 && relogin.json.data?.token);
+  const reloginToken = relogin.json.data?.token;
+
+  // 8c. Settings CRUD / publish / history / snapshot
+  const settingsAll = await api('GET', '/api/settings', null, reloginToken);
   assert('GET /api/settings', settingsAll.status === 200 && Array.isArray(settingsAll.json.data));
-  const settingsCategory = await api('GET', '/api/settings/cost_structure', null, token);
+  const settingsCategory = await api('GET', '/api/settings/cost_structure', null, reloginToken);
   assert('GET /api/settings/:category', settingsCategory.status === 200 && Array.isArray(settingsCategory.json.data));
-  const settingsUpdate = await api('PUT', '/api/settings/cost_structure/defaultCostRates', { value: { laborRate: 36, mfgRate: 46.69 } }, token);
+  const settingsUpdate = await api('PUT', '/api/settings/cost_structure/defaultCostRates', { value: { laborRate: 36, mfgRate: 46.69 } }, reloginToken);
   assert('PUT /api/settings/:category/:key', settingsUpdate.status === 200 && settingsUpdate.json.data?.value?.laborRate === 36);
-  const versionCountBeforeSettingsPublish = await api('GET', `/api/versions/project/${projectId}`, null, token);
-  const settingsPublish = await api('POST', '/api/settings/publish', {}, token);
+  const versionCountBeforeSettingsPublish = await api('GET', `/api/versions/project/${projectId}`, null, reloginToken);
+  const settingsPublish = await api('POST', '/api/settings/publish', {}, reloginToken);
   assert('POST /api/settings/publish', settingsPublish.status === 200 && settingsPublish.json.data?.status === 'published');
   const latestSettingsVersion = settingsPublish.json.data?.version;
   const boundScenarioCreate = await api('POST', `/api/projects/${e281Id}/scenarios`, {
     ...TEST_SCENARIO,
     name: `Scenario bound ${suffix}`,
     rateSnapshot: {}
-  }, token);
+  }, reloginToken);
   assert('  → scenario binds latest published settings version', boundScenarioCreate.status === 201 && boundScenarioCreate.json.data?.rateSnapshotVersion === latestSettingsVersion);
   assert('  → scenario loads published cost structure snapshot', boundScenarioCreate.json.data?.rateSnapshot?.defaultCostRates?.laborRate === 36);
   const versionCountAfterSettingsPublish = await api('GET', `/api/versions/project/${projectId}`, null, token);
