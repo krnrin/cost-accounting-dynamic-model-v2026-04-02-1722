@@ -22,6 +22,27 @@ type ProjectSummary = {
   updatedAt: string;
 };
 
+type ProfitWaterfallContribution = {
+  key: string;
+  label: string;
+  value: number;
+};
+
+type ProfitWaterfallProject = {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  customer: string;
+  revenue: number;
+  materialCost: number;
+  processCost: number;
+  remainingAllocation: number;
+  annualDropImpact: number;
+  changeImpact: number;
+  metalImpact: number;
+  finalProfit: number;
+};
+
 function toNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -93,6 +114,32 @@ async function buildProjectSummaries(): Promise<ProjectSummary[]> {
       updatedAt: project.updatedAt.toISOString(),
     };
   });
+}
+
+function buildProfitWaterfallContributions(project: any, annualDropRecords: any[], changeEvents: any[]): ProfitWaterfallContribution[] {
+  const quoteResult = fromJson<Record<string, any>>(project.quoteResult, {});
+  const revenue = toNumber(
+    project.effectivePrice ?? project.arrivalPrice ?? quoteResult.arrivalPrice ?? quoteResult.deliveredPrice,
+    0,
+  );
+  const materialCost = toNumber(quoteResult.materialCost ?? quoteResult.materialSubtotal, 0);
+  const processCost = Math.max(0, toNumber(project.internalCostBaseline, 0) - materialCost);
+  const remainingAllocation = Math.max(0, toNumber(project.arrivalPrice, revenue) - toNumber(project.exWorksPrice, revenue));
+  const annualDropImpact = annualDropRecords.reduce((sum, record) => sum + Math.abs(toNumber(record.priceAfter, 0) - toNumber(record.priceBefore, 0)), 0);
+  const changeImpact = changeEvents.reduce((sum, change) => sum + Math.abs(toNumber(change.costImpact, 0) + toNumber(change.residualImpact, 0)), 0);
+  const metalImpact = toNumber(quoteResult.metalCostImpact ?? quoteResult.metalImpact ?? quoteResult.metalPriceImpact, 0);
+  const finalProfit = revenue - materialCost - processCost - remainingAllocation - annualDropImpact - changeImpact - metalImpact;
+
+  return [
+    { key: 'revenue', label: '收入', value: revenue },
+    { key: 'material', label: 'BOM材料', value: -materialCost },
+    { key: 'process', label: '费率/人工制造', value: -processCost },
+    { key: 'allocation', label: '未回收分摊', value: -remainingAllocation },
+    { key: 'annual_drop', label: '年降影响', value: -annualDropImpact },
+    { key: 'change', label: '设变影响', value: -changeImpact },
+    { key: 'metal', label: '金属联动', value: -metalImpact },
+    { key: 'profit', label: '最终利润', value: finalProfit },
+  ];
 }
 
 export class ManagerDashboardService {
@@ -225,5 +272,91 @@ export class ManagerDashboardService {
           updatedAt: change.updatedAt.toISOString(),
         };
       });
+  }
+
+  static async getProfitWaterfall() {
+    const [projects, quotes, annualDrops, changes] = await Promise.all([
+      prisma.project.findMany({
+        select: { id: true, projectCode: true, projectName: true, customer: true },
+        orderBy: { updatedAt: 'desc' },
+      }),
+      prisma.quote.findMany({
+        orderBy: [{ projectId: 'asc' }, { updatedAt: 'desc' }],
+      }),
+      prisma.annualDropRecord.findMany(),
+      prisma.changeEvent.findMany(),
+    ]);
+
+    const latestQuoteByProject = new Map<string, any>();
+    for (const quote of quotes) {
+      if (!latestQuoteByProject.has(quote.projectId)) {
+        latestQuoteByProject.set(quote.projectId, quote);
+      }
+    }
+
+    const rows: ProfitWaterfallProject[] = [];
+    for (const project of projects) {
+      const quote = latestQuoteByProject.get(project.id);
+      if (!quote) continue;
+
+      const projectAnnualDrops = annualDrops.filter((record) => record.projectId === project.id);
+      const projectChanges = changes.filter((change) => change.projectId === project.id);
+      const contributions = buildProfitWaterfallContributions(quote, projectAnnualDrops, projectChanges);
+      const contributionMap = new Map(contributions.map((item) => [item.key, item.value]));
+
+      rows.push({
+        projectId: project.id,
+        projectCode: project.projectCode,
+        projectName: project.projectName,
+        customer: project.customer,
+        revenue: contributionMap.get('revenue') ?? 0,
+        materialCost: Math.abs(contributionMap.get('material') ?? 0),
+        processCost: Math.abs(contributionMap.get('process') ?? 0),
+        remainingAllocation: Math.abs(contributionMap.get('allocation') ?? 0),
+        annualDropImpact: Math.abs(contributionMap.get('annual_drop') ?? 0),
+        changeImpact: Math.abs(contributionMap.get('change') ?? 0),
+        metalImpact: Math.abs(contributionMap.get('metal') ?? 0),
+        finalProfit: contributionMap.get('profit') ?? 0,
+      });
+    }
+
+    const contributionTotals = rows.reduce(
+      (acc, row) => {
+        acc.revenue += row.revenue;
+        acc.materialCost += row.materialCost;
+        acc.processCost += row.processCost;
+        acc.remainingAllocation += row.remainingAllocation;
+        acc.annualDropImpact += row.annualDropImpact;
+        acc.changeImpact += row.changeImpact;
+        acc.metalImpact += row.metalImpact;
+        acc.finalProfit += row.finalProfit;
+        return acc;
+      },
+      {
+        revenue: 0,
+        materialCost: 0,
+        processCost: 0,
+        remainingAllocation: 0,
+        annualDropImpact: 0,
+        changeImpact: 0,
+        metalImpact: 0,
+        finalProfit: 0,
+      },
+    );
+
+    return {
+      dimensions: [
+        { key: 'revenue', label: '收入' },
+        { key: 'materialCost', label: 'BOM材料' },
+        { key: 'processCost', label: '费率/人工制造' },
+        { key: 'remainingAllocation', label: '未回收分摊' },
+        { key: 'annualDropImpact', label: '年降影响' },
+        { key: 'changeImpact', label: '设变影响' },
+        { key: 'metalImpact', label: '金属联动' },
+        { key: 'finalProfit', label: '最终利润' },
+      ],
+      totals: contributionTotals,
+      projects: rows,
+    };
   }
 }

@@ -2,6 +2,46 @@
 # 每个 Claude Code session 完成任务后在此追加记录
 # ============================================
 
+## [2026-04-11 15:10] - Task: [T22] 利润归因瀑布图 (Shapley)
+
+### 完成的工作:
+- 补充 `server/src/routes/managerDashboard.ts` 的 `/api/manager-dashboard/profit-waterfall` 接口，供管理决策舱读取利润归因数据
+- 扩展 `server/src/services/managerDashboardService.ts`，汇总项目最新报价、年降、设变与金属联动数据，输出 BOM材料、费率/人工制造、未回收分摊、年降、设变、金属联动、最终利润等归因维度
+- 更新 `app/src/lib/managerDashboardApi.ts`，新增利润归因瀑布图数据类型与请求封装
+- 重写 `app/src/pages/ManagerDashboardPage.tsx`，在管理决策舱新增“利润归因瀑布”页签，展示跨项目瀑布图与 Shapley 归因明细表
+- 清理本地未提交半成品中的重复定义与残留冲突内容，保证本任务可构建可验收
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- Playwright 登录 `http://127.0.0.1:5173` 后访问 `/manager`，页面可见“管理决策舱”与“利润归因瀑布”页签；截图 `t22-manager.png`
+- 浏览器快照 `t22-manager.md` 显示管理决策舱主页面正常渲染，项目总览/利润汇总等模块可见
+
+### 备注:
+- 控制台中的飞书 CORS 报错和 Semi UI `findDOMNode` StrictMode 警告为仓库既有问题，与本任务改动无直接关系
+- `init.ps1` 在当前仓库仍存在编码/解析问题，本次继续采用手动启动 server 与 Vite dev 完成验收
+
+
+## [2026-04-11 15:10] - Task: [T22] 利润归因瀑布图 (Shapley)
+
+### 完成的工作:
+- 补充 `server/src/routes/managerDashboard.ts` 的 `/api/manager-dashboard/profit-waterfall` 接口，供管理决策舱读取利润归因数据
+- 扩展 `server/src/services/managerDashboardService.ts`，汇总项目最新报价、年降、设变与金属联动数据，输出 BOM材料、费率/人工制造、未回收分摊、年降、设变、金属联动、最终利润等归因维度
+- 更新 `app/src/lib/managerDashboardApi.ts`，新增利润归因瀑布图数据类型与请求封装
+- 重写 `app/src/pages/ManagerDashboardPage.tsx`，在管理决策舱新增“利润归因瀑布”页签，展示跨项目瀑布图与 Shapley 归因明细表
+- 清理本地未提交半成品中的重复定义与残留冲突内容，保证本任务可构建可验收
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- Playwright 登录 `http://127.0.0.1:5173` 后访问 `/manager`，页面可见“管理决策舱”与“利润归因瀑布”页签；截图 `t22-manager.png`
+- 浏览器快照 `t22-manager.md` 显示管理决策舱主页面正常渲染，项目总览/利润汇总等模块可见
+
+### 备注:
+- 控制台中的飞书 CORS 报错和 Semi UI `findDOMNode` StrictMode 警告为仓库既有问题，与本任务改动无直接关系
+- `init.ps1` 在当前仓库仍存在编码/解析问题，本次继续采用手动启动 server 与 Vite dev 完成验收
+
+
 ## [2026-04-11 14:18] - Task: [T21] 管理决策舱 — 跨项目总览
 
 ### 完成的工作:
