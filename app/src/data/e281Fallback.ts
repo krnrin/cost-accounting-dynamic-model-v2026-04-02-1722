@@ -1,6 +1,12 @@
-import type { ProjectRecord, ScenarioRecord } from './db';
+import type { OnetimeCostRecord, ProjectRecord, ScenarioRecord } from './db';
 import type { VehicleConfigMeta } from '@/types/harness';
-import { E281_CUSTOMER_QUOTE_SNAPSHOTS, E281_VEHICLE_CONFIGS } from './seeds/e281';
+import {
+  E281_CUSTOMER_QUOTE_SNAPSHOTS,
+  E281_FINAL_QUOTE_ONETIME_COSTS,
+  E281_HARNESS_SEED_DATA,
+  E281_VEHICLE_CONFIGS,
+} from './seeds/e281';
+import type { OnetimeCostInput } from '@/engine/onetime_alloc';
 
 const E281_PROJECT_ID = 'e281-quote';
 const E281_PROJECT_CODE = 'E281';
@@ -71,7 +77,7 @@ export function getScenarioVehicleConfigs(
 }
 
 export function getScenarioVehicleConfigMeta(
-  scenario: Pick<ScenarioRecord, 'projectId' | 'vehicleConfigMeta'> | null | undefined,
+  scenario: Pick<ScenarioRecord, 'projectId' | 'vehicleConfigMeta' | 'vehicleConfigs'> | null | undefined,
 ): VehicleConfigMeta {
   return (
     scenario?.vehicleConfigMeta ??
@@ -79,4 +85,33 @@ export function getScenarioVehicleConfigMeta(
       ? { publishState: 'sales_published' }
       : { publishState: 'draft' })
   );
+}
+
+export function getE281ScenarioOnetimeCostInputs(): OnetimeCostInput[] {
+  return E281_HARNESS_SEED_DATA.map((seed) => ({
+    harnessId: seed.harnessId,
+    harnessName: seed.name,
+    vehicleRatio: seed.ratio,
+    ...E281_FINAL_QUOTE_ONETIME_COSTS[seed.harnessId as keyof typeof E281_FINAL_QUOTE_ONETIME_COSTS],
+    paymentMode: 'amortized',
+  }));
+}
+
+export function getScenarioOnetimeCostFallback(
+  scenario: Pick<ScenarioRecord, 'id' | 'projectId'> | null | undefined,
+): OnetimeCostRecord[] {
+  if (!scenario || !isE281Scenario(scenario)) {
+    return [];
+  }
+
+  return getE281ScenarioOnetimeCostInputs().map((input) => ({
+    id: `${scenario.id}::${input.harnessId}`,
+    projectId: scenario.projectId,
+    scenarioId: scenario.id,
+    harnessId: input.harnessId,
+    harnessName: input.harnessName,
+    vehicleRatio: input.vehicleRatio,
+    input,
+    updatedAt: '',
+  }));
 }

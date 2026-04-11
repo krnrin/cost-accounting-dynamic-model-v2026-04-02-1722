@@ -299,6 +299,35 @@ model AlertRule {
   @@index([enabled])
 }
 
+model AlertEvent {
+  id               String   @id @default(uuid())
+  projectId        String
+  scenarioId       String?
+  ruleId           String?
+  category         String
+  severity         String   @default("warning")
+  status           String   @default("active")
+  title            String
+  detail           String?
+  sourceObjectType String?
+  sourceObjectId   String?
+  impactAmount     Float    @default(0)
+  assignedTo       String?
+  metadata         String   @default("{}")
+  occurredAt       DateTime @default(now())
+  acknowledgedAt   DateTime?
+  resolvedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([scenarioId])
+  @@index([category])
+  @@index([severity])
+  @@index([status])
+  @@index([occurredAt])
+}
+
 model Version {
   id             String   @id @default(uuid())
   projectId      String

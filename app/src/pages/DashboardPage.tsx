@@ -520,7 +520,7 @@ export default function DashboardPage() {
                 { label: '变更', path: `/project/${id}/s/${sid}/change-engine` },
                 { label: '模拟', path: `/project/${id}/s/${sid}/simulation` },
                 { label: '跟踪', path: `/project/${id}/s/${sid}/tracking` },
-                { label: '预警', path: `/alerts` },
+                { label: '预警', path: `/project/${id}/alerts` },
               ].map(btn => (
                 <div
                   key={btn.path}

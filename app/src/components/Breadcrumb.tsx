@@ -49,12 +49,6 @@ export default function Breadcrumb() {
         onClick: () => navigate('/settings/alert-rules'),
       });
     }
-    if (pathnames[1] === 'alert-rules') {
-      breadcrumbItems.push({
-        name: '预警规则',
-        onClick: () => navigate('/settings/alert-rules'),
-      });
-    }
   } else if (pathnames[0] === 'project') {
     breadcrumbItems.push({
       name: '项目列表',
@@ -67,7 +61,12 @@ export default function Breadcrumb() {
         onClick: () => navigate(`/project/${params.id}`),
       });
 
-      if (pathnames.includes('harness')) {
+      if (pathnames.includes('alerts')) {
+        breadcrumbItems.push({
+          name: '预警中心',
+          onClick: () => navigate(`/project/${params.id}/alerts`),
+        });
+      } else if (pathnames.includes('harness')) {
         const harnessId = params.harnessId;
         if (pathnames.includes('edit')) {
            breadcrumbItems.push({
