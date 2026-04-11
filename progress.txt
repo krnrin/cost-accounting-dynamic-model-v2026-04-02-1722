@@ -267,3 +267,24 @@
 ### 备注:
 - 当前仓库存在遗留未跟踪文件 `automation-logs/loop-log.txt`，本次未纳入提交
 - Prisma generate 仍输出到旧路径 `D:/成本核算动态模型/server/node_modules/@prisma/client`，后续需单独清理配置漂移
+
+## [2026-04-11 13:58] - Task: [T20] 设变自动影响计算 + 残余材料池
+
+### 完成的工作:
+- 更新 `server/src/services/changeService.ts`，将设变自动计算改为区分“当前产品成本影响”和“残余材料池影响”：取消料号自动识别为残余候选，标记 `accountingTreatment=stagnant_pool_excluded_from_current_cost`，不再计入当前产品成本
+- 在设变重算时自动补齐 `affectedHarnessIds`、增强 `affectedBomRows` 输出，并生成 `residualPoolEntry` 明细，保留料号/线束/数量/单价等呆滞提报信息
+- 新增设变→跟踪联动：自动生成“设变成本影响复核”与“残余材料池提报”两类 `TrackingItem`，重算后自动关闭不再适用的旧跟踪项
+- 新增设变→预警联动：当设变造成成本或残余影响时，自动触发 `AlertEventService.syncCostAnomalyAlerts()`，生成/刷新成本异常预警
+- 更新 `task.json`，将 T20 标记为 done
+
+### 测试:
+- `npm --prefix /d/harness-project/server run build` 通过
+- `npm --prefix /d/harness-project/app run build` 通过
+- `npm --prefix /d/harness-project/server run seed` 通过
+- API 冒烟：登录后调用 `POST /api/projects/:id/scenarios/:sid/changes` 创建设变，再调用 `POST /api/changes/:cid/calculate-impact`，验证返回 `costImpact=12`、`residualImpact=17`，且取消料号带有 `residualPoolEntry` 与 `accountingTreatment=stagnant_pool_excluded_from_current_cost`
+- API 冒烟：调用 `GET /api/projects/:id/scenarios/:sid/tracking`，验证自动生成 2 条跟踪项（设变成本影响复核 / 残余材料池提报）
+- API 冒烟：调用 `GET /api/projects/:id/alerts?category=cost_anomaly`，验证新增“设变成本异常”预警，影响金额 29
+
+### 备注:
+- `init.ps1` 仍有编码/字符串解析损坏，当前无法直接作为自动化初始化入口
+- `prisma generate` 仍输出到旧路径 `D:/成本核算动态模型/server/node_modules/@prisma/client`，但不影响本次 T20 构建与接口验收
