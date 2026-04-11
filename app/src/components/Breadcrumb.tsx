@@ -43,6 +43,18 @@ export default function Breadcrumb() {
       name: '系统设置',
       onClick: () => navigate('/settings'),
     });
+    if (pathnames[1] === 'alert-rules') {
+      breadcrumbItems.push({
+        name: '预警规则',
+        onClick: () => navigate('/settings/alert-rules'),
+      });
+    }
+    if (pathnames[1] === 'alert-rules') {
+      breadcrumbItems.push({
+        name: '预警规则',
+        onClick: () => navigate('/settings/alert-rules'),
+      });
+    }
   } else if (pathnames[0] === 'project') {
     breadcrumbItems.push({
       name: '项目列表',

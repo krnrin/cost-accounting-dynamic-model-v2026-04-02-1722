@@ -181,3 +181,49 @@
 ### 备注:
 - `init.ps1` 仍因编码/字符串解析错误无法直接运行，本次继续以手动 build + server/start + app/preview 完成验收
 - 当前前端 preview 需走 `http://127.0.0.1:4174`，避免静态 `python -m http.server` 无法代理 `/api`
+
+## [2026-04-11 11:56] - Task: [T17] 预警规则 CRUD
+
+### 完成的工作:
+- 后端新增 `AlertRule` Prisma 模型，并接入 `server/src/routes/alertRules.ts`、`server/src/services/alertRuleService.ts`，补齐 `GET/POST/PUT/DELETE /api/alert-rules`
+- 在 `server/src/index.ts` 注册预警规则路由，并完成 Prisma generate + db push，同步数据库结构
+- 前端新增 `app/src/lib/alertRuleApi.ts`，统一封装预警规则 CRUD API
+- 重写 `app/src/pages/AlertsPage.tsx`，保留原“预警中心”页面，同时新增 `mode="rules"` 的预警规则页，支持规则列表、新建、删除与表单提交
+- 更新 `app/src/App.tsx` 和 `app/src/components/Breadcrumb.tsx`，接入 `/settings/alert-rules` 路由与面包屑导航
+- 补齐 `app/src/test/setup.ts` 对 `fake-indexeddb/auto` 的加载，并更新根级 `vitest.config.js` 指向该 setup 文件
+- 新增验收截图：`test-screenshots/t17-alert-rules-page.png`、`test-screenshots/t17-alert-rules-current.png`、`test-screenshots/t17-alert-rules-form.png`、`test-screenshots/t17-alert-rules-created.png`
+
+### 测试:
+- `cd D:/harness-project/server && npx prisma generate && npx prisma db push` 通过
+- `cd D:/harness-project/server && npm run build` 通过
+- `cd D:/harness-project/app && npm run build` 通过
+- `cd D:/harness-project/app && npm run test:run` 未全绿：存在仓库既有失败，与 T17 无直接关系（`src/data/scenarioFork.test.ts` 的 `getScenarioOnetimeCostFallback` 导出不匹配；若干组件测试受 `lottie-web` canvas mock 缺失影响）
+- API 冒烟验证：登录后完成 `POST/GET/PUT/DELETE /api/alert-rules` 全链路；浏览器创建规则“回收滞后预警”后列表显示 1 条记录
+- Playwright 验证 `http://localhost:5173/settings/alert-rules` 可正常打开、弹出新建规则表单并成功创建规则
+
+### 备注:
+- `init.ps1` 仍有编码/解析错误，本次继续以手动启动 server 与 Vite dev 方式完成验收
+- 浏览器控制台仅见既有 Semi UI StrictMode `findDOMNode` 警告，不影响本任务验收
+
+## [2026-04-11 11:56] - Task: [T17] 预警规则 CRUD
+
+### 完成的工作:
+- 后端新增 `AlertRule` Prisma 模型，并接入 `server/src/routes/alertRules.ts`、`server/src/services/alertRuleService.ts`，补齐 `GET/POST/PUT/DELETE /api/alert-rules`
+- 在 `server/src/index.ts` 注册预警规则路由，并完成 Prisma generate + db push，同步数据库结构
+- 前端新增 `app/src/lib/alertRuleApi.ts`，统一封装预警规则 CRUD API
+- 重写 `app/src/pages/AlertsPage.tsx`，保留原“预警中心”页面，同时新增 `mode="rules"` 的预警规则页，支持规则列表、新建、删除与表单提交
+- 更新 `app/src/App.tsx` 和 `app/src/components/Breadcrumb.tsx`，接入 `/settings/alert-rules` 路由与面包屑导航
+- 补齐 `app/src/test/setup.ts` 对 `fake-indexeddb/auto` 的加载，并更新根级 `vitest.config.js` 指向该 setup 文件
+- 新增验收截图：`test-screenshots/t17-alert-rules-page.png`、`test-screenshots/t17-alert-rules-current.png`、`test-screenshots/t17-alert-rules-form.png`、`test-screenshots/t17-alert-rules-created.png`
+
+### 测试:
+- `cd D:/harness-project/server && npx prisma generate && npx prisma db push` 通过
+- `cd D:/harness-project/server && npm run build` 通过
+- `cd D:/harness-project/app && npm run build` 通过
+- `cd D:/harness-project/app && npm run test:run` 未全绿：存在仓库既有失败，与 T17 无直接关系（`src/data/scenarioFork.test.ts` 的 `getScenarioOnetimeCostFallback` 导出不匹配；若干组件测试受 `lottie-web` canvas mock 缺失影响）
+- API 冒烟验证：登录后完成 `POST/GET/PUT/DELETE /api/alert-rules` 全链路；浏览器创建规则“回收滞后预警”后列表显示 1 条记录
+- Playwright 验证 `http://localhost:5173/settings/alert-rules` 可正常打开、弹出新建规则表单并成功创建规则
+
+### 备注:
+- `init.ps1` 仍有编码/解析错误，本次继续以手动启动 server 与 Vite dev 方式完成验收
+- 浏览器控制台仅见既有 Semi UI StrictMode `findDOMNode` 警告，不影响本任务验收
