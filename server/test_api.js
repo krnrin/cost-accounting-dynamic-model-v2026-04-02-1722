@@ -164,10 +164,17 @@ async function runTests() {
   assert('GET /api/projects/:id/scenarios/:sid', scenarioGet.status === 200 && scenarioGet.json.data?.id === scenarioId);
   const scenarioUpdate = await api('PUT', `/api/projects/${e281Id}/scenarios/${scenarioId}`, { name: TEST_SCENARIO.name + '-更新' }, token);
   assert('PUT /api/projects/:id/scenarios/:sid', scenarioUpdate.status === 200 && scenarioUpdate.json.data?.name?.includes('更新'));
+  const versionListBeforeScenario = await api('GET', `/api/versions/project/${e281Id}`, null, token);
   const scenarioFreeze = await api('POST', `/api/projects/${e281Id}/scenarios/${scenarioId}/freeze`, {}, token);
   assert('POST /api/projects/:id/scenarios/:sid/freeze', scenarioFreeze.status === 200 && scenarioFreeze.json.data?.status === 'frozen');
+  const versionListAfterFreeze = await api('GET', `/api/versions/project/${e281Id}`, null, token);
+  const freezeVersion = versionListAfterFreeze.json.data?.find(v => v.label?.includes('BOM冻结') && v.snapshot?.triggerSource === 'scenario');
+  assert('  → freeze creates version snapshot', versionListAfterFreeze.status === 200 && (versionListAfterFreeze.json.data?.length || 0) === (versionListBeforeScenario.json.data?.length || 0) + 1 && !!freezeVersion);
   const scenarioRelease = await api('POST', `/api/projects/${e281Id}/scenarios/${scenarioId}/release`, {}, token);
   assert('POST /api/projects/:id/scenarios/:sid/release', scenarioRelease.status === 200 && scenarioRelease.json.data?.status === 'released');
+  const versionListAfterRelease = await api('GET', `/api/versions/project/${e281Id}`, null, token);
+  const releaseVersion = versionListAfterRelease.json.data?.find(v => v.label?.includes('场景发布') && v.snapshot?.triggerSource === 'scenario');
+  assert('  → release creates version snapshot', versionListAfterRelease.status === 200 && (versionListAfterRelease.json.data?.length || 0) === (versionListAfterFreeze.json.data?.length || 0) + 1 && !!releaseVersion);
   const scenarioSummary = await api('GET', `/api/projects/${e281Id}/scenarios/${scenarioId}/summary`, null, token);
   assert('GET /api/projects/:id/scenarios/:sid/summary', scenarioSummary.status === 200 && scenarioSummary.json.data?.id === scenarioId);
   const scenarioClone = await api('POST', `/api/projects/${e281Id}/scenarios/${scenarioId}/clone`, {}, token);
@@ -238,12 +245,17 @@ async function runTests() {
   assert('GET /api/settings/:category', settingsCategory.status === 200 && Array.isArray(settingsCategory.json.data));
   const settingsUpdate = await api('PUT', '/api/settings/cost_structure/defaultCostRates', { value: { laborRate: 36, mfgRate: 46.69 } }, token);
   assert('PUT /api/settings/:category/:key', settingsUpdate.status === 200 && settingsUpdate.json.data?.value?.laborRate === 36);
+  const versionCountBeforeSettingsPublish = await api('GET', `/api/versions/project/${projectId}`, null, token);
   const settingsPublish = await api('POST', '/api/settings/publish', {}, token);
   assert('POST /api/settings/publish', settingsPublish.status === 200 && settingsPublish.json.data?.status === 'published');
+  const versionCountAfterSettingsPublish = await api('GET', `/api/versions/project/${projectId}`, null, token);
+  const settingsVersion = versionCountAfterSettingsPublish.json.data?.find(v => v.label?.includes('费率发布') && v.snapshot?.triggerSource === 'settings_publish');
+  assert('  → settings publish creates version snapshot', versionCountAfterSettingsPublish.status === 200 && (versionCountAfterSettingsPublish.json.data?.length || 0) === (versionCountBeforeSettingsPublish.json.data?.length || 0) + 1 && !!settingsVersion);
   const settingsHistory = await api('GET', '/api/settings/history', null, token);
   assert('GET /api/settings/history', settingsHistory.status === 200 && Array.isArray(settingsHistory.json.data));
-  const settingsSnapshot = await api('GET', '/api/settings/snapshot/v1', null, token);
-  assert('GET /api/settings/snapshot/:version', settingsSnapshot.status === 200 && Array.isArray(settingsSnapshot.json.data));
+  const publishedSettingsVersion = settingsPublish.json.data?.version;
+  const settingsSnapshot = await api('GET', `/api/settings/snapshot/${publishedSettingsVersion}`, null, token);
+  assert('GET /api/settings/snapshot/:version', settingsSnapshot.status === 200 && Array.isArray(settingsSnapshot.json.data) && settingsSnapshot.json.data.length >= 1);
 
   // 9. List harnesses
   const hList = await api('GET', `/api/projects/${projectId}/harnesses`, null, token);
@@ -377,8 +389,12 @@ async function runTests() {
   assert('PUT /api/quotes/:id', qUp.status === 200 && qUp.json.data?.status === 'approved');
 
   // 15b. Confirm quote and enforce lock
+  const versionCountBeforeQuoteConfirm = await api('GET', `/api/versions/project/${projectId}`, null, token);
   const qConfirm = await api('POST', `/api/quotes/${quoteId}/confirm`, null, token);
   assert('POST /api/quotes/:id/confirm', qConfirm.status === 200 && qConfirm.json.data?.customerAccepted === true);
+  const versionCountAfterQuoteConfirm = await api('GET', `/api/versions/project/${projectId}`, null, token);
+  const quotePublishVersion = versionCountAfterQuoteConfirm.json.data?.find(v => v.label?.includes('报价发布') && v.snapshot?.triggerSource === 'quote' && v.snapshot?.quote?.id === quoteId);
+  assert('  → quote confirm creates version snapshot', versionCountAfterQuoteConfirm.status === 200 && (versionCountAfterQuoteConfirm.json.data?.length || 0) === (versionCountBeforeQuoteConfirm.json.data?.length || 0) + 1 && !!quotePublishVersion);
   const qLockedUpdate = await api('PUT', `/api/quotes/${quoteId}`, {
     arrivalPrice: 999,
   }, token);

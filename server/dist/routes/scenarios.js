@@ -62,7 +62,7 @@ router.put('/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, r
 });
 router.post('/:sid/freeze', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, res, next) => {
     try {
-        const data = await ScenarioService.freeze(req.params.sid);
+        const data = await ScenarioService.freeze(req.params.sid, req.user?.id);
         res.json({ data });
     }
     catch (error) {
@@ -71,7 +71,7 @@ router.post('/:sid/freeze', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async
 });
 router.post('/:sid/release', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, res, next) => {
     try {
-        const data = await ScenarioService.release(req.params.sid);
+        const data = await ScenarioService.release(req.params.sid, req.user?.id);
         res.json({ data });
     }
     catch (error) {
@@ -97,6 +97,16 @@ router.get('/:sid/summary', async (req, res, next) => {
     }
 });
 compareRouter.use(authMiddleware);
+compareRouter.get('/compare', async (req, res, next) => {
+    try {
+        const ids = String(req.query.ids || '').split(',').filter(Boolean);
+        const data = await ScenarioService.compare(ids);
+        res.json({ data });
+    }
+    catch (error) {
+        next(error);
+    }
+});
 compareRouter.get('/:sid', async (req, res, next) => {
     try {
         const data = await ScenarioService.getById(req.params.sid);
@@ -110,16 +120,6 @@ compareRouter.put('/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async 
     try {
         const input = scenarioSchema.partial().parse(req.body);
         const data = await ScenarioService.update(req.params.sid, input);
-        res.json({ data });
-    }
-    catch (error) {
-        next(error);
-    }
-});
-compareRouter.get('/compare', async (req, res, next) => {
-    try {
-        const ids = String(req.query.ids || '').split(',').filter(Boolean);
-        const data = await ScenarioService.compare(ids);
         res.json({ data });
     }
     catch (error) {

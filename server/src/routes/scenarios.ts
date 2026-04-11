@@ -66,7 +66,7 @@ router.put('/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: R
 
 router.post('/:sid/freeze', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await ScenarioService.freeze(req.params.sid as string);
+    const data = await ScenarioService.freeze(req.params.sid as string, req.user?.id);
     res.json({ data });
   } catch (error) {
     next(error);
@@ -75,7 +75,7 @@ router.post('/:sid/freeze', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async
 
 router.post('/:sid/release', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await ScenarioService.release(req.params.sid as string);
+    const data = await ScenarioService.release(req.params.sid as string, req.user?.id);
     res.json({ data });
   } catch (error) {
     next(error);
@@ -102,6 +102,16 @@ router.get('/:sid/summary', async (req: Request, res: Response, next: NextFuncti
 
 compareRouter.use(authMiddleware);
 
+compareRouter.get('/compare', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const ids = String(req.query.ids || '').split(',').filter(Boolean);
+    const data = await ScenarioService.compare(ids);
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 compareRouter.get('/:sid', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await ScenarioService.getById(req.params.sid as string);
@@ -115,16 +125,6 @@ compareRouter.put('/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async 
   try {
     const input = scenarioSchema.partial().parse(req.body);
     const data = await ScenarioService.update(req.params.sid as string, input);
-    res.json({ data });
-  } catch (error) {
-    next(error);
-  }
-});
-
-compareRouter.get('/compare', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const ids = String(req.query.ids || '').split(',').filter(Boolean);
-    const data = await ScenarioService.compare(ids);
     res.json({ data });
   } catch (error) {
     next(error);

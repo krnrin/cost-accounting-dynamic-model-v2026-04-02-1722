@@ -1,5 +1,5 @@
 import prisma from '../lib/prisma.js';
-import { hydrateJsonFields, dehydrateJsonFields } from '../lib/json.js';
+import { fromJson, toJson, hydrateJsonFields, dehydrateJsonFields } from '../lib/json.js';
 
 const QUOTE_JSON_FIELDS = ['data', 'quoteParams', 'quoteResult', 'lockedFields', 'editableFields', 'approvalFields'] as const;
 
@@ -111,7 +111,7 @@ export class QuoteService {
     return hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
   }
 
-  static async confirmQuote(id: string) {
+  static async confirmQuote(id: string, createdBy?: string) {
     const current = await this.getQuoteById(id);
     const merged = {
       ...current,
@@ -120,7 +120,17 @@ export class QuoteService {
     };
     const dbData = dehydrateJsonFields(merged, [...QUOTE_JSON_FIELDS]);
     const quote = await prisma.quote.update({ where: { id }, data: dbData });
-    return hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
+    const hydrated = hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
+    await VersionService.createAutoVersion(hydrated.projectId, {
+      label: `报价发布 - ${hydrated.version}`,
+      notes: `Auto snapshot created when quote ${hydrated.id} was confirmed.`,
+      snapshot: {
+        triggerSource: 'quote',
+        quote: hydrated,
+      },
+      createdBy,
+    });
+    return hydrated;
   }
 
   static async deleteQuote(id: string) {
@@ -194,6 +204,36 @@ export class VersionService {
     const dbData = dehydrateJsonFields({ ...data, projectId }, ['snapshot']);
     const version = await prisma.version.create({ data: dbData });
     return hydrateJsonFields(version, ['snapshot']);
+  }
+
+  static async createAutoVersion(projectId: string, params: {
+    label: string;
+    snapshot: any;
+    notes?: string;
+    status?: string;
+    createdBy?: string;
+  }) {
+    return prisma.$transaction(async (tx) => {
+      const latest = await tx.version.findFirst({
+        where: { projectId },
+        orderBy: { versionNumber: 'desc' },
+      });
+
+      const versionNumber = (latest?.versionNumber ?? 0) + 1;
+      const version = await tx.version.create({
+        data: {
+          projectId,
+          versionNumber,
+          label: params.label,
+          status: params.status ?? 'published',
+          snapshot: toJson(params.snapshot),
+          notes: params.notes,
+          createdBy: params.createdBy,
+        },
+      });
+
+      return hydrateJsonFields(version, ['snapshot']);
+    });
   }
 
   static async updateVersion(id: string, data: any) {

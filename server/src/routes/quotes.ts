@@ -124,7 +124,7 @@ router.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Requ
 
 router.post('/:id/confirm', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const quote = await QuoteService.confirmQuote(req.params.id as string);
+    const quote = await QuoteService.confirmQuote(req.params.id as string, req.user?.id);
     await AuditService.log({
       userId: req.user!.id,
       projectId: quote.projectId,
