@@ -31,6 +31,7 @@ import {
   createAnnualDrop,
   fetchAnnualDropImpact,
   fetchAnnualDrops,
+  updateAnnualDrop,
   type AnnualDropRow as AnnualDropApiRow,
 } from '@/lib/simulationApi';
 
@@ -81,6 +82,7 @@ export default function AnnualDropPage() {
   const [annualDropRates, setAnnualDropRates] = useState<number[]>([]);
   const [savedAnnualDrops, setSavedAnnualDrops] = useState<AnnualDropRecord[]>([]);
   const [savingAnnualDrop, setSavingAnnualDrop] = useState(false);
+  const [editingAnnualDropId, setEditingAnnualDropId] = useState<string | null>(null);
   const [impactSummary, setImpactSummary] = useState<string | null>(null);
 
   useEffect(() => {
@@ -223,7 +225,8 @@ export default function AnnualDropPage() {
       render: (_: unknown, record: AnnualDropRecord) => (
         <Button size="small" theme="borderless" onClick={async () => {
           const impact = await fetchAnnualDropImpact(record.id);
-          setImpactSummary(`第 ${impact.year} 年：成本 ${impact.costBefore.toFixed(2)} → ${impact.costAfter.toFixed(2)}，报价 ${impact.priceBefore.toFixed(2)} → ${impact.priceAfter.toFixed(2)}，利润 ${impact.profitBefore.toFixed(2)} → ${impact.profitAfter.toFixed(2)}`);
+          setEditingAnnualDropId(record.id);
+          setImpactSummary(formatImpactSummary(impact));
         }}>
           载入影响
         </Button>
@@ -278,25 +281,45 @@ export default function AnnualDropPage() {
     Toast.success('年降分析表已导出');
   };
 
+  const formatImpactSummary = (impact: AnnualDropApiRow) => `第 ${impact.year} 年：成本 ${impact.costBefore.toFixed(2)} → ${impact.costAfter.toFixed(2)}，报价 ${impact.priceBefore.toFixed(2)} → ${impact.priceAfter.toFixed(2)}，利润 ${impact.profitBefore.toFixed(2)} → ${impact.profitAfter.toFixed(2)}`;
+
   const handleSaveAnnualDrop = async () => {
     if (!id || !sid || annualDropData.length <= 1) return;
-    const target = annualDropData[1];
-    if (!target) return;
     setSavingAnnualDrop(true);
     try {
       const dashboard = await apiClient<ProjectDashboardData>(`/projects/${id}/dashboard`);
-      const created = await createAnnualDrop(sid, {
-        projectId: id,
-        name: `年降-${target.year}年`,
-        year: target.year,
-        dropRate: (target.dropRate || 0) / 100,
-        costBefore: dashboard.internalCostBaseline ?? internalVehicleCost,
-        priceBefore: dashboard.latestQuote?.effectivePrice ?? baseDeliveredPrice,
-      });
-      const impact = await fetchAnnualDropImpact(created.id);
-      setImpactSummary(`第 ${impact.year} 年：成本 ${impact.costBefore.toFixed(2)} → ${impact.costAfter.toFixed(2)}，报价 ${impact.priceBefore.toFixed(2)} → ${impact.priceAfter.toFixed(2)}，利润 ${impact.profitBefore.toFixed(2)} → ${impact.profitAfter.toFixed(2)}`);
+      const costBefore = dashboard.internalCostBaseline ?? internalVehicleCost;
+      const priceBefore = dashboard.latestQuote?.effectivePrice ?? baseDeliveredPrice;
+      let savedCount = 0;
+
+      for (const target of annualDropData.slice(1)) {
+        const existing = savedAnnualDrops.find((row) => row.year === target.year);
+        const payload = {
+          name: `年降-${target.year}年`,
+          year: target.year,
+          dropRate: (target.dropRate || 0) / 100,
+          costBefore,
+          priceBefore,
+          status: existing?.status ?? 'draft',
+        };
+
+        const saved = existing
+          ? await updateAnnualDrop(existing.id, payload)
+          : await createAnnualDrop(sid, {
+              projectId: id,
+              ...payload,
+            });
+
+        savedCount += 1;
+        if (target.year === annualDropData[1]?.year) {
+          const impact = await fetchAnnualDropImpact(saved.id);
+          setImpactSummary(formatImpactSummary(impact));
+          setEditingAnnualDropId(saved.id);
+        }
+      }
+
       await refreshAnnualDrops();
-      Toast.success('年降记录已保存');
+      Toast.success(savedCount === annualDropData.length - 1 ? '年降周期记录已保存' : '部分年降记录已保存');
     } catch (error: any) {
       Toast.error(error.message || '保存年降记录失败');
     } finally {
@@ -346,7 +369,14 @@ export default function AnnualDropPage() {
         {savedAnnualDrops.length === 0 ? (
           <Empty description="暂无年降记录，保存当前测算后可追踪影响" />
         ) : (
-          <Table columns={savedColumns} dataSource={savedAnnualDrops} pagination={false} size="small" />
+          <>
+            <div style={{ marginBottom: 12 }}>
+              <Text type="tertiary">
+                已保存 {savedAnnualDrops.length} 条周期记录{editingAnnualDropId ? '，当前查看已选中记录影响' : ''}
+              </Text>
+            </div>
+            <Table columns={savedColumns} dataSource={savedAnnualDrops} pagination={false} size="small" />
+          </>
         )}
       </Card>
 

@@ -145,3 +145,39 @@
 ### 备注:
 - `init.ps1` 仍有编码问题，本次继续采用手动 build + preview/server 启动方式验证
 - Playwright 直达旧路径 `/project/:id/scenario/:sid/simulation` 会落到 404，当前有效路由为 `/project/:id/s/:sid/simulation`
+
+## [2026-04-11 10:12] - Task: [T16] 年降管理
+
+### 完成的工作:
+- 完善年降页 `app/src/pages/AnnualDropPage.tsx` 的周期保存逻辑，改为一次保存全部年度周期，而不是只落 1 条记录
+- 接入 `updateAnnualDrop`，同一年份再次保存时走更新，保证年降是“有周期和影响链路的业务对象”而不是一次性数字
+- 补充已保存记录区的查看态提示，并在载入影响时同步选中当前记录
+- 将 `task.json` 中 T16 状态更新为 done，并补充 Playwright 验收产物到 `test-screenshots/`
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- Playwright 打开 `http://127.0.0.1:4174/project/576bcf5b-3fe2-4ad4-be18-21319fc07303/s/29218afd-c3fc-4224-98ad-434401948894/annual-drop`，页面正常渲染
+- 截图 `test-screenshots/t16-annual-drop-page.png`，快照 `test-screenshots/t16-annual-drop-page.md`
+
+### 备注:
+- `init.ps1` 仍因编码/字符串解析错误无法直接运行，本次继续以手动 build + server/start + app/preview 完成验收
+- 当前前端 preview 需走 `http://127.0.0.1:4174`，避免静态 `python -m http.server` 无法代理 `/api`
+
+## [2026-04-11 10:12] - Task: [T16] 年降管理
+
+### 完成的工作:
+- 完善年降页 `app/src/pages/AnnualDropPage.tsx` 的周期保存逻辑，改为一次保存全部年度周期，而不是只落 1 条记录
+- 接入 `updateAnnualDrop`，同一年份再次保存时走更新，保证年降是“有周期和影响链路的业务对象”而不是一次性数字
+- 补充已保存记录区的查看态提示，并在载入影响时同步选中当前记录
+- 将 `task.json` 中 T16 状态更新为 done，并补充 Playwright 验收产物到 `test-screenshots/`
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- Playwright 打开 `http://127.0.0.1:4174/project/576bcf5b-3fe2-4ad4-be18-21319fc07303/s/29218afd-c3fc-4224-98ad-434401948894/annual-drop`，页面正常渲染
+- 截图 `test-screenshots/t16-annual-drop-page.png`，快照 `test-screenshots/t16-annual-drop-page.md`
+
+### 备注:
+- `init.ps1` 仍因编码/字符串解析错误无法直接运行，本次继续以手动 build + server/start + app/preview 完成验收
+- 当前前端 preview 需走 `http://127.0.0.1:4174`，避免静态 `python -m http.server` 无法代理 `/api`
