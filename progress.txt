@@ -37,7 +37,7 @@
 - `cd D:/harness-project/app && npm run build` 通过
 - 浏览器打开 `http://127.0.0.1:5173`，验证项目列表页正常渲染并截图 `t01-project-list-page.png`
 - Playwright 验证项目搜索可输入 `E281`，并成功进入项目页 `http://127.0.0.1:5173/project/e281-quote`，截图 `t01-project-dashboard.png`
-- `http://127.0.0.1:3001/health` 返回 `{\"status\":\"ok\"...}`
+- `http://127.0.0.1:3001/health` 返回 `{"status":"ok"...}`
 
 ### 备注:
 - `init.ps1` 当前存在编码/字符串解析错误，未能直接用于初始化；本次改为手动启动并验证前后端
@@ -57,7 +57,7 @@
 - `cd D:/harness-project/app && npm run build` 通过
 - 浏览器打开 `http://127.0.0.1:5173`，验证项目列表页正常渲染并截图 `t01-project-list-page.png`
 - Playwright 验证项目搜索可输入 `E281`，并成功进入项目页 `http://127.0.0.1:5173/project/e281-quote`，截图 `t01-project-dashboard.png`
-- `http://127.0.0.1:3001/health` 返回 `{\"status\":\"ok\"...}`
+- `http://127.0.0.1:3001/health` 返回 `{"status":"ok"...}`
 
 ### 备注:
 - `init.ps1` 当前存在编码/字符串解析错误，未能直接用于初始化；本次改为手动启动并验证前后端
@@ -249,3 +249,21 @@
 ### 备注:
 - `init.ps1` 仍有编码/解析错误，本次继续以手动启动 server 与 Vite dev 方式完成验收
 - 浏览器控制台仅见既有 Semi UI StrictMode `findDOMNode` 警告，不影响本任务验收
+
+## [2026-04-11 12:45] - Task: [T19] 预警触发引擎
+
+### 完成的工作:
+- 基于遗留未提交改动完成 T19 后端触发引擎收口：在 `server/src/services/alertEventService.ts` 增加规则匹配、去重/重激活、金属价格变动、分摊回收滞后、设变成本异常、执行节点超期 4 类自动检测能力
+- 在 `server/src/services/alertRuleService.ts` 增加 `listEnabled`，支持触发引擎只读取启用中的规则
+- 在 `server/src/routes/alerts.ts` 新增 `POST /api/alerts/detect`，允许按事件/手动触发检测并自动创建或刷新 `AlertEvent`
+- 修复遗留重复代码导致的构建失败，确认当前源码与编译产物一致
+
+### 测试:
+- `powershell -NoProfile -ExecutionPolicy Bypass -File D:/harness-project/init.ps1` 失败：脚本仍有既有编码/字符串损坏，不是 T19 新引入问题
+- `npm --prefix D:/harness-project/server run prisma:generate` 通过（仍输出旧路径生成告警）
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+
+### 备注:
+- 当前仓库存在遗留未跟踪文件 `automation-logs/loop-log.txt`，本次未纳入提交
+- Prisma generate 仍输出到旧路径 `D:/成本核算动态模型/server/node_modules/@prisma/client`，后续需单独清理配置漂移

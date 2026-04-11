@@ -502,7 +502,7 @@
         ]
       },
       "depends_on": ["T17", "T10", "T14"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "T20",

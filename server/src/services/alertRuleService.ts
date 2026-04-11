@@ -14,6 +14,17 @@ export class AlertRuleService {
     return rows.map(normalizeRule);
   }
 
+  static async listEnabled(category?: string) {
+    const rows = await prisma.alertRule.findMany({
+      where: {
+        enabled: true,
+        ...(category ? { category } : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }],
+    });
+    return rows.map(normalizeRule);
+  }
+
   static async create(data: any) {
     const row = await prisma.alertRule.create({
       data: {
