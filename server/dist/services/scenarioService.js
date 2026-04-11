@@ -2,7 +2,134 @@ import prisma from '../lib/prisma.js';
 import { hydrateJsonFields, dehydrateJsonFields } from '../lib/json.js';
 import { BomService } from './bomService.js';
 import { VersionService } from './extraServices.js';
+import { SettingsService } from './settingsService.js';
 const JSON_FIELDS = ['rateSnapshot', 'quoteParamSnapshot'];
+async function resolveScenarioRateSnapshot(data) {
+    if (data.rateSnapshot && Object.keys(data.rateSnapshot).length > 0) {
+        return {
+            rateSnapshot: data.rateSnapshot,
+            rateSnapshotVersion: data.rateSnapshotVersion ?? null,
+        };
+    }
+    const latestVersion = await SettingsService.getLatestPublishedVersion();
+    if (!latestVersion) {
+        return {
+            rateSnapshot: data.rateSnapshot ?? {},
+            rateSnapshotVersion: data.rateSnapshotVersion ?? null,
+        };
+    }
+    const snapshotRows = await SettingsService.snapshot(latestVersion);
+    const costStructure = snapshotRows.filter((row) => row.sourceCategory === 'cost_structure');
+    if (costStructure.length === 0) {
+        return {
+            rateSnapshot: data.rateSnapshot ?? {},
+            rateSnapshotVersion: latestVersion,
+        };
+    }
+    const rateSnapshot = Object.fromEntries(costStructure.map((row) => [row.key, row.value]));
+    return {
+        rateSnapshot,
+        rateSnapshotVersion: latestVersion,
+    };
+}
+async function enrichScenario(item) {
+    const hydrated = hydrateJsonFields(item, [...JSON_FIELDS]);
+    return {
+        ...hydrated,
+        rateSnapshotVersion: item.rateSnapshotVersion ?? null,
+    };
+}
+async function enrichScenarios(items) {
+    return Promise.all(items.map((item) => enrichScenario(item)));
+}
+async function buildCreatePayload(projectId, data) {
+    const snapshotBinding = await resolveScenarioRateSnapshot(data);
+    return dehydrateJsonFields({ ...data, ...snapshotBinding, projectId }, [...JSON_FIELDS]);
+}
+async function buildUpdatePayload(current, data) {
+    const wantsRateRefresh = data.rateSnapshotVersion === 'latest';
+    const needsAutoBind = wantsRateRefresh || (!('rateSnapshot' in data) && !('rateSnapshotVersion' in data));
+    const snapshotBinding = needsAutoBind
+        ? await resolveScenarioRateSnapshot({ ...current, ...data, rateSnapshot: wantsRateRefresh ? undefined : current.rateSnapshot })
+        : {
+            rateSnapshot: data.rateSnapshot ?? current.rateSnapshot,
+            rateSnapshotVersion: data.rateSnapshotVersion ?? current.rateSnapshotVersion ?? null,
+        };
+    return dehydrateJsonFields({ ...data, ...snapshotBinding }, [...JSON_FIELDS]);
+}
+async function attachRateSnapshotToSummary(item) {
+    const scenario = await enrichScenario(item);
+    return {
+        ...scenario,
+        rateSnapshotVersion: scenario.rateSnapshotVersion,
+    };
+}
+async function buildClonePayload(source) {
+    const scenario = await enrichScenario(source);
+    return dehydrateJsonFields({
+        projectId: scenario.projectId,
+        type: scenario.type,
+        name: `${scenario.name}-复制`,
+        status: 'draft',
+        lifecycleYears: scenario.lifecycleYears,
+        volume: scenario.volume,
+        installRatio: scenario.installRatio,
+        rateSnapshot: scenario.rateSnapshot,
+        rateSnapshotVersion: scenario.rateSnapshotVersion,
+        bomVersionRef: scenario.bomVersionRef,
+        quoteParamSnapshot: scenario.quoteParamSnapshot,
+        sourceScenarioId: scenario.id,
+        compareBaselineId: scenario.compareBaselineId ?? scenario.id,
+        notes: scenario.notes,
+        createdBy: scenario.createdBy,
+    }, [...JSON_FIELDS]);
+}
+async function buildComparisonItem(item) {
+    const hydrated = await enrichScenario(item);
+    return {
+        id: hydrated.id,
+        name: hydrated.name,
+        type: hydrated.type,
+        status: hydrated.status,
+        lifecycleYears: hydrated.lifecycleYears,
+        volume: hydrated.volume,
+        installRatio: hydrated.installRatio,
+        rateSnapshot: hydrated.rateSnapshot,
+        rateSnapshotVersion: hydrated.rateSnapshotVersion,
+        bomVersionRef: hydrated.bomVersionRef,
+        sourceScenarioId: hydrated.sourceScenarioId,
+        compareBaselineId: hydrated.compareBaselineId,
+    };
+}
+async function buildScenarioSummary(item) {
+    const scenario = await attachRateSnapshotToSummary(item);
+    return {
+        id: scenario.id,
+        name: scenario.name,
+        type: scenario.type,
+        status: scenario.status,
+        lifecycleYears: scenario.lifecycleYears,
+        volume: scenario.volume,
+        installRatio: scenario.installRatio,
+        rateSnapshot: scenario.rateSnapshot,
+        rateSnapshotVersion: scenario.rateSnapshotVersion,
+        bomVersionRef: scenario.bomVersionRef,
+        compareBaselineId: scenario.compareBaselineId,
+        sourceScenarioId: scenario.sourceScenarioId,
+        updatedAt: scenario.updatedAt,
+    };
+}
+async function buildVersionSnapshot(id) {
+    const snapshot = await buildScenarioVersionSnapshot(id);
+    const scenario = snapshot.scenario;
+    return {
+        ...snapshot,
+        scenario: {
+            ...scenario,
+            rateSnapshotVersion: (await ScenarioService.getById(id)).rateSnapshotVersion,
+        },
+    };
+}
 async function buildScenarioVersionSnapshot(id) {
     const scenario = await prisma.scenario.findUnique({ where: { id } });
     if (!scenario) {
@@ -43,7 +170,7 @@ export class ScenarioService {
             where: { projectId },
             orderBy: { createdAt: 'asc' },
         });
-        return scenarios.map((item) => hydrateJsonFields(item, [...JSON_FIELDS]));
+        return enrichScenarios(scenarios);
     }
     static async getById(id) {
         const scenario = await prisma.scenario.findUnique({ where: { id } });
@@ -52,17 +179,18 @@ export class ScenarioService {
             err.status = 404;
             throw err;
         }
-        return hydrateJsonFields(scenario, [...JSON_FIELDS]);
+        return enrichScenario(scenario);
     }
     static async create(projectId, data) {
-        const dbData = dehydrateJsonFields({ ...data, projectId }, [...JSON_FIELDS]);
+        const dbData = await buildCreatePayload(projectId, data);
         const scenario = await prisma.scenario.create({ data: dbData });
-        return hydrateJsonFields(scenario, [...JSON_FIELDS]);
+        return enrichScenario(scenario);
     }
     static async update(id, data) {
-        const dbData = dehydrateJsonFields(data, [...JSON_FIELDS]);
+        const current = await this.getById(id);
+        const dbData = await buildUpdatePayload(current, data);
         const scenario = await prisma.scenario.update({ where: { id }, data: dbData });
-        return hydrateJsonFields(scenario, [...JSON_FIELDS]);
+        return enrichScenario(scenario);
     }
     static async freeze(id, createdBy) {
         const scenario = await prisma.scenario.update({
@@ -72,8 +200,8 @@ export class ScenarioService {
                 frozenAt: new Date(),
             },
         });
-        const hydrated = hydrateJsonFields(scenario, [...JSON_FIELDS]);
-        const snapshot = await buildScenarioVersionSnapshot(id);
+        const hydrated = await enrichScenario(scenario);
+        const snapshot = await buildVersionSnapshot(id);
         await VersionService.createAutoVersion(hydrated.projectId, {
             label: `BOM冻结 - ${hydrated.name}`,
             notes: `Auto snapshot created when scenario ${hydrated.id} was frozen.`,
@@ -90,8 +218,8 @@ export class ScenarioService {
                 releasedAt: new Date(),
             },
         });
-        const hydrated = hydrateJsonFields(scenario, [...JSON_FIELDS]);
-        const snapshot = await buildScenarioVersionSnapshot(id);
+        const hydrated = await enrichScenario(scenario);
+        const snapshot = await buildVersionSnapshot(id);
         await VersionService.createAutoVersion(hydrated.projectId, {
             label: `场景发布 - ${hydrated.name}`,
             notes: `Auto snapshot created when scenario ${hydrated.id} was released.`,
@@ -101,63 +229,25 @@ export class ScenarioService {
         return hydrated;
     }
     static async clone(id) {
-        const source = await this.getById(id);
-        const dbData = dehydrateJsonFields({
-            projectId: source.projectId,
-            type: source.type,
-            name: `${source.name}-复制`,
-            status: 'draft',
-            lifecycleYears: source.lifecycleYears,
-            volume: source.volume,
-            installRatio: source.installRatio,
-            rateSnapshot: source.rateSnapshot,
-            bomVersionRef: source.bomVersionRef,
-            quoteParamSnapshot: source.quoteParamSnapshot,
-            sourceScenarioId: source.id,
-            compareBaselineId: source.compareBaselineId ?? source.id,
-            notes: source.notes,
-            createdBy: source.createdBy,
-        }, [...JSON_FIELDS]);
+        const source = await prisma.scenario.findUnique({ where: { id } });
+        if (!source) {
+            const err = new Error('Scenario not found');
+            err.status = 404;
+            throw err;
+        }
+        const dbData = await buildClonePayload(source);
         const cloned = await prisma.scenario.create({ data: dbData });
-        return hydrateJsonFields(cloned, [...JSON_FIELDS]);
+        return enrichScenario(cloned);
     }
     static async getSummary(id) {
         const scenario = await this.getById(id);
-        return {
-            id: scenario.id,
-            name: scenario.name,
-            type: scenario.type,
-            status: scenario.status,
-            lifecycleYears: scenario.lifecycleYears,
-            volume: scenario.volume,
-            installRatio: scenario.installRatio,
-            rateSnapshot: scenario.rateSnapshot,
-            bomVersionRef: scenario.bomVersionRef,
-            compareBaselineId: scenario.compareBaselineId,
-            sourceScenarioId: scenario.sourceScenarioId,
-            updatedAt: scenario.updatedAt,
-        };
+        return buildScenarioSummary(scenario);
     }
     static async compare(ids) {
         const scenarios = await prisma.scenario.findMany({
             where: { id: { in: ids } },
             orderBy: { createdAt: 'asc' },
         });
-        return scenarios.map((scenario) => {
-            const hydrated = hydrateJsonFields(scenario, [...JSON_FIELDS]);
-            return {
-                id: hydrated.id,
-                name: hydrated.name,
-                type: hydrated.type,
-                status: hydrated.status,
-                lifecycleYears: hydrated.lifecycleYears,
-                volume: hydrated.volume,
-                installRatio: hydrated.installRatio,
-                rateSnapshot: hydrated.rateSnapshot,
-                bomVersionRef: hydrated.bomVersionRef,
-                sourceScenarioId: hydrated.sourceScenarioId,
-                compareBaselineId: hydrated.compareBaselineId,
-            };
-        });
+        return Promise.all(scenarios.map((scenario) => buildComparisonItem(scenario)));
     }
 }

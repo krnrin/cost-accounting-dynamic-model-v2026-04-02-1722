@@ -15,6 +15,7 @@ const scenarioSchema = z.object({
   volume: z.number().int().nonnegative().default(0),
   installRatio: z.number().positive().default(1),
   rateSnapshot: z.any().default({}),
+  rateSnapshotVersion: z.string().optional(),
   bomVersionRef: z.string().optional(),
   quoteParamSnapshot: z.any().default({}),
   sourceScenarioId: z.string().optional(),

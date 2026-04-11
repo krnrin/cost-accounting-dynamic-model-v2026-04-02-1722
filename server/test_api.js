@@ -157,6 +157,7 @@ async function runTests() {
   // 7a. Create and list scenarios
   const scenarioCreate = await api('POST', `/api/projects/${e281Id}/scenarios`, TEST_SCENARIO, token);
   assert('POST /api/projects/:id/scenarios', scenarioCreate.status === 201 && scenarioCreate.json.data?.name === TEST_SCENARIO.name);
+  assert('  → scenario keeps explicit rate snapshot payload', scenarioCreate.json.data?.rateSnapshot?.laborRate === TEST_SCENARIO.rateSnapshot.laborRate);
   const scenarioId = scenarioCreate.json.data?.id;
   const scenarioList = await api('GET', `/api/projects/${e281Id}/scenarios`, null, token);
   assert('GET /api/projects/:id/scenarios', scenarioList.status === 200 && Array.isArray(scenarioList.json.data));
@@ -248,6 +249,14 @@ async function runTests() {
   const versionCountBeforeSettingsPublish = await api('GET', `/api/versions/project/${projectId}`, null, token);
   const settingsPublish = await api('POST', '/api/settings/publish', {}, token);
   assert('POST /api/settings/publish', settingsPublish.status === 200 && settingsPublish.json.data?.status === 'published');
+  const latestSettingsVersion = settingsPublish.json.data?.version;
+  const boundScenarioCreate = await api('POST', `/api/projects/${e281Id}/scenarios`, {
+    ...TEST_SCENARIO,
+    name: `Scenario bound ${suffix}`,
+    rateSnapshot: {}
+  }, token);
+  assert('  → scenario binds latest published settings version', boundScenarioCreate.status === 201 && boundScenarioCreate.json.data?.rateSnapshotVersion === latestSettingsVersion);
+  assert('  → scenario loads published cost structure snapshot', boundScenarioCreate.json.data?.rateSnapshot?.defaultCostRates?.laborRate === 36);
   const versionCountAfterSettingsPublish = await api('GET', `/api/versions/project/${projectId}`, null, token);
   const settingsVersion = versionCountAfterSettingsPublish.json.data?.find(v => v.label?.includes('费率发布') && v.snapshot?.triggerSource === 'settings_publish');
   assert('  → settings publish creates version snapshot', versionCountAfterSettingsPublish.status === 200 && (versionCountAfterSettingsPublish.json.data?.length || 0) === (versionCountBeforeSettingsPublish.json.data?.length || 0) + 1 && !!settingsVersion);

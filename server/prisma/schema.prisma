@@ -48,31 +48,33 @@ model Project {
 }
 
 model Scenario {
-  id                 String           @id @default(uuid())
-  projectId          String
-  project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  id                  String           @id @default(uuid())
+  projectId           String
+  project             Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  type               String
-  name               String
-  status             String           @default("draft")
-  lifecycleYears     Int
-  volume             Int              @default(0)
-  installRatio       Float            @default(1)
-  rateSnapshot       String           @default("{}")
-  bomVersionRef      String?
-  quoteParamSnapshot String           @default("{}")
-  sourceScenarioId   String?
-  compareBaselineId  String?
-  frozenAt           DateTime?
-  releasedAt         DateTime?
-  notes              String?
-  createdBy          String?
-  createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
-  simulations        SimulationTask[]
-  annualDrops        AnnualDropRecord[]
+  type                String
+  name                String
+  status              String           @default("draft")
+  lifecycleYears      Int
+  volume              Int              @default(0)
+  installRatio        Float            @default(1)
+  rateSnapshot        String           @default("{}")
+  rateSnapshotVersion String?
+  bomVersionRef       String?
+  quoteParamSnapshot  String           @default("{}")
+  sourceScenarioId    String?
+  compareBaselineId   String?
+  frozenAt            DateTime?
+  releasedAt          DateTime?
+  notes               String?
+  createdBy           String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  simulations         SimulationTask[]
+  annualDrops         AnnualDropRecord[]
 
   @@index([projectId])
+  @@index([rateSnapshotVersion])
 }
 
 model Harness {

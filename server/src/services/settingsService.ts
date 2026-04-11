@@ -64,6 +64,16 @@ const DEFAULT_SETTINGS: Record<string, Record<string, any>> = {
 const SNAPSHOT_PREFIX = 'snapshot';
 const HISTORY_CATEGORY = 'publish_history';
 
+async function getLatestPublishedVersion() {
+  const row = await prisma.setting.findFirst({
+    where: { category: HISTORY_CATEGORY },
+    orderBy: { createdAt: 'desc' },
+  });
+  if (!row) return null;
+  const value = fromJson<{ version?: string }>(row.value);
+  return value.version ?? row.key;
+}
+
 function normalizeRow(row: any) {
   return { ...row, value: fromJson(row.value) };
 }
@@ -83,6 +93,10 @@ function makeDefaultRow(category: string, key: string, value: any) {
 }
 
 export class SettingsService {
+  static async getLatestPublishedVersion() {
+    return getLatestPublishedVersion();
+  }
+
   static async getAll() {
     const categories = Object.keys(DEFAULT_SETTINGS);
     const grouped = await Promise.all(categories.map((category) => this.getByCategory(category)));
