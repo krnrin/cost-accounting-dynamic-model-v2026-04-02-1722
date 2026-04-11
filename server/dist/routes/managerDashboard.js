@@ -57,4 +57,13 @@ router.get('/anomaly-summary', async (_req, res, next) => {
         next(error);
     }
 });
+router.get('/profit-waterfall', async (_req, res, next) => {
+    try {
+        const data = await ManagerDashboardService.getProfitWaterfall();
+        res.json({ data });
+    }
+    catch (error) {
+        next(error);
+    }
+});
 export default router;

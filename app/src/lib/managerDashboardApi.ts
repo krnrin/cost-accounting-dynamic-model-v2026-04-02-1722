@@ -95,6 +95,43 @@ export interface ManagerAnomalySummary {
   updatedAt: string;
 }
 
+export interface ManagerProfitWaterfallDimension {
+  key: string;
+  label: string;
+}
+
+export interface ManagerProfitWaterfallProject {
+  projectId: string;
+  projectCode: string;
+  projectName: string;
+  customer: string;
+  revenue: number;
+  materialCost: number;
+  processCost: number;
+  remainingAllocation: number;
+  annualDropImpact: number;
+  changeImpact: number;
+  metalImpact: number;
+  finalProfit: number;
+}
+
+export interface ManagerProfitWaterfallTotals {
+  revenue: number;
+  materialCost: number;
+  processCost: number;
+  remainingAllocation: number;
+  annualDropImpact: number;
+  changeImpact: number;
+  metalImpact: number;
+  finalProfit: number;
+}
+
+export interface ManagerProfitWaterfall {
+  dimensions: ManagerProfitWaterfallDimension[];
+  totals: ManagerProfitWaterfallTotals;
+  projects: ManagerProfitWaterfallProject[];
+}
+
 export function fetchManagerOverview() {
   return apiClient<ManagerOverview>('/manager-dashboard');
 }
@@ -117,4 +154,8 @@ export function fetchManagerScenarioComparison() {
 
 export function fetchManagerAnomalySummary() {
   return apiClient<ManagerAnomalySummary[]>('/manager-dashboard/anomaly-summary');
+}
+
+export function fetchManagerProfitWaterfall() {
+  return apiClient<ManagerProfitWaterfall>('/manager-dashboard/profit-waterfall');
 }
