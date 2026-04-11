@@ -187,6 +187,45 @@
     return entries.some((entry) => entry.key === preferred) ? preferred : (entries[0]?.key || '');
   }
 
+  function buildBomWorkbenchState(options = {}) {
+    const bootstrap = global.G281ProjectBootstrap || null;
+    const baseState = bootstrap?.buildRouteState?.() || {};
+    const normalizedVersion = normalizeBomVersionKey(
+      options.versionKey || baseState.versionKey || baseState.baselineKey || '',
+    ) || resolveDefaultVersionKey('bom') || baseState.baselineKey || '';
+    const lifecycleStage = bootstrap?.resolveLifecycleStageKey?.(baseState, normalizedVersion) || normalizedVersion;
+    const harnessSheetName = toText(options.sheetName, baseState.harnessSheetName || '');
+    return Object.assign({}, baseState, {
+      baselineKey: normalizedVersion,
+      versionKey: normalizedVersion,
+      lifecycleStageKey: lifecycleStage,
+      bomVersionKey: normalizedVersion,
+      harnessSheetName: harnessSheetName,
+      stageKey: 'bom',
+      returnTo: 'accounting',
+      sourcePage: 'accounting',
+    });
+  }
+
+  function navigateToBomWorkbench(options = {}) {
+    const router = global.G281PageRouter;
+    const state = buildBomWorkbenchState(options);
+    const targetPage = 'pages/bom_workbench.html';
+    if (router && typeof router.navigateTo === 'function') {
+      router.navigateTo(targetPage, state);
+      return true;
+    }
+    const params = new URLSearchParams();
+    Object.entries(state).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.set(key, String(value));
+      }
+    });
+    const normalizedPage = targetPage.replace(/^pages\//, '');
+    global.location.href = `${normalizedPage}?${params.toString()}`;
+    return true;
+  }
+
   function toSnapshotFromWorkbookSource(workbookSource, options = {}) {
     if (!workbookSource) return null;
     if (isUniverSnapshot(workbookSource)) {
@@ -1130,24 +1169,26 @@
   }
 
   async function openViewer(options = {}) {
-    ensureModal();
     const normalized = typeof options === 'string' ? { datasetKey: options } : (options || {});
     const datasetKey = normalizeDatasetKey(normalized.datasetKey || viewerState.datasetKey);
+    if (datasetKey === 'bom') {
+      navigateToBomWorkbench({
+        versionKey: normalized.versionKey || viewerState.versionKey,
+        sheetName: normalized.sheetName || '',
+      });
+      return;
+    }
+
+    ensureModal();
 
     if (isModalOpen()) {
       stashCurrentSnapshot();
     }
 
     viewerState.datasetKey = datasetKey;
-    if (datasetKey === 'bom') {
-      viewerState.versionKey = normalizeBomVersionKey(normalized.versionKey || viewerState.versionKey)
-        || resolveDefaultVersionKey('bom');
-      syncBomSelectionToDashboard(viewerState.versionKey);
-    } else {
-      viewerState.versionKey = toText(normalized.versionKey, viewerState.versionKey);
-      if (!listConfigVersions().some((entry) => entry.key === viewerState.versionKey)) {
-        viewerState.versionKey = resolveDefaultVersionKey('config');
-      }
+    viewerState.versionKey = toText(normalized.versionKey, viewerState.versionKey);
+    if (!listConfigVersions().some((entry) => entry.key === viewerState.versionKey)) {
+      viewerState.versionKey = resolveDefaultVersionKey('config');
     }
 
     primeWindowStateForOpen(datasetKey);
@@ -1194,11 +1235,14 @@
     document.addEventListener('click', (event) => {
       const openButton = event.target.closest('[data-viewer-dataset]');
       if (!openButton) return;
-      void openViewer({
-        datasetKey: openButton.dataset.viewerDataset || 'bom',
-        versionKey: openButton.dataset.viewerVersion || '',
-        sheetName: openButton.dataset.viewerSheet || '',
-      });
+      const datasetKey = openButton.dataset.viewerDataset || 'bom';
+      const versionKey = openButton.dataset.viewerVersion || '';
+      const sheetName = openButton.dataset.viewerSheet || '';
+      if (datasetKey === 'bom') {
+        navigateToBomWorkbench({ versionKey, sheetName });
+        return;
+      }
+      void openViewer({ datasetKey, versionKey, sheetName });
     });
 
     document.addEventListener('keydown', (event) => {

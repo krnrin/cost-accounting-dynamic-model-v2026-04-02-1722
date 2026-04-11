@@ -40,7 +40,8 @@ $uiAssets = @(
   "ui/workbook_viewer.css",
   "ui/workbook_viewer.js",
   "ui/new_project_wizard.css",
-  "ui/new_project_wizard.js"
+  "ui/new_project_wizard.js",
+  "ui/bom_workbench.css"
 )
 
 $engineAssets = @(
@@ -53,7 +54,12 @@ $engineAssets = @(
   "engine/target_price_solver.js",
   "engine/align_key_enhancer.js",
   "engine/config_bridge.js",
-  "engine/computation_path.js"
+  "engine/computation_path.js",
+  "engine/bom_change_detector.js",
+  "engine/bom_sync_planner.js",
+  "engine/bom_sync_wizard.js",
+  "engine/change_history_writer.js",
+  "engine/bom_workbench.js"
 )
 
 $coreAssets = @(
@@ -84,7 +90,8 @@ $pageAssets = @(
   "pages/accounting.html",
   "pages/tracking.html",
   "pages/archive.html",
-  "pages/new_project.html"
+  "pages/new_project.html",
+  "pages/bom_workbench.html"
 )
 
 $offlineMirrorDirectories = @(
@@ -452,6 +459,8 @@ $entryPointLabels = [ordered]@{
   archive = "Archive"
   new_project = "NewProject"
   newProject = "NewProject"
+  bom_workbench = "BomWorkbench"
+  bomWorkbench = "BomWorkbench"
 }
 $latestContentLines = @(
   "Version=$VersionTag"
