@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js';
 import { fromJson, toJson } from '../lib/json.js';
+import { VersionService } from './extraServices.js';
 const DEFAULT_SETTINGS = {
     cost_structure: {
         defaultCostRates: { laborRate: 35, mfgRate: 46.69, wasteRate: 0.01, mgmtRate: 0.06, profitRate: 0.056627 },
@@ -125,6 +126,19 @@ export class SettingsService {
                 },
             }),
         ]);
+        const projects = await prisma.project.findMany({ select: { id: true } });
+        await Promise.all(projects.map((project) => VersionService.createAutoVersion(project.id, {
+            label: `费率发布 - ${version}`,
+            notes: `Auto snapshot created when settings version ${version} was published.`,
+            snapshot: {
+                triggerSource: 'settings_publish',
+                settingsVersion: version,
+                publishedAt: publishedAt.toISOString(),
+                itemCount: currentSettings.length,
+                settings: currentSettings,
+            },
+            createdBy: updatedBy,
+        })));
         return {
             version,
             publishedAt: publishedAt.toISOString(),

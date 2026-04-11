@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js';
 import { fromJson, toJson } from '../lib/json.js';
+import { VersionService } from './extraServices.js';
 
 const DEFAULT_SETTINGS: Record<string, Record<string, any>> = {
   cost_structure: {
@@ -133,6 +134,20 @@ export class SettingsService {
         },
       }),
     ]);
+
+    const projects = await prisma.project.findMany({ select: { id: true } });
+    await Promise.all(projects.map((project) => VersionService.createAutoVersion(project.id, {
+      label: `费率发布 - ${version}`,
+      notes: `Auto snapshot created when settings version ${version} was published.`,
+      snapshot: {
+        triggerSource: 'settings_publish',
+        settingsVersion: version,
+        publishedAt: publishedAt.toISOString(),
+        itemCount: currentSettings.length,
+        settings: currentSettings,
+      },
+      createdBy: updatedBy,
+    })));
 
     return {
       version,

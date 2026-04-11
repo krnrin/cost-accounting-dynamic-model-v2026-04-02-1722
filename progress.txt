@@ -2,6 +2,42 @@
 # 每个 Claude Code session 完成任务后在此追加记录
 # ============================================
 
+## [2026-04-11 15:55] - Task: [T24] 自动版本快照（BOM冻结/报价发布/场景发布）
+
+### 完成的工作:
+- 扩展 `server/src/services/extraServices.ts`，新增 `VersionService.createAutoVersion()`，自动递增项目版本号并写入快照内容
+- 更新 `server/src/services/scenarioService.ts` 与 `server/src/routes/scenarios.ts`，在场景 BOM 冻结和场景发布时自动生成版本快照，快照中包含场景关键字段与当前 BOM 明细
+- 更新 `server/src/services/settingsService.ts`，在费率发布时为每个项目自动生成版本快照，记录发布版本号、发布时间和当次设置内容
+- 更新 `server/src/services/extraServices.ts` 与 `server/src/routes/quotes.ts`，在报价确认后自动生成报价发布版本快照
+- 扩展 `server/test_api.js`，补充 BOM 冻结、场景发布、费率发布、报价确认四个自动版本快照断言，并顺手修复 `GET /api/scenarios/compare` 路由顺序问题
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（81 passed, 0 failed）
+- `npm --prefix D:/harness-project/app run build` 通过
+
+### 备注:
+- `init.ps1` 当前仍有 PowerShell 编码/解析问题，本次继续采用手动构建与 API 集成测试完成验收
+- 运行集成测试会更新本地 SQLite 数据文件 `server/data/harness_cost.db`，属于测试副作用，已与本任务代码一并保留
+
+## [2026-04-11 15:55] - Task: [T24] 自动版本快照（BOM冻结/报价发布/场景发布）
+
+### 完成的工作:
+- 扩展 `server/src/services/extraServices.ts`，新增 `VersionService.createAutoVersion()`，自动递增项目版本号并写入快照内容
+- 更新 `server/src/services/scenarioService.ts` 与 `server/src/routes/scenarios.ts`，在场景 BOM 冻结和场景发布时自动生成版本快照，快照中包含场景关键字段与当前 BOM 明细
+- 更新 `server/src/services/settingsService.ts`，在费率发布时为每个项目自动生成版本快照，记录发布版本号、发布时间和当次设置内容
+- 更新 `server/src/services/extraServices.ts` 与 `server/src/routes/quotes.ts`，在报价确认后自动生成报价发布版本快照
+- 扩展 `server/test_api.js`，补充 BOM 冻结、场景发布、费率发布、报价确认四个自动版本快照断言，并顺手修复 `GET /api/scenarios/compare` 路由顺序问题
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（81 passed, 0 failed）
+- `npm --prefix D:/harness-project/app run build` 通过
+
+### 备注:
+- `init.ps1` 当前仍有 PowerShell 编码/解析问题，本次继续采用手动构建与 API 集成测试完成验收
+- 运行集成测试会更新本地 SQLite 数据文件 `server/data/harness_cost.db`，属于测试副作用，已与本任务代码一并保留
+
 ## [2026-04-11 15:10] - Task: [T22] 利润归因瀑布图 (Shapley)
 
 ### 完成的工作:

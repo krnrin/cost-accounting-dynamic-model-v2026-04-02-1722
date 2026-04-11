@@ -1,7 +1,46 @@
 import prisma from '../lib/prisma.js';
 import { hydrateJsonFields, dehydrateJsonFields } from '../lib/json.js';
+import { BomService } from './bomService.js';
+import { VersionService } from './extraServices.js';
 
 const JSON_FIELDS = ['rateSnapshot', 'quoteParamSnapshot'] as const;
+
+async function buildScenarioVersionSnapshot(id: string) {
+  const scenario = await prisma.scenario.findUnique({ where: { id } });
+  if (!scenario) {
+    const err: any = new Error('Scenario not found');
+    err.status = 404;
+    throw err;
+  }
+
+  const hydratedScenario = hydrateJsonFields(scenario, [...JSON_FIELDS]);
+  const bomRows = await BomService.listScenarioBomRows(id);
+
+  return {
+    triggerSource: 'scenario',
+    scenario: {
+      id: hydratedScenario.id,
+      name: hydratedScenario.name,
+      type: hydratedScenario.type,
+      status: hydratedScenario.status,
+      lifecycleYears: hydratedScenario.lifecycleYears,
+      volume: hydratedScenario.volume,
+      installRatio: hydratedScenario.installRatio,
+      rateSnapshot: hydratedScenario.rateSnapshot,
+      bomVersionRef: hydratedScenario.bomVersionRef,
+      quoteParamSnapshot: hydratedScenario.quoteParamSnapshot,
+      sourceScenarioId: hydratedScenario.sourceScenarioId,
+      compareBaselineId: hydratedScenario.compareBaselineId,
+      frozenAt: hydratedScenario.frozenAt,
+      releasedAt: hydratedScenario.releasedAt,
+      updatedAt: hydratedScenario.updatedAt,
+    },
+    bom: {
+      rowCount: bomRows.length,
+      rows: bomRows,
+    },
+  };
+}
 
 export class ScenarioService {
   static async listByProject(projectId: string) {
@@ -34,7 +73,7 @@ export class ScenarioService {
     return hydrateJsonFields(scenario, [...JSON_FIELDS]);
   }
 
-  static async freeze(id: string) {
+  static async freeze(id: string, createdBy?: string) {
     const scenario = await prisma.scenario.update({
       where: { id },
       data: {
@@ -42,10 +81,18 @@ export class ScenarioService {
         frozenAt: new Date(),
       },
     });
-    return hydrateJsonFields(scenario, [...JSON_FIELDS]);
+    const hydrated = hydrateJsonFields(scenario, [...JSON_FIELDS]);
+    const snapshot = await buildScenarioVersionSnapshot(id);
+    await VersionService.createAutoVersion(hydrated.projectId, {
+      label: `BOM冻结 - ${hydrated.name}`,
+      notes: `Auto snapshot created when scenario ${hydrated.id} was frozen.`,
+      snapshot,
+      createdBy,
+    });
+    return hydrated;
   }
 
-  static async release(id: string) {
+  static async release(id: string, createdBy?: string) {
     const scenario = await prisma.scenario.update({
       where: { id },
       data: {
@@ -53,7 +100,15 @@ export class ScenarioService {
         releasedAt: new Date(),
       },
     });
-    return hydrateJsonFields(scenario, [...JSON_FIELDS]);
+    const hydrated = hydrateJsonFields(scenario, [...JSON_FIELDS]);
+    const snapshot = await buildScenarioVersionSnapshot(id);
+    await VersionService.createAutoVersion(hydrated.projectId, {
+      label: `场景发布 - ${hydrated.name}`,
+      notes: `Auto snapshot created when scenario ${hydrated.id} was released.`,
+      snapshot,
+      createdBy,
+    });
+    return hydrated;
   }
 
   static async clone(id: string) {
