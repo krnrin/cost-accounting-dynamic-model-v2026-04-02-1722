@@ -34,9 +34,9 @@ router.get('/snapshot/:version', async (req: Request, res: Response, next: NextF
   }
 });
 
-router.post('/publish', requireRole(['ADMIN', 'MANAGER']), async (_req: Request, res: Response, next: NextFunction) => {
+router.post('/publish', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const data = await SettingsService.publish();
+    const data = await SettingsService.publish(req.user?.id);
     res.json({ data });
   } catch (error) {
     next(error);
