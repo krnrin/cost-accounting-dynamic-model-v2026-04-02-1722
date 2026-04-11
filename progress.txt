@@ -2,6 +2,44 @@
 # 每个 Claude Code session 完成任务后在此追加记录
 # ============================================
 
+## [2026-04-11 17:20] - Task: [T27] 认证 + 用户管理
+
+### 完成的工作:
+- 复核并确认后端认证与用户管理主链路已完整可用：`server/src/routes/auth.ts` 提供 `POST /api/auth/login`、受鉴权保护的 `POST /api/auth/logout`，`server/src/routes/users.ts` 提供管理员/经理可访问的 `GET /api/users`
+- 补充前端 `app/src/layouts/MainLayout.tsx`，在全局头部展示当前登录用户姓名/角色，并接入真正的退出动作按钮，完成“侧边栏用户信息”验收要求对应的全局身份展示
+- 复用既有 `app/src/store/authStore.ts` 与 `app/src/lib/profileApi.ts` 的认证状态、profile 同步与 logout 请求链路，确保登录后身份展示、退出后返回登录页能够闭环工作
+- 补充浏览器验收产物 `test-screenshots/t27-login-page.png`、`test-screenshots/t27-after-logout.png` 与对应快照文件
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（91 passed, 0 failed），覆盖 login / logout / users / profile 等认证链路
+- Playwright 打开 `http://127.0.0.1:4173/`，验证登录后顶部显示当前用户“系统管理员-测试 / ADMIN”，点击“退出”后返回登录页；截图 `test-screenshots/t27-login-page.png`、`test-screenshots/t27-after-logout.png`
+
+### 备注:
+- `init.ps1` 仍存在 PowerShell 解析问题，本次继续采用手动 build、server start 与 app preview 方式完成验收
+- API 集成测试会继续写入本地 SQLite 数据文件，`server/data/harness_cost.db` 与 `server/prisma/dev.db` 有测试副作用变更
+
+## [2026-04-11 16:31] - Task: [T26] Profile 与个人中心
+
+### 完成的工作:
+- 新增后端 `server/src/services/profileService.ts`、`server/src/routes/profile.ts`、`server/src/routes/users.ts`，补齐 `/api/profile`、`/api/profile/permissions`、`/api/profile/preferences` 与 `/api/users` 能力，并在 `server/src/index.ts` 完成挂载
+- 扩展 `server/src/routes/auth.ts`，补齐受鉴权保护的 `POST /api/auth/logout` 接口
+- 新增前端 `app/src/lib/profileApi.ts`，统一封装个人信息、偏好、权限矩阵与用户列表请求
+- 重写 `app/src/pages/ProfilePage.tsx`，实现个人信息编辑、主题模式切换、通知偏好保存、用户列表与权限概览展示
+- 更新 `app/src/store/authStore.ts`，登录后主动同步 Profile/偏好到本地状态，并在退出登录时调用后端 logout
+- 扩展 `server/test_api.js`，补充 Profile、权限、偏好、用户列表、logout/relogin 集成测试覆盖
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（91 passed, 0 failed）
+- Playwright 打开 `http://127.0.0.1:4173/profile`，验证用户配置页可见个人信息、主题模式、用户列表、权限概览；截图 `test-screenshots/t26-login-page.png`、`test-screenshots/t26-profile-page.png`
+
+### 备注:
+- `init.ps1` 仍无法在当前 shell 直接执行（`pwsh` 缺失），本次继续采用手动 build + preview/server 启动方式验收
+- 集成测试会继续向本地 SQLite 写入测试用户与项目数据，`/profile` 页面中的用户列表因此包含多条历史测试账号
+
 ## [2026-04-11 16:31] - Task: [T26] Profile 与个人中心
 
 ### 完成的工作:
