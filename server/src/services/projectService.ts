@@ -3,6 +3,26 @@ import { hydrateJsonFields, dehydrateJsonFields } from '../lib/json.js';
 
 const JSON_FIELDS = ['costRates', 'metalPrices', 'volumes'] as const;
 
+function buildImportedProjectCode(projectCode: string) {
+  return `${projectCode}-IMP-${Math.random().toString(36).slice(2, 6).toUpperCase()}`.slice(0, 32);
+}
+
+function normalizeImportedProject(pkg: any) {
+  const projectMeta = pkg?.project?.meta ?? {};
+  const projectConfig = pkg?.project?.config ?? {};
+
+  return {
+    projectCode: buildImportedProjectCode(String(projectMeta.projectCode || 'IMPORTED')),
+    projectName: `${String(projectMeta.projectName || '导入项目')} (导入)`,
+    customer: String(projectMeta.customer || '未知客户'),
+    platform: projectMeta.platform ? String(projectMeta.platform) : undefined,
+    status: String(projectMeta.status || 'draft'),
+    costRates: projectConfig.costRates ?? {},
+    metalPrices: projectConfig.metalPrices ?? {},
+    volumes: projectConfig.volumes ?? [],
+  };
+}
+
 export class ProjectService {
   static async getAllProjects(filters?: { search?: string; status?: string }) {
     const search = filters?.search?.trim();
@@ -134,6 +154,101 @@ export class ProjectService {
         updatedAt: latestQuote.updatedAt,
       } : null,
     };
+  }
+
+  static async importProjectPackage(pkg: any, userId: string) {
+    const normalizedProject = normalizeImportedProject(pkg);
+    const harnesses = Array.isArray(pkg?.harnesses) ? pkg.harnesses : [];
+    const quotes = Array.isArray(pkg?.quotes) ? pkg.quotes : [];
+
+    const importedProject = await prisma.$transaction(async (tx) => {
+      const project = await tx.project.create({
+        data: dehydrateJsonFields({ ...normalizedProject, createdBy: userId }, [...JSON_FIELDS]),
+      });
+
+      const scenarioIdMap = new Map<string, string>();
+      const harnessIdMap = new Map<string, string>();
+
+      const scenarioIds = new Set<string>();
+      for (const harness of harnesses) {
+        if (typeof harness?.scenarioId === 'string' && harness.scenarioId) {
+          scenarioIds.add(harness.scenarioId);
+        }
+      }
+      for (const quote of quotes) {
+        if (typeof quote?.scenarioId === 'string' && quote.scenarioId) {
+          scenarioIds.add(quote.scenarioId);
+        }
+      }
+
+      let scenarioIndex = 1;
+      for (const sourceScenarioId of scenarioIds) {
+        const importedScenario = await tx.scenario.create({
+          data: {
+            projectId: project.id,
+            type: 'initial_quote',
+            name: `导入场景 ${String(scenarioIndex).padStart(3, '0')}`,
+            status: 'draft',
+            lifecycleYears: 5,
+            volume: 0,
+            installRatio: 1,
+            rateSnapshot: '{}',
+            quoteParamSnapshot: '{}',
+            createdBy: userId,
+          },
+        });
+        scenarioIdMap.set(sourceScenarioId, importedScenario.id);
+        scenarioIndex += 1;
+      }
+
+      for (const harness of harnesses) {
+        const importedHarness = await tx.harness.create({
+          data: dehydrateJsonFields({
+            projectId: project.id,
+            scenarioId: typeof harness?.scenarioId === 'string' ? (scenarioIdMap.get(harness.scenarioId) ?? null) : null,
+            harnessId: String(harness?.harnessId || harness?.id || crypto.randomUUID()),
+            harnessName: String(harness?.harnessName || '导入线束'),
+            input: harness?.input ?? {},
+            result: harness?.result ?? undefined,
+          }, ['input', 'result']),
+        });
+        if (typeof harness?.harnessId === 'string' && harness.harnessId) {
+          harnessIdMap.set(harness.harnessId, importedHarness.harnessId);
+        }
+      }
+
+      for (const quote of quotes) {
+        await tx.quote.create({
+          data: dehydrateJsonFields({
+            projectId: project.id,
+            scenarioId: typeof quote?.scenarioId === 'string' ? (scenarioIdMap.get(quote.scenarioId) ?? null) : null,
+            harnessId: typeof quote?.harnessId === 'string' ? (harnessIdMap.get(quote.harnessId) ?? quote.harnessId) : null,
+            version: String(quote?.version || 'imported'),
+            status: String(quote?.status || 'draft'),
+            template: String(quote?.template || 'geely'),
+            data: quote?.data ?? {},
+            quoteParams: quote?.quoteParams ?? {},
+            quoteResult: quote?.quoteResult ?? {},
+            internalCostBaseline: Number(quote?.internalCostBaseline || 0),
+            profitGap: Number(quote?.profitGap || 0),
+            exWorksPrice: Number(quote?.exWorksPrice || 0),
+            arrivalPrice: Number(quote?.arrivalPrice || 0),
+            effectivePrice: Number(quote?.effectivePrice ?? quote?.arrivalPrice ?? 0),
+            effectivePriceMode: String(quote?.effectivePriceMode || 'arrival'),
+            customerBurdenMode: String(quote?.customerBurdenMode || 'supplier_full'),
+            recoveryCompletionBehavior: String(quote?.recoveryCompletionBehavior || 'notify_only'),
+            customerAccepted: Boolean(quote?.customerAccepted),
+            lockedFields: quote?.lockedFields ?? [],
+            editableFields: quote?.editableFields ?? [],
+            approvalFields: quote?.approvalFields ?? [],
+          }, ['data', 'quoteParams', 'quoteResult', 'lockedFields', 'editableFields', 'approvalFields']),
+        });
+      }
+
+      return project;
+    });
+
+    return this.getProjectById(importedProject.id);
   }
 
   static async deleteProject(id: string) {

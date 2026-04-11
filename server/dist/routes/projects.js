@@ -20,6 +20,25 @@ const listQuerySchema = z.object({
     search: z.string().trim().optional(),
     status: projectStatusEnum.optional(),
 });
+const importProjectSchema = z.object({
+    schemaVersion: z.number().optional(),
+    project: z.object({
+        meta: z.object({
+            projectCode: z.string().min(1),
+            projectName: z.string().min(1),
+            customer: z.string().min(1),
+            platform: z.string().optional(),
+            status: z.string().optional(),
+        }),
+        config: z.object({
+            costRates: z.any().optional(),
+            metalPrices: z.any().optional(),
+            volumes: z.any().optional(),
+        }).optional(),
+    }),
+    harnesses: z.array(z.any()).optional(),
+    quotes: z.array(z.any()).optional(),
+});
 router.use(authMiddleware);
 router.get('/', async (req, res, next) => {
     try {
@@ -45,6 +64,28 @@ router.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, res,
             entity: 'project',
             entityId: project.id,
             details: validatedData,
+        });
+        res.status(201).json({ data: project });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+router.post('/import', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, res, next) => {
+    try {
+        const validatedData = importProjectSchema.parse(req.body);
+        const project = await ProjectService.importProjectPackage(validatedData, req.user.id);
+        await AuditService.log({
+            userId: req.user.id,
+            projectId: project.id,
+            action: 'CREATE',
+            entity: 'project',
+            entityId: project.id,
+            details: {
+                importedFrom: validatedData.project.meta.projectCode,
+                harnessCount: validatedData.harnesses?.length ?? 0,
+                quoteCount: validatedData.quotes?.length ?? 0,
+            },
         });
         res.status(201).json({ data: project });
     }

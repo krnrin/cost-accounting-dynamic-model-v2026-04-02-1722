@@ -26,7 +26,7 @@ import {
   IconUpload,
 } from '@douyinfe/semi-icons';
 import { db, type ProjectRecord } from '../data/db';
-import { importProjectPackage, validateProjectPackage } from '@/engine/project_io';
+import { validateProjectPackage } from '@/engine/project_io';
 import { RoleGuard } from '@/components/RoleGuard';
 import { apiClient } from '@/lib/apiClient';
 import { exportProjectExcel, exportProjectPdf } from '@/lib/exportApi';
@@ -351,12 +351,15 @@ export default function ProjectListPage() {
           Toast.error(`导入失败: ${validation.errors.join(', ')}`);
           return;
         }
-        await importProjectPackage(data);
+        await apiClient('/projects/import', {
+          method: 'POST',
+          body: data,
+        });
         Toast.success('导入成功');
         await fetchProjects();
       } catch (error) {
         console.error(error);
-        Toast.error('导入失败: 文件格式错误');
+        Toast.error(error instanceof Error ? `导入失败: ${error.message}` : '导入失败: 文件格式错误');
       }
     };
     input.click();
