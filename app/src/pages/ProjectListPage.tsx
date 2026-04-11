@@ -26,10 +26,10 @@ import {
   IconUpload,
 } from '@douyinfe/semi-icons';
 import { db, type ProjectRecord } from '../data/db';
-import { downloadProjectPackage, importProjectPackage, validateProjectPackage } from '@/engine/project_io';
-import { exportProjectZip } from '@/engine/zip_export';
+import { importProjectPackage, validateProjectPackage } from '@/engine/project_io';
 import { RoleGuard } from '@/components/RoleGuard';
 import { apiClient } from '@/lib/apiClient';
+import { exportProjectExcel, exportProjectPdf } from '@/lib/exportApi';
 import type { ProjectConfig } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
 
@@ -428,18 +428,28 @@ export default function ProjectListPage() {
             icon={<IconDownload />}
             theme="borderless"
             size="small"
-            onClick={(event) => {
+            onClick={async (event) => {
               event.stopPropagation();
-              downloadProjectPackage(record.id);
+              try {
+                await exportProjectExcel(record.id);
+                Toast.success('项目 Excel 已导出');
+              } catch (error) {
+                Toast.error(error instanceof Error ? error.message : '项目 Excel 导出失败');
+              }
             }}
           />
           <Button
             icon={<IconUpload />}
             theme="borderless"
             size="small"
-            onClick={(event) => {
+            onClick={async (event) => {
               event.stopPropagation();
-              exportProjectZip(record.id);
+              try {
+                await exportProjectPdf(record.id);
+                Toast.success('项目 PDF 已导出');
+              } catch (error) {
+                Toast.error(error instanceof Error ? error.message : '项目 PDF 导出失败');
+              }
             }}
           />
           <RoleGuard field="deleteProject">

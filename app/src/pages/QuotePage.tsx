@@ -15,13 +15,26 @@ import {
   exportFullQuoteExcel,
   exportChangePricingExcel,
 } from '@/engine/excel_export';
+import { exportQuoteExcel, exportQuotePdf } from '@/lib/exportApi';
+import { apiClient } from '@/lib/apiClient';
 import { applyCustomerQuoteSnapshot } from '@/utils/customerQuoteSnapshots';
 import type { HarnessInput } from '@/types/harness';
-import type { TemplateType } from '@/types/quote';
+import type { QuoteSheet, TemplateType } from '@/types/quote';
 import { RoleGuard } from '@/components/RoleGuard';
 import ScenarioSelector from '@/components/ScenarioSelector';
 
 const { Title, Text } = Typography;
+
+type ApiQuote = {
+  id: string;
+  version: string;
+  projectId: string;
+  scenarioId?: string | null;
+  harnessId?: string | null;
+  status: string;
+  template: string;
+  data?: QuoteSheet;
+};
 
 export default function QuotePage() {
   const { id, sid } = useParams<{ id: string; sid: string }>();
@@ -31,6 +44,7 @@ export default function QuotePage() {
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [scenario, setScenario] = useState<ScenarioRecord | null>(null);
   const [harnesses, setHarnesses] = useState<HarnessRecord[]>([]);
+  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
 
   // Tab 1 Quote Template State
   const [templateType, setTemplateType] = useState<TemplateType>('geely');
@@ -55,18 +69,22 @@ export default function QuotePage() {
         }
         const scenarioWithFallback = applyE281ScenarioFallback(s);
         const h = await db.harnesses.where('scenarioId').equals(sid).toArray();
+        const quotes = await apiClient<ApiQuote[]>(`/quotes/scenario/${sid}`);
+        const preferredQuote = quotes.find((quote) => quote.template === templateType) || quotes[0] || null;
         setProject(p);
         setScenario(scenarioWithFallback);
         setHarnesses(h);
+        setSelectedQuoteId(preferredQuote?.id ?? null);
       } catch (err) {
         console.error(err);
+        setSelectedQuoteId(null);
         Toast.error('数据加载失败');
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, [id, sid]);
+  }, [id, sid, templateType]);
 
   const customerQuoteSnapshots = useMemo(() => {
     return scenario?.config.customerQuoteSnapshots;
@@ -114,6 +132,25 @@ export default function QuotePage() {
   const baselineResultsById = useMemo(() => {
     return new Map(baselineResults.map(result => [result.harnessId, result]));
   }, [baselineResults]);
+
+  useEffect(() => {
+    if (!sid) return;
+    let active = true;
+    async function syncSelectedQuote() {
+      try {
+        const quotes = await apiClient<ApiQuote[]>(`/quotes/scenario/${sid}`);
+        if (!active) return;
+        const preferredQuote = quotes.find((quote) => quote.template === templateType) || quotes[0] || null;
+        setSelectedQuoteId(preferredQuote?.id ?? null);
+      } catch {
+        if (active) setSelectedQuoteId(null);
+      }
+    }
+    void syncSelectedQuote();
+    return () => {
+      active = false;
+    };
+  }, [sid, templateType]);
 
   // Tab 2: Change Pricing Simulation
   const simulatedResults = useMemo(() => {
@@ -258,6 +295,44 @@ export default function QuotePage() {
               exportFullQuoteExcel(baselineResults, baselineProject, project.meta.projectName, project.meta.customer, templateType);
               Toast.success('综合报价已导出');
             }}>导出综合报价</Button>
+            </RoleGuard>
+            <RoleGuard field="quoteExport">
+            <Button
+              icon={<IconDownload />}
+              theme="borderless"
+              disabled={!selectedQuoteId}
+              onClick={async () => {
+                if (!selectedQuoteId) {
+                  Toast.warning('当前场景暂无可导出的报价记录');
+                  return;
+                }
+                try {
+                  await exportQuoteExcel(selectedQuoteId);
+                  Toast.success('报价 Excel 已导出');
+                } catch (error) {
+                  Toast.error(error instanceof Error ? error.message : '报价 Excel 导出失败');
+                }
+              }}
+            >导出报价Excel</Button>
+            </RoleGuard>
+            <RoleGuard field="quoteExport">
+            <Button
+              icon={<IconDownload />}
+              theme="borderless"
+              disabled={!selectedQuoteId}
+              onClick={async () => {
+                if (!selectedQuoteId) {
+                  Toast.warning('当前场景暂无可导出的报价记录');
+                  return;
+                }
+                try {
+                  await exportQuotePdf(selectedQuoteId);
+                  Toast.success('报价 PDF 已导出');
+                } catch (error) {
+                  Toast.error(error instanceof Error ? error.message : '报价 PDF 导出失败');
+                }
+              }}
+            >导出报价PDF</Button>
             </RoleGuard>
           </Space>
         </div>

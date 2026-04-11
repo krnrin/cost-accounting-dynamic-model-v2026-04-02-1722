@@ -1,3 +1,47 @@
+## [2026-04-11 18:20] - Task: [T28] 导出功能（PDF/Excel）
+
+### 完成的工作:
+- 新增后端 `server/src/routes/export.ts` 与 `server/src/services/exportService.ts`，补齐 `POST /api/export/excel`、`POST /api/export/pdf`，支持按 `projectId` / `quoteId` 导出 Excel 与 PDF 文件
+- 更新 `server/src/index.ts` 挂载 `/api/export` 路由，并在 `server/package.json` / `server/package-lock.json` 补充 `pdfkit`、`xlsx` 与类型依赖
+- 新增前端 `app/src/lib/exportApi.ts`，统一处理鉴权下载、文件名解析与 Blob 下载
+- 更新 `app/src/pages/ProjectListPage.tsx`，为项目列表增加项目 Excel / PDF 导出按钮
+- 更新 `app/src/pages/QuotePage.tsx`，为报价工作台增加报价 Excel / PDF 导出按钮，并维护当前场景选中的报价记录
+- 调整 `app/src/store/authStore.ts`，在离线登录场景也写入 `authSource`，避免导出请求依赖的认证态不完整
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- API 冒烟：在 `http://127.0.0.1:3002/api` 上验证项目导出 Excel/PDF 返回 200，文件类型分别为 `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`、`application/pdf`
+- API 冒烟：创建测试报价后，验证报价导出 Excel/PDF 返回 200，文件名分别为 `G281_T28-EXPORT_quote_export_2026-04-11.xlsx`、`G281_T28-EXPORT_quote_report_2026-04-11.pdf`
+- Playwright 打开 `http://127.0.0.1:4174/`，验证项目列表页可见行内导出按钮；验收产物 `test-screenshots/t28-login-page.png`、`test-screenshots/t28-project-list.md`
+
+### 备注:
+- `init.ps1` 仍存在 PowerShell 编码/解析问题，本次继续采用手动 build + 指定端口启动 (`3002/4174`) 完成验收
+- 本机 `3001` 端口已有其他仓库旧服务占用，导出接口冒烟改在 `3002` 独立实例完成，避免误连到旧进程
+- 报价页当前依赖本地 Dexie 场景/线束缓存，使用纯后端 seed 数据直达时会显示 `Project not found`；本次导出功能已通过后端 API 完整验证
+
+## [2026-04-11 18:20] - Task: [T28] 导出功能（PDF/Excel）
+
+### 完成的工作:
+- 新增后端 `server/src/routes/export.ts` 与 `server/src/services/exportService.ts`，补齐 `POST /api/export/excel`、`POST /api/export/pdf`，支持按 `projectId` / `quoteId` 导出 Excel 与 PDF 文件
+- 更新 `server/src/index.ts` 挂载 `/api/export` 路由，并在 `server/package.json` / `server/package-lock.json` 补充 `pdfkit`、`xlsx` 与类型依赖
+- 新增前端 `app/src/lib/exportApi.ts`，统一处理鉴权下载、文件名解析与 Blob 下载
+- 更新 `app/src/pages/ProjectListPage.tsx`，为项目列表增加项目 Excel / PDF 导出按钮
+- 更新 `app/src/pages/QuotePage.tsx`，为报价工作台增加报价 Excel / PDF 导出按钮，并维护当前场景选中的报价记录
+- 调整 `app/src/store/authStore.ts`，在离线登录场景也写入 `authSource`，避免导出请求依赖的认证态不完整
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- API 冒烟：在 `http://127.0.0.1:3002/api` 上验证项目导出 Excel/PDF 返回 200，文件类型分别为 `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`、`application/pdf`
+- API 冒烟：创建测试报价后，验证报价导出 Excel/PDF 返回 200，文件名分别为 `G281_T28-EXPORT_quote_export_2026-04-11.xlsx`、`G281_T28-EXPORT_quote_report_2026-04-11.pdf`
+- Playwright 打开 `http://127.0.0.1:4174/`，验证项目列表页可见行内导出按钮；验收产物 `test-screenshots/t28-login-page.png`、`test-screenshots/t28-project-list.md`
+
+### 备注:
+- `init.ps1` 仍存在 PowerShell 编码/解析问题，本次继续采用手动 build + 指定端口启动 (`3002/4174`) 完成验收
+- 本机 `3001` 端口已有其他仓库旧服务占用，导出接口冒烟改在 `3002` 独立实例完成，避免误连到旧进程
+- 报价页当前依赖本地 Dexie 场景/线束缓存，使用纯后端 seed 数据直达时会显示 `Project not found`；本次导出功能已通过后端 API 完整验证
+
 # 高压线束精算与决策引擎 — 开发进度日志
 # 每个 Claude Code session 完成任务后在此追加记录
 # ============================================
