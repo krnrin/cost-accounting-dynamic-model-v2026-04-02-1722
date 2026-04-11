@@ -1,30 +1,46 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Typography, Spin, Button, Card, Slider, InputNumber, Toast, Layout,
-  Row, Col, Tabs, TabPane, Table, Tag, Empty,
+  Button,
+  Card,
+  Empty,
+  InputNumber,
+  Layout,
+  Row,
+  Col,
+  Slider,
+  Space,
+  Spin,
+  Table,
+  Tabs,
+  TabPane,
+  Tag,
+  Toast,
+  Typography,
 } from '@douyinfe/semi-ui';
-import { IconArrowLeft, IconDownload } from '@douyinfe/semi-icons';
+import { IconArrowLeft, IconBranch, IconDownload, IconPlay, IconSave } from '@douyinfe/semi-icons';
 import ReactECharts from 'echarts-for-react/lib/core';
-import echarts from '@/lib/echarts';
 import * as XLSX from 'xlsx';
-
+import echarts from '@/lib/echarts';
 import { db } from '@/data/db';
 import type { HarnessRecord, ProjectRecord, ScenarioRecord } from '@/data/db';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
 import { compareFactoryCosts } from '@/engine/factory_comparison';
 import type { FactoryComparisonResult } from '@/engine/factory_comparison';
 import { computeProjectAnnualizedCost } from '@/engine/annualized_cost';
-import { computeAll, recomputeFrom, paramChangeToNodes } from '@/engine/incremental_calc';
-import type { CostParams, CostNodeId } from '@/engine/incremental_calc';
-import { getPriceHistory, getShfeReferencePrices } from '@/engine/metal_api';
-import type { MetalPriceData } from '@/engine/metal_api';
 import type { HarnessInput } from '@/types/harness';
 import type { EquipmentConfig, FactoryConfig } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { usePermission } from '@/hooks/usePermission';
 import ScenarioSelector from '@/components/ScenarioSelector';
+import {
+  createSimulationTask,
+  fetchSimulations,
+  runSimulationTask,
+  convertSimulationTask,
+  type SimulationTaskRow,
+} from '@/lib/simulationApi';
 
 const { Title, Text } = Typography;
 
@@ -46,195 +62,201 @@ export default function SimulationPage() {
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [scenario, setScenario] = useState<ScenarioRecord | null>(null);
   const [harnesses, setHarnesses] = useState<HarnessRecord[]>([]);
-  const [loading, setLocalLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
-  // Sliders state
   const [copperAdj, setCopperAdj] = useState(0);
   const [aluminumAdj, setAluminumAdj] = useState(0);
   const [volumeAdj, setVolumeAdj] = useState(0);
   const [dropRate, setDropRate] = useState(0);
   const [hoursAdj, setHoursAdj] = useState(0);
 
+  const [taskName, setTaskName] = useState('默认仿真');
+  const [savedSimulations, setSavedSimulations] = useState<SimulationTaskRow[]>([]);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [saveLoading, setSaveLoading] = useState(false);
+  const [runTaskId, setRunTaskId] = useState<string | null>(null);
+  const [convertTaskId, setConvertTaskId] = useState<string | null>(null);
+  const [summaryText, setSummaryText] = useState<string | null>(null);
+
   useEffect(() => {
     if (!id || !sid) return;
 
     const loadData = async () => {
-      setLocalLoading(true);
+      setLoading(true);
       try {
         const projectData = await db.projects.get(id);
-        const scenarioData = await db.scenarios.get(sid!);
-        if (projectData && scenarioData) {
-          setProject(projectData);
-          setScenario(scenarioData);
-          setCurrentProject(projectData.id, projectData.meta.projectName);
-          setDropRate(scenarioData.config.annualDropRate || 0);
+        const scenarioData = await db.scenarios.get(sid);
+        if (!projectData || !scenarioData) return;
 
-          const harnessData = await db.harnesses.where('scenarioId').equals(sid!).toArray();
-          setHarnesses(harnessData);
-        }
+        setProject(projectData);
+        setScenario(scenarioData);
+        setCurrentProject(projectData.id, projectData.meta.projectName);
+        setDropRate(scenarioData.config.annualDropRate || 0);
+
+        const harnessData = await db.harnesses.where('scenarioId').equals(sid).toArray();
+        setHarnesses(harnessData);
       } catch (error) {
         console.error('Failed to load simulation data:', error);
         Toast.error('数据加载失败');
       } finally {
-        setLocalLoading(false);
+        setLoading(false);
       }
     };
 
-    loadData();
+    void loadData();
   }, [id, sid, setCurrentProject]);
+
+  const refreshSavedSimulations = async () => {
+    if (!sid) return;
+    try {
+      const rows = await fetchSimulations(sid);
+      setSavedSimulations(rows);
+      if (!selectedTaskId && rows.length > 0) {
+        setSelectedTaskId(rows[0]!.id);
+      }
+    } catch (error) {
+      console.error('Failed to fetch simulations:', error);
+    }
+  };
+
+  useEffect(() => {
+    void refreshSavedSimulations();
+  }, [sid]);
 
   const baselineResults = useMemo(() => {
     if (!scenario || harnesses.length === 0) return null;
-    const results = harnesses.map(h => computeHarnessCost(h.input, scenario.config.costRates, scenario.config.metalPrices));
+    const results = harnesses.map((item) => computeHarnessCost(item.input, scenario.config.costRates, scenario.config.metalPrices));
     return computeProjectFromHarnesses(results);
-  }, [scenario, harnesses]);
-
-  // DAG baseline: compute all cost nodes for each harness
-  const dagBaseline = useMemo(() => {
-    if (!scenario || harnesses.length === 0) return null;
-    return harnesses.map(h => {
-      const input = h.input;
-      const bom = input.bom || [];
-      const rawMaterialCost = bom.reduce((s, b) => s + (b.amount || 0), 0);
-      const processHours = (input.frontHours || 0) + (input.backHours || 0);
-      const packTotal = input.packaging?.subtotal || 0;
-      const freightTotal = input.freight?.subtotal || 0;
-
-      const params: CostParams = {
-        rawMaterialCost,
-        processHours,
-        laborRate: scenario.config.costRates.laborRate,
-        mfgRate: scenario.config.costRates.mfgRate,
-        wasteRate: scenario.config.costRates.wasteRate,
-        mgmtRate: scenario.config.costRates.mgmtRate,
-        profitRate: scenario.config.costRates.profitRate,
-        packTotal,
-        freightTotal,
-      };
-
-      return { params, values: computeAll(params), harnessId: h.input.harnessId };
-    });
   }, [scenario, harnesses]);
 
   const simulatedResults = useMemo(() => {
     if (!scenario || harnesses.length === 0) return null;
-
     const simMetalPrices = {
       copper: scenario.config.metalPrices.copper * (1 + copperAdj / 100),
       aluminum: scenario.config.metalPrices.aluminum * (1 + aluminumAdj / 100),
     };
-
     const hoursFactor = 1 + hoursAdj / 100;
-
-    const results = harnesses.map(h => {
+    const results = harnesses.map((item) => {
       const simInput: HarnessInput = {
-        ...h.input,
-        frontHours: h.input.frontHours * hoursFactor,
-        backHours: h.input.backHours * hoursFactor,
+        ...item.input,
+        frontHours: item.input.frontHours * hoursFactor,
+        backHours: item.input.backHours * hoursFactor,
       };
       return computeHarnessCost(simInput, scenario.config.costRates, simMetalPrices);
     });
-
     return computeProjectFromHarnesses(results);
   }, [scenario, harnesses, copperAdj, aluminumAdj, hoursAdj]);
 
-  const dagSimulation = useMemo(() => {
-    if (!dagBaseline || !scenario) return null;
-    
-    const changedRootNodes = new Set<CostNodeId>();
-    if (copperAdj !== 0 || aluminumAdj !== 0) {
-      paramChangeToNodes('copperPrice').forEach(n => changedRootNodes.add(n));
-    }
-    if (hoursAdj !== 0) {
-      paramChangeToNodes('processHours').forEach(n => changedRootNodes.add(n));
-    }
-    
-    if (changedRootNodes.size === 0) return null;
-    
-    let totalRecomputed = 0;
-    const totalNodes = dagBaseline.length * 10;
-    
-    const perHarness = dagBaseline.map(({ params, values }) => {
-      // Adjust material for copper/aluminum price changes
-      const metalFactor = 1 + copperAdj / 100; // simplified
-      const newParams: CostParams = {
-        ...params,
-        rawMaterialCost: params.rawMaterialCost * metalFactor,
-        processHours: params.processHours * (1 + hoursAdj / 100),
-      };
-      
-      const { values: newValues, recomputed } = recomputeFrom(values, changedRootNodes, newParams);
-      totalRecomputed += recomputed.length;
-      return newValues;
-    });
-    
-    return {
-      perHarness,
-      stats: {
-        recomputed: totalRecomputed,
-        total: totalNodes,
-        skipped: totalNodes - totalRecomputed,
-      },
-    };
-  }, [dagBaseline, scenario, copperAdj, aluminumAdj, hoursAdj]);
-
-  // 产量计算
   const volumeSchedule = scenario?.config?.volumes ?? [];
-  const baseVolume = (volumeSchedule.length > 0 && volumeSchedule[0]) ? volumeSchedule[0].volume : 100000;
+  const baseVolume = volumeSchedule[0]?.volume ?? 100000;
   const simVolume = Math.round(baseVolume * (1 + volumeAdj / 100));
   const baseAnnualCost = baselineResults ? baselineResults.vehicleCost * baseVolume : 0;
   const simAnnualCost = simulatedResults ? simulatedResults.vehicleCost * simVolume : 0;
 
-  // ── Factory comparison ──
   const activeFactories = useMemo<FactoryConfig[]>(() => {
-    const projFactories = scenario?.config?.factories ?? [];
-    return projFactories.length > 0 ? projFactories : settingsFactories;
+    const scenarioFactories = scenario?.config?.factories ?? [];
+    return scenarioFactories.length > 0 ? scenarioFactories : settingsFactories;
   }, [scenario, settingsFactories]);
 
   const factoryComparison = useMemo<FactoryComparisonResult[]>(() => {
     if (!scenario || harnesses.length === 0 || activeFactories.length === 0) return [];
-    return harnesses.map(h =>
-      compareFactoryCosts(h.input, activeFactories, scenario.config.metalPrices)
-    );
+    return harnesses.map((item) => compareFactoryCosts(item.input, activeFactories, scenario.config.metalPrices));
   }, [scenario, harnesses, activeFactories]);
 
-  // ── Annualized cost ──
   const annualizedResult = useMemo(() => {
     if (!scenario || !baselineResults) return null;
     const equipment = scenario.config.equipmentConfig ?? DEFAULT_EQUIPMENT;
     const volumes = volumeSchedule.length > 0
       ? volumeSchedule
-      : Array.from({ length: 7 }, (_, i) => ({ year: i + 1, volume: baseVolume }));
+      : Array.from({ length: 7 }, (_, index) => ({ year: index + 1, volume: baseVolume }));
     return computeProjectAnnualizedCost(baselineResults.harnesses, equipment, volumes);
   }, [scenario, baselineResults, volumeSchedule, baseVolume]);
 
-  if (loading || !project || !scenario || !baselineResults || !simulatedResults) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 120 }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
+  const selectedTask = useMemo(
+    () => savedSimulations.find((item) => item.id === selectedTaskId) ?? null,
+    [savedSimulations, selectedTaskId],
+  );
 
-  // Waterfall Chart data
-  const waterfallOptions = buildWaterfallOptions(baselineResults, simulatedResults);
-  // Lifecycle Line Chart
-  const lifecycleOptions = buildLifecycleOptions(baselineResults, simulatedResults, scenario!, dropRate, volumeAdj, volumeSchedule, baseVolume);
+  const applyTask = (task: SimulationTaskRow) => {
+    setSelectedTaskId(task.id);
+    setTaskName(task.name);
+    setCopperAdj(task.parameterSnapshot?.copperAdj ?? 0);
+    setAluminumAdj(task.parameterSnapshot?.aluminumAdj ?? 0);
+    setVolumeAdj(task.parameterSnapshot?.volumeAdj ?? 0);
+    setDropRate(task.parameterSnapshot?.dropRate ?? (scenario?.config.annualDropRate || 0));
+    setHoursAdj(task.parameterSnapshot?.hoursAdj ?? 0);
+    const vehicleCost = task.resultSnapshot?.simulation?.vehicleCost;
+    setSummaryText(typeof vehicleCost === 'number' ? `已载入 ${task.name}，最近模拟单车成本 ¥${vehicleCost.toFixed(2)}` : `已载入 ${task.name}`);
+  };
 
-  const cuWeight = simulatedResults.weightedCopperWeight;
-  const cuBreakPrice = cuWeight > 0 && baselineResults.weightedProfit > 0
-    ? (baselineResults.weightedProfit / cuWeight) * 1000 + scenario!.config.metalPrices.copper
-    : 0;
+  const saveTask = async () => {
+    if (!id || !sid) return;
+    setSaveLoading(true);
+    try {
+      const created = await createSimulationTask(sid, {
+        projectId: id,
+        name: taskName.trim() || '默认仿真',
+        baselineScenarioId: sid,
+        parameterSnapshot: { copperAdj, aluminumAdj, volumeAdj, dropRate, hoursAdj },
+      });
+      await refreshSavedSimulations();
+      applyTask(created);
+      Toast.success('仿真任务已保存');
+    } catch (error: any) {
+      Toast.error(error.message || '保存仿真任务失败');
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  const runTask = async (task: SimulationTaskRow) => {
+    setRunTaskId(task.id);
+    try {
+      const result = await runSimulationTask(task.id);
+      await refreshSavedSimulations();
+      applyTask(result);
+      setSummaryText(`最新运行：${result.name}，模拟单车成本 ¥${result.resultSnapshot?.simulation?.vehicleCost?.toFixed?.(2) ?? '--'}`);
+      Toast.success('仿真任务已运行');
+    } catch (error: any) {
+      Toast.error(error.message || '运行仿真任务失败');
+    } finally {
+      setRunTaskId(null);
+    }
+  };
+
+  const convertTask = async (task: SimulationTaskRow) => {
+    if (!id) return;
+    setConvertTaskId(task.id);
+    try {
+      const result = await convertSimulationTask(task.id);
+      await refreshSavedSimulations();
+      Toast.success(`已转为场景：${result.scenario.name}`);
+      navigate(`/project/${id}/s/${result.scenario.id}`);
+    } catch (error: any) {
+      Toast.error(error.message || '转正式场景失败');
+    } finally {
+      setConvertTaskId(null);
+    }
+  };
+
+  const resetParams = () => {
+    setCopperAdj(0);
+    setAluminumAdj(0);
+    setVolumeAdj(0);
+    setDropRate(scenario?.config.annualDropRate || 0);
+    setHoursAdj(0);
+  };
 
   const handleExport = () => {
+    if (!baselineResults || !simulatedResults || !project || !scenario) return;
     const data = [
       ['指标', '基准方案', '模拟方案', '变动'],
       ['单车成本 (元)', baselineResults.vehicleCost.toFixed(2), simulatedResults.vehicleCost.toFixed(2), (simulatedResults.vehicleCost - baselineResults.vehicleCost).toFixed(2)],
       ['材料成本 (元)', baselineResults.weightedMaterial.toFixed(2), simulatedResults.weightedMaterial.toFixed(2), (simulatedResults.weightedMaterial - baselineResults.weightedMaterial).toFixed(2)],
       ['出厂价 (元)', baselineResults.weightedExFactory.toFixed(2), simulatedResults.weightedExFactory.toFixed(2), (simulatedResults.weightedExFactory - baselineResults.weightedExFactory).toFixed(2)],
-      ['铜价 (元/吨)', scenario!.config.metalPrices.copper, scenario!.config.metalPrices.copper * (1 + copperAdj / 100), `${copperAdj}%`],
-      ['铝价 (元/吨)', scenario!.config.metalPrices.aluminum, scenario!.config.metalPrices.aluminum * (1 + aluminumAdj / 100), `${aluminumAdj}%`],
-      ['年降率 (%)', scenario!.config.annualDropRate, dropRate, `${(dropRate - scenario!.config.annualDropRate).toFixed(1)}%`],
+      ['铜价 (元/吨)', scenario.config.metalPrices.copper, scenario.config.metalPrices.copper * (1 + copperAdj / 100), `${copperAdj}%`],
+      ['铝价 (元/吨)', scenario.config.metalPrices.aluminum, scenario.config.metalPrices.aluminum * (1 + aluminumAdj / 100), `${aluminumAdj}%`],
+      ['年降率 (%)', scenario.config.annualDropRate, dropRate, `${(dropRate - scenario.config.annualDropRate).toFixed(1)}%`],
       ['年产量', baseVolume, simVolume, `${volumeAdj}%`],
       ['年产值 (万元)', (baseAnnualCost / 10000).toFixed(1), (simAnnualCost / 10000).toFixed(1), `${baseAnnualCost > 0 ? ((simAnnualCost / baseAnnualCost - 1) * 100).toFixed(1) : 0}%`],
     ];
@@ -244,49 +266,156 @@ export default function SimulationPage() {
     XLSX.writeFile(wb, `${project.meta.projectName}_模拟分析.xlsx`);
   };
 
+  const waterfallOption = useMemo(() => {
+    if (!baselineResults || !simulatedResults) return null;
+    return {
+      title: { text: '模拟结果对比', textStyle: { color: 'var(--semi-color-text-0)', fontSize: 14 } },
+      tooltip: { trigger: 'axis' as const },
+      xAxis: { type: 'category' as const, data: ['基准成本', '模拟成本', '基准年产值', '模拟年产值'], axisLabel: { color: 'var(--semi-color-text-0)' } },
+      yAxis: { type: 'value' as const, axisLabel: { color: 'var(--semi-color-text-0)' }, splitLine: { lineStyle: { color: 'var(--semi-color-border)' } } },
+      series: [{ type: 'bar' as const, data: [baselineResults.vehicleCost, simulatedResults.vehicleCost, baseAnnualCost / 10000, simAnnualCost / 10000], itemStyle: { color: '#6c7ee1' } }],
+    };
+  }, [baselineResults, simulatedResults, baseAnnualCost, simAnnualCost]);
+
+  const lifecycleOption = useMemo(() => {
+    if (!baselineResults || !simulatedResults || !scenario) return null;
+    const years = Array.from({ length: 7 }, (_, index) => index + 1);
+    return {
+      title: { text: '生命周期价格走势', textStyle: { color: 'var(--semi-color-text-0)', fontSize: 14 } },
+      tooltip: { trigger: 'axis' as const },
+      legend: { bottom: 0, textStyle: { color: 'var(--semi-color-text-0)' } },
+      xAxis: { type: 'category' as const, data: years.map((year) => `第${year}年`), axisLabel: { color: 'var(--semi-color-text-0)' } },
+      yAxis: { type: 'value' as const, axisLabel: { color: 'var(--semi-color-text-0)' }, splitLine: { lineStyle: { color: 'var(--semi-color-border)' } } },
+      series: [
+        {
+          name: '基准',
+          type: 'line' as const,
+          data: years.map((year) => (baselineResults.vehicleCost * Math.pow(1 - (scenario.config.annualDropRate || 0) / 100, year - 1)).toFixed(2)),
+        },
+        {
+          name: '模拟',
+          type: 'line' as const,
+          data: years.map((year) => (simulatedResults.vehicleCost * Math.pow(1 - dropRate / 100, year - 1)).toFixed(2)),
+          lineStyle: { color: '#ffca28', width: 3 },
+          itemStyle: { color: '#ffca28' },
+        },
+      ],
+    };
+  }, [baselineResults, simulatedResults, scenario, dropRate]);
+
+  if (loading || !project || !scenario || !baselineResults || !simulatedResults) {
+    return <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 120 }}><Spin size="large" /></div>;
+  }
+
+  const savedColumns = [
+    {
+      title: '任务名称',
+      dataIndex: 'name',
+      key: 'name',
+      render: (_: string, record: SimulationTaskRow) => <Button theme="borderless" onClick={() => applyTask(record)}>{record.name}</Button>,
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      width: 100,
+      render: (value: string) => <Tag color={value === 'completed' ? 'green' : value === 'converted' ? 'blue' : 'grey'}>{value}</Tag>,
+    },
+    {
+      title: '参数快照',
+      key: 'params',
+      render: (_: unknown, record: SimulationTaskRow) => `铜 ${record.parameterSnapshot?.copperAdj ?? 0}% / 铝 ${record.parameterSnapshot?.aluminumAdj ?? 0}% / 量 ${record.parameterSnapshot?.volumeAdj ?? 0}% / 降 ${record.parameterSnapshot?.dropRate ?? 0}% / 工时 ${record.parameterSnapshot?.hoursAdj ?? 0}%`,
+    },
+    {
+      title: '结果',
+      key: 'result',
+      width: 140,
+      render: (_: unknown, record: SimulationTaskRow) => {
+        const value = record.resultSnapshot?.simulation?.vehicleCost;
+        return typeof value === 'number' ? `¥${value.toFixed(2)}` : '未运行';
+      },
+    },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 220,
+      render: (_: unknown, record: SimulationTaskRow) => (
+        <Space>
+          <Button size="small" icon={<IconPlay />} loading={runTaskId === record.id} onClick={() => runTask(record)}>运行</Button>
+          <Button size="small" icon={<IconBranch />} loading={convertTaskId === record.id} disabled={record.status !== 'completed' && record.status !== 'converted'} onClick={() => convertTask(record)}>转场景</Button>
+        </Space>
+      ),
+    },
+  ];
+
   return (
     <Layout style={{ padding: '0 24px 24px', background: 'transparent', minHeight: '100vh' }}>
       <ScenarioSelector />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Button
-            icon={<IconArrowLeft />}
-            aria-label="返回"
-            theme="borderless"
-            onClick={() => navigate(`/project/${id}/s/${sid}`)}
-          />
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '24px 0', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <Button icon={<IconArrowLeft />} aria-label="返回" theme="borderless" onClick={() => navigate(`/project/${id}/s/${sid}`)} />
           <Title heading={3} style={{ margin: 0, color: 'var(--semi-color-text-0)' }}>成本分析工作台</Title>
-          {dagSimulation?.stats && (
-            <Tag color="green" size="small" style={{ marginLeft: 12 }}>
-              增量计算: {dagSimulation.stats.recomputed}/{dagSimulation.stats.total} 节点 (跳过 {dagSimulation.stats.skipped})
-            </Tag>
-          )}
+          {selectedTask && <Tag color="blue">当前任务：{selectedTask.name}</Tag>}
         </div>
-        <Button icon={<IconDownload />} theme="solid" onClick={handleExport} style={{ backgroundColor: 'var(--semi-color-primary)' }} disabled={!can('simulation')}>导出模拟报告</Button>
+        <Space wrap>
+          <input
+            value={taskName}
+            onChange={(event) => setTaskName(event.target.value)}
+            placeholder="输入仿真任务名称"
+            aria-label="仿真任务名称"
+            style={{ height: 32, minWidth: 180, padding: '0 12px', borderRadius: 6, border: '1px solid var(--semi-color-border)', background: 'var(--semi-color-bg-1)', color: 'var(--semi-color-text-0)' }}
+          />
+          <Button icon={<IconSave />} onClick={saveTask} loading={saveLoading} disabled={!can('simulation')}>保存仿真</Button>
+          <Button icon={<IconDownload />} theme="solid" onClick={handleExport} style={{ backgroundColor: 'var(--semi-color-primary)' }} disabled={!can('simulation')}>导出模拟报告</Button>
+        </Space>
       </div>
+
+      {summaryText && (
+        <Card className="glass-card" style={{ marginBottom: 16 }}>
+          <Text>{summaryText}</Text>
+        </Card>
+      )}
+
+      <Card className="glass-card" title="已保存仿真" style={{ marginBottom: 16 }}>
+        {savedSimulations.length === 0 ? (
+          <Empty description="暂无仿真任务，先保存当前参数" />
+        ) : (
+          <Table columns={savedColumns} dataSource={savedSimulations.map((item) => ({ ...item, key: item.id }))} pagination={false} size="small" />
+        )}
+      </Card>
 
       <Tabs type="line" defaultActiveKey="whatif">
         <TabPane tab="What-if 模拟" itemKey="whatif">
-          <WhatIfTab
-            scenario={scenario}
-            baselineResults={baselineResults}
-            simulatedResults={simulatedResults}
-            copperAdj={copperAdj} setCopperAdj={setCopperAdj}
-            aluminumAdj={aluminumAdj} setAluminumAdj={setAluminumAdj}
-            volumeAdj={volumeAdj} setVolumeAdj={setVolumeAdj}
-            dropRate={dropRate} setDropRate={setDropRate}
-            hoursAdj={hoursAdj} setHoursAdj={setHoursAdj}
-            simVolume={simVolume} simAnnualCost={simAnnualCost}
-            baseAnnualCost={baseAnnualCost} cuBreakPrice={cuBreakPrice}
-            waterfallOptions={waterfallOptions} lifecycleOptions={lifecycleOptions}
-            can={can}
-          />
+          <Row gutter={24} style={{ marginTop: 16 }}>
+            <Col span={6}>
+              <Card title="模拟参数控制" className="glass-card">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+                  <ParamControl label="铜价变动 (%)" value={copperAdj} setValue={setCopperAdj} min={-30} max={30} disabled={!can('simulation')} />
+                  <ParamControl label="铝价变动 (%)" value={aluminumAdj} setValue={setAluminumAdj} min={-30} max={30} disabled={!can('simulation')} />
+                  <ParamControl label="产量变动 (%)" value={volumeAdj} setValue={setVolumeAdj} min={-50} max={50} step={5} disabled={!can('simulation')} />
+                  <ParamControl label="年降率 (%)" value={dropRate} setValue={setDropRate} min={0} max={8} step={0.5} disabled={!can('simulation')} />
+                  <ParamControl label="工时调整 (%)" value={hoursAdj} setValue={setHoursAdj} min={-20} max={20} disabled={!can('simulation')} />
+                  <Button block onClick={resetParams} disabled={!can('simulation')}>重置参数</Button>
+                </div>
+              </Card>
+            </Col>
+            <Col span={18}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
+                <MetricCard title="模拟单车成本" value={`¥${simulatedResults.vehicleCost.toFixed(2)}`} delta={(simulatedResults.vehicleCost - baselineResults.vehicleCost).toFixed(2)} danger={simulatedResults.vehicleCost > baselineResults.vehicleCost} />
+                <MetricCard title="材料成本变动" value={`¥${simulatedResults.weightedMaterial.toFixed(2)}`} delta={`${((simulatedResults.weightedMaterial / baselineResults.weightedMaterial - 1) * 100).toFixed(1)}%`} danger={simulatedResults.weightedMaterial > baselineResults.weightedMaterial} />
+                <MetricCard title="年产值 (模拟)" value={`¥${(simAnnualCost / 10000).toFixed(1)}万`} delta={`${baseAnnualCost > 0 ? ((simAnnualCost / baseAnnualCost - 1) * 100).toFixed(1) : 0}%`} danger={simAnnualCost > baseAnnualCost} />
+                <MetricCard title="模拟产量" value={simVolume.toLocaleString()} delta={`${volumeAdj}%`} danger={false} />
+              </div>
+              <Row gutter={16}>
+                <Col span={12}><Card className="glass-card">{waterfallOption && <ReactECharts echarts={echarts} option={waterfallOption} style={{ height: 350 }} theme="" />}</Card></Col>
+                <Col span={12}><Card className="glass-card">{lifecycleOption && <ReactECharts echarts={echarts} option={lifecycleOption} style={{ height: 350 }} theme="" />}</Card></Col>
+              </Row>
+            </Col>
+          </Row>
         </TabPane>
         <TabPane tab="工厂成本对比" itemKey="factoryCompare">
-          <FactoryCompareTab
-            factoryComparison={factoryComparison}
-            activeFactories={activeFactories}
-          />
+          <FactoryCompareTab factoryComparison={factoryComparison} activeFactories={activeFactories} />
         </TabPane>
         <TabPane tab="年度成本分摊" itemKey="annualized">
           <AnnualizedTab annualizedResult={annualizedResult} />
@@ -296,602 +425,84 @@ export default function SimulationPage() {
   );
 }
 
-// ── What-if Tab (original content) ──
-function WhatIfTab(props: any) {
-  const {
-    scenario, baselineResults, simulatedResults,
-    copperAdj, setCopperAdj, aluminumAdj, setAluminumAdj,
-    volumeAdj, setVolumeAdj, dropRate, setDropRate,
-    hoursAdj, setHoursAdj,
-    simAnnualCost, baseAnnualCost, cuBreakPrice,
-    waterfallOptions, lifecycleOptions, can,
-  } = props;
-
-  const [fetchingPrice, setFetchingPrice] = useState(false);
-  const [latestPrice, setLatestPrice] = useState<MetalPriceData | null>(null);
-  const [priceHistory, setPriceHistory] = useState<{ date: string; copper: number; aluminum: number }[]>([]);
-
-  // Load cached price history on mount
-  useEffect(() => {
-    const history = getPriceHistory();
-    setPriceHistory(history);
-  }, []);
-
-  const handleFetchPrice = async () => {
-    setFetchingPrice(true);
-    try {
-      const shfeRef = getShfeReferencePrices();
-      setLatestPrice({
-        copper: shfeRef.copper,
-        aluminum: shfeRef.aluminum,
-        source: 'SHFE参考价',
-        fetchedAt: new Date().toISOString(),
-        fromCache: false,
-      });
-      Toast.success(`铜价: ¥${shfeRef.copper.toFixed(2)}/kg, 铝价: ¥${shfeRef.aluminum.toFixed(2)}/kg (SHFE参考价)`);
-      const updatedHistory = getPriceHistory();
-      setPriceHistory(updatedHistory);
-    } catch (err) {
-      Toast.error('获取金属价格失败，请稍后重试');
-      console.error('Metal price fetch error:', err);
-    } finally {
-      setFetchingPrice(false);
-    }
-  };
-
-  const handleApplyPrice = () => {
-    if (!latestPrice || !scenario) return;
-    const baseCu = scenario.config.metalPrices.copper;
-    const baseAl = scenario.config.metalPrices.aluminum;
-    if (baseCu > 0) {
-      setCopperAdj(Math.round(((latestPrice.copper - baseCu) / baseCu) * 100));
-    }
-    if (baseAl > 0) {
-      setAluminumAdj(Math.round(((latestPrice.aluminum - baseAl) / baseAl) * 100));
-    }
-    Toast.info('已将实时价格差异应用到模拟参数');
-  };
-
-  // Price history sparkline option
-  const sparklineOption = useMemo(() => {
-    if (priceHistory.length < 2) return null;
-    const recent = priceHistory.slice(-30);
-    return {
-      grid: { left: 0, right: 0, top: 4, bottom: 0, containLabel: false },
-      xAxis: { type: 'category' as const, show: false, data: recent.map(p => p.date) },
-      yAxis: [
-        { type: 'value' as const, show: false, min: 'dataMin' as const, max: 'dataMax' as const },
-        { type: 'value' as const, show: false, min: 'dataMin' as const, max: 'dataMax' as const },
-      ],
-      series: [
-        {
-          name: '铜',
-          type: 'line' as const,
-          data: recent.map(p => p.copper),
-          smooth: true,
-          symbol: 'none',
-          lineStyle: { color: '#F5A623', width: 2 },
-          yAxisIndex: 0,
-        },
-        {
-          name: '铝',
-          type: 'line' as const,
-          data: recent.map(p => p.aluminum),
-          smooth: true,
-          symbol: 'none',
-          lineStyle: { color: '#4FC3F7', width: 2 },
-          yAxisIndex: 1,
-        },
-      ],
-      tooltip: { show: false },
-    };
-  }, [priceHistory]);
-
+function ParamControl({ label, value, setValue, min, max, step = 1, disabled }: { label: string; value: number; setValue: (value: number) => void; min: number; max: number; step?: number; disabled: boolean }) {
   return (
-    <Row gutter={24} style={{ marginTop: 16 }}>
-      <Col span={6}>
-        <Card title="模拟参数控制" className='glass-card' style={{   }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            <div>
-              <Text strong style={{ color: 'var(--semi-color-text-0)' }}>铜价变动 (%)</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Slider min={-30} max={30} step={1} value={copperAdj} onChange={(v: any) => setCopperAdj(v as number)} style={{ flex: 1 }} disabled={!can('simulation')} />
-                <InputNumber value={copperAdj} onChange={(v: any) => setCopperAdj(v as number || 0)} style={{ width: 70 }} disabled={!can('simulation')} />
-              </div>
-            </div>
-            <div>
-              <Text strong style={{ color: 'var(--semi-color-text-0)' }}>铝价变动 (%)</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Slider min={-30} max={30} step={1} value={aluminumAdj} onChange={(v: any) => setAluminumAdj(v as number)} style={{ flex: 1 }} disabled={!can('simulation')} />
-                <InputNumber value={aluminumAdj} onChange={(v: any) => setAluminumAdj(v as number || 0)} style={{ width: 70 }} disabled={!can('simulation')} />
-              </div>
-            </div>
-
-            {/* 获取实时金属价格 */}
-            <div className='glass-card' style={{  }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Text strong size="small" style={{ color: 'var(--semi-color-text-0)' }}>实时金属价格</Text>
-                <Button
-                  size="small"
-                  theme="light"
-                  loading={fetchingPrice}
-                  onClick={handleFetchPrice}
-                  disabled={!can('simulation')}
-                >
-                  获取价格
-                </Button>
-              </div>
-              {latestPrice && (
-                <div style={{ marginBottom: 8 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <Text size="small" style={{ color: '#F5A623' }}>铜: ¥{latestPrice.copper.toFixed(2)}/kg</Text>
-                    <Text size="small" style={{ color: '#4FC3F7' }}>铝: ¥{latestPrice.aluminum.toFixed(2)}/kg</Text>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>{latestPrice.source}</Text>
-                    <Button size="small" theme="borderless" onClick={handleApplyPrice} disabled={!can('simulation')}>
-                      应用到模拟
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {sparklineOption && (
-                <div>
-                  <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>价格趋势</Text>
-                  <ReactECharts echarts={echarts} option={sparklineOption} style={{ height: 50 }} theme="" />
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <Text size="small" style={{ color: '#F5A623' }}>铜</Text>
-                    <Text size="small" style={{ color: '#4FC3F7' }}>铝</Text>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div>
-              <Text strong style={{ color: 'var(--semi-color-text-0)' }}>产量变动 (%)</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Slider min={-50} max={50} step={5} value={volumeAdj} onChange={(v: any) => setVolumeAdj(v as number)} style={{ flex: 1 }} disabled={!can('simulation')} />
-                <InputNumber value={volumeAdj} onChange={(v: any) => setVolumeAdj(v as number || 0)} style={{ width: 70 }} disabled={!can('simulation')} />
-              </div>
-            </div>
-            <div>
-              <Text strong style={{ color: 'var(--semi-color-text-0)' }}>年降率 (%)</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Slider min={0} max={8} step={0.5} value={dropRate} onChange={(v: any) => setDropRate(v as number)} style={{ flex: 1 }} disabled={!can('simulation')} />
-                <InputNumber value={dropRate} onChange={(v: any) => setDropRate(v as number || 0)} style={{ width: 70 }} disabled={!can('simulation')} />
-              </div>
-            </div>
-            <div>
-              <Text strong style={{ color: 'var(--semi-color-text-0)' }}>工时调整 (%)</Text>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <Slider min={-20} max={20} step={1} value={hoursAdj} onChange={(v: any) => setHoursAdj(v as number)} style={{ flex: 1 }} disabled={!can('simulation')} />
-                <InputNumber value={hoursAdj} onChange={(v: any) => setHoursAdj(v as number || 0)} style={{ width: 70 }} disabled={!can('simulation')} />
-              </div>
-            </div>
-            <Button block onClick={() => { setCopperAdj(0); setAluminumAdj(0); setVolumeAdj(0); setDropRate(scenario.config.annualDropRate || 0); setHoursAdj(0); }} disabled={!can('simulation')}>
-              重置参数
-            </Button>
-          </div>
-        </Card>
-      </Col>
-
-      <Col span={18}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
-          <Card className='glass-card' style={{  }}>
-            <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>模拟单车成本</Text>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
-              <Title heading={3} style={{ margin: 0, color: 'var(--semi-color-text-0)' }}>{'\u00A5'}{simulatedResults.vehicleCost.toFixed(2)}</Title>
-              <Text type={simulatedResults.vehicleCost > baselineResults.vehicleCost ? 'danger' : 'success'}>
-                {simulatedResults.vehicleCost > baselineResults.vehicleCost ? '+' : ''}
-                {(simulatedResults.vehicleCost - baselineResults.vehicleCost).toFixed(2)}
-              </Text>
-            </div>
-          </Card>
-          <Card className='glass-card' style={{  }}>
-            <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>材料成本变动</Text>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
-              <Title heading={3} style={{ margin: 0, color: 'var(--semi-color-text-0)' }}>{'\u00A5'}{simulatedResults.weightedMaterial.toFixed(2)}</Title>
-              <Text type={simulatedResults.weightedMaterial > baselineResults.weightedMaterial ? 'danger' : 'success'}>
-                {((simulatedResults.weightedMaterial / baselineResults.weightedMaterial - 1) * 100).toFixed(1)}%
-              </Text>
-            </div>
-          </Card>
-          <Card className='glass-card' style={{  }}>
-            <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>年产值 (模拟)</Text>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
-              <Title heading={3} style={{ margin: 0, color: 'var(--semi-color-text-0)' }}>{'\u00A5'}{(simAnnualCost / 10000).toFixed(1)}万</Title>
-              <Text type={simAnnualCost > baseAnnualCost ? 'danger' : 'success'}>
-                {simAnnualCost > baseAnnualCost ? '+' : ''}{((simAnnualCost / baseAnnualCost - 1) * 100).toFixed(1)}%
-              </Text>
-            </div>
-          </Card>
-          <Card className='glass-card' style={{  }}>
-            <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>{cuBreakPrice > 0 ? '盈亏平衡铜价' : '盈亏平衡铜价 (N/A)'}</Text>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
-              {cuBreakPrice > 0 ? (
-                <>
-                  <Title heading={3} style={{ margin: 0, color: 'var(--semi-color-text-0)' }}>{'\u00A5'}{(cuBreakPrice / 1000).toFixed(1)}k</Title>
-                  <Text style={{ color: 'var(--semi-color-text-2)' }}>/ 吨</Text>
-                </>
-              ) : (
-                <Title heading={3} style={{ margin: 0, color: 'var(--semi-color-warning)' }}>&mdash;</Title>
-              )}
-            </div>
-          </Card>
-        </div>
-
-        <Row gutter={16}>
-          <Col span={12}>
-            <Card className='glass-card' style={{  }}>
-              <ReactECharts echarts={echarts} option={waterfallOptions} style={{ height: 350 }} theme="" />
-            </Card>
-          </Col>
-          <Col span={12}>
-            <Card className='glass-card' style={{  }}>
-              <ReactECharts echarts={echarts} option={lifecycleOptions} style={{ height: 350 }} theme="" />
-            </Card>
-          </Col>
-        </Row>
-      </Col>
-    </Row>
+    <div>
+      <Text strong style={{ color: 'var(--semi-color-text-0)' }}>{label}</Text>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <Slider min={min} max={max} step={step} value={value} onChange={(next: any) => setValue(next as number)} style={{ flex: 1 }} disabled={disabled} />
+        <InputNumber value={value} onChange={(next: any) => setValue(Number(next || 0))} style={{ width: 70 }} disabled={disabled} />
+      </div>
+    </div>
   );
 }
 
-// ── Factory Compare Tab ──
-function FactoryCompareTab({ factoryComparison, activeFactories }: {
-  factoryComparison: FactoryComparisonResult[];
-  activeFactories: FactoryConfig[];
-}) {
+function MetricCard({ title, value, delta, danger }: { title: string; value: string; delta: string; danger: boolean }) {
+  return (
+    <Card className="glass-card">
+      <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>{title}</Text>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
+        <Title heading={3} style={{ margin: 0, color: 'var(--semi-color-text-0)' }}>{value}</Title>
+        <Text type={danger ? 'danger' : 'success'}>{danger && !delta.startsWith('-') ? '+' : ''}{delta}</Text>
+      </div>
+    </Card>
+  );
+}
+
+function FactoryCompareTab({ factoryComparison, activeFactories }: { factoryComparison: FactoryComparisonResult[]; activeFactories: FactoryConfig[] }) {
   if (activeFactories.length === 0) {
-    return (
-      <div style={{ marginTop: 16 }}>
-        <Empty
-          title="尚未配置工厂"
-          description="请在「设置 → 多工厂管理」中配置工厂，或加载参考数据后再使用此功能。"
-        />
-      </div>
-    );
+    return <div style={{ marginTop: 16 }}><Empty title="尚未配置工厂" description="请先在设置中配置多工厂参数。" /></div>;
   }
-
   if (factoryComparison.length === 0) {
-    return (
-      <div style={{ marginTop: 16 }}>
-        <Empty title="无线束数据" description="当前项目无线束数据，无法进行多工厂比价分析。" />
-      </div>
-    );
+    return <div style={{ marginTop: 16 }}><Empty title="无线束数据" description="当前项目无线束数据，无法进行工厂比价。" /></div>;
   }
 
-  // Table: one row per harness, columns per factory
-  const tableColumns = [
-    { title: '线束', dataIndex: 'harnessName', width: 150, fixed: true as const },
-    ...activeFactories.map(f => ({
-      title: f.factoryName,
-      dataIndex: f.factoryId,
+  const columns = [
+    { title: '线束', dataIndex: 'harnessName', width: 150 },
+    ...activeFactories.map((factory) => ({
+      title: factory.factoryName,
+      dataIndex: factory.factoryId,
       width: 140,
-      render: (val: any) => {
-        if (!val) return '-';
-        return (
-          <div>
-            <Text strong>{'\u00A5'}{val.deliveredPrice.toFixed(2)}</Text>
-            {val.deltaPercent !== 0 && (
-              <Tag size="small" color={val.deltaPercent > 0 ? 'red' : 'green'} style={{ marginLeft: 4 }}>
-                {val.deltaPercent > 0 ? '+' : ''}{val.deltaPercent.toFixed(1)}%
-              </Tag>
-            )}
-            {val.isLowest && <Tag size="small" color="blue" style={{ marginLeft: 4 }}>最低</Tag>}
-          </div>
-        );
-      },
+      render: (value: any) => value ? `¥${value.deliveredPrice.toFixed(2)}` : '-',
     })),
-    { title: '价差幅度', dataIndex: 'costRange', width: 100,
-      render: (v: number) => <Text type="warning">{'\u00A5'}{v.toFixed(2)}</Text>
-    },
+    { title: '价差幅度', dataIndex: 'costRange', width: 120, render: (value: number) => `¥${value.toFixed(2)}` },
   ];
 
-  const tableData = factoryComparison.map(fc => {
-    const row: any = {
-      key: fc.harnessId,
-      harnessName: fc.harnessName,
-      costRange: fc.costRange,
-    };
-    for (const fr of fc.factories) {
-      row[fr.factoryId] = {
-        deliveredPrice: fr.result.deliveredPrice,
-        deltaPercent: fr.deltaPercent,
-        isLowest: fr.factoryId === fc.lowestCostFactory,
-      };
+  const data = factoryComparison.map((item) => {
+    const row: any = { key: item.harnessId, harnessName: item.harnessName, costRange: item.costRange };
+    for (const factory of item.factories) {
+      row[factory.factoryId] = { deliveredPrice: factory.result.deliveredPrice };
     }
     return row;
   });
 
-  // Bar chart: grouped bar per harness
-  const chartFactoryNames = activeFactories.map(f => f.factoryName);
-  const harnessNames = factoryComparison.map(fc => fc.harnessName);
-  const series = activeFactories.map((f, idx) => ({
-    name: f.factoryName,
-    type: 'bar' as const,
-    data: factoryComparison.map(fc => {
-      const match = fc.factories.find(fr => fr.factoryId === f.factoryId);
-      return match ? match.result.deliveredPrice : 0;
-    }),
-    itemStyle: {
-      color: ['#6c7ee1', '#ffca28', '#66bb6a', '#ef5350', '#ab47bc', '#26c6da', '#ff7043'][idx % 7],
-    },
-  }));
-
-  const barOptions = {
-    backgroundColor: 'transparent',
-    title: { text: '多工厂到厂价对比', textStyle: { color: 'var(--semi-color-text-0)', fontSize: 14 } },
-    tooltip: { trigger: 'axis' as const },
-    legend: { bottom: 0, textStyle: { color: 'var(--semi-color-text-0)' }, data: chartFactoryNames },
-    xAxis: { type: 'category' as const, data: harnessNames, axisLabel: { color: 'var(--semi-color-text-0)', rotate: harnessNames.length > 6 ? 30 : 0 } },
-    yAxis: { type: 'value' as const, name: '到厂价 (元)', axisLabel: { color: 'var(--semi-color-text-0)' }, splitLine: { lineStyle: { color: 'var(--semi-color-border)' } } },
-    series,
-  };
-
-  return (
-    <div style={{ marginTop: 16 }}>
-      <Row gutter={16}>
-        <Col span={24}>
-          <Card className='glass-card' style={{  }}>
-            <ReactECharts echarts={echarts} option={barOptions} style={{ height: 380 }} theme="" />
-          </Card>
-        </Col>
-      </Row>
-      <Card title={`工厂比价明细 (${activeFactories.length} 工厂 × ${factoryComparison.length} 线束)`}
-        className='glass-card' style={{  }}>
-        <Table columns={tableColumns} dataSource={tableData} pagination={false} size="small"
-          scroll={{ x: 150 + activeFactories.length * 140 + 100 }} />
-      </Card>
-    </div>
-  );
+  return <Card className="glass-card" style={{ marginTop: 16 }}><Table columns={columns} dataSource={data} pagination={false} size="small" scroll={{ x: 900 }} /></Card>;
 }
 
-// ── Annualized Cost Tab ──
 function AnnualizedTab({ annualizedResult }: { annualizedResult: any }) {
   if (!annualizedResult) {
-    return (
-      <div style={{ marginTop: 16 }}>
-        <Empty title="暂无数据" description="需要有基准核算结果和产量计划才能计算年度差异化。" />
-      </div>
-    );
+    return <div style={{ marginTop: 16 }}><Empty title="暂无数据" description="需要先有基准核算结果和产量计划。" /></div>;
   }
 
-  const { projectAnnualBreakdown, lifecycleWeightedAvg, harnesses: annualizedHarnesses } = annualizedResult;
-
-  // Table
-  const tableColumns = [
-    { title: '年度', dataIndex: 'year', width: 70, render: (v: number) => `第${v}年` },
-    { title: '产量', dataIndex: 'volume', width: 100, render: (v: number) => v.toLocaleString() },
-    { title: '设备分摊 (元/件)', dataIndex: 'equipmentPerUnit', width: 130, render: (v: number) => v.toFixed(4) },
-    { title: '固定制造费 (元/件)', dataIndex: 'fixedMfgPerUnit', width: 130, render: (v: number) => v.toFixed(4) },
-    { title: '单件总成本 (元)', dataIndex: 'totalCostPerUnit', width: 130,
-      render: (v: number) => <Text strong>{v.toFixed(2)}</Text>
-    },
-    { title: '与第1年差异', dataIndex: 'deltaFromBase', width: 120,
-      render: (v: number) => (
-        <Text type={v > 0 ? 'danger' : v < 0 ? 'success' : undefined}>
-          {v > 0 ? '+' : ''}{v.toFixed(4)}
-        </Text>
-      ),
-    },
-    { title: '差异率', dataIndex: 'deltaPercent', width: 80,
-      render: (v: number) => (
-        <Tag size="small" color={Math.abs(v) > 5 ? 'red' : Math.abs(v) > 2 ? 'amber' : 'green'}>
-          {v > 0 ? '+' : ''}{v.toFixed(1)}%
-        </Tag>
-      ),
-    },
+  const { projectAnnualBreakdown, lifecycleWeightedAvg, harnesses } = annualizedResult;
+  const columns = [
+    { title: '年度', dataIndex: 'year', width: 70, render: (value: number) => `第${value}年` },
+    { title: '产量', dataIndex: 'volume', width: 100, render: (value: number) => value.toLocaleString() },
+    { title: '设备分摊', dataIndex: 'equipmentPerUnit', width: 120, render: (value: number) => value.toFixed(4) },
+    { title: '固定制造费', dataIndex: 'fixedMfgPerUnit', width: 120, render: (value: number) => value.toFixed(4) },
+    { title: '单件总成本', dataIndex: 'totalCostPerUnit', width: 120, render: (value: number) => value.toFixed(2) },
+    { title: '与第1年差异', dataIndex: 'deltaFromBase', width: 120, render: (value: number) => value.toFixed(4) },
+    { title: '差异率', dataIndex: 'deltaPercent', width: 100, render: (value: number) => `${value.toFixed(1)}%` },
   ];
-
-  // Line chart: annual cost variation
-  const years = projectAnnualBreakdown.map((b: any) => `第${b.year}年`);
-  const totalCosts = projectAnnualBreakdown.map((b: any) => b.totalCostPerUnit);
-  const equipmentCosts = projectAnnualBreakdown.map((b: any) => b.equipmentPerUnit);
-  const volumes = projectAnnualBreakdown.map((b: any) => b.volume);
-
-  const lineOptions = {
-    backgroundColor: 'transparent',
-    title: { text: '年度单件成本变化趋势', textStyle: { color: 'var(--semi-color-text-0)', fontSize: 14 } },
-    tooltip: { trigger: 'axis' as const },
-    legend: { bottom: 0, textStyle: { color: 'var(--semi-color-text-0)' } },
-    xAxis: { type: 'category' as const, data: years, axisLabel: { color: 'var(--semi-color-text-0)' } },
-    yAxis: [
-      { type: 'value' as const, name: '成本 (元/件)', axisLabel: { color: 'var(--semi-color-text-0)' }, splitLine: { lineStyle: { color: 'var(--semi-color-border)' } } },
-      { type: 'value' as const, name: '产量', axisLabel: { color: 'var(--semi-color-text-0)' }, splitLine: { show: false } },
-    ],
-    series: [
-      {
-        name: '单件总成本',
-        type: 'line',
-        data: totalCosts.map((v: number) => v.toFixed(2)),
-        smooth: true,
-        lineStyle: { width: 3, color: '#6c7ee1' },
-        itemStyle: { color: '#6c7ee1' },
-        markLine: {
-          data: [{ yAxis: lifecycleWeightedAvg, name: '加权平均' }],
-          lineStyle: { type: 'dashed', color: '#ffca28' },
-          label: { formatter: `加权平均: ${lifecycleWeightedAvg.toFixed(2)}`, color: '#ffca28' },
-        },
-      },
-      {
-        name: '设备分摊',
-        type: 'line',
-        data: equipmentCosts.map((v: number) => v.toFixed(4)),
-        smooth: true,
-        lineStyle: { width: 2, color: '#ef5350', type: 'dashed' as const },
-        itemStyle: { color: '#ef5350' },
-      },
-      {
-        name: '年产量',
-        type: 'bar',
-        yAxisIndex: 1,
-        data: volumes,
-        barWidth: 20,
-        itemStyle: { color: 'rgba(108, 126, 225, 0.2)' },
-      },
-    ],
-  };
 
   return (
     <div style={{ marginTop: 16 }}>
-      {/* Summary cards */}
       <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
-          <Card className='glass-card' style={{  }}>
-            <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>生命周期加权平均</Text>
-            <Title heading={3} style={{ margin: '8px 0 0', color: 'var(--semi-color-text-0)' }}>
-              {'\u00A5'}{lifecycleWeightedAvg.toFixed(2)}
-            </Title>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card className='glass-card' style={{  }}>
-            <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>第1年成本</Text>
-            <Title heading={3} style={{ margin: '8px 0 0', color: 'var(--semi-color-text-0)' }}>
-              {'\u00A5'}{(projectAnnualBreakdown[0]?.totalCostPerUnit ?? 0).toFixed(2)}
-            </Title>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card className='glass-card' style={{  }}>
-            <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>线束数量</Text>
-            <Title heading={3} style={{ margin: '8px 0 0', color: 'var(--semi-color-text-0)' }}>
-              {annualizedHarnesses.length}
-            </Title>
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card className='glass-card' style={{  }}>
-            <Text size="small" style={{ color: 'var(--semi-color-text-2)' }}>年度数</Text>
-            <Title heading={3} style={{ margin: '8px 0 0', color: 'var(--semi-color-text-0)' }}>
-              {projectAnnualBreakdown.length}
-            </Title>
-          </Card>
-        </Col>
+        <Col span={8}><MetricCard title="生命周期加权平均" value={`¥${lifecycleWeightedAvg.toFixed(2)}`} delta="" danger={false} /></Col>
+        <Col span={8}><MetricCard title="线束数量" value={String(harnesses.length)} delta="" danger={false} /></Col>
+        <Col span={8}><MetricCard title="年度数" value={String(projectAnnualBreakdown.length)} delta="" danger={false} /></Col>
       </Row>
-
-      {/* Chart */}
-      <Card className='glass-card' style={{  }}>
-        <ReactECharts echarts={echarts} option={lineOptions} style={{ height: 380 }} theme="" />
-      </Card>
-
-      {/* Table */}
-      <Card title="年度成本明细" className='glass-card' style={{  }}>
-        <Table columns={tableColumns} dataSource={projectAnnualBreakdown} pagination={false} size="small"
-          rowKey={(record: any) => String(record?.year ?? '')} />
-      </Card>
+      <Card className="glass-card"><Table columns={columns} dataSource={projectAnnualBreakdown} pagination={false} size="small" rowKey={(record: any) => String(record.year)} /></Card>
     </div>
   );
-}
-
-// ── Chart builders ──
-function buildWaterfallOptions(baselineResults: any, simulatedResults: any) {
-  return {
-    backgroundColor: 'transparent',
-    title: { text: '成本变动因素分解', textStyle: { color: 'var(--semi-color-text-0)', fontSize: 14 } },
-    tooltip: { trigger: 'axis' as const, axisPointer: { type: 'shadow' as const } },
-    grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-    xAxis: { type: 'category' as const, data: ['基准成本', '铜价影响', '铝价影响', '工时影响', '其他变动', '模拟成本'], axisLabel: { color: 'var(--semi-color-text-0)' } },
-    yAxis: { type: 'value' as const, axisLabel: { color: 'var(--semi-color-text-0)' }, splitLine: { lineStyle: { color: 'var(--semi-color-border)' } } },
-    series: [
-      {
-        name: 'Placeholder',
-        type: 'bar',
-        stack: 'Total',
-        itemStyle: { borderColor: 'transparent', color: 'transparent' },
-        emphasis: { itemStyle: { borderColor: 'transparent', color: 'transparent' } },
-        data: (() => {
-          const base = baselineResults.vehicleCost;
-          const cuCostDiff = simulatedResults.harnesses.reduce((sum: number, h: any, i: number) => {
-            const bh = baselineResults.harnesses[i];
-            return sum + (h.materialBreakdown.cuCost - (bh ? bh.materialBreakdown.cuCost : 0)) * h.vehicleRatio;
-          }, 0);
-          const alCostDiff = simulatedResults.harnesses.reduce((sum: number, h: any, i: number) => {
-            const bh = baselineResults.harnesses[i];
-            return sum + (h.materialBreakdown.alCost - (bh ? bh.materialBreakdown.alCost : 0)) * h.vehicleRatio;
-          }, 0);
-          const laborMfgDiff = (simulatedResults.weightedLaborPlusMfg - baselineResults.weightedLaborPlusMfg);
-          const p1 = base;
-          const p2 = base + cuCostDiff;
-          const p3 = p2 + alCostDiff;
-          const p4 = p3 + laborMfgDiff;
-          const p5 = simulatedResults.vehicleCost;
-          return [0, Math.min(p1, p2), Math.min(p2, p3), Math.min(p3, p4), Math.min(p4, p5), 0];
-        })(),
-      },
-      {
-        name: '成本变动',
-        type: 'bar',
-        stack: 'Total',
-        label: { show: true, position: 'inside', formatter: (params: any) => params.value !== 0 ? params.value.toFixed(2) : '' },
-        data: (() => {
-          const base = baselineResults.vehicleCost;
-          const cuCostDiff = simulatedResults.harnesses.reduce((sum: number, h: any, i: number) => {
-            const bh = baselineResults.harnesses[i];
-            return sum + (h.materialBreakdown.cuCost - (bh ? bh.materialBreakdown.cuCost : 0)) * h.vehicleRatio;
-          }, 0);
-          const alCostDiff = simulatedResults.harnesses.reduce((sum: number, h: any, i: number) => {
-            const bh = baselineResults.harnesses[i];
-            return sum + (h.materialBreakdown.alCost - (bh ? bh.materialBreakdown.alCost : 0)) * h.vehicleRatio;
-          }, 0);
-          const laborMfgDiff = (simulatedResults.weightedLaborPlusMfg - baselineResults.weightedLaborPlusMfg);
-          const otherDiff = (simulatedResults.vehicleCost - baselineResults.vehicleCost) - (cuCostDiff + alCostDiff + laborMfgDiff);
-          return [
-            { value: base, itemStyle: { color: '#6c7ee1' } },
-            { value: cuCostDiff, itemStyle: { color: cuCostDiff >= 0 ? '#ef5350' : '#66bb6a' } },
-            { value: alCostDiff, itemStyle: { color: alCostDiff >= 0 ? '#ef5350' : '#66bb6a' } },
-            { value: laborMfgDiff, itemStyle: { color: laborMfgDiff >= 0 ? '#ef5350' : '#66bb6a' } },
-            { value: otherDiff, itemStyle: { color: otherDiff >= 0 ? '#ef5350' : '#66bb6a' } },
-            { value: simulatedResults.vehicleCost, itemStyle: { color: '#6c7ee1' } },
-          ];
-        })(),
-      },
-    ],
-  };
-}
-
-function buildLifecycleOptions(baselineResults: any, simulatedResults: any, scenario: any, dropRate: number, volumeAdj: number, volumeSchedule: any[], baseVolume: number) {
-  const lifecycleYears = 7;
-  const years = Array.from({ length: lifecycleYears }, (_, i) => i + 1);
-  return {
-    backgroundColor: 'transparent',
-    title: { text: '全生命周期成本走势 (LCC)', textStyle: { color: 'var(--semi-color-text-0)', fontSize: 14 } },
-    tooltip: { trigger: 'axis' as const },
-    legend: { bottom: 0, textStyle: { color: 'var(--semi-color-text-0)' } },
-    xAxis: { type: 'category' as const, data: years.map(y => `第${y}年`), axisLabel: { color: 'var(--semi-color-text-0)' } },
-    yAxis: [
-      { type: 'value' as const, name: '单车成本 (元)', axisLabel: { color: 'var(--semi-color-text-0)' }, splitLine: { lineStyle: { color: 'var(--semi-color-border)' } } },
-      { type: 'value' as const, name: '年产值 (万元)', axisLabel: { color: 'var(--semi-color-text-0)' }, splitLine: { show: false } },
-    ],
-    series: [
-      {
-        name: '基准单车成本',
-        type: 'line',
-        data: years.map(y => (baselineResults.vehicleCost * Math.pow(1 - (scenario.config.annualDropRate || 0) / 100, y - 1)).toFixed(2)),
-        smooth: true,
-      },
-      {
-        name: '模拟单车成本',
-        type: 'line',
-        data: years.map(y => (simulatedResults.vehicleCost * Math.pow(1 - dropRate / 100, y - 1)).toFixed(2)),
-        smooth: true,
-        lineStyle: { width: 3, color: '#ffca28' },
-        itemStyle: { color: '#ffca28' },
-      },
-      {
-        name: '模拟年产值',
-        type: 'bar',
-        yAxisIndex: 1,
-        data: years.map((y, i) => {
-          const yearBaseVol = volumeSchedule[i]?.volume ?? baseVolume;
-          const yearVol = Math.round(yearBaseVol * (1 + volumeAdj / 100));
-          const yearCost = simulatedResults.vehicleCost * Math.pow(1 - dropRate / 100, y - 1);
-          return (yearCost * yearVol / 10000).toFixed(1);
-        }),
-        barWidth: 20,
-        itemStyle: { color: 'rgba(108, 126, 225, 0.3)' },
-      },
-    ],
-  };
 }
