@@ -1,102 +1,94 @@
-# =============================================================================
-# run-loop.ps1 - Auto loop using stdin file input (mirrors SamuelQZQ approach)
-# =============================================================================
-# Usage: powershell -ExecutionPolicy Bypass -File run-loop.ps1 37
-#
-# Root cause: cloud-code's -p mode only exits when stdin closes.
-# Passing prompt as CLI arg keeps stdin open -> process never exits.
-# Fix: write prompt to temp file, pipe via stdin, file EOF closes stdin.
-# =============================================================================
-
-param(
-    [int]$TotalRuns = 37
-)
+param([int]$MaxRounds = 30)
 
 $ProjectDir = "D:\harness-project"
-$ClaudeCodeDir = "C:\Users\lyvee\source\cloud-code"
+$LogDir = "$ProjectDir\automation-logs"
+$PromptFile = "$LogDir\prompt.txt"
+$SentinelFile = "$LogDir\ROUND_DONE"
 $BunExe = "C:\Users\lyvee\.bun\bin\bun.exe"
-$TaskFile = Join-Path $ProjectDir "task.json"
+$CliEntry = "C:\Users\lyvee\source\cloud-code\src\entrypoints\cli.tsx"
 
-$LogDir = Join-Path $ProjectDir "automation-logs"
-New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+if (!(Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Force | Out-Null }
 
-function Get-TaskCount([string]$status) {
-    if (Test-Path $TaskFile) {
-        $c = Get-Content $TaskFile -Raw
-        return ([regex]::Matches($c, ('"status":\s*"' + $status + '"'))).Count
-    }
-    return 0
+function Count-Tasks {
+    $raw = [System.IO.File]::ReadAllText("$ProjectDir\task.json", [System.Text.Encoding]::UTF8)
+    $done = ([regex]::Matches($raw, '"status"\s*:\s*"done"')).Count
+    $pending = ([regex]::Matches($raw, '"status"\s*:\s*"pending"')).Count
+    return @{ done = $done; pending = $pending }
 }
 
-# Write prompt to a temp file (UTF-8 no BOM)
-$PromptText = @"
-You are in $ProjectDir. Read CLAUDE.md for project rules, then read task.json.
+Write-Host "`n========================================"
+Write-Host "Harness Auto Loop v7 (regex count)"
+Write-Host "========================================"
+$counts = Count-Tasks
+Write-Host "[INFO] Pending: $($counts.pending) | Done: $($counts.done)"
 
-IMPORTANT STATE RULE: Use git log --oneline to check which tasks have already been committed. If a task has a commit like "feat(...): ... [TXX]" in git history but task.json still shows it as "pending", update task.json to mark it as "done" FIRST. Then find the next truly pending task.
-
-Also run "git add -A && git diff --cached --stat" to check for uncommitted changes. If there are uncommitted changes from a previous session, commit them with message "chore: sync uncommitted changes from previous session" before starting new work.
-
-After syncing state, find the next pending task (respect depends_on, pick smallest id with all deps done). Implement it fully including backend and frontend code, run tests, update progress.txt, mark task done in task.json, and git commit all changes. Complete ONE task then exit.
-"@
-
-$PromptFile = Join-Path $LogDir "prompt.txt"
-[System.IO.File]::WriteAllText($PromptFile, $PromptText, (New-Object System.Text.UTF8Encoding $false))
-
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Harness Costing - Auto Loop (stdin)" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "[INFO] Pending: $(Get-TaskCount 'pending') | Done: $(Get-TaskCount 'done')" -ForegroundColor Blue
-Write-Host "[INFO] Prompt file: $PromptFile" -ForegroundColor Blue
-Write-Host ""
-
-for ($round = 1; $round -le $TotalRuns; $round++) {
-    $pending = Get-TaskCount "pending"
-    $done = Get-TaskCount "done"
-
-    if ($pending -eq 0) {
-        Write-Host "[DONE] All tasks completed! (${done} done)" -ForegroundColor Green
+for ($round = 1; $round -le $MaxRounds; $round++) {
+    $counts = Count-Tasks
+    if ($counts.pending -eq 0) {
+        Write-Host "`n[DONE] All tasks completed!" -ForegroundColor Green
         break
     }
 
-    Write-Host "== Round ${round} / ${TotalRuns} == Pending: ${pending} | Done: ${done} ==" -ForegroundColor Cyan
+    Write-Host "`n== Round $round / $MaxRounds == Pending: $($counts.pending) | Done: $($counts.done) ==" -ForegroundColor Cyan
 
-    $roundStart = Get-Date
-    $runLog = Join-Path $LogDir ("round-" + $round + "-" + (Get-Date -Format 'yyyyMMdd_HHmmss') + ".log")
+    if (Test-Path $SentinelFile) { Remove-Item $SentinelFile -Force }
 
-    Write-Host "[INFO] Starting round (stdin mode)..." -ForegroundColor Blue
+    $prompt = [System.IO.File]::ReadAllText($PromptFile, [System.Text.Encoding]::UTF8)
 
-    # KEY FIX: Use cmd /c to pipe file content via stdin
-    # When the file is fully read, stdin closes -> process exits cleanly
-    try {
-        cmd /c "cd /d `"$ClaudeCodeDir`" && type `"$PromptFile`" | `"$BunExe`" run dev -- -p --dangerously-skip-permissions --add-dir `"$ProjectDir`" --allowed-tools `"Bash Edit Read Write Glob Grep Task WebSearch WebFetch mcp__playwright__*`" 2>&1" | Tee-Object -FilePath $runLog
-    }
-    catch {
-        Write-Host "[WARNING] Exception: $_" -ForegroundColor Yellow
-    }
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $BunExe
+    $psi.Arguments = "--feature=BUDDY run `"$CliEntry`" -p --dangerously-skip-permissions --add-dir `"$ProjectDir`" --allowed-tools `"Bash Edit Read Write Glob Grep Task WebSearch WebFetch mcp__playwright__*`""
+    $psi.WorkingDirectory = "C:\Users\lyvee\source\cloud-code"
+    $psi.UseShellExecute = $false
+    $psi.RedirectStandardInput = $true
+    $psi.RedirectStandardOutput = $false
+    $psi.RedirectStandardError = $false
+    $psi.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8"
+    $psi.EnvironmentVariables["PYTHONUTF8"] = "1"
 
-    $secs = [math]::Round(((Get-Date) - $roundStart).TotalSeconds)
-    $afterPending = Get-TaskCount "pending"
-    $afterDone = Get-TaskCount "done"
-    $tasksDone = $afterDone - $done
-
-    if ($tasksDone -gt 0) {
-        Write-Host "[SUCCESS] Round ${round}: +${tasksDone} task(s) in ${secs} s" -ForegroundColor Green
-    } else {
-        Write-Host "[WARNING] Round ${round}: 0 tasks in ${secs} s" -ForegroundColor Yellow
-    }
-    Write-Host "[INFO] Total: ${afterDone} done, ${afterPending} pending" -ForegroundColor Blue
-    Write-Host ""
-
+    $proc = [System.Diagnostics.Process]::Start($psi)
     Start-Sleep -Seconds 3
+
+    try {
+        $proc.StandardInput.WriteLine($prompt)
+        $proc.StandardInput.Close()
+    } catch {
+        Write-Host "[WARN] stdin write failed: $_" -ForegroundColor Yellow
+    }
+
+    Write-Host "[INFO] PID=$($proc.Id), polling sentinel every 5s..." -ForegroundColor Gray
+    $roundStart = Get-Date
+    $deadline = $roundStart.AddMinutes(30)
+    $sentinelFound = $false
+
+    while ((Get-Date) -lt $deadline) {
+        if (Test-Path $SentinelFile) {
+            $sentinelFound = $true
+            $elapsed = [math]::Round(((Get-Date) - $roundStart).TotalMinutes, 1)
+            Write-Host "[OK] Sentinel detected after ${elapsed}min." -ForegroundColor Green
+            break
+        }
+        if ($proc.HasExited) {
+            Write-Host "[INFO] Process exited (code=$($proc.ExitCode))" -ForegroundColor Gray
+            break
+        }
+        Start-Sleep -Seconds 5
+    }
+
+    if (!$proc.HasExited) {
+        Write-Host "[INFO] Killing PID=$($proc.Id)..." -ForegroundColor Yellow
+        try { taskkill /F /T /PID $proc.Id 2>$null } catch {}
+        Start-Sleep -Seconds 2
+    }
+
+    if (Test-Path $SentinelFile) { Remove-Item $SentinelFile -Force }
+
+    $ts = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $status = if ($sentinelFound) { "SENTINEL" } elseif ($proc.HasExited -and !$sentinelFound) { "SELF-EXIT" } else { "TIMEOUT" }
+    Add-Content "$LogDir\loop-log.txt" "$ts | Round $round | $status | exit=$($proc.ExitCode)"
+    Write-Host "[LOG] $ts | Round $round | $status" -ForegroundColor Gray
+
+    Start-Sleep -Seconds 5
 }
 
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Green
-Write-Host "  ALL DONE" -ForegroundColor Green
-Write-Host "========================================" -ForegroundColor Green
-Write-Host "[FINAL] Done: $(Get-TaskCount 'done') | Pending: $(Get-TaskCount 'pending')" -ForegroundColor Green
-git -C $ProjectDir log --oneline -15
-
-# Clean up
-Remove-Item -Path $PromptFile -Force -ErrorAction SilentlyContinue
+Write-Host "`n[LOOP] Finished." -ForegroundColor Green
