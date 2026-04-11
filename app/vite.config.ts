@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
 export default defineConfig({
+  root: __dirname,
   envPrefix: 'VITE_',
   define: {
     'process.env.VITE_FEISHU_APP_ID': JSON.stringify(process.env.VITE_FEISHU_APP_ID),
