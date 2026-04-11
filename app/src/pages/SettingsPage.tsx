@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Typography, Button, Toast, InputNumber, Switch, Card, RadioGroup, Radio,
-  Row, Col, Select, Table, Input, Tag, Tabs, TabPane, Spin, Collapse,
+  Row, Col, Select, Table, Input, Tag, Tabs, TabPane, Spin,
 } from '@douyinfe/semi-ui';
 import { IconPlus, IconDelete, IconRefresh } from '@douyinfe/semi-icons';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -340,6 +340,16 @@ export default function SettingsPage() {
             handleClearData={handleClearData}
           />
         </TabPane>
+        <TabPane tab="发布流" itemKey="publishFlow">
+          <PublishFlowPanel
+            historyLoading={historyLoading}
+            history={history}
+            selectedVersion={selectedVersion}
+            selectVersion={selectVersion}
+            snapshotLoading={snapshotLoading}
+            snapshotRows={snapshotRows}
+          />
+        </TabPane>
         <TabPane tab="成本结构" itemKey="costStructure">
           <CostStructurePanel costStructure={costStructure} setCostStructure={setCostStructure} useSchemaEngine={useSchemaEngine} setUseSchemaEngine={setUseSchemaEngine} />
         </TabPane>
@@ -420,6 +430,76 @@ function BasicSettings(props: any) {
         </Card>
       </Col>
     </Row>
+  );
+}
+
+function PublishFlowPanel({
+  historyLoading,
+  history,
+  selectedVersion,
+  selectVersion,
+  snapshotLoading,
+  snapshotRows,
+}: {
+  historyLoading: boolean;
+  history: SettingRow<SettingsPublishResult>[];
+  selectedVersion: string | null;
+  selectVersion: (version: string) => Promise<void>;
+  snapshotLoading: boolean;
+  snapshotRows: SettingsSnapshotRow[];
+}) {
+  return (
+    <div style={{ marginTop: 16, display: 'grid', gap: 16 }}>
+      <Card className="glass-card" title="费率发布流" headerLine={false}>
+        <div style={{ display: 'grid', gap: 12 }}>
+          <Text>全局基准 → 保存配置并发布 → 项目/场景引用快照。</Text>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <Tag color="blue">全局基准</Tag>
+            <Tag color="cyan">发布快照</Tag>
+            <Tag color="green">项目/场景引用</Tag>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="glass-card" title="发布历史" headerLine={false}>
+        {historyLoading ? <Spin tip="正在加载发布历史..." /> : (
+          <Table
+            pagination={false}
+            rowKey="id"
+            dataSource={history}
+            rowSelection={{
+              selectedRowKeys: selectedVersion ? [selectedVersion] : [],
+              onChange: (keys) => {
+                const version = Array.isArray(keys) && keys.length > 0 ? String(keys[0]) : '';
+                if (version) void selectVersion(version);
+              },
+            }}
+            columns={[
+              { title: '版本', dataIndex: 'key', render: (value: string) => <Button theme="borderless" onClick={() => void selectVersion(value)}>{value}</Button> },
+              { title: '发布时间', dataIndex: 'value', render: (value: SettingsPublishResult) => formatDateTime(value?.publishedAt) },
+              { title: '快照数', dataIndex: 'value', render: (value: SettingsPublishResult) => value?.itemCount ?? 0 },
+              { title: '状态', dataIndex: 'value', render: (value: SettingsPublishResult) => <Tag color="green">{value?.status ?? 'published'}</Tag> },
+            ]}
+          />
+        )}
+      </Card>
+
+      <Card className="glass-card" title="快照详情" headerLine={false}>
+        {snapshotLoading ? <Spin tip="正在加载快照详情..." /> : (
+          <Table
+            pagination={false}
+            rowKey="id"
+            dataSource={snapshotRows}
+            columns={[
+              { title: '分类', dataIndex: 'sourceCategory', render: (value: string) => <Tag color="blue">{value}</Tag> },
+              { title: '键', dataIndex: 'key' },
+              { title: '内容预览', dataIndex: 'value', render: (value: unknown) => previewSnapshotValue(value) },
+              { title: '版本', dataIndex: 'versionRef', render: (value: string | null) => value || '-' },
+            ]}
+          />
+        )}
+      </Card>
+    </div>
   );
 }
 
