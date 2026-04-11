@@ -42,32 +42,35 @@ model Project {
   harnesses   Harness[]
   quotes      Quote[]
   allocations AllocationItem[]
+  simulations SimulationTask[]
   versions    Version[]
   auditLogs   AuditLog[]
 }
 
 model Scenario {
-  id                 String   @id @default(uuid())
+  id                 String           @id @default(uuid())
   projectId          String
-  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project            Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   type               String
   name               String
-  status             String   @default("draft")
+  status             String           @default("draft")
   lifecycleYears     Int
-  volume             Int      @default(0)
-  installRatio       Float    @default(1)
-  rateSnapshot       String   @default("{}")
+  volume             Int              @default(0)
+  installRatio       Float            @default(1)
+  rateSnapshot       String           @default("{}")
   bomVersionRef      String?
-  quoteParamSnapshot String   @default("{}")
+  quoteParamSnapshot String           @default("{}")
   sourceScenarioId   String?
   compareBaselineId  String?
   frozenAt           DateTime?
   releasedAt         DateTime?
   notes              String?
   createdBy          String?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  simulations        SimulationTask[]
+  annualDrops        AnnualDropRecord[]
 
   @@index([projectId])
 }
@@ -233,6 +236,50 @@ model Setting {
 
   @@unique([category, key])
   @@index([category])
+}
+
+model SimulationTask {
+  id                 String   @id @default(uuid())
+  projectId          String
+  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scenarioId         String
+  scenario           Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  name               String
+  status             String   @default("draft")
+  parameterSnapshot  String   @default("{}")
+  resultSnapshot     String   @default("{}")
+  baselineScenarioId String?
+  convertedScenarioId String?
+  createdBy          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([scenarioId])
+}
+
+model AnnualDropRecord {
+  id                String   @id @default(uuid())
+  projectId         String
+  scenarioId        String
+  scenario          Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  name              String
+  status            String   @default("draft")
+  year              Int
+  dropRate          Float    @default(0)
+  costBefore        Float    @default(0)
+  costAfter         Float    @default(0)
+  priceBefore       Float    @default(0)
+  priceAfter        Float    @default(0)
+  profitBefore      Float    @default(0)
+  profitAfter       Float    @default(0)
+  impactSummary     String   @default("{}")
+  createdBy         String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([scenarioId])
 }
 
 model Version {

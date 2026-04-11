@@ -101,3 +101,47 @@
 - `init.ps1` 在当前仓库仍有编码/解析问题，未能直接使用；本次改为手动启动 server 与 preview 服务
 - `npm run dev` 当前会因 Vite 依赖重优化异常崩溃，需后续排查；本次用 `vite preview` 完成页面验收
 
+
+## [2026-04-11 09:38] - Task: [T15] Simulation 仿真引擎
+
+### 完成的工作:
+- 后端新增 Simulation/AnnualDrop 数据模型与接口：`server/prisma/schema.prisma`、`server/src/routes/simulations.ts`、`server/src/routes/annualDrops.ts`
+- 新增 `server/src/services/simulationService.ts`，支持仿真任务保存、运行结果快照、转正式场景
+- 新增 `server/src/services/annualDropService.ts`，支撑年降记录保存与 impact 查询
+- 前端新增 `app/src/lib/simulationApi.ts` 统一访问仿真/年降接口
+- 重写 `app/src/pages/SimulationPage.tsx`，补齐保存仿真、已保存任务列表、运行任务、转正式场景 UI
+- 重写 `app/src/pages/AnnualDropPage.tsx`，补齐保存年降记录、已保存记录列表、impact 载入能力
+- 接入 `server/src/index.ts` 路由注册，并完成 Prisma schema push
+
+### 测试:
+- `npm --prefix D:/harness-project/server run prisma:generate` 通过
+- `npm --prefix D:/harness-project/server run prisma:push` 通过
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- Playwright 访问 `http://127.0.0.1:4173/project/576bcf5b-3fe2-4ad4-be18-21319fc07303/s/29218afd-c3fc-4224-98ad-434401948894/simulation`，页面可打开；控制台仅剩既有飞书 CORS 报错，与本任务无关
+
+### 备注:
+- `init.ps1` 仍有编码问题，本次继续采用手动 build + preview/server 启动方式验证
+- Playwright 直达旧路径 `/project/:id/scenario/:sid/simulation` 会落到 404，当前有效路由为 `/project/:id/s/:sid/simulation`
+
+## [2026-04-11 09:38] - Task: [T15] Simulation 仿真引擎
+
+### 完成的工作:
+- 后端新增 Simulation/AnnualDrop 数据模型与接口：`server/prisma/schema.prisma`、`server/src/routes/simulations.ts`、`server/src/routes/annualDrops.ts`
+- 新增 `server/src/services/simulationService.ts`，支持仿真任务保存、运行结果快照、转正式场景
+- 新增 `server/src/services/annualDropService.ts`，支撑年降记录保存与 impact 查询
+- 前端新增 `app/src/lib/simulationApi.ts` 统一访问仿真/年降接口
+- 重写 `app/src/pages/SimulationPage.tsx`，补齐保存仿真、已保存任务列表、运行任务、转正式场景 UI
+- 重写 `app/src/pages/AnnualDropPage.tsx`，补齐保存年降记录、已保存记录列表、impact 载入能力
+- 接入 `server/src/index.ts` 路由注册，并完成 Prisma schema push
+
+### 测试:
+- `npm --prefix D:/harness-project/server run prisma:generate` 通过
+- `npm --prefix D:/harness-project/server run prisma:push` 通过
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- Playwright 访问 `http://127.0.0.1:4173/project/576bcf5b-3fe2-4ad4-be18-21319fc07303/s/29218afd-c3fc-4224-98ad-434401948894/simulation`，页面可打开；控制台仅剩既有飞书 CORS 报错，与本任务无关
+
+### 备注:
+- `init.ps1` 仍有编码问题，本次继续采用手动 build + preview/server 启动方式验证
+- Playwright 直达旧路径 `/project/:id/scenario/:sid/simulation` 会落到 404，当前有效路由为 `/project/:id/s/:sid/simulation`
