@@ -22,6 +22,7 @@ import syncRoutes from './routes/sync.js';
 import settingsRoutes from './routes/settings.js';
 import alertRuleRoutes from './routes/alertRules.js';
 import projectAlertsRoutes, { alertsRouter } from './routes/alerts.js';
+import managerDashboardRoutes from './routes/managerDashboard.js';
 import feishuRoutes from './routes/feishu.js';
 const app = express();
 // Middleware
@@ -57,6 +58,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/projects/:id/alerts', projectAlertsRoutes);
 app.use('/api/alert-rules', alertRuleRoutes);
 app.use('/api/alerts', alertsRouter);
+app.use('/api/manager-dashboard', managerDashboardRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/feishu', feishuRoutes);
 // Health check

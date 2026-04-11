@@ -548,7 +548,7 @@
         ]
       },
       "depends_on": ["T02", "T07", "T09", "T18"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "T22",

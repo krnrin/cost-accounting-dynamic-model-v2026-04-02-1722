@@ -2,6 +2,46 @@
 # 每个 Claude Code session 完成任务后在此追加记录
 # ============================================
 
+## [2026-04-11 14:18] - Task: [T21] 管理决策舱 — 跨项目总览
+
+### 完成的工作:
+- 新增后端 `server/src/services/managerDashboardService.ts` 与 `server/src/routes/managerDashboard.ts`，补齐 `GET /api/manager-dashboard`、`/profit-summary`、`/recovery-summary`、`/alert-summary`、`/scenario-comparison`、`/anomaly-summary` 六个跨项目聚合接口
+- 更新 `server/src/index.ts` 注册管理决策舱路由，统一从项目、场景、报价、分摊、预警、设变数据源汇总，不在页面侧重复计算
+- 新增前端 `app/src/lib/managerDashboardApi.ts`，封装管理决策舱全部接口
+- 重写 `app/src/pages/ManagerDashboardPage.tsx`，实现 `/manager` 决策舱页面：项目总览、利润汇总、回收汇总、预警汇总、场景对比、异常汇总，以及高风险项目卡片与全局预警跳转
+- 更新 `task.json`，将 T21 标记为 done，并补充浏览器验收产物到 `test-screenshots/`
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- API 冒烟：登录后验证 `GET /api/manager-dashboard`、`/profit-summary`、`/recovery-summary`、`/alert-summary`、`/scenario-comparison`、`/anomaly-summary` 全部返回 200
+- Playwright 登录 `http://127.0.0.1:4174` 后进入 `/manager`，页面可见“管理决策舱”“项目总览”“利润汇总”等模块；截图 `test-screenshots/t21-login-page.png`、`test-screenshots/t21-manager-dashboard-page.png`
+
+### 备注:
+- 任务定义写的是 `/manager-dashboard`，当前仓库实际前端路由为 `/manager`，本次按现有应用路由落地，后端 API 仍保持 `/api/manager-dashboard`
+- 浏览器控制台仍有既有飞书 CORS 报错（`open.feishu.cn`），与本任务改动无直接关系
+
+
+## [2026-04-11 14:18] - Task: [T21] 管理决策舱 — 跨项目总览
+
+### 完成的工作:
+- 新增后端 `server/src/services/managerDashboardService.ts` 与 `server/src/routes/managerDashboard.ts`，补齐 `GET /api/manager-dashboard`、`/profit-summary`、`/recovery-summary`、`/alert-summary`、`/scenario-comparison`、`/anomaly-summary` 六个跨项目聚合接口
+- 更新 `server/src/index.ts` 注册管理决策舱路由，统一从项目、场景、报价、分摊、预警、设变数据源汇总，不在页面侧重复计算
+- 新增前端 `app/src/lib/managerDashboardApi.ts`，封装管理决策舱全部接口
+- 重写 `app/src/pages/ManagerDashboardPage.tsx`，实现 `/manager` 决策舱页面：项目总览、利润汇总、回收汇总、预警汇总、场景对比、异常汇总，以及高风险项目卡片与全局预警跳转
+- 更新 `task.json`，将 T21 标记为 done，并补充浏览器验收产物到 `test-screenshots/`
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- API 冒烟：登录后验证 `GET /api/manager-dashboard`、`/profit-summary`、`/recovery-summary`、`/alert-summary`、`/scenario-comparison`、`/anomaly-summary` 全部返回 200
+- Playwright 登录 `http://127.0.0.1:4174` 后进入 `/manager`，页面可见“管理决策舱”“项目总览”“利润汇总”等模块；截图 `test-screenshots/t21-login-page.png`、`test-screenshots/t21-manager-dashboard-page.png`
+
+### 备注:
+- 任务定义写的是 `/manager-dashboard`，当前仓库实际前端路由为 `/manager`，本次按现有应用路由落地，后端 API 仍保持 `/api/manager-dashboard`
+- 浏览器控制台仍有既有飞书 CORS 报错（`open.feishu.cn`），与本任务改动无直接关系
+
+
 🚫 任务阻塞 - 需要人工介入
 
 当前任务: [T14] 系统设置 — 成本结构 + 金属价格 + 费率
