@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Typography, Button, Toast, InputNumber, Switch, Card, RadioGroup, Radio,
-  Row, Col, Select, Table, Input, Tag, Tabs, TabPane, Spin,
+  Row, Col, Select, Table, Input, Tag, Tabs, TabPane, Spin, Collapse,
 } from '@douyinfe/semi-ui';
 import { IconPlus, IconDelete, IconRefresh } from '@douyinfe/semi-icons';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -14,7 +14,16 @@ import type { Level1Coefficients } from '@/types';
 import { REFERENCE_FACTORIES } from '@/engine/factory_comparison';
 import { DEFAULT_CLASSIFICATION_RULES, DEFAULT_COST_STRUCTURE } from '@/engine/harness_costing';
 import { RoleGuard } from '@/components/RoleGuard';
-import { fetchSettingsCategory, publishSettings, updateSetting } from '@/lib/settingsApi';
+import {
+  fetchSettingsCategory,
+  fetchSettingsHistory,
+  fetchSettingsSnapshot,
+  publishSettings,
+  updateSetting,
+  type SettingRow,
+  type SettingsPublishResult,
+  type SettingsSnapshotRow,
+} from '@/lib/settingsApi';
 
 const { Title, Text } = Typography;
 
@@ -63,67 +72,115 @@ function safeNumber(value: any, fallback = 0) {
   return Number.isFinite(Number(value)) ? Number(value) : fallback;
 }
 
+function formatDateTime(value?: string | Date | null) {
+  if (!value) return '-';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString('zh-CN', { hour12: false });
+}
+
+function previewSnapshotValue(value: unknown) {
+  if (value == null) return '-';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (Array.isArray(value)) return `${value.length} 项`;
+  if (typeof value === 'object') return `${Object.keys(value as Record<string, unknown>).length} 个字段`;
+  return String(value);
+}
+
 function useSettingsSync() {
   const store = useSettingsStore();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [history, setHistory] = useState<SettingRow<SettingsPublishResult>[]>([]);
+  const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
+  const [snapshotLoading, setSnapshotLoading] = useState(false);
+  const [snapshotRows, setSnapshotRows] = useState<SettingsSnapshotRow[]>([]);
+
+  const reloadSettings = async () => {
+    const [costRows, alertRows, factoryRows, allocationRows, coefficientRows, bomRows] = await Promise.all([
+      fetchSettingsCategory(SETTINGS_CATEGORY_MAP.costStructure),
+      fetchSettingsCategory(SETTINGS_CATEGORY_MAP.alertThreshold),
+      fetchSettingsCategory(SETTINGS_CATEGORY_MAP.factories),
+      fetchSettingsCategory(SETTINGS_CATEGORY_MAP.allocation),
+      fetchSettingsCategory(SETTINGS_CATEGORY_MAP.coefficients),
+      fetchSettingsCategory(SETTINGS_CATEGORY_MAP.bomRules),
+    ]);
+
+    const cost = rowsToRecord(costRows);
+    const alert = rowsToRecord(alertRows);
+    const factories = rowsToRecord(factoryRows);
+    const allocation = rowsToRecord(allocationRows);
+    const coefficients = rowsToRecord(coefficientRows);
+    const bom = rowsToRecord(bomRows);
+
+    store.updateCostRates({
+      laborRate: safeNumber(cost.defaultCostRates?.laborRate, 35),
+      mfgRate: safeNumber(cost.defaultCostRates?.mfgRate, 46.69),
+      wasteRate: safeNumber(cost.defaultCostRates?.wasteRate, 0.01),
+      mgmtRate: safeNumber(cost.defaultCostRates?.mgmtRate, 0.06),
+      profitRate: safeNumber(cost.defaultCostRates?.profitRate, 0.056627),
+    });
+    store.updateMetalPrices({
+      copper: safeNumber(cost.defaultMetalPrices?.copper, 72800),
+      aluminum: safeNumber(cost.defaultMetalPrices?.aluminum, 20500),
+    });
+    store.setDefaultTemplateType((cost.defaultTemplateType ?? 'geely') as any);
+    store.setDefaultAnnualDropRate(safeNumber(cost.defaultAnnualDropRate, 0.03));
+    store.setCostStructure(cost.schema?.items ? cost.schema : DEFAULT_COST_STRUCTURE);
+    store.setUseSchemaEngine(Boolean(cost.useSchemaEngine));
+    store.updateAlertThresholds({
+      copperPercent: safeNumber(alert.copperPercent, 5),
+      aluminumPercent: safeNumber(alert.aluminumPercent, 5),
+      enabled: alert.enabled !== false,
+    });
+    store.setFactories(Array.isArray(factories.list) ? factories.list : []);
+    store.setAllocationConfig({
+      equipment: allocation.drivers?.equipment ?? 'hours',
+      rnd: allocation.drivers?.rnd ?? 'revenue',
+      indirectLabor: allocation.drivers?.indirectLabor ?? 'hours',
+      management: allocation.drivers?.management ?? 'direct',
+    });
+    store.setLevel1Coefficients({
+      materialRatio: safeNumber(coefficients.default?.materialRatio, 0.65),
+      laborRatio: safeNumber(coefficients.default?.laborRatio, 0.09),
+      mfgRatio: safeNumber(coefficients.default?.mfgRatio, 0.12),
+      packagingRatio: safeNumber(coefficients.default?.packagingRatio, 0.024),
+      freightRatio: safeNumber(coefficients.default?.freightRatio, 0.006),
+    });
+    store.setBomClassificationRules(Array.isArray(bom.rules) ? bom.rules : DEFAULT_CLASSIFICATION_RULES);
+  };
+
+  const reloadHistory = async (versionToOpen?: string | null) => {
+    setHistoryLoading(true);
+    try {
+      const rows = await fetchSettingsHistory();
+      setHistory(rows);
+      const nextVersion = versionToOpen ?? rows[0]?.key ?? null;
+      setSelectedVersion(nextVersion);
+      if (nextVersion) {
+        setSnapshotLoading(true);
+        try {
+          const snapshot = await fetchSettingsSnapshot(nextVersion);
+          setSnapshotRows(snapshot);
+        } finally {
+          setSnapshotLoading(false);
+        }
+      } else {
+        setSnapshotRows([]);
+      }
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const [costRows, alertRows, factoryRows, allocationRows, coefficientRows, bomRows] = await Promise.all([
-          fetchSettingsCategory(SETTINGS_CATEGORY_MAP.costStructure),
-          fetchSettingsCategory(SETTINGS_CATEGORY_MAP.alertThreshold),
-          fetchSettingsCategory(SETTINGS_CATEGORY_MAP.factories),
-          fetchSettingsCategory(SETTINGS_CATEGORY_MAP.allocation),
-          fetchSettingsCategory(SETTINGS_CATEGORY_MAP.coefficients),
-          fetchSettingsCategory(SETTINGS_CATEGORY_MAP.bomRules),
-        ]);
+        await reloadSettings();
         if (!active) return;
-
-        const cost = rowsToRecord(costRows);
-        const alert = rowsToRecord(alertRows);
-        const factories = rowsToRecord(factoryRows);
-        const allocation = rowsToRecord(allocationRows);
-        const coefficients = rowsToRecord(coefficientRows);
-        const bom = rowsToRecord(bomRows);
-
-        store.updateCostRates({
-          laborRate: safeNumber(cost.defaultCostRates?.laborRate, 35),
-          mfgRate: safeNumber(cost.defaultCostRates?.mfgRate, 46.69),
-          wasteRate: safeNumber(cost.defaultCostRates?.wasteRate, 0.01),
-          mgmtRate: safeNumber(cost.defaultCostRates?.mgmtRate, 0.06),
-          profitRate: safeNumber(cost.defaultCostRates?.profitRate, 0.056627),
-        });
-        store.updateMetalPrices({
-          copper: safeNumber(cost.defaultMetalPrices?.copper, 72800),
-          aluminum: safeNumber(cost.defaultMetalPrices?.aluminum, 20500),
-        });
-        store.setDefaultTemplateType((cost.defaultTemplateType ?? 'geely') as any);
-        store.setDefaultAnnualDropRate(safeNumber(cost.defaultAnnualDropRate, 0.03));
-        store.setCostStructure(cost.schema?.items ? cost.schema : DEFAULT_COST_STRUCTURE);
-        store.setUseSchemaEngine(Boolean(cost.useSchemaEngine));
-        store.updateAlertThresholds({
-          copperPercent: safeNumber(alert.copperPercent, 5),
-          aluminumPercent: safeNumber(alert.aluminumPercent, 5),
-          enabled: alert.enabled !== false,
-        });
-        store.setFactories(Array.isArray(factories.list) ? factories.list : []);
-        store.setAllocationConfig({
-          equipment: allocation.drivers?.equipment ?? 'hours',
-          rnd: allocation.drivers?.rnd ?? 'revenue',
-          indirectLabor: allocation.drivers?.indirectLabor ?? 'hours',
-          management: allocation.drivers?.management ?? 'direct',
-        });
-        store.setLevel1Coefficients({
-          materialRatio: safeNumber(coefficients.default?.materialRatio, 0.65),
-          laborRatio: safeNumber(coefficients.default?.laborRatio, 0.09),
-          mfgRatio: safeNumber(coefficients.default?.mfgRatio, 0.12),
-          packagingRatio: safeNumber(coefficients.default?.packagingRatio, 0.024),
-          freightRatio: safeNumber(coefficients.default?.freightRatio, 0.006),
-        });
-        store.setBomClassificationRules(Array.isArray(bom.rules) ? bom.rules : DEFAULT_CLASSIFICATION_RULES);
+        await reloadHistory();
       } catch (error: any) {
         Toast.error(error?.message || '加载系统设置失败');
       } finally {
@@ -152,6 +209,7 @@ function useSettingsSync() {
         updateSetting(SETTINGS_CATEGORY_MAP.bomRules, 'rules', store.bomClassificationRules),
       ]);
       const publishResult = await publishSettings();
+      await reloadHistory(publishResult.version);
       Toast.success(`设置已保存并发布：${publishResult.version}`);
     } catch (error: any) {
       Toast.error(error?.message || '保存系统设置失败');
@@ -161,11 +219,46 @@ function useSettingsSync() {
     }
   };
 
-  return { store, loading, saving, saveAll };
+  const selectVersion = async (version: string) => {
+    setSelectedVersion(version);
+    setSnapshotLoading(true);
+    try {
+      const snapshot = await fetchSettingsSnapshot(version);
+      setSnapshotRows(snapshot);
+    } catch (error: any) {
+      Toast.error(error?.message || '加载设置快照失败');
+    } finally {
+      setSnapshotLoading(false);
+    }
+  };
+
+  return {
+    store,
+    loading,
+    saving,
+    saveAll,
+    historyLoading,
+    history,
+    selectedVersion,
+    selectVersion,
+    snapshotLoading,
+    snapshotRows,
+  };
 }
 
 export default function SettingsPage() {
-  const { store, loading, saving, saveAll } = useSettingsSync();
+  const {
+    store,
+    loading,
+    saving,
+    saveAll,
+    historyLoading,
+    history,
+    selectedVersion,
+    selectVersion,
+    snapshotLoading,
+    snapshotRows,
+  } = useSettingsSync();
   const {
     defaultCostRates, defaultMetalPrices, alertThresholds,
     defaultTemplateType, defaultAnnualDropRate,
