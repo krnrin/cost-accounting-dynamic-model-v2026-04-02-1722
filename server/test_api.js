@@ -7,7 +7,8 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const BASE = 'http://localhost:3001';
+const TEST_PORT = process.env.TEST_PORT || process.env.PORT || '3001';
+const BASE = process.env.TEST_BASE_URL || `http://localhost:${TEST_PORT}`;
 
 // Random suffixes for idempotency
 const suffix = Math.floor(Math.random() * 1000000);
@@ -238,6 +239,65 @@ async function runTests() {
     projectName: TEST_PROJECT.projectName + '-更新',
   }, token);
   assert('PUT /api/projects/:id', projUp.status === 200 && projUp.json.data?.projectName?.includes('更新'));
+
+  // 8a. Import project package
+  const projectImport = await api('POST', '/api/projects/import', {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    appVersion: 'test',
+    project: {
+      meta: {
+        projectCode: 'IMP001',
+        projectName: '导入测试项目',
+        customer: '测试客户',
+        platform: 'P1',
+        status: 'draft'
+      },
+      config: {
+        costRates: { laborRate: 35, mfgRate: 46.69 },
+        metalPrices: { copper: 72.5, aluminum: 20.8 },
+        volumes: [{ year: 1, volume: 1000 }]
+      }
+    },
+    harnesses: [{
+      id: 'h-import-1',
+      projectId: 'legacy-project',
+      scenarioId: 'legacy-scenario-1',
+      harnessId: `IMP-H-${suffix}`.substring(0, 10),
+      harnessName: '导入线束',
+      input: { bom: [{ partNo: 'IMP-P1', partName: '导入端子', qty: 2, unitPrice: 1.2, amount: 2.4 }] },
+      updatedAt: new Date().toISOString()
+    }],
+    quotes: [{
+      id: 'q-import-1',
+      projectId: 'legacy-project',
+      scenarioId: 'legacy-scenario-1',
+      harnessId: `IMP-H-${suffix}`.substring(0, 10),
+      version: 'import-v1',
+      status: 'draft',
+      template: 'geely',
+      data: { totals: { deliveredPrice: 12.4 } },
+      quoteParams: { source: 'import-test' },
+      quoteResult: { arrivalPrice: 12.4 },
+      internalCostBaseline: 10,
+      exWorksPrice: 11,
+      arrivalPrice: 12.4,
+      effectivePrice: 12.4,
+      effectivePriceMode: 'arrival',
+      customerBurdenMode: 'supplier_full',
+      recoveryCompletionBehavior: 'notify_only',
+      customerAccepted: false,
+      lockedFields: [],
+      editableFields: ['effectivePrice'],
+      approvalFields: []
+    }]
+  }, token);
+  assert('POST /api/projects/import', projectImport.status === 201 && projectImport.json.data?.projectName?.includes('导入'));
+  const importedProjectId = projectImport.json.data?.id;
+  const importedHarnesses = await api('GET', `/api/projects/${importedProjectId}/harnesses`, null, token);
+  assert('  → imported project contains harnesses', importedHarnesses.status === 200 && (importedHarnesses.json.data?.length || 0) === 1);
+  const importedQuotes = await api('GET', `/api/quotes/project/${importedProjectId}`, null, token);
+  assert('  → imported project contains quotes', importedQuotes.status === 200 && (importedQuotes.json.data?.length || 0) === 1);
 
   // 8b. Profile / users / auth logout
   const profileGet = await api('GET', '/api/profile', null, token);
@@ -496,6 +556,12 @@ async function runTests() {
   // Cleanup: delete test project
   if (e281Id) {
     await api('DELETE', `/api/projects/${e281Id}`, null, token);
+  }
+  if (importedProjectId) {
+    await api('DELETE', `/api/projects/${importedProjectId}`, null, token);
+  }
+  if (importedProjectId) {
+    await api('DELETE', `/api/projects/${importedProjectId}`, null, token);
   }
   // Delete created quote and version from step 13/16 (though they should cascade if we deleted their project, but they were on projectId which is G281)
   if (quoteId) await api('DELETE', `/api/quotes/${quoteId}`, null, token);
