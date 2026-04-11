@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%231d4ed8'/%3E%3C/svg%3E">
+  <title>新建项目 - 生命周期成本平台</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
+  <link rel="stylesheet" href="../ui/new_project_wizard.css">
+</head>
+<body>
+  <main class="wizard-page">
+    <section class="page-header wizard-page__hero">
+      <div>
+        <p class="wizard-page__eyebrow">Project Setup</p>
+        <h1>新建项目</h1>
+        <p class="wizard-page__intro">
+          用 3 步创建新项目配置。创建完成后会写入项目注册表、活动项目标记和项目专属配置，并直接跳转到预演页。
+        </p>
+      </div>
+      <div class="wizard-page__hero-meta">
+        <div class="wizard-page__meta-label">目标入口</div>
+        <div class="wizard-page__meta-value">preview.html</div>
+      </div>
+    </section>
+
+    <section class="wizard-page__body">
+      <div id="newProjectWizardRoot"></div>
+    </section>
+  </main>
+
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../config/project_registry.js"></script>
+  <script src="../engine/bom_db.js"></script>
+  <script src="../engine/schema_migrator.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+  <script src="../shared/project_bootstrap.js"></script>
+  <script src="../ui/new_project_wizard.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async function () {
+      try {
+        const boot = window.G281ProjectBootstrap
+          ? await window.G281ProjectBootstrap.resolve({
+              requireActiveProject: false,
+              activateResolvedProject: false,
+              initIdb: false,
+              runSchema: false
+            })
+          : { config: null };
+
+        if (window.G281ProjectBootstrap && typeof window.G281ProjectBootstrap.mountPageChrome === 'function') {
+          window.G281ProjectBootstrap.mountPageChrome({ config: boot && boot.config });
+        } else if (window.G281Nav && typeof window.G281Nav.mountNavBar === 'function') {
+          window.G281Nav.mountNavBar(boot && boot.config && boot.config.projectName);
+        }
+
+        await window.G281NewProjectWizard.init({
+          mountId: 'newProjectWizardRoot',
+          baseConfigPath: boot && boot.defaultConfigPath,
+          redirectTo: 'preview.html'
+        });
+      } catch (error) {
+        document.getElementById('newProjectWizardRoot').innerHTML =
+          '<div class="wizard-alert wizard-alert--error">新建项目页初始化失败: '
+          + String(error && error.message ? error.message : error)
+          + '</div>';
+      }
+    });
+  </script>
+</body>
+</html>

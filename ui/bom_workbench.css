@@ -1,0 +1,372 @@
+body.bom-workbench-page {
+  margin: 0;
+  background: #edf2f9;
+  color: #162033;
+  font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+}
+
+.bom-workbench-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.bom-page-header,
+.bom-toolbar-shell,
+.sidebar-card,
+.bom-editor-shell,
+.bom-change-alert {
+  background: #ffffff;
+  border: 1px solid #d8e1ef;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.bom-page-header {
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(280px, 1.2fr) minmax(320px, 1fr);
+}
+
+.bom-page-header__eyebrow {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5d6e88;
+}
+
+.bom-page-header h1 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.bom-meta {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 13px;
+  color: #53627b;
+}
+
+.bom-meta strong {
+  color: #1242a3;
+  font-weight: 700;
+}
+
+.bom-page-header__controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px 12px;
+  align-items: end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.field--wide {
+  min-width: 240px;
+}
+
+.field span {
+  font-size: 12px;
+  color: #50627d;
+}
+
+.field input,
+.field select {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #c8d4e8;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #162033;
+  background: #fbfcff;
+  box-sizing: border-box;
+}
+
+.bom-page-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bom-toolbar-shell {
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bom-toolbar-shell__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bom-toolbar-shell__status {
+  font-size: 13px;
+  color: #53627b;
+}
+
+.bom-workbench-page button {
+  border: 1px solid #c7d2e8;
+  background: #1d4ed8;
+  color: #ffffff;
+  border-radius: 10px;
+  height: 38px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.bom-workbench-page button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(29, 78, 216, 0.18);
+}
+
+.bom-workbench-page button.secondary {
+  background: #f8fbff;
+  color: #1f3557;
+}
+
+.bom-workbench-page button.ghost {
+  background: transparent;
+  color: #4d5f78;
+}
+
+.bom-workbench-page button:disabled {
+  cursor: not-allowed;
+  background: #a7b4c8;
+  color: #f8fafc;
+  box-shadow: none;
+  transform: none;
+}
+
+.bom-change-alert {
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  border-color: #f2c46f;
+  background: linear-gradient(90deg, #fff4c7 0%, #ffe7c4 100%);
+}
+
+.bom-change-alert[hidden] {
+  display: none;
+}
+
+.bom-change-alert__copy strong {
+  display: block;
+  font-size: 15px;
+  color: #8f4200;
+}
+
+.bom-change-alert__copy p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #8a4c0f;
+}
+
+.bom-change-alert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.bom-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+}
+
+.bom-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sidebar-card {
+  border-radius: 18px;
+  padding: 14px 16px;
+}
+
+.sidebar-card h2 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.summary-list,
+.sidebar-empty {
+  font-size: 13px;
+  color: #516079;
+}
+
+.summary-list {
+  display: grid;
+  gap: 10px;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.summary-item strong,
+.sidebar-key-value strong {
+  color: #173056;
+}
+
+.sidebar-key-value {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.sidebar-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-step {
+  border: 1px solid #dbe4f1;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #f8fbff;
+}
+
+.sidebar-step.is-current {
+  border-color: #80a6ff;
+  background: #ecf4ff;
+}
+
+.sidebar-step.is-done {
+  border-color: #9fd4b6;
+  background: #edf9f1;
+}
+
+.sidebar-step header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.sidebar-step h3 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.sidebar-step p,
+.sidebar-step ul {
+  margin: 0;
+  font-size: 12px;
+  color: #526178;
+}
+
+.sidebar-step ul {
+  padding-left: 18px;
+}
+
+.sidebar-step-actions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bom-editor-shell {
+  min-height: 620px;
+  border-radius: 20px;
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+}
+
+.bom-editor-host {
+  flex: 1;
+  min-width: 0;
+  min-height: 620px;
+  position: relative;
+  background: #ffffff;
+}
+
+.bom-editor-host__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7c95;
+  font-size: 14px;
+}
+
+.impact-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #4f5f79;
+}
+
+@media (max-width: 1200px) {
+  .bom-page-header,
+  .bom-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .bom-page-header__controls {
+    justify-content: flex-start;
+  }
+
+  .bom-layout {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .bom-workbench-shell {
+    padding: 12px;
+  }
+
+  .field,
+  .field--wide {
+    min-width: 100%;
+  }
+
+  .bom-change-alert,
+  .bom-page-header__controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bom-editor-shell,
+  .bom-editor-host {
+    min-height: 520px;
+  }
+}

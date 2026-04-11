@@ -1,7 +1,36 @@
 ﻿{
     "schemaVersion":  2,
-    "updatedAt":  "2026-04-05T09:33:31.4128584+08:00",
+    "updatedAt":  "2026-04-12T02:10:30.0066064+08:00",
     "releases":  [
+                     {
+                         "versionTag":  "v2026.04.05-0933",
+                         "folderName":  "v2026.04.05-0933",
+                         "mainFile":  "dashboard_v2026.04.05-0933.html",
+                         "structure":  "new",
+                         "offlineReady":  true,
+                         "entryPoints":  {
+                                             "dashboard":  "dashboard_v2026.04.05-0933.html",
+                                             "preview":  "pages/preview.html",
+                                             "accounting":  "pages/accounting.html",
+                                             "tracking":  "pages/tracking.html",
+                                             "archive":  "pages/archive.html",
+                                             "new_project":  "pages/new_project.html",
+                                             "newProject":  "pages/new_project.html"
+                                         },
+                         "publishedAt":  "2026-04-05T09:33:31.4128584+08:00",
+                         "updatedAt":  "2026-04-05T09:33:31.4128584+08:00",
+                         "metadataPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.05-0933\\release_metadata.json",
+                         "timelineEvents":  [
+                                                {
+                                                    "id":  "release/v2026.04.05-0933",
+                                                    "type":  "release",
+                                                    "title":  "release_published",
+                                                    "versionTag":  "v2026.04.05-0933",
+                                                    "publishedAt":  "2026-04-05T09:33:31.4128584+08:00",
+                                                    "updatedAt":  "2026-04-05T09:33:31.4128584+08:00"
+                                                }
+                                            ]
+                     },
                      {
                          "versionTag":  "v2026.04.05-0300",
                          "folderName":  "v2026.04.05-0300",
@@ -1357,31 +1386,32 @@
                                             ]
                      },
                      {
-                         "versionTag":  "v2026.04.05-0933",
-                         "folderName":  "v2026.04.05-0933",
-                         "mainFile":  "dashboard_v2026.04.05-0933.html",
+                         "versionTag":  "v2026.04.12-0210",
+                         "folderName":  "v2026.04.12-0210",
+                         "mainFile":  "dashboard_v2026.04.12-0210.html",
                          "structure":  "new",
                          "offlineReady":  true,
                          "entryPoints":  {
-                                             "dashboard":  "dashboard_v2026.04.05-0933.html",
+                                             "dashboard":  "dashboard_v2026.04.12-0210.html",
                                              "preview":  "pages/preview.html",
                                              "accounting":  "pages/accounting.html",
                                              "tracking":  "pages/tracking.html",
                                              "archive":  "pages/archive.html",
                                              "new_project":  "pages/new_project.html",
-                                             "newProject":  "pages/new_project.html"
+                                             "newProject":  "pages/new_project.html",
+                                             "bom_workbench":  "pages/bom_workbench.html"
                                          },
-                         "publishedAt":  "2026-04-05T09:33:31.4128584+08:00",
-                         "updatedAt":  "2026-04-05T09:33:31.4128584+08:00",
-                         "metadataPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.05-0933\\release_metadata.json",
+                         "publishedAt":  "2026-04-12T02:10:30.0066064+08:00",
+                         "updatedAt":  "2026-04-12T02:10:30.0066064+08:00",
+                         "metadataPath":  "C:\\Users\\lyvee\\.openclaw\\workspace\\成本核算动态模型\\releases\\v2026.04.12-0210\\release_metadata.json",
                          "timelineEvents":  [
                                                 {
-                                                    "id":  "release/v2026.04.05-0933",
+                                                    "id":  "release/v2026.04.12-0210",
                                                     "type":  "release",
                                                     "title":  "release_published",
-                                                    "versionTag":  "v2026.04.05-0933",
-                                                    "publishedAt":  "2026-04-05T09:33:31.4128584+08:00",
-                                                    "updatedAt":  "2026-04-05T09:33:31.4128584+08:00"
+                                                    "versionTag":  "v2026.04.12-0210",
+                                                    "publishedAt":  "2026-04-12T02:10:30.0066064+08:00",
+                                                    "updatedAt":  "2026-04-12T02:10:30.0066064+08:00"
                                                 }
                                             ]
                      }

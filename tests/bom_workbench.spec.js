@@ -62,19 +62,20 @@ function resolveBomWorkbenchTarget() {
 }
 
 test.describe('BOM workbench flow', () => {
-  test('accounting can open BOM workbench via viewer bridge', async ({ page }) => {
+  test('accounting can open BOM workbench via dedicated entry', async ({ page }) => {
     const accountingTarget = resolveAccountingTarget();
     test.skip(!accountingTarget.exists, accountingTarget.reason);
     const bomTarget = resolveBomWorkbenchTarget();
     test.skip(!bomTarget.exists, bomTarget.reason);
 
     await page.goto(accountingTarget.relativeUrl, { waitUntil: 'load' });
-    await page.waitForFunction(() => Boolean(window.G281WorkbookViewer?.open), null, { timeout: 30000 });
-    await page.evaluate(() => window.G281WorkbookViewer.open('bom'));
+    const entryButton = page.locator('[data-entry="bom_workbench"]').first();
+    await expect(entryButton).toBeVisible({ timeout: 30000 });
+    await entryButton.evaluate((node) => node.click());
     await page.waitForURL(/bom_workbench\.html/, { timeout: 30000 });
     await expect(page).toHaveURL(/bom_workbench\.html/);
     await page.waitForSelector('#bomChangeAlert', { state: 'attached', timeout: 30000 });
-    await expect(page.locator('#bomChangeAlert')).toHaveAttribute('hidden', '');
+    await expect(page.locator('#bomChangeAlert')).toBeHidden();
   });
 
   test('bom workbench baseline state disables saves before sync', async ({ page }) => {
@@ -85,12 +86,7 @@ test.describe('BOM workbench flow', () => {
     const alert = page.locator('#bomChangeAlert');
     await page.waitForSelector('#bomChangeAlert', { state: 'attached', timeout: 30000 });
     await expect(alert).toBeHidden();
-    await expect(alert.locator('.bom-alert-link')).toBeVisible();
-
-    const saveButtons = page.locator('.bom-action');
-    await expect(saveButtons).toHaveCount(3);
-    for (let index = 0; index < 3; index += 1) {
-      await expect(saveButtons.nth(index)).toBeDisabled();
-    }
+    await expect(page.locator('#saveCurrentButton')).toBeDisabled();
+    await expect(page.locator('#saveAsNewButton')).toBeDisabled();
   });
 });

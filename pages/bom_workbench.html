@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BOM 全屏工作台 - 生命周期成本平台</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
+  <link rel="stylesheet" href="../vendor/univer-editor/g281_univer_template_editor.css">
+  <link rel="stylesheet" href="../ui/bom_workbench.css">
+</head>
+<body class="bom-workbench-page">
+  <main class="bom-workbench-shell">
+    <header class="bom-page-header">
+      <div class="bom-page-header__identity">
+        <p class="bom-page-header__eyebrow">BOM Engineering Workbench</p>
+        <h1>线束 BOM 工作台</h1>
+        <div class="bom-meta">
+          <span>项目 <strong id="bomProjectName">--</strong></span>
+          <span>项目号 <strong id="bomProjectCode">--</strong></span>
+          <span>BOM 版本 <strong id="bomVersionKeyLabel">--</strong></span>
+          <span>当前线束 <strong id="bomCurrentHarnessLabel">--</strong></span>
+          <span>保存状态 <strong id="bomSaveStateLabel">未初始化</strong></span>
+        </div>
+      </div>
+      <div class="bom-page-header__controls">
+        <label class="field field--wide">
+          <span>工作版本名称</span>
+          <input id="bomVersionNameInput" type="text" placeholder="输入工作版本名称">
+        </label>
+        <label class="field">
+          <span>工作版本</span>
+          <select id="bomVersionSelect"></select>
+        </label>
+        <label class="field">
+          <span>目标线束</span>
+          <select id="bomHarnessSelect"></select>
+        </label>
+        <div class="bom-page-header__actions">
+          <button id="returnAccountingButton" class="secondary" type="button">返回核算页</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="bom-toolbar-shell">
+      <div class="bom-toolbar-shell__row">
+        <button id="saveCurrentButton" type="button">保存当前版</button>
+        <button id="saveAsNewButton" class="secondary" type="button">另存新版本</button>
+        <button id="undoButton" class="secondary" type="button">撤销</button>
+        <button id="redoButton" class="secondary" type="button">重做</button>
+        <button id="filterButton" class="secondary" type="button">筛选</button>
+        <button id="freezeButton" class="secondary" type="button">冻结</button>
+        <button id="insertRowButton" class="secondary" type="button">插行</button>
+        <button id="insertColumnButton" class="secondary" type="button">插列</button>
+        <button id="mergeButton" class="secondary" type="button">合并</button>
+        <button id="jumpRelatedButton" class="secondary" type="button">跳转关联表</button>
+      </div>
+      <div class="bom-toolbar-shell__status">
+        <span id="bomWorkbenchStatus">正在初始化 BOM 工作台...</span>
+      </div>
+    </section>
+
+    <section id="bomChangeAlert" class="bom-change-alert" hidden>
+      <div class="bom-change-alert__copy">
+        <strong id="bomChangeAlertTitle">检测到 BOM 变更</strong>
+        <p id="bomChangeAlertSummary">当前线束存在待同步的结构改动，需依次检查 KSK、二次物料并确认后才能保存。</p>
+      </div>
+      <div class="bom-change-alert__actions">
+        <button id="startSyncReviewButton" type="button">开始检查</button>
+        <button id="jumpSyncReviewButton" class="secondary" type="button">跳转当前步骤</button>
+        <button id="dismissSyncAlertButton" class="ghost" type="button">稍后处理</button>
+      </div>
+    </section>
+
+    <div class="bom-layout">
+      <aside class="bom-sidebar">
+        <section class="sidebar-card">
+          <h2>联动状态</h2>
+          <div id="bomSyncSummary" class="summary-list"></div>
+        </section>
+        <section class="sidebar-card">
+          <h2>待处理事项</h2>
+          <div id="bomPendingMount" class="sidebar-empty">当前没有待处理事项。</div>
+        </section>
+        <section class="sidebar-card">
+          <h2>严格逐表确认</h2>
+          <div id="bomWizardMount" class="sidebar-empty">改动后会在这里生成确认步骤。</div>
+        </section>
+      </aside>
+
+      <section class="bom-editor-shell">
+        <div id="univerEditorHost" class="bom-editor-host">
+          <div class="bom-editor-host__placeholder">正在加载 Univer 编辑器...</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+  <script src="../g281_data_bundle.js"></script>
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+  <script src="../shared/project_bootstrap.js"></script>
+  <script src="../engine/bom_schema.js"></script>
+  <script src="../engine/bom_db.js"></script>
+  <script src="../engine/schema_migrator.js"></script>
+  <script src="../g281_factor_version_repo.js"></script>
+  <script src="../g281_bom_template_runtime.js"></script>
+  <script src="../vendor/univer-editor/g281_univer_template_editor.js"></script>
+  <script src="../engine/bom_change_detector.js"></script>
+  <script src="../engine/bom_sync_planner.js"></script>
+  <script src="../engine/bom_sync_wizard.js"></script>
+  <script src="../engine/change_history_writer.js"></script>
+  <script src="../ui/bom_workbench.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.G281BomWorkbench && typeof window.G281BomWorkbench.bootstrap === 'function') {
+        window.G281BomWorkbench.bootstrap().catch(function (error) {
+          var status = document.getElementById('bomWorkbenchStatus');
+          if (status) {
+            status.textContent = 'BOM 工作台初始化失败: ' + String(error && error.message ? error.message : error);
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

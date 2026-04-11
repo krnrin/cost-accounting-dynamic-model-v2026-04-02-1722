@@ -41,7 +41,8 @@ $uiAssets = @(
   "ui/workbook_viewer.js",
   "ui/new_project_wizard.css",
   "ui/new_project_wizard.js",
-  "ui/bom_workbench.css"
+  "ui/bom_workbench.css",
+  "ui/bom_workbench.js"
 )
 
 $engineAssets = @(
@@ -58,8 +59,7 @@ $engineAssets = @(
   "engine/bom_change_detector.js",
   "engine/bom_sync_planner.js",
   "engine/bom_sync_wizard.js",
-  "engine/change_history_writer.js",
-  "engine/bom_workbench.js"
+  "engine/change_history_writer.js"
 )
 
 $coreAssets = @(
