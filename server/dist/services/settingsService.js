@@ -61,6 +61,16 @@ const DEFAULT_SETTINGS = {
 };
 const SNAPSHOT_PREFIX = 'snapshot';
 const HISTORY_CATEGORY = 'publish_history';
+async function getLatestPublishedVersion() {
+    const row = await prisma.setting.findFirst({
+        where: { category: HISTORY_CATEGORY },
+        orderBy: { createdAt: 'desc' },
+    });
+    if (!row)
+        return null;
+    const value = fromJson(row.value);
+    return value.version ?? row.key;
+}
 function normalizeRow(row) {
     return { ...row, value: fromJson(row.value) };
 }
@@ -78,6 +88,9 @@ function makeDefaultRow(category, key, value) {
     };
 }
 export class SettingsService {
+    static async getLatestPublishedVersion() {
+        return getLatestPublishedVersion();
+    }
     static async getAll() {
         const categories = Object.keys(DEFAULT_SETTINGS);
         const grouped = await Promise.all(categories.map((category) => this.getByCategory(category)));

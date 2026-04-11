@@ -404,3 +404,21 @@
 ### 备注:
 - `init.ps1` 仍有编码/字符串解析损坏，当前无法直接作为自动化初始化入口
 - `prisma generate` 仍输出到旧路径 `D:/成本核算动态模型/server/node_modules/@prisma/client`，但不影响本次 T20 构建与接口验收
+
+## [2026-04-11 16:35] - Task: [T25] 费率基准发布流
+
+### 完成的工作:
+- 扩展 `server/prisma/schema.prisma`，为 `Scenario` 新增 `rateSnapshotVersion` 字段，显式记录场景绑定的费率快照版本
+- 更新 `server/src/services/settingsService.ts`，补充最近一次已发布费率版本查询能力，供场景创建/更新时绑定发布快照
+- 重构 `server/src/services/scenarioService.ts`，当场景未显式传入费率快照时，自动绑定最近一次 `/api/settings/publish` 产生的 `cost_structure` 快照，并在列表/详情/比较/冻结发布版本快照中返回 `rateSnapshotVersion`
+- 更新 `server/src/routes/scenarios.ts` 与 `server/test_api.js`，补齐 `rateSnapshotVersion` 入参和集成测试，验证“显式快照保留”和“发布后新场景自动绑定最新费率快照”两条链路
+
+### 测试:
+- `npm --prefix D:/harness-project/server run prisma:generate` 通过
+- `npm --prefix D:/harness-project/server run prisma:push` 通过
+- `npm --prefix D:/harness-project/server run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（84 passed, 0 failed）
+
+### 备注:
+- `init.ps1` 仍有 PowerShell 编码/解析错误，本次继续采用手动执行 server 测试链路完成验收
+- Prisma Client 当前仍生成到旧路径 `D:/成本核算动态模型/server/node_modules/@prisma/client`，但不影响本次 T25 后端能力与集成测试通过
