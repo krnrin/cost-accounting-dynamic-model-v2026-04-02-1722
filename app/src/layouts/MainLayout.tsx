@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Layout } from '@douyinfe/semi-ui';
+import { Badge, Layout } from '@douyinfe/semi-ui';
 import {
   IconHome,
   IconFile, IconBell, IconUser
@@ -9,6 +9,7 @@ import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
 import { syncEngine } from '@/sync/syncEngine';
 import Breadcrumb from '@/components/Breadcrumb';
+import { fetchAlertSummary } from '@/lib/alertEventApi';
 
 const { Sider, Content, Header } = Layout;
 
@@ -19,8 +20,9 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentProjectId, currentScenarioId } = useProjectStore();
+  const [activeAlertCount, setActiveAlertCount] = useState(0);
 
-  const isImmersive = location.pathname.includes('/workbook') || 
+  const isImmersive = location.pathname.includes('/workbook') ||
                       location.pathname.includes('/edit') ||
                       location.pathname.includes('/simulation');
   
@@ -49,7 +51,7 @@ export default function MainLayout() {
       if (path.startsWith(`/project/${currentProjectId}`)) return `/project/${currentProjectId}`;
     }
     if (path.startsWith('/manager')) return '/manager';
-    if (path.startsWith('/alerts')) return '/alerts';
+    if (path.startsWith('/alerts') || path.includes('/alerts')) return '/alerts';
     if (path.startsWith('/profile')) return '/profile';
     if (path.startsWith('/settings')) return '/settings';
     return '/';
@@ -62,9 +64,27 @@ export default function MainLayout() {
     return () => syncEngine.stop();
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    const loadAlertBadge = async () => {
+      try {
+        const summary = await fetchAlertSummary(currentProjectId || undefined);
+        if (!cancelled) setActiveAlertCount(summary.active + summary.acknowledged);
+      } catch {
+        if (!cancelled) setActiveAlertCount(0);
+      }
+    };
+    void loadAlertBadge();
+  }, [currentProjectId, location.pathname]);
+
   const hasProject = !!currentProjectId;
   const hasScenario = !!currentScenarioId;
   const navToProject = (sub: string) => {
+    if (sub === 'alerts') {
+      if (hasProject) navigate(`/project/${currentProjectId}/alerts`);
+      else navigate('/alerts');
+      return;
+    }
     if (hasProject && hasScenario) navigate(`/project/${currentProjectId}/s/${currentScenarioId}/${sub}`);
     else if (hasProject) navigate(`/project/${currentProjectId}`);
   };
@@ -104,9 +124,11 @@ export default function MainLayout() {
             </div>
             <div
               style={{ cursor: 'pointer', opacity: selectedKey === '/alerts' ? 1 : 0.4, transition: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-              onClick={() => navigate('/alerts')}
+              onClick={() => navigate(currentProjectId ? `/project/${currentProjectId}/alerts` : '/alerts')}
             >
-              <IconBell style={{ fontSize: 24, color: '#000' }} />
+              <Badge count={activeAlertCount} overflowCount={99}>
+                <IconBell style={{ fontSize: 24, color: '#000' }} />
+              </Badge>
               <span style={{ fontSize: 9, fontWeight: 700, color: '#000' }}>预警</span>
             </div>
             <div

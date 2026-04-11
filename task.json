@@ -480,7 +480,7 @@
         "models": ["AlertEvent"]
       },
       "depends_on": ["T17"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "T19",

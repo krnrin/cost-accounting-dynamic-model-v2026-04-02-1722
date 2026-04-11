@@ -21,6 +21,7 @@ import scenarioAnnualDropRoutes, { annualDropRouter } from './routes/annualDrops
 import syncRoutes from './routes/sync.js';
 import settingsRoutes from './routes/settings.js';
 import alertRuleRoutes from './routes/alertRules.js';
+import projectAlertsRoutes, { alertsRouter } from './routes/alerts.js';
 import feishuRoutes from './routes/feishu.js';
 const app = express();
 // Middleware
@@ -53,7 +54,9 @@ app.use('/api/projects/:pid/harnesses', harnessRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/versions', versionRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/projects/:id/alerts', projectAlertsRoutes);
 app.use('/api/alert-rules', alertRuleRoutes);
+app.use('/api/alerts', alertsRouter);
 app.use('/api/sync', syncRoutes);
 app.use('/api/feishu', feishuRoutes);
 // Health check
