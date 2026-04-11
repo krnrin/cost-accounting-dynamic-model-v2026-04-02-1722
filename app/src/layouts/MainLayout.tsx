@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Badge, Layout } from '@douyinfe/semi-ui';
+import { Badge, Layout, Button, Toast, Typography } from '@douyinfe/semi-ui';
 import {
   IconHome,
   IconFile, IconBell, IconUser
@@ -10,11 +10,14 @@ import { useUIStore } from '@/store/uiStore';
 import { syncEngine } from '@/sync/syncEngine';
 import Breadcrumb from '@/components/Breadcrumb';
 import { fetchAlertSummary } from '@/lib/alertEventApi';
+import { useAuthStore } from '@/store/authStore';
 
 const { Sider, Content, Header } = Layout;
+const { Text } = Typography;
 
 export default function MainLayout() {
   const { sidebarCollapsed } = useUIStore();
+  const { user, logout } = useAuthStore();
   const [collapsed, setCollapsed] = useState(sidebarCollapsed);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
@@ -79,6 +82,16 @@ export default function MainLayout() {
 
   const hasProject = !!currentProjectId;
   const hasScenario = !!currentScenarioId;
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error: any) {
+      Toast.error(error?.message || '退出登录失败');
+    }
+  };
+
   const navToProject = (sub: string) => {
     if (sub === 'alerts') {
       if (hasProject) navigate(`/project/${currentProjectId}/alerts`);
@@ -155,7 +168,8 @@ export default function MainLayout() {
             zIndex: 90
           }}
         >
-          <div className="top-nav-capsule" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div className="top-nav-capsule" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px' }}>
             <div 
               className={selectedKey === '/' ? 'nav-active-pill' : ''} 
               style={{ padding: '8px 24px', cursor: 'pointer', fontSize: 13, transition: '0.2s', color: selectedKey === '/' ? '#000' : '#71717a' }}
@@ -225,6 +239,28 @@ export default function MainLayout() {
               onClick={() => navigate('/settings')}
             >
               设置
+            </div>
+          </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '8px 16px',
+                borderRadius: 999,
+                border: '1px solid rgba(148, 163, 184, 0.25)',
+                background: 'rgba(255, 255, 255, 0.72)',
+                backdropFilter: 'blur(16px)',
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
+                <Text strong style={{ color: '#0f172a', fontSize: 13 }}>{user?.name || '未登录用户'}</Text>
+                <Text type="tertiary" style={{ fontSize: 11 }}>{user?.role || 'GUEST'}</Text>
+              </div>
+              <Button theme="borderless" type="danger" size="small" onClick={handleLogout}>
+                退出
+              </Button>
             </div>
           </div>
         </Header>
