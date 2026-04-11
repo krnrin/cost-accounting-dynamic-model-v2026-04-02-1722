@@ -32,9 +32,9 @@ router.get('/snapshot/:version', async (req, res, next) => {
         next(error);
     }
 });
-router.post('/publish', requireRole(['ADMIN', 'MANAGER']), async (_req, res, next) => {
+router.post('/publish', requireRole(['ADMIN', 'MANAGER']), async (req, res, next) => {
     try {
-        const data = await SettingsService.publish();
+        const data = await SettingsService.publish(req.user?.id);
         res.json({ data });
     }
     catch (error) {

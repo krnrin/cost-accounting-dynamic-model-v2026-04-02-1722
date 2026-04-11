@@ -2,6 +2,27 @@
 # 每个 Claude Code session 完成任务后在此追加记录
 # ============================================
 
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: [T14] 系统设置 — 成本结构 + 金属价格 + 费率
+
+已完成的工作:
+- 后端已补齐设置接口能力：`GET /api/settings`、`GET /api/settings/:category`、`PUT /api/settings/:category/:key`、`POST /api/settings/publish`、`GET /api/settings/history`、`GET /api/settings/snapshot/:version`
+- 后端 `settingsService` 已支持默认分类数据、发布快照版本、历史记录与快照查询
+- 前端 `app/src/pages/SettingsPage.tsx` 已改为接入后端设置 API，并支持保存后自动发布快照
+- 新增前端 `app/src/lib/settingsApi.ts` 统一访问设置接口
+- 已同步 task.json 中历史已提交任务的状态，避免继续重复执行旧任务
+
+阻塞原因:
+- 前端构建被现有工程配置阻塞：`npm --prefix D:/harness-project/app run build` 在 Vite/PWA 阶段报错，存在非法输出路径 `../../成本核算动态模型/app/index.html`，不是本次 T14 改动直接引入的问题
+- 后端数据库初始化被本机文件占用阻塞：`prisma generate` 在重命名 `query_engine-windows.dll.node` 时触发 `EPERM`，当前无法完成要求中的后端测试链路
+- 前端测试也存在项目既有环境问题：缺失 `src/test/setup.ts` 与 `fake-indexeddb/auto`，导致整套 `vitest run` 无法全绿
+
+需要人工帮助:
+1. 清理或修复前端现有 Vite/PWA 输出路径配置，消除非法 `index.html` 输出名问题
+2. 释放 Prisma 客户端 DLL 占用，或关闭相关进程后重新执行 server 侧 prisma generate/push/seed
+3. 补齐前端测试基础依赖与 `src/test/setup.ts`，使现有测试环境可运行
+
 ## [2026-04-11 07:24] - Task: [T01] Project CRUD + 项目列表页
 
 ### 完成的工作:
