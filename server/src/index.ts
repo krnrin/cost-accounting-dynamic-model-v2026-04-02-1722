@@ -27,6 +27,7 @@ import managerDashboardRoutes from './routes/managerDashboard.js';
 import feishuRoutes from './routes/feishu.js';
 import profileRoutes from './routes/profile.js';
 import userRoutes from './routes/users.js';
+import exportRoutes from './routes/export.js';
 
 const app = express();
 
@@ -67,6 +68,7 @@ app.use('/api/alerts', alertsRouter);
 app.use('/api/manager-dashboard', managerDashboardRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/export', exportRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/feishu', feishuRoutes);
 

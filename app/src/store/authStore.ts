@@ -61,6 +61,12 @@ async function syncProfileIntoState(
   extra?: Partial<AuthState>
 ) {
   syncService.setToken(token);
+  set({
+    token,
+    isAuthenticated: true,
+    authSource,
+    ...extra,
+  });
   const profile = await fetchProfile();
   useSettingsStore.getState().setThemeMode(profile.preferences.themeMode);
   set({
