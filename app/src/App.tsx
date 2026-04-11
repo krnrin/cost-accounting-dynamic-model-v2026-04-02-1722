@@ -78,6 +78,7 @@ export default function App() {
           <Route path="/project/:id/s/:sid/tracking" element={<TrackingPage />} />
           <Route path="/project/:id/s/:sid/config" element={<ConfigMatrixPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/settings/alert-rules" element={<AlertsPage mode="rules" />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFoundPage />} />

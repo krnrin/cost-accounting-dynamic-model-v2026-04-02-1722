@@ -21,6 +21,7 @@ import scenarioSimulationRoutes, { simulationRouter } from './routes/simulations
 import scenarioAnnualDropRoutes, { annualDropRouter } from './routes/annualDrops.js';
 import syncRoutes from './routes/sync.js';
 import settingsRoutes from './routes/settings.js';
+import alertRuleRoutes from './routes/alertRules.js';
 import feishuRoutes from './routes/feishu.js';
 
 const app = express();
@@ -56,6 +57,7 @@ app.use('/api/projects/:pid/harnesses', harnessRoutes);
 app.use('/api/quotes', quoteRoutes);
 app.use('/api/versions', versionRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/alert-rules', alertRuleRoutes);
 app.use('/api/sync', syncRoutes);
 app.use('/api/feishu', feishuRoutes);
 

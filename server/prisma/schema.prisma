@@ -282,6 +282,23 @@ model AnnualDropRecord {
   @@index([scenarioId])
 }
 
+model AlertRule {
+  id          String   @id @default(uuid())
+  name        String
+  category    String
+  severity    String   @default("warning")
+  condition   String   @default("{}")
+  enabled     Boolean  @default(true)
+  description String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([severity])
+  @@index([enabled])
+}
+
 model Version {
   id             String   @id @default(uuid())
   projectId      String
