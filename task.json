@@ -648,7 +648,7 @@
         "models": ["User"]
       },
       "depends_on": ["T01"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "T27",

@@ -2,6 +2,26 @@
 # 每个 Claude Code session 完成任务后在此追加记录
 # ============================================
 
+## [2026-04-11 16:31] - Task: [T26] Profile 与个人中心
+
+### 完成的工作:
+- 新增后端 `server/src/services/profileService.ts`、`server/src/routes/profile.ts`、`server/src/routes/users.ts`，补齐 `/api/profile`、`/api/profile/permissions`、`/api/profile/preferences` 与 `/api/users` 能力，并在 `server/src/index.ts` 完成挂载
+- 扩展 `server/src/routes/auth.ts`，补齐受鉴权保护的 `POST /api/auth/logout` 接口
+- 新增前端 `app/src/lib/profileApi.ts`，统一封装个人信息、偏好、权限矩阵与用户列表请求
+- 重写 `app/src/pages/ProfilePage.tsx`，实现个人信息编辑、主题模式切换、通知偏好保存、用户列表与权限概览展示
+- 更新 `app/src/store/authStore.ts`，登录后主动同步 Profile/偏好到本地状态，并在退出登录时调用后端 logout
+- 扩展 `server/test_api.js`，补充 Profile、权限、偏好、用户列表、logout/relogin 集成测试覆盖
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（91 passed, 0 failed）
+- Playwright 打开 `http://127.0.0.1:4173/profile`，验证用户配置页可见个人信息、主题模式、用户列表、权限概览；截图 `test-screenshots/t26-login-page.png`、`test-screenshots/t26-profile-page.png`
+
+### 备注:
+- `init.ps1` 仍无法在当前 shell 直接执行（`pwsh` 缺失），本次继续采用手动 build + preview/server 启动方式验收
+- 集成测试会继续向本地 SQLite 写入测试用户与项目数据，`/profile` 页面中的用户列表因此包含多条历史测试账号
+
 ## [2026-04-11 15:55] - Task: [T24] 自动版本快照（BOM冻结/报价发布/场景发布）
 
 ### 完成的工作:
