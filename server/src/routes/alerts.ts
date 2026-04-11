@@ -65,6 +65,15 @@ alertsRouter.get('/summary', async (req: Request, res: Response, next: NextFunct
   }
 });
 
+alertsRouter.post('/detect', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await AlertEventService.detectAndSync();
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 alertsRouter.get('/:eid', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await AlertEventService.getById(req.params.eid as string);
