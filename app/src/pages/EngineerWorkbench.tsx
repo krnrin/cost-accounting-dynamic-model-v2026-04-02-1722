@@ -3,6 +3,7 @@
  * Integrates BOM editing, cost calculation, simulation, comparison, and settings
  *
  * Now connected to real Dexie data via route params (:id, :sid)
+ * Dual engine: customer (computeHarnessCost) / internal (computeInternalHarnessCost)
  */
 import { useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -31,13 +32,19 @@ import {
 } from '@douyinfe/semi-icons';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/data/db';
-import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
+import {
+  computeHarnessCost,
+  computeProjectFromHarnesses,
+  computeInternalHarnessCost,
+  computeInternalProjectFromHarnesses,
+  INTERNAL_DEFAULTS,
+} from '@/engine/harness_costing';
 import EngineSelector, { type EngineType } from '@/components/EngineSelector';
 import HarnessCompareView from '@/components/HarnessCompareView';
 import ChangeOrderWizard from '@/components/ChangeOrderWizard';
 import ScenarioSelector from '@/components/ScenarioSelector';
 import { useHarnessSync } from '@/hooks/useHarnessSync';
-import type { HarnessResult } from '@/types/harness';
+import type { HarnessResult, InternalHarnessResult } from '@/types/harness';
 import type { ChangeOrder } from '@/engine/change_verification';
 import type { CSSProperties } from 'react';
 
@@ -59,6 +66,8 @@ const S: Record<string, CSSProperties> = {
   kpiCard: { flex: '1 1 140px', minWidth: 140 },
   fullWidth: { width: '100%' },
   loading: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 },
+  tableMarginTop: { marginTop: 16 },
+  cardMarginTop: { marginTop: 16 },
 };
 
 const navFooterConfig = { collapseButton: true };
@@ -93,8 +102,8 @@ export default function EngineerWorkbench() {
     return { project, scenario, harnesses };
   }, [id, sid]);
 
-  // Compute cost results
-  const computedResults = useMemo(() => {
+  // ── Customer engine results ──
+  const customerResults = useMemo(() => {
     if (!data?.scenario || !data.harnesses.length) return [];
     const config = data.scenario.config;
     if (!config?.costRates || !config?.metalPrices) return [];
@@ -109,19 +118,44 @@ export default function EngineerWorkbench() {
       .filter((r): r is HarnessResult => r !== null);
   }, [data?.scenario, data?.harnesses]);
 
-  const projectSummary = useMemo(() => {
-    if (computedResults.length === 0) return null;
-    return computeProjectFromHarnesses(computedResults);
-  }, [computedResults]);
+  // ── Internal engine results ──
+  const internalResults = useMemo(() => {
+    if (!data?.scenario || !data.harnesses.length) return [];
+    const config = data.scenario.config;
+    if (!config?.metalPrices) return [];
+    const internalRates = config.internalRates || INTERNAL_DEFAULTS;
+    return data.harnesses
+      .map(h => {
+        try {
+          return computeInternalHarnessCost(h.input, internalRates, config.metalPrices);
+        } catch {
+          return null;
+        }
+      })
+      .filter((r): r is InternalHarnessResult => r !== null);
+  }, [data?.scenario, data?.harnesses]);
 
-  // Build harness list for CompareView
+  // ── Active results based on engine selection ──
+  const isInternal = engine === 'internal';
+
+  const customerSummary = useMemo(() => {
+    if (customerResults.length === 0) return null;
+    return computeProjectFromHarnesses(customerResults);
+  }, [customerResults]);
+
+  const internalSummary = useMemo(() => {
+    if (internalResults.length === 0) return null;
+    return computeInternalProjectFromHarnesses(internalResults);
+  }, [internalResults]);
+
+  // Build harness list for CompareView (customer engine only — compare view uses HarnessResult)
   const compareHarnesses = useMemo(() => {
-    return computedResults.map(r => ({
+    return customerResults.map(r => ({
       harnessId: r.harnessId,
       harnessName: r.harnessName || r.harnessId,
       result: r,
     }));
-  }, [computedResults]);
+  }, [customerResults]);
 
   const handleChangeOrderSubmit = useCallback((order: ChangeOrder) => {
     setChangeOrders(prev => [...prev, order]);
@@ -138,8 +172,8 @@ export default function EngineerWorkbench() {
 
   const { project, scenario, harnesses } = data;
 
-  // Cost result table columns
-  const costColumns = [
+  // ── Customer cost table columns ──
+  const customerCostColumns = [
     { title: '\u96F6\u4EF6\u53F7', dataIndex: 'harnessId', width: 140 },
     { title: '\u540D\u79F0', dataIndex: 'harnessName', width: 160 },
     { title: '\u6750\u6599\u6210\u672C', render: (_: unknown, r: HarnessResult) => formatCurrency(r.materialCost), width: 100 },
@@ -147,6 +181,19 @@ export default function EngineerWorkbench() {
     { title: '\u5236\u9020\u8D39', render: (_: unknown, r: HarnessResult) => formatCurrency(r.manufacturing), width: 90 },
     { title: '\u51FA\u5382\u4EF7', render: (_: unknown, r: HarnessResult) => formatCurrency(r.exFactoryPrice), width: 100 },
     { title: '\u5230\u5382\u4EF7', render: (_: unknown, r: HarnessResult) => formatCurrency(r.deliveredPrice), width: 100 },
+  ];
+
+  // ── Internal cost table columns (6D MOH) ──
+  const internalCostColumns = [
+    { title: '\u96F6\u4EF6\u53F7', dataIndex: 'harnessId', width: 130 },
+    { title: '\u540D\u79F0', dataIndex: 'harnessName', width: 140 },
+    { title: '\u6750\u6599', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.materialCost), width: 90 },
+    { title: '\u76F4\u63A5\u4EBA\u5DE5', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.directLabor), width: 90 },
+    { title: '\u95F4\u63A5\u4EBA\u5DE5', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.indirectLabor), width: 90 },
+    { title: '\u5382\u623F\u5206\u644A', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.factoryAmortization), width: 90 },
+    { title: '\u5236\u9020\u8D39\u5C0F\u8BA1', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.mfgOverheadTotal), width: 100 },
+    { title: '\u5B9E\u7EE9\u603B\u6210\u672C', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.internalCost), width: 110 },
+    { title: '\u72B6\u6001', dataIndex: 'gapStatus', width: 90 },
   ];
 
   return (
@@ -181,8 +228,8 @@ export default function EngineerWorkbench() {
           </div>
           <Space>
             <EngineSelector value={engine} onChange={setEngine} />
-            <Tag color={engine === 'internal' ? 'blue' : 'green'} size="large">
-              {engine === 'internal' ? '\u5185\u90E8\u5B9E\u7EE9' : '\u5BA2\u6237\u62A5\u4EF7'}
+            <Tag color={isInternal ? 'blue' : 'green'} size="large">
+              {isInternal ? '\u5185\u90E8\u5B9E\u7EE9' : '\u5BA2\u6237\u62A5\u4EF7'}
             </Tag>
           </Space>
         </div>
@@ -245,7 +292,7 @@ export default function EngineerWorkbench() {
                   ]}
                   pagination={false}
                   size="small"
-                  style= marginTop: 16 
+                  style={S.tableMarginTop}
                 />
               )}
             </div>
@@ -257,34 +304,71 @@ export default function EngineerWorkbench() {
               <Title heading={5}>\u6210\u672C\u8BA1\u7B97\u7ED3\u679C</Title>
               {!scenario ? (
                 <Text type="warning">\u672A\u9009\u62E9\u573A\u666F\uFF0C\u65E0\u6CD5\u8BA1\u7B97\u6210\u672C</Text>
-              ) : computedResults.length === 0 ? (
-                <Empty title="\u65E0\u8BA1\u7B97\u7ED3\u679C" description="\u8BF7\u5148\u586B\u5199\u7EBF\u675F BOM \u6570\u636E" />
+              ) : isInternal ? (
+                /* ── Internal engine view ── */
+                internalResults.length === 0 ? (
+                  <Empty title="\u65E0\u8BA1\u7B97\u7ED3\u679C" description="\u8BF7\u5148\u586B\u5199\u7EBF\u675F BOM \u6570\u636E" />
+                ) : (
+                  <>
+                    {internalSummary && (
+                      <div style={S.kpiRow}>
+                        <Card style={S.kpiCard} title="\u5355\u8F66\u5185\u90E8\u6210\u672C" headerLine={false}>
+                          <Title heading={3}>{formatCurrency(internalSummary.vehicleCost)}</Title>
+                        </Card>
+                        <Card style={S.kpiCard} title="\u5355\u8F66\u6750\u6599" headerLine={false}>
+                          <Title heading={3}>{formatCurrency(internalSummary.weightedMaterial)}</Title>
+                        </Card>
+                        <Card style={S.kpiCard} title="\u5355\u8F66\u76F4\u63A5\u4EBA\u5DE5" headerLine={false}>
+                          <Title heading={3}>{formatCurrency(internalSummary.weightedDirectLabor)}</Title>
+                        </Card>
+                        <Card style={S.kpiCard} title="\u5355\u8F66\u5236\u9020\u8D39" headerLine={false}>
+                          <Title heading={3}>{formatCurrency(internalSummary.weightedMfgOverheadTotal)}</Title>
+                        </Card>
+                        <Card style={S.kpiCard} title="\u7EBF\u675F\u6570" headerLine={false}>
+                          <Title heading={3}>{internalResults.length}</Title>
+                        </Card>
+                      </div>
+                    )}
+                    <Table
+                      dataSource={internalResults}
+                      columns={internalCostColumns}
+                      pagination={false}
+                      size="small"
+                      rowKey="harnessId"
+                    />
+                  </>
+                )
               ) : (
-                <>
-                  {projectSummary && (
-                    <div style={S.kpiRow}>
-                      <Card style={S.kpiCard} title="\u5355\u8F66\u6210\u672C" headerLine={false}>
-                        <Title heading={3}>{formatCurrency(projectSummary.vehicleCost)}</Title>
-                      </Card>
-                      <Card style={S.kpiCard} title="\u5355\u8F66\u6750\u6599" headerLine={false}>
-                        <Title heading={3}>{formatCurrency(projectSummary.materialCost)}</Title>
-                      </Card>
-                      <Card style={S.kpiCard} title="\u5355\u8F66\u4EBA\u5DE5" headerLine={false}>
-                        <Title heading={3}>{formatCurrency(projectSummary.laborCost)}</Title>
-                      </Card>
-                      <Card style={S.kpiCard} title="\u7EBF\u675F\u6570" headerLine={false}>
-                        <Title heading={3}>{computedResults.length}</Title>
-                      </Card>
-                    </div>
-                  )}
-                  <Table
-                    dataSource={computedResults}
-                    columns={costColumns}
-                    pagination={false}
-                    size="small"
-                    rowKey="harnessId"
-                  />
-                </>
+                /* ── Customer engine view ── */
+                customerResults.length === 0 ? (
+                  <Empty title="\u65E0\u8BA1\u7B97\u7ED3\u679C" description="\u8BF7\u5148\u586B\u5199\u7EBF\u675F BOM \u6570\u636E" />
+                ) : (
+                  <>
+                    {customerSummary && (
+                      <div style={S.kpiRow}>
+                        <Card style={S.kpiCard} title="\u5355\u8F66\u6210\u672C" headerLine={false}>
+                          <Title heading={3}>{formatCurrency(customerSummary.vehicleCost)}</Title>
+                        </Card>
+                        <Card style={S.kpiCard} title="\u5355\u8F66\u6750\u6599" headerLine={false}>
+                          <Title heading={3}>{formatCurrency(customerSummary.weightedMaterial)}</Title>
+                        </Card>
+                        <Card style={S.kpiCard} title="\u5355\u8F66\u4EBA\u5DE5" headerLine={false}>
+                          <Title heading={3}>{formatCurrency(customerSummary.weightedLabor)}</Title>
+                        </Card>
+                        <Card style={S.kpiCard} title="\u7EBF\u675F\u6570" headerLine={false}>
+                          <Title heading={3}>{customerResults.length}</Title>
+                        </Card>
+                      </div>
+                    )}
+                    <Table
+                      dataSource={customerResults}
+                      columns={customerCostColumns}
+                      pagination={false}
+                      size="small"
+                      rowKey="harnessId"
+                    />
+                  </>
+                )
               )}
             </div>
           </TabPane>
@@ -339,7 +423,7 @@ export default function EngineerWorkbench() {
                 </Button>
               </div>
               {scenario && (
-                <Card style= marginTop: 16  title="\u5F53\u524D\u573A\u666F\u914D\u7F6E\u6458\u8981" headerLine={false}>
+                <Card style={S.cardMarginTop} title="\u5F53\u524D\u573A\u666F\u914D\u7F6E\u6458\u8981" headerLine={false}>
                   <Text>\u573A\u666F: {scenario.scenarioName}</Text>
                   <br />
                   <Text type="tertiary">\u573A\u666F\u7C7B\u578B: {scenario.scenarioType}</Text>
