@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>追踪 — 成本异常治理台</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
+  <link rel="stylesheet" href="../ui/dashboard.css">
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
+    .page-header { padding: 20px 24px 12px; }
+    .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .page-header p { margin: 4px 0 0; font-size: 13px; color: #888; }
+    .tracking-content { padding: 0 24px 24px; }
+    .trk-section { margin-top: 16px; background: #1a1a2e; border-radius: 10px; padding: 18px; border: 1px solid #2a2a3e; }
+    .trk-section h2 { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
+    .trk-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .trk-card { min-height: 200px; padding: 12px; background: #111125; border-radius: 8px; border: 1px solid #33334b; font-size: 13px; color: #c5c7e0; }
+    .trk-card h3 { margin: 0 0 8px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+
+  <div class="page-header">
+    <h1>追踪</h1>
+    <p>成本异常治理 · 协议价 / 年降 / 一次性费用 / 成本偏差 / 残余料</p>
+  </div>
+
+  <div class="tracking-content">
+    <div id="trkStatus"></div>
+    <div class="trk-section">
+      <h2>协议价落实</h2>
+      <div id="trkProgressPrice" class="trk-card">
+        <p style="color:#9ca3af; font-size:12px;">协议价/年降/批量价实际 vs 目标</p>
+      </div>
+    </div>
+    <div class="trk-grid">
+      <div class="trk-card" id="trkConnectorProtocol">
+        <h3>供应商协议价</h3>
+        <div id="protoDetails">协议/年降状态 · 批量价进度</div>
+      </div>
+      <div class="trk-card" id="trkAnnualDrop">
+        <h3>年降执行</h3>
+        <div id="annualDropDetails">目标 vs 实际降幅</div>
+      </div>
+      <div class="trk-card" id="trkOneTimeCost">
+        <h3>一次性费用回收</h3>
+        <div id="oneTimeDetails">分摊进度 / 回收缺口</div>
+      </div>
+      <div class="trk-card" id="trkCostDeviation">
+        <h3>成本偏差</h3>
+        <div id="costDeviationDetails">超阈值 / 重点线束</div>
+      </div>
+    </div>
+    <div class="trk-grid">
+      <div class="trk-card" id="trkResidualPool">
+        <h3>残余料 / 呆滞料</h3>
+        <div id="residualDetails">残余池候选 + 呆滞提报</div>
+      </div>
+      <div class="trk-card" id="trkUnfinished">
+        <h3>未闭环事项</h3>
+        <div id="unfinishedDetails">审批/发布/校核待办</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+
+  <script src="../engine/shared_utils.js"></script>
+  <script src="../engine/state_normalizer.js"></script>
+  <script src="../engine/snapshot_resolver.js"></script>
+  <script src="../engine/annual_calc.js"></script>
+  <script src="../engine/config_bridge.js"></script>
+  <script src="../engine/computation_path.js"></script>
+  <script src="../engine/compute_model.js"></script>
+  <script src="../engine/residual_pool_handler.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../engine/align_key_enhancer.js"></script>
+  <script src="../engine/workflow_stage_board_builder.js"></script>
+  <script src="../engine/cost_exception_tracker_builder.js"></script>
+
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+  <script src="../engine/schema_migrator.js"></script>
+
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../core/storage_adapter.js"></script>
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      G281Nav.mountNavBar();
+      const tracker = window.G281CostExceptionTracker;
+      if (tracker && tracker.render) {
+        tracker.render({
+          progressMount: document.getElementById('trkProgressPrice'),
+          connectorMount: document.getElementById('protoDetails'),
+          annualMount: document.getElementById('annualDropDetails'),
+          oneTimeMount: document.getElementById('oneTimeDetails'),
+          deviationMount: document.getElementById('costDeviationDetails'),
+          residualMount: document.getElementById('residualDetails'),
+          unfinishedMount: document.getElementById('unfinishedDetails'),
+        });
+      }
+    });
+  </script>
+</body>
+</html>

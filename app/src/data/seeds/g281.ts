@@ -1,0 +1,238 @@
+import { db, type ProjectRecord, type HarnessRecord } from '../db';
+import { G281_BOM_DATA } from './g281_bom';
+
+const HARNESS_SEED_DATA = [
+  {
+    harnessId: '6608491523',
+    name: '直流母线总成',
+    ratio: 0.525,
+    hours: 0.374029065686274,
+    innerPack: 1.94245,
+    outerPack: 0.35,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0.333333333333333,
+    thirdParty: 1.5,
+    storage: 0.35,
+  },
+  {
+    harnessId: '6608491524',
+    name: '直流母线总成',
+    ratio: 0.105,
+    hours: 0.373362399019608,
+    innerPack: 1.94245,
+    outerPack: 0.35,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0.333333333333333,
+    thirdParty: 1.5,
+    storage: 0.35,
+  },
+  {
+    harnessId: '6608442962',
+    name: '直流母线总成',
+    ratio: 0.07,
+    hours: 0.393007332352941,
+    innerPack: 1.94245,
+    outerPack: 0.35,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0.333333333333333,
+    thirdParty: 1.5,
+    storage: 0.35,
+  },
+  {
+    harnessId: '6608544875',
+    name: '前驱直流母线总成',
+    ratio: 0.105,
+    hours: 0.402048439705882,
+    innerPack: 1.94245,
+    outerPack: 0.35,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0.333333333333333,
+    thirdParty: 1.5,
+    storage: 0.35,
+  },
+  {
+    harnessId: '6608442964',
+    name: '电动压缩机线束总成',
+    ratio: 0.595,
+    hours: 0.247108900326797,
+    innerPack: 0.3940068,
+    outerPack: 0.14,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0,
+    thirdParty: 1.5,
+    storage: 0.14,
+  },
+  {
+    harnessId: '6608519100',
+    name: '电动压缩机线束总成',
+    ratio: 0.105,
+    hours: 0.255069583660131,
+    innerPack: 0.3940068,
+    outerPack: 0.14,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0,
+    thirdParty: 1.5,
+    storage: 0.14,
+  },
+  {
+    harnessId: '6608442963',
+    name: '电动压缩机线束总成',
+    ratio: 0.03,
+    hours: 0.524830425163399,
+    innerPack: 0.5225085,
+    outerPack: 0.175,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0,
+    thirdParty: 1.5,
+    storage: 0.175,
+  },
+  {
+    harnessId: '6608516992',
+    name: '电动压缩机线束总成',
+    ratio: 0.225,
+    hours: 0.52461653627451,
+    innerPack: 0.5225085,
+    outerPack: 0.175,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0,
+    thirdParty: 1.5,
+    storage: 0.175,
+  },
+  {
+    harnessId: '6608442966',
+    name: '组合式充电插座线束总成',
+    ratio: 0.525,
+    hours: 1.0515028120915,
+    innerPack: 4.094525,
+    outerPack: 0.875,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0.833333333333333,
+    thirdParty: 3.2,
+    storage: 0.875,
+  },
+  {
+    harnessId: '6608442965',
+    name: '组合式充电插座线束总成',
+    ratio: 0.105,
+    hours: 1.04994725653595,
+    innerPack: 4.094525,
+    outerPack: 0.875,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0.833333333333333,
+    thirdParty: 3.2,
+    storage: 0.875,
+  },
+  {
+    harnessId: '6608507680',
+    name: '组合式充电插座线束总成',
+    ratio: 0.07,
+    hours: 1.07343166993464,
+    innerPack: 4.094525,
+    outerPack: 0.875,
+    freight: 0,
+    exFreight: 0,
+    shortHaul: 0.833333333333333,
+    thirdParty: 3.2,
+    storage: 0.875,
+  },
+];
+
+/**
+ * Seed G281 project using real E281 data
+ */
+export async function seedG281Project(): Promise<string> {
+  const projectId = 'g281-demo';
+  const now = new Date().toISOString();
+
+  // 1. Create ProjectRecord
+  const g281Project: ProjectRecord = {
+    id: projectId,
+    meta: {
+      projectCode: 'E281',
+      projectName: '吉利E281高压线束',
+      customer: '吉利汽车',
+      platform: 'G281',
+      lifecycleYears: 7,
+      createdAt: now,
+      updatedAt: now,
+      status: 'awarded',
+    },
+    config: {
+      costRates: {
+        laborRate: 35,
+        mfgRate: 46.69,
+        wasteRate: 0.01,
+        mgmtRate: 0.06,
+        profitRate: 0.056627,
+      },
+      metalPrices: {
+        copper: 76450,
+        aluminum: 18910,
+      },
+      volumes: [
+        { year: 1, volume: 20000 },
+        { year: 2, volume: 80000 },
+        { year: 3, volume: 120000 },
+        { year: 4, volume: 120000 },
+        { year: 5, volume: 100000 },
+        { year: 6, volume: 80000 },
+        { year: 7, volume: 40000 },
+      ],
+      annualDropRate: 0.02,
+    },
+  };
+
+  await db.projects.put(g281Project);
+
+  // 2. Create HarnessRecord entries with real BOM data
+  const harnessRecords: HarnessRecord[] = HARNESS_SEED_DATA.map((seed) => ({
+    id: `g281-${seed.harnessId}`,
+    projectId: projectId,
+    scenarioId: '',
+    eopYear: null,
+    harnessId: seed.harnessId,
+    harnessName: seed.name,
+    updatedAt: now,
+    input: {
+      harnessId: seed.harnessId,
+      harnessName: seed.name,
+      vehicleRatio: seed.ratio,
+      bom: G281_BOM_DATA[seed.harnessId] || [],
+      frontHours: seed.hours,
+      backHours: 0,
+      packaging: {
+        innerBoxCost: seed.innerPack,
+        outerBoxCost: seed.outerPack,
+        palletCost: 0,
+        trayDividerCost: 0,
+        bubbleWrapCost: 0,
+        labelCost: 0,
+        subtotal: seed.innerPack + seed.outerPack,
+      },
+      freight: {
+        freight: seed.freight,
+        excessFreight: seed.exFreight,
+        shortHaul: seed.shortHaul,
+        thirdPartyWarehouse: seed.thirdParty,
+        storage: seed.storage,
+        subtotal: seed.freight + seed.exFreight + seed.shortHaul + seed.thirdParty + seed.storage,
+      },
+      processHours: seed.hours,
+    } as any,
+    result: undefined,
+  }));
+
+  await db.harnesses.bulkPut(harnessRecords);
+
+  return projectId;
+}

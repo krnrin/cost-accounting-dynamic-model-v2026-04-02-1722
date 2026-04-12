@@ -1,0 +1,191 @@
+- generic [ref=e51]:
+  - complementary [ref=e52]:
+    - generic [ref=e54]:
+      - generic [ref=e55] [cursor=pointer]:
+        - img "home" [ref=e56]:
+          - img [ref=e57]
+        - generic [ref=e59]: 项目
+      - generic [ref=e60] [cursor=pointer]:
+        - img "file" [ref=e61]:
+          - img [ref=e62]
+        - generic [ref=e64]: 报表
+      - generic [ref=e65] [cursor=pointer]:
+        - generic [ref=e66]:
+          - img "bell" [ref=e67]:
+            - img [ref=e68]
+          - generic [ref=e71]: "15"
+        - generic [ref=e72]: 预警
+      - generic [ref=e73] [cursor=pointer]:
+        - img "user" [ref=e74]:
+          - img [ref=e75]
+        - generic [ref=e78]: 我的
+  - generic [ref=e79]:
+    - generic [ref=e81]:
+      - generic [ref=e82]:
+        - generic [ref=e83] [cursor=pointer]: 总览
+        - generic [ref=e84] [cursor=pointer]: 分析
+        - generic [ref=e85]: 报价
+        - generic [ref=e86]: 价格
+        - generic [ref=e87]: 模拟
+        - generic [ref=e88]: 分摊
+        - generic [ref=e89]: 设变
+        - generic [ref=e90]: 跟踪
+        - generic [ref=e91]: 配置
+        - generic [ref=e92] [cursor=pointer]: 设置
+      - generic [ref=e93]:
+        - generic [ref=e94]:
+          - strong [ref=e96]: 系统管理员-测试
+          - generic [ref=e97]: ADMIN
+        - button "退出" [ref=e98] [cursor=pointer]:
+          - generic [ref=e99]: 退出
+    - main [ref=e100]:
+      - generic [ref=e102]:
+        - generic [ref=e103]:
+          - generic [ref=e104]:
+            - heading "项目列表" [level=4] [ref=e105]
+            - text: 支持搜索、状态筛选、新建、删除并进入项目
+          - generic [ref=e106]:
+            - button "upload 导入项目" [ref=e107] [cursor=pointer]:
+              - generic [ref=e108]:
+                - img "upload" [ref=e109]:
+                  - img [ref=e110]
+                - generic [ref=e112]: 导入项目
+            - button "plus 新建项目" [ref=e113] [cursor=pointer]:
+              - generic [ref=e114]:
+                - img "plus" [ref=e115]:
+                  - img [ref=e116]
+                - generic [ref=e118]: 新建项目
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - img "search" [ref=e122]:
+              - img [ref=e123]
+            - textbox "搜索项目名称、编号或客户" [ref=e125]
+          - generic [ref=e126]:
+            - generic [ref=e127] [cursor=pointer]:
+              - generic [ref=e128]:
+                - radio "全部" [checked] [ref=e129]
+                - img "radio" [ref=e131]:
+                  - img [ref=e132]
+              - generic [ref=e135]: 全部
+            - generic [ref=e136] [cursor=pointer]:
+              - radio "进行中" [ref=e138]
+              - generic [ref=e140]: 进行中
+            - generic [ref=e141] [cursor=pointer]:
+              - radio "已完成" [ref=e143]
+              - generic [ref=e145]: 已完成
+            - generic [ref=e146] [cursor=pointer]:
+              - radio "已归档" [ref=e148]
+              - generic [ref=e150]: 已归档
+        - generic [ref=e154]:
+          - grid [ref=e157]:
+            - rowgroup [ref=e167]:
+              - row "项目编号 项目名称 客户 状态 线束数 场景数 更新时间 操作" [ref=e168]:
+                - columnheader "项目编号" [ref=e169]
+                - columnheader "项目名称" [ref=e170]
+                - columnheader "客户" [ref=e171]
+                - columnheader "状态" [ref=e172]
+                - columnheader "线束数" [ref=e173]
+                - columnheader "场景数" [ref=e174]
+                - columnheader "更新时间" [ref=e175]
+                - columnheader "操作" [ref=e176]
+            - rowgroup [ref=e177]:
+              - 'row "G281 G281高压线束项目 SEA 吉利汽车 Tag: 草稿 4 2 2026/4/11 进入项目 edit download upload delete" [ref=e178] [cursor=pointer]':
+                - gridcell "G281" [ref=e179]:
+                  - strong [ref=e181]: G281
+                - gridcell "G281高压线束项目 SEA" [ref=e182]:
+                  - generic [ref=e183]:
+                    - generic [ref=e184]: G281高压线束项目
+                    - text: SEA
+                - gridcell "吉利汽车" [ref=e185]
+                - 'gridcell "Tag: 草稿" [ref=e186]':
+                  - 'generic "Tag: 草稿" [ref=e187]':
+                    - generic [ref=e188]: 草稿
+                - gridcell "4" [ref=e189]
+                - gridcell "2" [ref=e190]
+                - gridcell "2026/4/11" [ref=e191]
+                - gridcell "进入项目 edit download upload delete" [ref=e192]:
+                  - generic [ref=e193]:
+                    - button "进入项目" [ref=e194]:
+                      - generic [ref=e195]: 进入项目
+                    - button "edit" [ref=e196]:
+                      - img "edit" [ref=e198]:
+                        - img [ref=e199]
+                    - button "download" [ref=e202]:
+                      - img "download" [ref=e204]:
+                        - img [ref=e205]
+                    - button "upload" [ref=e207]:
+                      - img "upload" [ref=e209]:
+                        - img [ref=e210]
+                    - button "delete" [ref=e212]:
+                      - img "delete" [ref=e214]:
+                        - img [ref=e215]
+              - 'row "E163028 Project 163028-更新 CMA 吉利汽车 Tag: 草稿 0 0 2026/4/10 进入项目 edit download upload delete" [ref=e217] [cursor=pointer]':
+                - gridcell "E163028" [ref=e218]:
+                  - strong [ref=e220]: E163028
+                - gridcell "Project 163028-更新 CMA" [ref=e221]:
+                  - generic [ref=e222]:
+                    - generic [ref=e223]: Project 163028-更新
+                    - text: CMA
+                - gridcell "吉利汽车" [ref=e224]
+                - 'gridcell "Tag: 草稿" [ref=e225]':
+                  - 'generic "Tag: 草稿" [ref=e226]':
+                    - generic [ref=e227]: 草稿
+                - gridcell "0" [ref=e228]
+                - gridcell "0" [ref=e229]
+                - gridcell "2026/4/10" [ref=e230]
+                - gridcell "进入项目 edit download upload delete" [ref=e231]:
+                  - generic [ref=e232]:
+                    - button "进入项目" [ref=e233]:
+                      - generic [ref=e234]: 进入项目
+                    - button "edit" [ref=e235]:
+                      - img "edit" [ref=e237]:
+                        - img [ref=e238]
+                    - button "download" [ref=e241]:
+                      - img "download" [ref=e243]:
+                        - img [ref=e244]
+                    - button "upload" [ref=e246]:
+                      - img "upload" [ref=e248]:
+                        - img [ref=e249]
+                    - button "delete" [ref=e251]:
+                      - img "delete" [ref=e253]:
+                        - img [ref=e254]
+              - 'row "E263230 Project 263230-更新 CMA 吉利汽车 Tag: 草稿 0 0 2026/4/10 进入项目 edit download upload delete" [ref=e256] [cursor=pointer]':
+                - gridcell "E263230" [ref=e257]:
+                  - strong [ref=e259]: E263230
+                - gridcell "Project 263230-更新 CMA" [ref=e260]:
+                  - generic [ref=e261]:
+                    - generic [ref=e262]: Project 263230-更新
+                    - text: CMA
+                - gridcell "吉利汽车" [ref=e263]
+                - 'gridcell "Tag: 草稿" [ref=e264]':
+                  - 'generic "Tag: 草稿" [ref=e265]':
+                    - generic [ref=e266]: 草稿
+                - gridcell "0" [ref=e267]
+                - gridcell "0" [ref=e268]
+                - gridcell "2026/4/10" [ref=e269]
+                - gridcell "进入项目 edit download upload delete" [ref=e270]:
+                  - generic [ref=e271]:
+                    - button "进入项目" [ref=e272]:
+                      - generic [ref=e273]: 进入项目
+                    - button "edit" [ref=e274]:
+                      - img "edit" [ref=e276]:
+                        - img [ref=e277]
+                    - button "download" [ref=e280]:
+                      - img "download" [ref=e282]:
+                        - img [ref=e283]
+                    - button "upload" [ref=e285]:
+                      - img "upload" [ref=e287]:
+                        - img [ref=e288]
+                    - button "delete" [ref=e290]:
+                      - img "delete" [ref=e292]:
+                        - img [ref=e293]
+          - generic [ref=e295]:
+            - generic [ref=e296]: 显示第 1 条-第 3 条，共 3 条
+            - list [ref=e298]:
+              - button "Previous" [disabled] [ref=e299]:
+                - img "chevron_left" [ref=e300]:
+                  - img [ref=e301]
+              - listitem "Page 1" [ref=e303] [cursor=pointer]: "1"
+              - button "Next" [disabled] [ref=e304]:
+                - img "chevron_right" [ref=e305]:
+                  - img [ref=e306]

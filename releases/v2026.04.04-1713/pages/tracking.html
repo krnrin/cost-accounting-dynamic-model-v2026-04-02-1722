@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>追踪 - 生命周期成本平台</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
+  <link rel="stylesheet" href="../ui/dashboard.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f0f1a;
+      color: #e5e7eb;
+    }
+    .page-header {
+      padding: 20px 24px 12px;
+    }
+    .page-header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+    }
+    .page-header p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: #9ca3af;
+      line-height: 1.6;
+    }
+    .tracking-content {
+      padding: 0 24px 24px;
+    }
+    .status-bar,
+    .trk-section,
+    .trk-card {
+      margin-top: 16px;
+      background: #151527;
+      border: 1px solid #2a2a3e;
+      border-radius: 12px;
+    }
+    .status-bar {
+      padding: 14px 16px;
+      font-size: 13px;
+      color: #d1d5db;
+    }
+    .trk-section,
+    .trk-card {
+      padding: 16px;
+    }
+    .trk-section h2,
+    .trk-card h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+    .trk-section p,
+    .trk-card p {
+      margin: 0 0 12px;
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.6;
+    }
+    .summary-grid,
+    .trk-grid {
+      display: grid;
+      gap: 16px;
+    }
+    .summary-grid {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    .trk-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .summary-card,
+    .risk-card,
+    .queue-item {
+      padding: 14px;
+      background: #111125;
+      border: 1px solid #27273a;
+      border-radius: 10px;
+    }
+    .summary-card strong,
+    .risk-card strong,
+    .queue-item strong {
+      display: block;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .summary-card span,
+    .risk-card span,
+    .queue-item span {
+      display: block;
+      margin-top: 8px;
+      font-size: 20px;
+      font-weight: 700;
+      color: #f8fafc;
+    }
+    .summary-card small,
+    .risk-card small,
+    .queue-item small {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #93c5fd;
+      line-height: 1.5;
+    }
+    .queue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .table-wrap {
+      overflow: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    th,
+    td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #27273a;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: #cbd5e1;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    td {
+      color: #e5e7eb;
+      line-height: 1.5;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #172036;
+      border: 1px solid #2b3b63;
+      color: #bfdbfe;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .tag.high {
+      background: #341414;
+      border-color: #7f1d1d;
+      color: #fecaca;
+    }
+    .tag.medium {
+      background: #35230f;
+      border-color: #92400e;
+      color: #fde68a;
+    }
+    .tag.low {
+      background: #172036;
+      border-color: #1d4ed8;
+      color: #bfdbfe;
+    }
+    .empty {
+      padding: 12px;
+      border-radius: 8px;
+      background: #111125;
+      color: #9ca3af;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .muted {
+      color: #94a3b8;
+    }
+    @media (max-width: 1120px) {
+      .trk-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>追踪</h1>
+    <p>本页只承载成本异常治理，不重复充当正常流程主看板。重点聚焦协议价落实、年降谈判、一次性费用回收、生命周期成本偏差、残余料/呆滞料以及未闭环事项。</p>
+  </div>
+
+  <div class="tracking-content">
+    <div id="trkStatus" class="status-bar">正在初始化追踪上下文...</div>
+
+    <section class="trk-section">
+      <h2>异常总览</h2>
+      <div id="trkSummaryMount" class="summary-grid"></div>
+    </section>
+
+    <div class="trk-grid">
+      <section class="trk-card">
+        <h3>优先处置队列</h3>
+        <p>按审批、协议价、年降、残余料和成本偏差综合排序，优先展示最需要闭环的事项。</p>
+        <div id="focusQueueMount"></div>
+      </section>
+      <section class="trk-card">
+        <h3>供应商风险分布</h3>
+        <p>按供应商聚合协议价异常，帮助采购快速识别优先谈判对象。</p>
+        <div id="protoDetails"></div>
+      </section>
+    </div>
+
+    <div class="trk-grid">
+      <section class="trk-section">
+        <h2>协议价落实</h2>
+        <p>直接展示目标协议价、供应商回复价、初始报价、差额和建议推进阶段，不再只给模糊字符串。</p>
+        <div id="trkProgressPrice"></div>
+      </section>
+      <section class="trk-section">
+        <h2>年降谈判</h2>
+        <p>基于报价版与定点版年度收入差异，识别需要单独跟踪的生命周期年降风险。</p>
+        <div id="annualDropDetails"></div>
+      </section>
+    </div>
+
+    <div class="trk-grid">
+      <section class="trk-section">
+        <h2>一次性费用回收</h2>
+        <p>跟踪设备、模具、工装等一次性费用的基线差异与后续回收动作。</p>
+        <div id="oneTimeDetails"></div>
+      </section>
+      <section class="trk-section">
+        <h2>成本偏差</h2>
+        <p>对比报价与定点的关键成本 bucket，识别生命周期利润被侵蚀的位置。</p>
+        <div id="costDeviationDetails"></div>
+      </section>
+    </div>
+
+    <div class="trk-grid">
+      <section class="trk-section">
+        <h2>残余料 / 呆滞料</h2>
+        <p>基于 BOM 对齐结果跟踪报价独有料与部分匹配料，作为残余料和呆滞料治理入口。</p>
+        <div id="residualDetails"></div>
+      </section>
+      <section class="trk-section">
+        <h2>未闭环事项</h2>
+        <p>优先展示待审批和未发布节点，避免异常项停留在流程中间态。</p>
+        <div id="unfinishedDetails"></div>
+      </section>
+    </div>
+  </div>
+
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+  <script src="../g281_data_bundle.js"></script>
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+  <script src="../engine/shared_utils.js"></script>
+  <script src="../engine/state_normalizer.js"></script>
+  <script src="../engine/snapshot_resolver.js"></script>
+  <script src="../engine/annual_calc.js"></script>
+  <script src="../engine/config_bridge.js"></script>
+  <script src="../engine/computation_path.js"></script>
+  <script src="../engine/compute_model.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../engine/align_key_enhancer.js"></script>
+  <script src="../engine/progress_price_tracker.js"></script>
+  <script src="../engine/residual_pool_handler.js"></script>
+  <script src="../engine/workflow_stage_board_builder.js"></script>
+  <script src="../engine/cost_exception_tracker_builder.js"></script>
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../core/storage_adapter.js"></script>
+  <script src="../core/platform_gateways.js"></script>
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+  <script>
+    (function () {
+      function textOf(value, fallback) {
+        const text = String(value == null ? '' : value).trim();
+        return text || (fallback == null ? '' : fallback);
+      }
+
+      function numberOf(value, fallback) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : (fallback == null ? 0 : fallback);
+      }
+
+      function looksBroken(text) {
+        return /[\uFFFD]|[�]/.test(String(text || ''));
+      }
+
+      function safeProjectConfig(rawConfig, runtime) {
+        const master = runtime && runtime.master ? runtime.master : {};
+        const projectCode = textOf(rawConfig && (rawConfig.projectCode || rawConfig.projectId), textOf(master.projectCode || master.projectId, 'PROJECT'));
+        const fallbackName = textOf(master.name, `${projectCode} 生命周期成本平台`);
+        return Object.assign({}, rawConfig || {}, {
+          projectCode,
+          projectId: textOf(rawConfig && rawConfig.projectId, projectCode),
+          projectName: looksBroken(rawConfig && rawConfig.projectName) ? fallbackName : textOf(rawConfig && rawConfig.projectName, fallbackName),
+        });
+      }
+
+      function ensureProject(projectConfig) {
+        const registry = window.G281ProjectRegistry;
+        if (!registry || !projectConfig || !projectConfig.projectCode) return;
+        try {
+          registry.registerProject(projectConfig.projectCode, projectConfig);
+        } catch (error) {}
+        try {
+          if (registry.getActiveCode() !== projectConfig.projectCode) {
+            registry.switchProject(projectConfig.projectCode);
+          }
+        } catch (error) {}
+      }
+
+      function mountProjectSwitcher(nav) {
+        const host = nav && nav.querySelector('.g281-nav-meta');
+        if (!host || !window.G281ProjectSwitcher || !window.G281ProjectSwitcher.render) return;
+        const mount = document.createElement('div');
+        host.appendChild(mount);
+        window.G281ProjectSwitcher.render(mount, { onSwitch: () => location.reload() });
+      }
+
+      function escapeHtml(value) {
+        return textOf(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function formatCurrency(value, digits) {
+        const precision = digits == null ? 2 : digits;
+        return numberOf(value, 0).toFixed(precision);
+      }
+
+      function formatSignedCurrency(value, digits) {
+        const numeric = numberOf(value, 0);
+        const formatted = formatCurrency(Math.abs(numeric), digits);
+        if (numeric > 0) return `+${formatted}`;
+        if (numeric < 0) return `-${formatted}`;
+        return formatted;
+      }
+
+      function formatPercent(value) {
+        return `${(numberOf(value, 0) * 100).toFixed(2)}%`;
+      }
+
+      function tag(label, severity) {
+        return `<span class="tag ${escapeHtml(textOf(severity, 'low'))}">${escapeHtml(label)}</span>`;
+      }
+
+      function renderTable(mountId, columns, rows, emptyText) {
+        const mount = document.getElementById(mountId);
+        if (!rows || !rows.length) {
+          mount.innerHTML = `<div class="empty">${escapeHtml(emptyText)}</div>`;
+          return;
+        }
+
+        mount.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>${columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join('')}</tr>
+              </thead>
+              <tbody>
+                ${rows.map((row) => `
+                  <tr>
+                    ${columns.map((column) => {
+                      const raw = typeof column.render === 'function' ? column.render(row) : row[column.key];
+                      return `<td>${raw == null ? '' : raw}</td>`;
+                    }).join('')}
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderSummary(tracker) {
+        const mount = document.getElementById('trkSummaryMount');
+        mount.innerHTML = (tracker.overview || []).map((card) => `
+          <div class="summary-card">
+            <strong>${escapeHtml(card.label)}</strong>
+            <span>${escapeHtml(textOf(card.value, '0'))}</span>
+            <small>${escapeHtml(textOf(card.detail, ''))}</small>
+          </div>
+        `).join('');
+      }
+
+      function renderStatus(config, tracker, session, baselineKey) {
+        const summary = tracker && tracker.summaries ? tracker.summaries : {};
+        document.getElementById('trkStatus').textContent =
+          `${textOf(config && config.projectName, '生命周期成本平台')} / 基线 ${textOf(baselineKey, 'quote')} / 角色 ${textOf(session && session.roleKey, 'costing')} / 协议价异常 ${numberOf(summary.protocol && summary.protocol.openCount, 0)} / 未闭环 ${numberOf(summary.unfinished && summary.unfinished.count, 0)}`;
+      }
+
+      function renderFocusQueue(items) {
+        const mount = document.getElementById('focusQueueMount');
+        if (!items || !items.length) {
+          mount.innerHTML = '<div class="empty">当前没有需要优先升级处理的异常。</div>';
+          return;
+        }
+        mount.innerHTML = `<div class="queue-list">${items.map((item) => `
+          <div class="queue-item">
+            <strong>${escapeHtml(item.category)}</strong>
+            <span>${escapeHtml(item.label)}</span>
+            <small>${escapeHtml(item.detail)}</small>
+          </div>
+        `).join('')}</div>`;
+      }
+
+      function renderSupplierRisk(items) {
+        const mount = document.getElementById('protoDetails');
+        if (!items || !items.length) {
+          mount.innerHTML = '<div class="empty">当前没有供应商风险项。</div>';
+          return;
+        }
+        mount.innerHTML = `<div class="summary-grid">${items.map((item) => `
+          <div class="risk-card">
+            <strong>${escapeHtml(item.supplier)}</strong>
+            <span>${escapeHtml(textOf(item.issueCount, '0'))}</span>
+            <small>待回复 ${escapeHtml(textOf(item.pendingCount, '0'))} / 正差额 ${escapeHtml(formatCurrency(item.positiveGapTotal, 2))}</small>
+            <small class="muted">${escapeHtml((item.partNumbers || []).join(' / '))}</small>
+          </div>
+        `).join('')}</div>`;
+      }
+
+      function resolveBaselineKey(repo) {
+        const routerState = window.G281PageRouter && typeof window.G281PageRouter.resolveState === 'function'
+          ? window.G281PageRouter.resolveState()
+          : {};
+        const candidate = textOf(
+          routerState.baselineKey || routerState.stageKey || routerState.versionKey,
+          'quote'
+        );
+        return repo && typeof repo.getFinancialVersion === 'function' && repo.getFinancialVersion(candidate)
+          ? candidate
+          : 'quote';
+      }
+
+      async function bootstrap() {
+        const runtime = window.G281_RUNTIME || {};
+        const repo = window.G281Repo.init(runtime);
+        const baselineKey = resolveBaselineKey(repo);
+        const config = safeProjectConfig(await window.ConfigLoader.loadProjectConfig('../config/g281.project.json'), runtime);
+        ensureProject(config);
+
+        const nav = window.G281Nav.mountNavBar(config.projectName);
+        mountProjectSwitcher(nav);
+
+        const session = window.AuthGateway && window.AuthGateway.getSession
+          ? await window.AuthGateway.getSession({ roleKey: 'costing' })
+          : { roleKey: 'costing' };
+        const tracker = window.G281CostExceptionTrackerBuilder.build(repo, { baselineKey });
+
+        renderStatus(config, tracker, session, baselineKey);
+        renderSummary(tracker);
+        renderFocusQueue(tracker.focusQueue || []);
+        renderSupplierRisk((tracker.protocolBySupplier || []).slice(0, 6));
+
+        renderTable(
+          'trkProgressPrice',
+          [
+            { label: '料号', render: (row) => escapeHtml(textOf(row.partNumber, '--')) },
+            { label: '名称', render: (row) => escapeHtml(textOf(row.partName, '--')) },
+            { label: '供应商', render: (row) => escapeHtml(textOf(row.supplier, '--')) },
+            { label: '目标协议价', render: (row) => escapeHtml(formatCurrency(row.targetProtocolPrice, 2)) },
+            { label: '回复价', render: (row) => row.replyPrice == null ? '<span class="muted">待回复</span>' : escapeHtml(formatCurrency(row.replyPrice, 2)) },
+            { label: '初始报价', render: (row) => row.initialQuote == null ? '<span class="muted">--</span>' : escapeHtml(formatCurrency(row.initialQuote, 2)) },
+            { label: '差额', render: (row) => row.difference == null ? '<span class="muted">待确认</span>' : escapeHtml(formatSignedCurrency(row.difference, 2)) },
+            { label: '状态', render: (row) => `${tag(textOf(row.statusLabel, '--'), row.severity)}` },
+            { label: '建议阶段', render: (row) => escapeHtml(textOf(row.recommendedStageLabel, '--')) },
+          ],
+          tracker.protocol || [],
+          '当前没有协议价异常。'
+        );
+
+        renderTable(
+          'annualDropDetails',
+          [
+            { label: '年份', render: (row) => escapeHtml(textOf(row.year, '--')) },
+            { label: '报价收入', render: (row) => escapeHtml(formatCurrency(row.quoteRevenue, 2)) },
+            { label: '定点收入', render: (row) => escapeHtml(formatCurrency(row.fixedRevenue, 2)) },
+            { label: '收入差额', render: (row) => escapeHtml(formatSignedCurrency(row.deltaRevenue, 2)) },
+            { label: '差异率', render: (row) => escapeHtml(formatPercent(row.deltaPct)) },
+            { label: '结论', render: (row) => `${tag(textOf(row.statusLabel, '--'), row.severity)}` },
+          ],
+          tracker.annualDrop || [],
+          '当前没有需要单独跟踪的年降风险。'
+        );
+
+        renderTable(
+          'oneTimeDetails',
+          [
+            { label: '类别', render: (row) => escapeHtml(textOf(row.label, '--')) },
+            { label: '报价金额', render: (row) => escapeHtml(formatCurrency(row.quoteAmount, 2)) },
+            { label: '定点金额', render: (row) => escapeHtml(formatCurrency(row.fixedAmount, 2)) },
+            { label: '差额', render: (row) => escapeHtml(formatSignedCurrency(row.deltaAmount, 2)) },
+            { label: '报价项数', render: (row) => escapeHtml(textOf(row.quoteCount, '0')) },
+            { label: '定点项数', render: (row) => escapeHtml(textOf(row.fixedCount, '0')) },
+            { label: '动作', render: (row) => escapeHtml(textOf(row.nextAction, '--')) },
+          ],
+          tracker.oneTimeRecovery || [],
+          '当前没有一次性费用回收项。'
+        );
+
+        renderTable(
+          'costDeviationDetails',
+          [
+            { label: '成本要素', render: (row) => escapeHtml(textOf(row.label, '--')) },
+            { label: '报价', render: (row) => escapeHtml(formatCurrency(row.quote, 4)) },
+            { label: '定点', render: (row) => escapeHtml(formatCurrency(row.fixed, 4)) },
+            { label: '偏差', render: (row) => escapeHtml(formatSignedCurrency(row.delta, 4)) },
+            { label: '偏差率', render: (row) => escapeHtml(formatPercent(row.deltaPct)) },
+            { label: '结论', render: (row) => `${tag(textOf(row.statusLabel, '--'), row.severity)}` },
+          ],
+          tracker.costDeviation || [],
+          '当前没有成本偏差项。'
+        );
+
+        renderTable(
+          'residualDetails',
+          [
+            { label: '线束号', render: (row) => escapeHtml(textOf(row.harnessId, '--')) },
+            { label: '报价独有', render: (row) => escapeHtml(textOf(row.onlyQuoteCount, '0')) },
+            { label: '部分匹配', render: (row) => escapeHtml(textOf(row.partialMatchCount, '0')) },
+            { label: '已匹配材料', render: (row) => escapeHtml(textOf(row.materialMatchedCount, '0')) },
+            { label: '总成散件量', render: (row) => escapeHtml(textOf(row.assemblyPartCount, '0')) },
+            { label: '结论', render: (row) => `${tag(textOf(row.statusLabel, '--'), row.severity)}` },
+            { label: '建议动作', render: (row) => escapeHtml(textOf(row.nextAction, '--')) },
+          ],
+          tracker.residual || [],
+          '当前没有残余料或呆滞料候选。'
+        );
+
+        renderTable(
+          'unfinishedDetails',
+          [
+            { label: '类型', render: (row) => escapeHtml(textOf(row.typeLabel, '--')) },
+            { label: '事项', render: (row) => escapeHtml(textOf(row.label, '--')) },
+            { label: '状态', render: (row) => `${tag(textOf(row.statusLabel, '--'), 'high')}` },
+            { label: '建议动作', render: (row) => escapeHtml(textOf(row.nextAction, '--')) },
+          ],
+          tracker.unfinished || [],
+          '当前没有未闭环事项。'
+        );
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        bootstrap().catch((error) => {
+          document.getElementById('trkStatus').textContent = `追踪页初始化失败: ${error && error.message ? error.message : error}`;
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

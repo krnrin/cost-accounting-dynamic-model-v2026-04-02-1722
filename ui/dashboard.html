@@ -1,0 +1,712 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>高压线束通用成本核算平台</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="../vendor/univer-editor/g281_univer_template_editor.css?v=20260329b" />
+  <link rel="stylesheet" href="./base.css?v=20260403a" />
+  <link rel="stylesheet" href="./layout.css?v=20260403a" />
+  <link rel="stylesheet" href="./dashboard.css?v=20260331d" />
+  <link rel="stylesheet" href="../g281_bom_validation.css?v=20260331g" />
+  <link rel="stylesheet" href="./insights.css?v=20260328b" />
+  <link rel="stylesheet" href="./logic_drawer.css?v=20260331a" />
+  <link rel="stylesheet" href="../g281_factory_efficiency_view.css?v=20260327b" data-fe-style="factory-efficiency" />
+  <link rel="stylesheet" href="./version_timeline.css?v=20260329a" />
+  <link rel="stylesheet" href="./workbook_viewer.css?v=20260330e" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="eyebrow">UNIVERSAL · HV HARNESS COST ENGINE</div>
+        <h1>高压线束<br />动态利润引擎</h1>
+        <div class="meta-row">
+          <span class="chip"><span class="dot"></span><span id="sheetCount">18 sheets parsed</span></span>
+          <span class="chip"><span class="dot alt"></span><span id="faultCount">7 formula faults</span></span>
+          <span class="chip"><span class="dot gold"></span><span id="priceTypeCount">9 price types</span></span>
+          <span class="chip"><span class="dot"></span><span>2026-2031 生命周期</span></span>
+          <span class="chip"><span class="dot alt"></span><span>单文件离线原型</span></span>
+        </div>
+      </div>
+
+      <div style="padding:0 1.2rem .5rem">
+        <a href="./wizard.html" style="display:inline-block;padding:.45rem 1rem;background:#4361ee;color:#fff;border-radius:6px;text-decoration:none;font-size:.85rem;font-weight:600;letter-spacing:.5px">+ 新建项目</a>
+      </div>
+
+      <section class="panel" id="scenarioConfigPanel">
+        <h2>场景名称</h2>
+        <label class="field">
+          <span>当前测算场景</span>
+          <input id="scenarioName" type="text" value="通用基准生命周期场景" />
+        </label>
+        <div class="sticky-summary" id="activeSummary"></div>
+      </section>
+
+      <section class="panel" id="costVersionPanel">
+        <h2>版本管理</h2>
+        <div class="version-group"><div class="version-title"><span>BOM 版本</span><span>材料 / 结构</span></div><div class="option-row" data-group="bom"></div><div class="version-note" id="bomNote"></div></div>
+        <div class="version-group metal-version-group"><div class="version-title"><span>铜铝基价</span><span>铜基 / 铝基</span></div><div class="option-row" data-group="metal"></div><div class="metal-version-editor" id="metalVersionEditor"></div><div class="version-note" id="metalNote"></div></div>
+        <div class="version-group"><div class="version-title"><span>连接器价格</span><span>报价 / 定点 / 进度</span></div><div class="option-row" data-group="connector"></div><div class="version-note" id="connectorNote"></div></div>
+        <div class="version-group"><div class="version-title"><span>工时版本</span><span>小时 / 费率</span></div><div class="option-row" data-group="labor"></div><div class="version-note" id="laborNote"></div></div>
+        <div class="version-group"><div class="version-title"><span>设备资源</span><span>折旧 / 产线</span></div><div class="option-row" data-group="equipment"></div><div class="version-note" id="equipmentNote"></div></div>
+        <div class="version-group"><div class="version-title"><span>包装物流</span><span>包装 / 运费 / 仓储</span></div><div class="option-row" data-group="packaging"></div><div class="version-note" id="packagingNote"></div></div>
+        <div class="version-group"><div class="version-title"><span>销量预测</span><span>年度量纲</span></div><div class="option-row" data-group="sales"></div><div class="version-note" id="salesNote"></div></div>
+        <div class="version-group"><div class="version-title"><span>配置比例</span><span>车型占比</span></div><div class="option-row" data-group="mix"></div><div class="version-note" id="mixNote"></div></div>
+        <div class="version-group"><div class="version-title"><span>VAVE</span><span>直接降本</span></div><div class="option-row" data-group="vave"></div><div class="version-note" id="vaveNote"></div></div>
+      </section>
+
+      <section class="panel" id="volumeMirrorPanel">
+        <h2>量纲变化</h2>
+        <p class="section-note compact-note">铜价和铝价请在上方“版本管理 > 铜铝基价”里维护，这里只镜像显示当前生效版本，避免误改。</p>
+        <div class="field-grid">
+          <label class="field"><span>铜价（元/吨）</span><input id="copperPrice" type="number" step="100" min="50000" max="100000" value="69300" readonly /></label>
+          <label class="field"><span>铝价（元/吨）</span><input id="aluminumPrice" type="number" step="100" min="12000" max="30000" value="18500" readonly /></label>
+          <label class="field"><span>前工程工时（h/套）</span><input id="directHours" type="number" step="0.01" min="0" value="1.13" /></label>
+          <label class="field"><span>前工程费率（元/h）</span><input id="directRate" type="number" step="0.1" min="0" value="35" /></label>
+          <label class="field"><span>后工程工时（h/套）</span><input id="manufacturingHours" type="number" step="0.01" min="0" value="0.47" /></label>
+          <label class="field"><span>制造费率（元/h）</span><input id="manufacturingRate" type="number" step="0.1" min="0" value="47" /></label>
+        </div>
+      </section>
+
+      <section class="panel" id="packSplitPanel">
+        <h2>包装拆分</h2>
+        <div class="field-grid">
+          <label class="field"><span>内外包装</span><input id="packInner" type="number" step="0.01" value="3.20" /></label>
+          <label class="field"><span>运输费</span><input id="packFreight" type="number" step="0.01" value="4.10" /></label>
+          <label class="field"><span>仓储费</span><input id="packWarehouse" type="number" step="0.01" value="2.95" /></label>
+          <label class="field"><span>短驳 / 其他</span><input id="packOther" type="number" step="0.01" value="2.3943008441667" /></label>
+        </div>
+      </section>
+
+      <section class="panel" id="annualVolumePanel">
+        <h2>年度销量</h2>
+        <div class="year-grid">
+          <label class="year-card"><span class="y">2026</span><input id="vol2026" type="number" step="1000" value="85000" /></label>
+          <label class="year-card"><span class="y">2027</span><input id="vol2027" type="number" step="1000" value="135000" /></label>
+          <label class="year-card"><span class="y">2028</span><input id="vol2028" type="number" step="1000" value="125000" /></label>
+          <label class="year-card"><span class="y">2029</span><input id="vol2029" type="number" step="1000" value="114000" /></label>
+          <label class="year-card"><span class="y">2030</span><input id="vol2030" type="number" step="1000" value="94000" /></label>
+          <label class="year-card"><span class="y">2031</span><input id="vol2031" type="number" step="1000" value="47000" /></label>
+        </div>
+      </section>
+
+      <section class="panel" id="mixConfigPanel">
+        <h2>配置比例</h2>
+        <div class="mix-list">
+          <div class="mix-row"><div class="name">CM010 · 探索版</div><input id="mix0" type="number" step="1" value="10" /><div class="badge">0.90 / 0.92</div></div>
+          <div class="mix-row"><div class="name">CM015 · 远航版</div><input id="mix1" type="number" step="1" value="40" /><div class="badge">0.97 / 0.98</div></div>
+          <div class="mix-row"><div class="name">CM020 · 启航版</div><input id="mix2" type="number" step="1" value="35" /><div class="badge">1.00 / 1.00</div></div>
+          <div class="mix-row"><div class="name">CM030 · 星舰版</div><input id="mix3" type="number" step="1" value="15" /><div class="badge">1.15 / 1.08</div></div>
+        </div>
+      </section>
+    </aside>
+
+    <main class="main">
+      <section class="management-top-grid" id="managementTopGrid">
+        <section class="hero hero-block">
+          <div class="hero-block-head">
+            <div>
+              <h3>场景管理</h3>
+              <p class="section-note">支持各成本要素自由组合生成场景并保存。</p>
+            </div>
+          </div>
+          <div id="sceneManagementMount"></div>
+          <div class="toolbar scene-toolbar" id="sceneToolbar"></div>
+        </section>
+        <section class="hero hero-block">
+          <div class="hero-block-head">
+            <div>
+              <h3>数据管理</h3>
+              <p class="section-note">支持 BOM、资源投入、工时、包装物流、工厂效率运营费用等模块的数据修改和多版本对比。</p>
+            </div>
+          </div>
+          <div id="dataToolbarExtraMount" class="data-toolbar-extra"></div>
+          <div class="toolbar data-toolbar" id="dataToolbar"></div>
+        </section>
+      </section>
+
+      <section class="timeline-strip card" id="versionTimelineSection">
+        <div class="hero-block-head timeline-strip-head">
+          <div>
+            <h3>版本发布时间线</h3>
+            <p class="section-note">显示各成本要素版本的发布时间、最近更新时间和当前生效版本。</p>
+          </div>
+          <div id="timelineScenarioTagsWrap" class="hero-badges"></div>
+        </div>
+        <div id="versionTimelineMount" class="timeline-strip-mount"></div>
+      </section>
+
+      <section class="hero" id="legacyHeroSection">
+        <div class="hero-badges" id="scenarioTags"></div>
+        <div class="toolbar">
+          <button class="button primary" id="generateBtn">生成场景</button>
+          <button class="button ghost" id="resetBtn">恢复基准</button>
+          <button class="button ghost" id="printBtn">打印 / 导出 PDF</button>
+          <button class="button ghost" id="openBomValidationBtn">BOM 管理</button>
+          <button class="button ghost" id="openCapitalValidationBtn">资源投入管理</button>
+          <button class="button ghost" id="openLaborValidationBtn">工时管理</button>
+          <button class="button ghost" id="openPackagingValidationBtn">包装物流管理</button>
+          <button class="button ghost" id="openAnnualDropManagerBtn">年降管理</button>
+          <button class="button ghost" id="openOneTimeCustomerManagerBtn">一次性费用管理</button>
+          <button class="button ghost" id="openRebateManagerBtn">返点管理</button>
+        </div>
+      </section>
+
+      <section class="kpi-grid" id="kpiGrid"></section>
+      <div id="profitInsightsMount" class="profit-insights-mount"></div>
+      
+      <section class="card mt change-visual-section">
+        <div class="change-visual-head">
+          <div>
+            <h3>变更可视化</h3>
+            <p class="section-note">把当前场景相对报价基准的核心变化压缩到一屏里，先看变化方向，再下钻到 BOM 和各成本要素。</p>
+          </div>
+          <div class="change-visual-pill" id="changeVisualDeltaPill">0.00 pt</div>
+        </div>
+        <div class="change-visual-summary" id="changeVisualSummary"></div>
+        <div class="change-visual-grid">
+          <div class="change-visual-factor-list" id="changeVisualFactorList"></div>
+          <div class="change-visual-side">
+            <article class="change-visual-side-card">
+              <h4>BOM 摘要</h4>
+              <div class="change-visual-bom" id="changeVisualBom"></div>
+            </article>
+            <article class="change-visual-side-card">
+              <h4>测算说明</h4>
+              <div class="change-visual-context" id="changeVisualContext"></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="card mt profit-driver-section">
+        <div class="profit-driver-head">
+          <div>
+            <h3>利润驱动拆解</h3>
+            <p class="section-note">把当前版本切换对单套成本、生命周期利润和执行节奏的影响压缩到一屏，先看利润结果，再进入各管理工作台。</p>
+          </div>
+          <div class="profit-driver-actions" id="profitActionBar"></div>
+        </div>
+        <div class="profit-driver-grid" id="profitDriverGrid"></div>
+      </section>
+
+      <section class="card mt harness-profit-section">
+        <div class="profit-driver-head">
+          <div>
+            <h3>单线束号级成本核算</h3>
+            <p class="section-note">每个零件号独立核算: 材料(包含废品) + 人工 + 制造 + 管理费 + 利润 = 出厂价，加上包装和运输 = 到厂价，再按装车比加权汇总到项目级。</p>
+          </div>
+        </div>
+        <div class="harness-profit-summary" id="harnessProfitSummary"></div>
+        <p class="harness-profit-note" id="harnessProfitNote"></p>
+        <div class="table-wrap">
+          <table class="harness-profit-table">
+            <thead>
+              <tr>
+                <th>零件号</th>
+                <th>线束名称</th>
+                <th>装车比</th>
+                <th>材料</th>
+                <th>废品</th>
+                <th>人工</th>
+                <th>制造</th>
+                <th>管理</th>
+                <th>利润</th>
+                <th>出厂价</th>
+                <th>包装</th>
+                <th>运输</th>
+                <th>到厂价</th>
+              </tr>
+            </thead>
+            <tbody id="harnessProfitTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card mt wire-catalog-card">
+        <div class="wire-catalog-head">
+          <div>
+            <h3>导线原材料成本计算</h3>
+            <p class="section-note">把所有导线型号单独展开，铝重 / 铜重 / 非铜直接沿用核算表字段，铜基 / 铝基实时跟随左侧版本和手工输入重算，仅用于导线原材料成本测算。</p>
+          </div>
+        </div>
+        <div class="wire-model-summary" id="wireModelSummary"></div>
+        <p class="wire-model-note" id="wireCalcNote"></p>
+        <div class="wire-table-toolbar">
+          <p class="wire-table-status" id="wireTableStatus"></p>
+          <button class="mini-button secondary wire-table-toggle" id="toggleWireCatalogViewBtn" type="button" aria-pressed="false">显示非版本导线</button>
+        </div>
+        <div class="table-wrap wire-model-table-wrap">
+          <table class="wire-model-table">
+            <thead>
+              <tr>
+                <th>导线型号</th>
+                <th>关联</th>
+                <th>当前用量</th>
+                <th>铝重</th>
+                <th>铜重</th>
+                <th>非铜</th>
+                <th>铝基</th>
+                <th>铜基</th>
+                <th>当前单价</th>
+                <th>当前金额</th>
+              </tr>
+            </thead>
+            <tbody id="wireModelTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="bom-section">
+        <article class="card bom-engine">
+          <h3>BOM 工程台</h3>
+          <p class="section-note">把图纸线长、吃线尺寸、隐藏余量、胶带重叠率和线径放进同一套工程口径，直接看结算长度和包扎用量。</p>
+          <div class="bom-calc-grid">
+            <div class="tool-panel">
+              <div class="tool-head">
+                <span>导线线长计算器</span>
+                <span>图纸线长 / 吃线 / 隐藏余量</span>
+              </div>
+              <div class="field-grid bom-grid">
+                <label class="field"><span>图纸线长（mm）</span><input id="bomWireDrawing" type="number" step="1" min="0" value="820" /></label>
+                <label class="field"><span>吃线尺寸（mm）</span><input id="bomWireEat" type="number" step="1" min="0" value="35" /></label>
+                <label class="field"><span>隐藏利润余量（mm）</span><input id="bomWireHidden" type="number" step="1" min="0" value="18" /></label>
+              </div>
+              <div class="calc-chips" id="wireCalc"></div>
+            </div>
+            <div class="tool-panel">
+              <div class="tool-head">
+                <span>胶带用量计算器</span>
+                <span>重叠率 / 线径 / 线长联动</span>
+              </div>
+              <div class="field-grid bom-grid">
+                <label class="field"><span>线径（mm）</span><input id="bomTapeDiameter" type="number" step="0.1" min="0" value="8.5" /></label>
+                <label class="field"><span>胶带宽度（mm）</span><input id="bomTapeWidth" type="number" step="0.1" min="0" value="19" /></label>
+                <label class="field"><span>重叠率（%）</span><input id="bomTapeOverlap" type="number" step="1" min="0" max="95" value="35" /></label>
+              </div>
+              <div class="calc-chips" id="tapeCalc"></div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card bom-change">
+          <h3>零件变更关系</h3>
+          <p class="section-note">把替换、取消、新增的关系一次性拉直，同时把设备资源、呆滞处理、工时、包装和配置影响显式出来。</p>
+          <div class="bom-stats" id="bomStats"></div>
+          <div class="bom-matrix" id="bomResourceGrid"></div>
+          <div class="table-wrap">
+            <table class="bom-table" id="bomChangeTable">
+              <thead>
+                <tr>
+                  <th>动作</th>
+                  <th>零件</th>
+                  <th>替换关系</th>
+                  <th>设备资源</th>
+                  <th>呆滞处理</th>
+                  <th>工时</th>
+                  <th>包装</th>
+                  <th>配置</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="card mt connector-execution-card">
+        <div class="connector-execution-head">
+          <div>
+            <h3>连接器价格执行</h3>
+            <p class="section-note">连接器价格仍按整套执行。默认档位继续由左侧“连接器价格”控制；下方明细改为按 Excel 平铺展示，初始化按钮会按协议达成状态自动切换聚合连接器执行档位。</p>
+          </div>
+          <div class="layer-actions">
+            <button class="button ghost no-print" id="initConnectorProtocolBtn" type="button">按协议状态初始化</button>
+            <button class="button ghost no-print" id="clearConnectorOverridesBtn" type="button">清空逐项覆盖</button>
+          </div>
+        </div>
+        <div class="connector-protocol-overview">
+          <div class="connector-protocol-title">协议价达成跟踪</div>
+          <p class="connector-protocol-note" id="connectorProtocolHint">规则：同一聚合连接器下全部映射项已达成时切定点版；若已部分达成则切进度价；若仍未达成则先按报价版。下方明细只用于看整套连接器的谈价状态，不单独计价。</p>
+          <div class="bom-stats" id="connectorProtocolStats"></div>
+        </div>
+        <div class="bom-stats" id="connectorExecutionStats"></div>
+        <div class="table-wrap connector-table-wrap">
+          <table class="connector-price-table" id="connectorPriceTable">
+            <thead>
+              <tr>
+                <th>总成号</th>
+                <th>供应商</th>
+                <th>协议价</th>
+                <th>进度价</th>
+                <th>初始报价</th>
+                <th>状态</th>
+                <th>已达成</th>
+                <th>待确认</th>
+                <th>开发中</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card mt architecture-card">
+        <div class="arch-head">
+          <div>
+            <h3>四层结构总览</h3>
+            <p class="section-note">JSON 数据层负责静态主数据，计算引擎负责利润推演，历史版本库负责可追溯版本，审批记录负责流程流转。</p>
+          </div>
+          <div class="layer-actions">
+            <button class="button primary" id="saveVersionBtn">保存版本</button>
+            <button class="button ghost" id="submitApprovalBtn">提交审批</button>
+            <button class="button ghost" id="exportLayerBtn">导出 JSON</button>
+          </div>
+        </div>
+        <div class="layer-grid">
+          <div class="layer-card">
+            <div class="layer-title">JSON 数据层</div>
+            <div class="layer-value" id="layerDataCount">6 个文件</div>
+            <div class="layer-meta" id="layerDataMeta">master / bomChanges / bomValidation / connectorProtocolStatus / history / approvals</div>
+          </div>
+          <div class="layer-card">
+            <div class="layer-title">计算引擎</div>
+            <div class="layer-value">engine/compute_model.js</div>
+            <div class="layer-meta" id="layerEngineMeta">单独计算、无 DOM 依赖</div>
+          </div>
+          <div class="layer-card">
+            <div class="layer-title">历史版本库</div>
+            <div class="layer-value" id="layerHistoryCount">0 条</div>
+            <div class="layer-meta" id="layerHistoryMeta">localStorage + seed versions</div>
+          </div>
+          <div class="layer-card">
+            <div class="layer-title">审批记录</div>
+            <div class="layer-value" id="layerApprovalCount">0 条</div>
+            <div class="layer-meta" id="layerApprovalMeta">pending / approved / review</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="two-col">
+        <article class="card">
+          <h3>历史版本库</h3>
+          <p class="section-note">版本库里的每条记录都保留输入草稿和版本状态，既可以回算利润，也可以一键载入后继续推演。</p>
+          <table class="ledger-table" id="historyTable">
+            <thead><tr><th>版本</th><th>状态</th><th>利润</th><th>回收期</th><th>备注</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </article>
+        <article class="card">
+          <h3>审批记录</h3>
+          <p class="section-note">审批记录和版本库联动，默认保留提交时间、责任人和流程状态。</p>
+          <table class="ledger-table" id="approvalTable">
+            <thead><tr><th>标题</th><th>关联版本</th><th>状态</th><th>发起时间</th><th>操作</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </article>
+      </section>
+
+      <section class="panels">
+        <article class="card">
+          <h3>成本桥</h3>
+          <p class="section-note">单套成本拆分，条形长度表示占比，右侧显示金额和相对基准偏差。</p>
+          <div class="cost-bridge" id="costBridge"></div>
+        </article>
+        <article class="card">
+          <h3>年度收益图</h3>
+          <p class="section-note">六年销量与单套毛利的联动。绿色柱为利润，蓝色柱为成本，橙色柱为收入。</p>
+          <div class="svg-wrap" id="annualChart"></div>
+        </article>
+      </section>
+
+      <section class="two-col">
+        <article class="card">
+          <h3>配置结构 & 价格类型画像</h3>
+          <p class="section-note">配置比例变化会同步影响平均售价和成本系数。BOM 价格类型分布说明连接器/物料需要独立版本管理。</p>
+          <div class="price-bars" id="configBars"></div>
+          <div class="spacer"></div>
+          <div class="price-bars" id="typeBars"></div>
+        </article>
+        <article class="card">
+          <h3>变更事件总览</h3>
+          <p class="section-note">把当前生效版本压成一张事件表，便于回溯和对接审批流。</p>
+          <table class="ledger-table" id="eventTable">
+            <thead><tr><th>维度</th><th>当前版本</th><th>影响</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </article>
+      </section>
+
+      <section class="two-col">
+        <article class="card">
+          <h3>单套对比</h3>
+          <p class="section-note">当前场景 vs 基准场景，直接看净影响。</p>
+          <table class="compare-table" id="compareTable">
+            <thead><tr><th>科目</th><th>基准</th><th>当前</th><th>差异</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </article>
+        <article class="card">
+          <h3>资本投入池</h3>
+          <p class="section-note">把设备、模具、工装和研发一次性投入单独拿出来看。</p>
+          <div class="ledger" id="capitalLedger"></div>
+        </article>
+      </section>
+
+      <section class="card mt">
+        <h3>年度汇总表</h3>
+        <p class="section-note">对 2026-2031 年按销量、售价、成本与利润进行展开，适合导出到经营评审。</p>
+        <div class="table-wrap"><table class="annual-table" id="annualTable"><thead><tr><th>年度</th><th>销量</th><th>ASP</th><th>收入</th><th>单套成本</th><th>成本总额</th><th>利润</th><th>毛利率</th></tr></thead><tbody></tbody></table></div>
+      </section>
+
+      <section class="card mt">
+        <h3>模型说明</h3>
+        <p class="section-note">原型用工作簿中的基准数据作为起点：单套收入约 479.95 元、单套经营成本约 448.99 元、生命周期总销量 60 万套。</p>
+        <p class="footer-note">如果你下一步继续，我可以把这个原型外接成：JSON 数据层 + 计算引擎 + 历史版本库 + 审批记录四层结构。</p>
+      </section>
+    </main>
+  </div>
+
+  <div class="bom-modal" id="bomValidationModal" hidden aria-hidden="true">
+    <div class="bom-modal-backdrop" data-bom-close></div>
+    <section class="bom-modal-panel" role="dialog" aria-modal="true" aria-labelledby="bomValidationTitle">
+        <div class="bom-modal-head">
+          <div>
+            <div class="eyebrow">BOM Workspace</div>
+            <h3 id="bomValidationTitle">BOM 管理</h3>
+<p class="section-note">当前用报价 BOM 和项目定点 BOM 做对齐验证，并已把 TT《实际开线长度已回填》工作簿补入 BOM 版本快照；对照时按连接器各端、导线、其他物料分组展示，并补充 SAP 号、供应商、单耗等关键信息。</p>
+          </div>
+          <div class="bom-validate-toolbar">
+            <label class="field">
+              <span>验证线束</span>
+              <select id="bomValidationHarness"></select>
+            </label>
+            <label class="field">
+              <span>对比左版</span>
+              <select id="bomValidationLeftVersion"></select>
+            </label>
+            <label class="field">
+              <span>右军基准</span>
+              <select id="bomValidationRightVersion"></select>
+            </label>
+            <input id="importBomValidationFile" type="file" accept=".json,application/json" hidden />
+            <button class="button ghost" id="importBomValidationBtn" type="button">导入版本包</button>
+            <button class="button ghost" id="clearBomValidationImportBtn" type="button">恢复内置版本</button>
+            <button class="button ghost bom-reset-btn" id="resetBomValidationBtn" type="button">重置对齐</button>
+            <button class="button ghost bom-close-btn" id="closeBomValidationBtn" type="button">关闭</button>
+          </div>
+        </div>
+      <div class="bom-validate-summary" id="bomValidationSummary"></div>
+      <p class="bom-validate-hint" id="bomValidationHint"></p>
+      <div class="bom-compare-grid" id="bomValidationGroups"></div>
+    </section>
+  </div>
+
+  <div class="bom-modal" id="capitalValidationModal" hidden aria-hidden="true">
+    <div class="bom-modal-backdrop" data-capital-close></div>
+    <section class="bom-modal-panel" role="dialog" aria-modal="true" aria-labelledby="capitalValidationTitle">
+      <div class="bom-modal-head">
+        <div>
+          <div class="eyebrow">Capital Workspace</div>
+          <h3 id="capitalValidationTitle">资源投入管理</h3>
+          <p class="section-note">当前先用已导入的报价 / 定点核算表验证设备投资、项目专用模具和项目工装投入，按左右双栏对齐展示，并保留编号、项目、规格、数量、金额与单价。</p>
+        </div>
+        <div class="bom-validate-toolbar">
+          <label class="field">
+            <span>投入模块</span>
+            <select id="capitalValidationScope"></select>
+          </label>
+          <button class="button ghost bom-reset-btn" id="resetCapitalValidationBtn" type="button">重置对齐</button>
+          <button class="button ghost bom-close-btn" id="closeCapitalValidationBtn" type="button">关闭</button>
+        </div>
+      </div>
+      <div class="bom-validate-summary" id="capitalValidationSummary"></div>
+      <p class="bom-validate-hint" id="capitalValidationHint"></p>
+      <div class="bom-compare-grid" id="capitalValidationGroups"></div>
+    </section>
+  </div>
+
+  <div class="bom-modal" id="laborValidationModal" hidden aria-hidden="true">
+    <div class="bom-modal-backdrop" data-labor-close></div>
+    <section class="bom-modal-panel" role="dialog" aria-modal="true" aria-labelledby="laborValidationTitle">
+      <div class="bom-modal-head">
+        <div>
+          <div class="eyebrow">Labor Workspace</div>
+          <h3 id="laborValidationTitle">工时管理</h3>
+          <p class="section-note">当前用已导入的报价 / 定点核算表把工时做成版本管理，保留程序工时映射、直接人工、制造费用和工时费基准的对齐关系，并支持一键把指定版本工时应用到主场景。</p>
+        </div>
+        <div class="bom-validate-toolbar">
+          <label class="field">
+            <span>工时模块</span>
+            <select id="laborValidationScope"></select>
+          </label>
+          <button class="button primary" id="applyQuoteLaborBtn" type="button">应用报价版</button>
+          <button class="button primary" id="applyFixedLaborBtn" type="button">应用定点版</button>
+          <button class="button ghost bom-close-btn" id="closeLaborValidationBtn" type="button">关闭</button>
+        </div>
+      </div>
+      <div class="bom-validate-summary" id="laborValidationSummary"></div>
+      <p class="bom-validate-hint" id="laborValidationHint"></p>
+      <div class="bom-compare-grid" id="laborValidationGroups"></div>
+    </section>
+  </div>
+
+  <div class="bom-modal" id="packagingValidationModal" hidden aria-hidden="true">
+    <div class="bom-modal-backdrop" data-packaging-close></div>
+    <section class="bom-modal-panel" role="dialog" aria-modal="true" aria-labelledby="packagingValidationTitle">
+      <div class="bom-modal-head">
+        <div>
+          <div class="eyebrow">Packaging Workspace</div>
+          <h3 id="packagingValidationTitle">包装物流管理</h3>
+          <p class="section-note">当前用已导入的报价 / 定点核算表把包装物流做成版本管理，保留程序映射、单套拆分和零件包装明细的对照关系，并支持一键把指定版本包装参数应用到主场景。</p>
+        </div>
+        <div class="bom-validate-toolbar">
+          <label class="field">
+            <span>包装模块</span>
+            <select id="packagingValidationScope"></select>
+          </label>
+          <button class="button primary" id="applyQuotePackagingBtn" type="button">应用报价版</button>
+          <button class="button primary" id="applyFixedPackagingBtn" type="button">应用定点版</button>
+          <button class="button ghost bom-close-btn" id="closePackagingValidationBtn" type="button">关闭</button>
+        </div>
+      </div>
+      <div class="bom-validate-summary" id="packagingValidationSummary"></div>
+      <p class="bom-validate-hint" id="packagingValidationHint"></p>
+      <div class="bom-compare-grid" id="packagingValidationGroups"></div>
+    </section>
+  </div>
+
+  <div class="bom-modal" id="versionTemplateModal" hidden aria-hidden="true">
+    <div class="bom-modal-backdrop" data-version-template-close></div>
+    <section class="bom-modal-panel version-template-panel" role="dialog" aria-modal="true" aria-labelledby="versionTemplateTitle">
+      <div class="bom-modal-head version-template-head">
+        <div class="version-template-head-main">
+          <div class="version-template-head-copy">
+            <div class="eyebrow" id="versionTemplateEyebrow">Template Builder</div>
+            <h3 id="versionTemplateTitle">新增版本模板</h3>
+            <p class="section-note" id="versionTemplateSubtitle">参考当前版本，可在右侧直接按 Excel 方式录入、粘贴和调整公式。</p>
+          </div>
+          <label class="field version-template-name-field">
+            <span aria-hidden="true">版本名称</span>
+            <input id="versionTemplateName" type="text" aria-label="版本名称" placeholder="请输入版本名称" />
+          </label>
+        </div>
+        <div class="bom-validate-toolbar version-template-toolbar">
+          <button class="button primary" id="versionTemplateSaveInlineBtn" type="button">保存为新版本</button>
+          <button class="button ghost" id="versionTemplateResetBtn" type="button">恢复当前值</button>
+          <div class="window-caption-controls" aria-label="窗口控制">
+            <button class="window-caption-btn is-minimize" id="minimizeVersionTemplateWindowBtn" type="button" aria-label="最小化" title="最小化"></button>
+            <button class="window-caption-btn is-maximize" id="toggleVersionTemplateWindowBtn" type="button" aria-label="放大窗口" title="放大窗口"></button>
+            <button class="window-caption-btn is-close" id="closeVersionTemplateBtn" type="button" aria-label="关闭" title="关闭"></button>
+          </div>
+        </div>
+      </div>
+      <div class="version-template-layout">
+        <aside class="version-template-sidebar">
+          <label class="field">
+            <span>来源文件 / 说明</span>
+            <input id="versionTemplateSource" type="text" placeholder="例如：新增核算表 / 手工试算 / Excel 片段" />
+          </label>
+          <label class="field version-template-field-note">
+            <span>备注</span>
+            <textarea id="versionTemplateNote" rows="3" placeholder="可补充版本用途、适用阶段、人工假设等信息"></textarea>
+          </label>
+          <div class="version-template-paste-card">
+            <div class="version-template-paste-head">
+              <div>
+                <strong>Excel 粘贴区</strong>
+                <p id="versionTemplatePasteHint">右侧已切换为 Excel 式编辑区，可直接粘贴区域、输入公式、拖动填充。</p>
+              </div>
+              <button class="mini-button secondary" id="versionTemplateParseBtn" type="button">解析粘贴</button>
+            </div>
+            <textarea id="versionTemplatePaste" rows="10" placeholder="把 Excel 选中的区域直接粘贴到这里"></textarea>
+          </div>
+        </aside>
+        <div class="version-template-main">
+          <div class="version-template-quickbar" id="versionTemplateQuickbar" hidden>
+            <button class="version-template-quickbtn" id="versionTemplateInsertRowBtn" type="button">插入行</button>
+            <button class="version-template-quickbtn" id="versionTemplateInsertColumnBtn" type="button">插入列</button>
+            <span class="version-template-quickbar-sep" aria-hidden="true"></span>
+            <button class="version-template-quickbtn" id="versionTemplateMergeBtn" type="button">合并单元格</button>
+            <button class="version-template-quickbtn" id="versionTemplateUnmergeBtn" type="button">取消合并</button>
+            <span class="version-template-quickbar-sep" aria-hidden="true"></span>
+            <button class="version-template-quickbtn" id="versionTemplateFilterBtn" type="button">筛选</button>
+            <button class="version-template-quickbtn" id="versionTemplateConditionalBtn" type="button">条件格式</button>
+            <button class="version-template-quickbtn" id="versionTemplateInsertImageBtn" type="button">图片</button>
+            <span class="version-template-quickbar-spacer" aria-hidden="true"></span>
+            <button class="version-template-quickbtn is-primary" id="versionTemplateAddSheetBtn" type="button">新增 Sheet</button>
+          </div>
+          <div class="version-template-fields" id="versionTemplateFields"></div>
+          <div class="version-template-statusbar">
+            <div class="version-template-status" id="versionTemplateStatus">当前还未粘贴数据，可直接在右侧模板里手工填写。</div>
+            <div class="version-template-statusbar-meta">
+              <span id="versionTemplateSelectionMeta">当前选区 --</span>
+              <span id="versionTemplateSheetMeta">工作表 --</span>
+              <span id="versionTemplateEditorMeta">Excel 编辑区</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="version-template-actions">
+        <button class="button primary" id="saveVersionTemplateBtn" type="button">保存为新版本</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="../vendor/xlsx/xlsx.full.min.js?v=20260327b"></script>
+  <script src="../engine/bom_schema.js?v=20260327b"></script>
+  <script src="../engine/bom_db.js?v=20260330f"></script>
+  <script src="../g281_factor_version_repo.js?v=20260330a"></script>
+  <script src="../g281_scenario_repo.js?v=20260330a"></script>
+<script src="../engine/bom_parser.js?v=20260331b"></script>
+  <script src="../g281_bom_semantic_repo.js?v=20260330a"></script>
+<script src="../engine/align_key_enhancer.js"></script>
+<script src="../g281_bom_alignment_engine.js?v=20260331b"></script>
+<script src="../g281_bom_diff_engine.js?v=20260331b"></script>
+  <script src="../g281_bom_io.js?v=20260327b"></script>
+  <script src="../g281_data_bundle.js?v=20260331b"></script>
+
+  <script src="../g281_harness_seed_data.js?v=20260403a"></script>
+  <script src="../engine/shared_utils.js?v=20260403a"></script>
+  <script src="../engine/harness_costing.js?v=20260403a"></script>
+  <script src="../engine/change_pricing.js?v=20260403a"></script>
+  <script src="../engine/metal_escalation.js?v=20260403a"></script>
+  <script src="../engine/quote_template.js?v=20260403a"></script>
+  <script src="../engine/compute_model.js?v=20260403a"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../engine/target_price_solver.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../charts/waterfall_causal.js"></script>
+  <link rel="stylesheet" href="../charts/waterfall_causal.css">
+  <script src="./insights.js?v=20260328b"></script>
+  <script src="./logic_drawer.js?v=20260331a"></script>
+  <script src="../g281_operating_labor_rate_data.js?v=20260327b"></script>
+  <script src="../g281_factory_efficiency_view.js?v=20260327b"></script>
+  <script src="../g281_bom_template_runtime.js?v=20260328a"></script>
+  <!-- @deprecated legacy script --><script src="../engine/harness_profit.js?v=20260328a"></script>
+  <script src="./version_timeline.js?v=20260329a"></script>
+  <script src="../vendor/univer-editor/g281_univer_template_editor.js?v=20260329b"></script>
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+  <script src="./dashboard_utils.js?v=20260403a"></script>
+  <script src="./modals/modal_base.js?v=20260403a"></script>
+  <script src="./dashboard.js?v=20260404a"></script>
+  <script src="./dash_versions.js?v=20260405a"></script>
+  <script src="./dash_lifecycle.js?v=20260404a"></script>
+  <script src="./dash_version_template.js?v=20260404a"></script>
+  <script src="./dash_version_manager.js?v=20260404a"></script>
+  <script src="./dash_kanban.js?v=20260404a"></script>
+  <script src="./dash_harness.js?v=20260404a"></script>
+  <script src="./dash_charts.js?v=20260404a"></script>
+  <script src="./workbook_viewer.js?v=20260330f"></script>
+<script src="../g281_bom_validation_view.js?v=20260331h"></script>
+  <script src="../g281_capital_validation_view.js"></script>
+  <script src="../g281_labor_validation_view.js"></script>
+  <script src="../g281_packaging_validation_view.js"></script>
+</body>
+</html>
+
+
+

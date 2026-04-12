@@ -1,0 +1,421 @@
+﻿{
+    "schemaVersion":  2,
+    "versionTag":  "v2026.04.04-1713",
+    "requestedVersionTag":  "v2026.04.04-1713",
+    "generatedAt":  "2026-04-04T17:13:13.8262357+08:00",
+    "workspace":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722",
+    "folderName":  "v2026.04.04-1713",
+    "folderPath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.04-1713",
+    "mainFile":  "dashboard_v2026.04.04-1713.html",
+    "mainFilePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\releases\\v2026.04.04-1713\\dashboard_v2026.04.04-1713.html",
+    "gitCommit":  "3b0ca29",
+    "newStructure":  true,
+    "offlineReady":  true,
+    "directories":  [
+                        "ui",
+                        "engine",
+                        "core",
+                        "charts",
+                        "config",
+                        "shared",
+                        "pages",
+                        "utils",
+                        "vendor"
+                    ],
+    "mirroredDirectories":  [
+                                "pages",
+                                "shared",
+                                "core",
+                                "engine",
+                                "config",
+                                "utils",
+                                "ui",
+                                "charts"
+                            ],
+    "mirroredRootAssets":  [
+                               "g281_data_bundle.js",
+                               "g281_bom_alignment_engine.js",
+                               "g281_bom_diff_engine.js",
+                               "g281_bom_io.js",
+                               "g281_bom_semantic_repo.js",
+                               "g281_bom_template_runtime.js",
+                               "g281_bom_validation.css",
+                               "g281_bom_validation_view.js",
+                               "g281_capital_validation_view.js",
+                               "g281_factor_version_repo.js",
+                               "g281_factory_efficiency_view.css",
+                               "g281_factory_efficiency_view.js",
+                               "g281_labor_validation_view.js",
+                               "g281_operating_labor_rate_data.js",
+                               "g281_packaging_validation_view.js",
+                               "g281_scenario_repo.js"
+                           ],
+    "entryPoints":  {
+                        "dashboard":  "dashboard_v2026.04.04-1713.html",
+                        "preview":  "pages/preview.html",
+                        "accounting":  "pages/accounting.html",
+                        "tracking":  "pages/tracking.html",
+                        "archive":  "pages/archive.html"
+                    },
+    "missingPageAssets":  [
+
+                          ],
+    "assets":  [
+                   {
+                       "logicalName":  "ui/dashboard.css",
+                       "releaseName":  "ui/dashboard_v2026.04.04-1713.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\dashboard.css"
+                   },
+                   {
+                       "logicalName":  "ui/dashboard.js",
+                       "releaseName":  "ui/dashboard_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\dashboard.js"
+                   },
+                   {
+                       "logicalName":  "ui/insights.css",
+                       "releaseName":  "ui/insights_v2026.04.04-1713.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\insights.css"
+                   },
+                   {
+                       "logicalName":  "ui/insights.js",
+                       "releaseName":  "ui/insights_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\insights.js"
+                   },
+                   {
+                       "logicalName":  "ui/landing_workbench.css",
+                       "releaseName":  "ui/landing_workbench_v2026.04.04-1713.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\landing_workbench.css"
+                   },
+                   {
+                       "logicalName":  "ui/landing_workbench.js",
+                       "releaseName":  "ui/landing_workbench_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\landing_workbench.js"
+                   },
+                   {
+                       "logicalName":  "ui/logic_drawer.css",
+                       "releaseName":  "ui/logic_drawer_v2026.04.04-1713.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\logic_drawer.css"
+                   },
+                   {
+                       "logicalName":  "ui/logic_drawer.js",
+                       "releaseName":  "ui/logic_drawer_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\logic_drawer.js"
+                   },
+                   {
+                       "logicalName":  "ui/version_timeline.css",
+                       "releaseName":  "ui/version_timeline_v2026.04.04-1713.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\version_timeline.css"
+                   },
+                   {
+                       "logicalName":  "ui/version_timeline.js",
+                       "releaseName":  "ui/version_timeline_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\version_timeline.js"
+                   },
+                   {
+                       "logicalName":  "ui/workbook_viewer.css",
+                       "releaseName":  "ui/workbook_viewer_v2026.04.04-1713.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\workbook_viewer.css"
+                   },
+                   {
+                       "logicalName":  "ui/workbook_viewer.js",
+                       "releaseName":  "ui/workbook_viewer_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\ui\\workbook_viewer.js"
+                   },
+                   {
+                       "logicalName":  "engine/bom_schema.js",
+                       "releaseName":  "engine/bom_schema_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\engine\\bom_schema.js"
+                   },
+                   {
+                       "logicalName":  "engine/bom_db.js",
+                       "releaseName":  "engine/bom_db_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\engine\\bom_db.js"
+                   },
+                   {
+                       "logicalName":  "engine/bom_parser.js",
+                       "releaseName":  "engine/bom_parser_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\engine\\bom_parser.js"
+                   },
+                   {
+                       "logicalName":  "engine/compute_model.js",
+                       "releaseName":  "engine/compute_model_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\engine\\compute_model.js"
+                   },
+                   {
+                       "logicalName":  "engine/harness_profit.js",
+                       "releaseName":  "engine/harness_profit_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\engine\\harness_profit.js"
+                   },
+                   {
+                       "logicalName":  "engine/profit_shapley.js",
+                       "releaseName":  "engine/profit_shapley_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\engine\\profit_shapley.js"
+                   },
+                   {
+                       "logicalName":  "engine/target_price_solver.js",
+                       "releaseName":  "engine/target_price_solver_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\engine\\target_price_solver.js"
+                   },
+                   {
+                       "logicalName":  "engine/align_key_enhancer.js",
+                       "releaseName":  "engine/align_key_enhancer_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\engine\\align_key_enhancer.js"
+                   },
+                   {
+                       "logicalName":  "engine/config_bridge.js",
+                       "releaseName":  "engine/config_bridge_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\engine\\config_bridge.js"
+                   },
+                   {
+                       "logicalName":  "engine/computation_path.js",
+                       "releaseName":  "engine/computation_path_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\engine\\computation_path.js"
+                   },
+                   {
+                       "logicalName":  "core/repo.js",
+                       "releaseName":  "core/repo_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\core\\repo.js"
+                   },
+                   {
+                       "logicalName":  "core/config_loader.js",
+                       "releaseName":  "core/config_loader_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\core\\config_loader.js"
+                   },
+                   {
+                       "logicalName":  "core/storage_adapter.js",
+                       "releaseName":  "core/storage_adapter_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\core\\storage_adapter.js"
+                   },
+                   {
+                       "logicalName":  "charts/waterfall_causal.js",
+                       "releaseName":  "charts/waterfall_causal_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\charts\\waterfall_causal.js"
+                   },
+                   {
+                       "logicalName":  "charts/waterfall_causal.css",
+                       "releaseName":  "charts/waterfall_causal_v2026.04.04-1713.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\charts\\waterfall_causal.css"
+                   },
+                   {
+                       "logicalName":  "config/g281.project.json",
+                       "releaseName":  "config/g281.project.json",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\config\\g281.project.json"
+                   },
+                   {
+                       "logicalName":  "g281_data_bundle.js",
+                       "releaseName":  "g281_data_bundle_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_data_bundle.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_alignment_engine.js",
+                       "releaseName":  "g281_bom_alignment_engine_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_bom_alignment_engine.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_diff_engine.js",
+                       "releaseName":  "g281_bom_diff_engine_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_bom_diff_engine.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_io.js",
+                       "releaseName":  "g281_bom_io_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_bom_io.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_semantic_repo.js",
+                       "releaseName":  "g281_bom_semantic_repo_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_bom_semantic_repo.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_template_runtime.js",
+                       "releaseName":  "g281_bom_template_runtime_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_bom_template_runtime.js"
+                   },
+                   {
+                       "logicalName":  "g281_bom_validation.css",
+                       "releaseName":  "g281_bom_validation_v2026.04.04-1713.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_bom_validation.css"
+                   },
+                   {
+                       "logicalName":  "g281_bom_validation_view.js",
+                       "releaseName":  "g281_bom_validation_view_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_bom_validation_view.js"
+                   },
+                   {
+                       "logicalName":  "g281_capital_validation_view.js",
+                       "releaseName":  "g281_capital_validation_view_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_capital_validation_view.js"
+                   },
+                   {
+                       "logicalName":  "g281_factor_version_repo.js",
+                       "releaseName":  "g281_factor_version_repo_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_factor_version_repo.js"
+                   },
+                   {
+                       "logicalName":  "g281_factory_efficiency_view.css",
+                       "releaseName":  "g281_factory_efficiency_view_v2026.04.04-1713.css",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_factory_efficiency_view.css"
+                   },
+                   {
+                       "logicalName":  "g281_factory_efficiency_view.js",
+                       "releaseName":  "g281_factory_efficiency_view_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_factory_efficiency_view.js"
+                   },
+                   {
+                       "logicalName":  "g281_labor_validation_view.js",
+                       "releaseName":  "g281_labor_validation_view_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_labor_validation_view.js"
+                   },
+                   {
+                       "logicalName":  "g281_operating_labor_rate_data.js",
+                       "releaseName":  "g281_operating_labor_rate_data_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_operating_labor_rate_data.js"
+                   },
+                   {
+                       "logicalName":  "g281_packaging_validation_view.js",
+                       "releaseName":  "g281_packaging_validation_view_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_packaging_validation_view.js"
+                   },
+                   {
+                       "logicalName":  "g281_scenario_repo.js",
+                       "releaseName":  "g281_scenario_repo_v2026.04.04-1713.js",
+                       "sourcePath":  "C:\\Users\\lyvee\\OneDrive\\文档\\GitHub\\cost-accounting-dynamic-model-v2026-04-02-1722\\g281_scenario_repo.js"
+                   }
+               ],
+    "generatedPlaceholderAssets":  [
+
+                                   ],
+    "pageReferencedAssets":  [
+                                 "shared/nav.css",
+                                 "shared/project_switcher.css",
+                                 "ui/dashboard.css",
+                                 "shared/nav.js",
+                                 "shared/page_router.js",
+                                 "g281_data_bundle.js",
+                                 "utils/shared.js",
+                                 "utils/core.js",
+                                 "engine/shared_utils.js",
+                                 "engine/state_normalizer.js",
+                                 "engine/snapshot_resolver.js",
+                                 "engine/annual_calc.js",
+                                 "engine/config_bridge.js",
+                                 "engine/computation_path.js",
+                                 "engine/profit_shapley.js",
+                                 "engine/compute_model.js",
+                                 "engine/harness_profit.js",
+                                 "engine/target_price_solver.js",
+                                 "engine/bom_workbook_adapter.js",
+                                 "engine/financial_workbook_adapter.js",
+                                 "engine/harness_stage_cost_builder.js",
+                                 "engine/project_rollup_builder.js",
+                                 "engine/customer_quote_template_adapter.js",
+                                 "engine/change_impact_builder.js",
+                                 "engine/error_boundary.js",
+                                 "engine/computation_cache.js",
+                                 "core/config_loader.js",
+                                 "core/repo.js",
+                                 "core/storage_adapter.js",
+                                 "core/platform_gateways.js",
+                                 "config/project_registry.js",
+                                 "shared/project_switcher.js",
+                                 "engine/bom_parser.js",
+                                 "engine/bom_schema.js",
+                                 "engine/bom_db.js",
+                                 "engine/align_key_enhancer.js",
+                                 "engine/workflow_stage_board_builder.js",
+                                 "engine/cost_exception_tracker_builder.js",
+                                 "engine/schema_migrator.js",
+                                 "engine/progress_price_tracker.js",
+                                 "engine/residual_pool_handler.js"
+                             ],
+    "passthroughPaths":  [
+                             "vendor\\xlsx",
+                             "vendor\\univer-editor"
+                         ],
+    "sourceFileUpdatedAtUtc":  {
+                                   "charts/waterfall_causal.css":  "2026-04-02T12:54:51.8490079Z",
+                                   "charts/waterfall_causal.js":  "2026-04-02T12:54:51.8500060Z",
+                                   "config/g281.project.json":  "2026-04-04T08:45:10.9130610Z",
+                                   "config/project_registry.js":  "2026-04-03T00:12:25.5986389Z",
+                                   "core/config_loader.js":  "2026-04-04T01:49:42.8391913Z",
+                                   "core/platform_gateways.js":  "2026-04-04T05:46:31.4916746Z",
+                                   "core/repo.js":  "2026-04-04T01:47:41.1484012Z",
+                                   "core/storage_adapter.js":  "2026-04-02T12:54:51.8543357Z",
+                                   "engine/align_key_enhancer.js":  "2026-04-02T12:54:51.8596501Z",
+                                   "engine/annual_calc.js":  "2026-04-02T16:29:45.3672581Z",
+                                   "engine/bom_db.js":  "2026-04-02T16:29:45.3677627Z",
+                                   "engine/bom_parser.js":  "2026-04-02T10:12:25.7605538Z",
+                                   "engine/bom_schema.js":  "2026-04-02T10:12:25.7840904Z",
+                                   "engine/bom_workbook_adapter.js":  "2026-04-04T08:20:25.1282829Z",
+                                   "engine/change_impact_builder.js":  "2026-04-04T08:31:17.0185848Z",
+                                   "engine/computation_cache.js":  "2026-04-03T00:12:25.6031074Z",
+                                   "engine/computation_path.js":  "2026-04-03T00:12:25.6051169Z",
+                                   "engine/compute_model.js":  "2026-04-04T02:51:08.6826787Z",
+                                   "engine/config_bridge.js":  "2026-04-03T00:12:25.6081219Z",
+                                   "engine/cost_exception_tracker_builder.js":  "2026-04-04T06:48:30.4312976Z",
+                                   "engine/customer_quote_template_adapter.js":  "2026-04-04T08:46:04.8426832Z",
+                                   "engine/error_boundary.js":  "2026-04-03T00:12:25.6091202Z",
+                                   "engine/financial_workbook_adapter.js":  "2026-04-04T09:12:28.9971458Z",
+                                   "engine/harness_profit.js":  "2026-04-04T02:49:18.3923752Z",
+                                   "engine/harness_stage_cost_builder.js":  "2026-04-04T08:27:16.4982968Z",
+                                   "engine/profit_shapley.js":  "2026-04-03T00:12:25.6121233Z",
+                                   "engine/progress_price_tracker.js":  "2026-04-02T12:54:51.8606447Z",
+                                   "engine/project_rollup_builder.js":  "2026-04-04T08:29:09.6094074Z",
+                                   "engine/residual_pool_handler.js":  "2026-04-02T12:54:51.8616446Z",
+                                   "engine/schema_migrator.js":  "2026-04-03T00:12:25.6131201Z",
+                                   "engine/shared_utils.js":  "2026-04-03T00:12:25.6151183Z",
+                                   "engine/snapshot_resolver.js":  "2026-04-02T16:29:45.3719409Z",
+                                   "engine/state_normalizer.js":  "2026-04-02T16:29:45.3719409Z",
+                                   "engine/target_price_solver.js":  "2026-04-02T10:12:27.2448163Z",
+                                   "engine/workflow_stage_board_builder.js":  "2026-04-04T08:47:12.0149704Z",
+                                   "g281_bom_alignment_engine.js":  "2026-04-02T13:24:27.4706032Z",
+                                   "g281_bom_diff_engine.js":  "2026-04-02T10:12:25.7149678Z",
+                                   "g281_bom_io.js":  "2026-04-02T10:12:25.7380811Z",
+                                   "g281_bom_semantic_repo.js":  "2026-04-02T10:12:25.8061236Z",
+                                   "g281_bom_template_runtime.js":  "2026-04-02T10:12:25.8286485Z",
+                                   "g281_bom_validation.css":  "2026-04-02T10:12:25.8516520Z",
+                                   "g281_bom_validation_view.js":  "2026-04-02T10:12:25.8767612Z",
+                                   "g281_capital_validation_view.js":  "2026-04-02T10:12:25.9241324Z",
+                                   "g281_data_bundle.js":  "2026-04-02T13:25:22.1066108Z",
+                                   "g281_factor_version_repo.js":  "2026-04-02T16:29:45.3732526Z",
+                                   "g281_factory_efficiency_view.css":  "2026-04-02T10:12:26.4801894Z",
+                                   "g281_factory_efficiency_view.js":  "2026-04-02T10:12:26.5067291Z",
+                                   "g281_labor_validation_view.js":  "2026-04-02T10:12:26.7575686Z",
+                                   "g281_operating_labor_rate_data.js":  "2026-04-02T10:12:26.8009175Z",
+                                   "g281_packaging_validation_view.js":  "2026-04-02T10:12:26.8253579Z",
+                                   "g281_scenario_repo.js":  "2026-04-02T10:12:27.1249792Z",
+                                   "pages/accounting.html":  "2026-04-04T06:13:57.8035121Z",
+                                   "pages/archive.html":  "2026-04-04T08:51:47.4181651Z",
+                                   "pages/preview.html":  "2026-04-04T08:49:43.0218557Z",
+                                   "pages/tracking.html":  "2026-04-04T06:51:03.8709520Z",
+                                   "shared/nav.css":  "2026-04-02T16:29:45.3798694Z",
+                                   "shared/nav.js":  "2026-04-04T03:20:19.4688040Z",
+                                   "shared/page_router.js":  "2026-04-03T00:12:25.6241172Z",
+                                   "shared/project_switcher.css":  "2026-04-02T16:29:45.3808750Z",
+                                   "shared/project_switcher.js":  "2026-04-04T03:18:47.2920184Z",
+                                   "ui/dashboard.css":  "2026-04-02T10:12:26.8476402Z",
+                                   "ui/dashboard.js":  "2026-04-03T23:51:00.3179268Z",
+                                   "ui/insights.css":  "2026-04-02T10:12:26.9172410Z",
+                                   "ui/insights.js":  "2026-04-02T13:22:04.1869004Z",
+                                   "ui/landing_workbench.css":  "2026-04-03T20:54:51.8124898Z",
+                                   "ui/landing_workbench.js":  "2026-04-04T00:06:12.3224413Z",
+                                   "ui/logic_drawer.css":  "2026-04-02T10:12:26.9616326Z",
+                                   "ui/logic_drawer.js":  "2026-04-02T10:12:26.9877901Z",
+                                   "ui/version_timeline.css":  "2026-04-02T10:12:27.2572766Z",
+                                   "ui/version_timeline.js":  "2026-04-02T10:12:27.2868595Z",
+                                   "ui/workbook_viewer.css":  "2026-04-02T10:12:27.3143633Z",
+                                   "ui/workbook_viewer.js":  "2026-04-02T10:12:27.3428449Z",
+                                   "utils/core.js":  "2026-04-02T16:29:45.3877229Z",
+                                   "utils/shared.js":  "2026-04-02T16:29:45.3887223Z"
+                               },
+    "timelineEvents":  [
+                           {
+                               "id":  "release/v2026.04.04-1713",
+                               "type":  "release",
+                               "title":  "release_published",
+                               "versionTag":  "v2026.04.04-1713",
+                               "publishedAt":  "2026-04-04T17:13:13.8262357+08:00",
+                               "updatedAt":  "2026-04-04T17:13:13.8262357+08:00"
+                           }
+                       ]
+}

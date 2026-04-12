@@ -1,0 +1,207 @@
+/**
+ * ui/loading.css
+ * P3#13: 共享加载状态样式 — 骨架屏 / Spinner / Shimmer / Overlay
+ *
+ * 使用方式:
+ *   1. 在 HTML <head> 中引入，位于 tokens.css 之后
+ *   2. 在 JS 中用 G281UI.Dom.createNode() 或原生 DOM 创建对应元素
+ *
+ * 示例:
+ *   <div class="g281-skeleton" style="width:200px;height:24px"></div>
+ *   <div class="g281-spinner"></div>
+ *   <div class="g281-loading-overlay"><div class="g281-spinner-lg"></div></div>
+ */
+
+/* ================================================
+   Skeleton Pulse
+   ================================================ */
+.g281-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--g281-bg-surface, #1a1a2e) 25%,
+    var(--g281-bg-elevated, #252542) 50%,
+    var(--g281-bg-surface, #1a1a2e) 75%
+  );
+  background-size: 200% 100%;
+  animation: g281-skeleton-pulse 1.5s ease-in-out infinite;
+  border-radius: var(--g281-radius-sm, 4px);
+}
+
+@keyframes g281-skeleton-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 骨架屏快捷尺寸 */
+.g281-skeleton-text {
+  height: 14px;
+  margin-bottom: 8px;
+  border-radius: var(--g281-radius-xs, 2px);
+}
+.g281-skeleton-text:last-child {
+  width: 60%;
+}
+.g281-skeleton-title {
+  height: 22px;
+  width: 40%;
+  margin-bottom: 12px;
+}
+.g281-skeleton-card {
+  height: 120px;
+  border-radius: var(--g281-radius-md, 8px);
+}
+.g281-skeleton-chart {
+  height: 200px;
+  border-radius: var(--g281-radius-md, 8px);
+}
+.g281-skeleton-table-row {
+  height: 40px;
+  margin-bottom: 4px;
+}
+
+/* ================================================
+   KPI Skeleton Group
+   ================================================ */
+.g281-skeleton-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--g281-space-md, 12px);
+  padding: var(--g281-space-base, 16px) 0;
+}
+.g281-skeleton-kpi-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--g281-space-sm, 8px);
+  padding: var(--g281-space-base, 16px);
+  border-radius: var(--g281-radius-md, 8px);
+  background: var(--g281-bg-card, #1e1e32);
+}
+.g281-skeleton-kpi-card .g281-skeleton:first-child {
+  width: 50%;
+  height: 12px;
+}
+.g281-skeleton-kpi-card .g281-skeleton:last-child {
+  width: 70%;
+  height: 28px;
+}
+
+/* ================================================
+   Spinner (Ring)
+   ================================================ */
+.g281-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--g281-border-default, #2a2a40);
+  border-top-color: var(--g281-accent-blue, #60a5fa);
+  border-radius: 50%;
+  animation: g281-spin 0.7s linear infinite;
+}
+.g281-spinner-sm {
+  width: 14px;
+  height: 14px;
+  border-width: 1.5px;
+}
+.g281-spinner-lg {
+  width: 36px;
+  height: 36px;
+  border-width: 3px;
+}
+
+@keyframes g281-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ================================================
+   Shimmer (Gradient Sweep)
+   ================================================ */
+.g281-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.g281-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 60%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: g281-shimmer-sweep 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes g281-shimmer-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ================================================
+   Loading Overlay
+   ================================================ */
+.g281-loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--g281-space-md, 12px);
+  background: var(--g281-bg-overlay, rgba(0,0,0,0.55));
+  z-index: var(--g281-z-modal, 400);
+  border-radius: inherit;
+}
+.g281-loading-overlay[hidden] {
+  display: none;
+}
+
+.g281-loading-text {
+  color: var(--g281-text-secondary, #a0a0b8);
+  font-size: var(--g281-font-size-sm, 13px);
+  text-align: center;
+}
+
+/* ================================================
+   Page-level Loading State
+   ================================================ */
+.g281-page-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: var(--g281-space-base, 16px);
+}
+.g281-page-loading .g281-spinner-lg {
+  opacity: 0.7;
+}
+.g281-page-loading .g281-loading-text {
+  font-size: var(--g281-font-size-md, 14px);
+}
+
+/* ================================================
+   Inline Button Spinner
+   ================================================ */
+.g281-btn-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.7;
+}
+.g281-btn-loading::after {
+  content: '';
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: g281-spin 0.7s linear infinite;
+}

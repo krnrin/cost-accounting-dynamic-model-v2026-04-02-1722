@@ -1,0 +1,421 @@
+import { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Typography,
+  Button,
+  Row,
+  Col,
+  Input,
+  InputNumber,
+  Space,
+  Toast,
+  Tag,
+  Divider,
+  Popconfirm,
+  Popover,
+} from '@douyinfe/semi-ui';
+import { IconArrowLeft, IconSave, IconClose, IconUpload, IconSetting, IconBox } from '@douyinfe/semi-icons';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { RoleGuard } from '@/components/RoleGuard';
+
+import { db } from '@/data/db';
+import { computeHarnessCost } from '@/engine/harness_costing';
+import { detectPrecisionLevel } from '@/engine/precision';
+import type { HarnessInput, BomItem, WireItem, HarnessResult } from '@/types/harness';
+import { BomImportDialog } from '@/components/BomImportDialog';
+import { UniverSheet } from '@/components/UniverSheet';
+
+const { Title, Text } = Typography;
+
+const BLANK_HARNESS: HarnessInput = {
+  harnessId: '',
+  harnessName: '',
+  vehicleRatio: 1,
+  bom: [],
+  frontHours: 0,
+  backHours: 0,
+  packaging: { 
+    innerBoxCost: 0, outerBoxCost: 0, palletCost: 0, 
+    trayDividerCost: 0, bubbleWrapCost: 0, labelCost: 0, 
+    subtotal: 0 
+  },
+  freight: { freight: 0, excessFreight: 0, shortHaul: 0, thirdPartyWarehouse: 0, storage: 0, subtotal: 0 },
+};
+
+const TOOLBAR_HEIGHT = 48;
+const STATUS_BAR_HEIGHT = 36;
+
+export default function HarnessEditPage() {
+  const { id, harnessId } = useParams<{ id: string; harnessId: string }>();
+  const navigate = useNavigate();
+  const isNew = harnessId === 'new';
+
+  // 1. Data Loading
+  const data = useLiveQuery(async () => {
+    if (!id) return null;
+    const project = await db.projects.get(id);
+    if (isNew) return { project, harness: null };
+    if (!harnessId) return null;
+    const harness = await db.harnesses.where({ projectId: id, harnessId: harnessId }).first();
+    return { project, harness: harness ?? null };
+  }, [id, harnessId]);
+
+  // 2. Local State for Form
+  const [formData, setFormData] = useState<HarnessInput | null>(null);
+  const [initialData, setInitialData] = useState<string>('');
+  const [inited, setInited] = useState(false);
+  const [importVisible, setImportVisible] = useState(false);
+
+  useEffect(() => {
+    if (inited) return;
+    if (isNew && data?.project) {
+      const blank = JSON.parse(JSON.stringify(BLANK_HARNESS));
+      setFormData(blank);
+      setInitialData(JSON.stringify(blank));
+      setInited(true);
+    } else if (data?.harness?.input) {
+      const input = JSON.parse(JSON.stringify(data.harness.input));
+      setFormData(input);
+      setInitialData(JSON.stringify(input));
+      setInited(true);
+    }
+  }, [data, isNew, inited]);
+
+  const isDirty = useMemo(() => {
+    if (!formData) return false;
+    return JSON.stringify(formData) !== initialData;
+  }, [formData, initialData]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
+  // 3. Cost Computation for Preview
+  const result: HarnessResult | null = useMemo(() => {
+    if (!data?.project || !formData) return null;
+    if (!formData.harnessId) return null;
+    return computeHarnessCost(
+      formData,
+      data.project.config.costRates,
+      data.project.config.metalPrices
+    );
+  }, [data, formData]);
+
+  if (!data?.project || !formData) {
+    return (
+      <div style={{ padding: 100, textAlign: 'center' }}>
+        <Title heading={4}>正在加载数据...</Title>
+      </div>
+    );
+  }
+
+  // 4. Handlers
+  const handleSave = async () => {
+    if (!id || !formData) return;
+
+    if (!formData.harnessId.trim()) {
+      Toast.warning('请填写零件号');
+      return;
+    }
+
+    try {
+      if (isNew) {
+        const newId = crypto.randomUUID();
+        await db.harnesses.put({
+          id: newId,
+          projectId: id,
+          harnessId: formData.harnessId,
+          harnessName: formData.harnessName || formData.harnessId,
+          input: formData,
+          updatedAt: new Date().toISOString(),
+        });
+        Toast.success('线束创建成功');
+        navigate(`/project/${id}/harness/${formData.harnessId}`, { replace: true });
+      } else {
+        if (!data.harness) return;
+        await db.harnesses.update(data.harness.id, {
+          input: formData,
+          harnessName: formData.harnessName,
+          updatedAt: new Date().toISOString(),
+        });
+        Toast.success('保存成功');
+        setInitialData(JSON.stringify(formData));
+      }
+    } catch (error) {
+      console.error('Save failed:', error);
+      Toast.error('保存失败');
+    }
+  };
+
+  const updateFormData = (patch: Partial<HarnessInput>) => {
+    setFormData(prev => prev ? { ...prev, ...patch } : null);
+  };
+
+  const updatePackaging = (patch: Partial<HarnessInput['packaging']>) => {
+    setFormData(prev => prev ? { ...prev, packaging: { ...prev.packaging, ...patch } } : null);
+  };
+
+  const updateFreight = (patch: Partial<HarnessInput['freight']>) => {
+    setFormData(prev => prev ? { ...prev, freight: { ...prev.freight, ...patch } } : null);
+  };
+
+  const handleImportBom = (newBom: (BomItem | WireItem)[]) => {
+    setFormData(prev => prev ? { ...prev, bom: newBom } : null);
+  };
+
+  // 6. Univer BOM conversions
+  // Column layout mirrors BOM Excel: engineering columns first, costing columns after
+  // 序号 | 功能 | 零件号 | 零件名称 | 半成品 | SAP物料号 | 规格 | 数量 | 单位 | 供应商 | 分类 | 单价(元) | 金额(元) | 铜重(kg) | 铝重(kg) | 非金属成本(元)
+  const BOM_HEADERS = [
+    '序号', '功能', '零件号', '零件名称', '半成品',
+    'SAP物料号', '规格', '数量', '单位', '供应商',
+    '分类', '单价(元)', '金额(元)', '铜重(kg)', '铝重(kg)', '非金属成本(元)',
+  ];
+
+  const bomToArray = (bom: (BomItem | WireItem)[]): (string | number | null)[][] => {
+    const rows = bom.map((item, index) => [
+      index + 1,                                          // 0: 序号
+      item.functionText || item.endGroup || '',           // 1: 功能
+      item.partNo,                                        // 2: 零件号
+      item.partName,                                      // 3: 零件名称
+      item.isSemiFinished ? 'Y' : 'N',                   // 4: 半成品
+      item.sapNo || '',                                   // 5: SAP物料号
+      item.spec || '',                                    // 6: 规格
+      item.qty,                                           // 7: 数量
+      item.unit,                                          // 8: 单位
+      item.supplier || '',                                // 9: 供应商
+      item.itemCategory,                                  // 10: 分类
+      item.unitPrice,                                     // 11: 单价
+      item.amount,                                        // 12: 金额
+      (item as WireItem).copperWeightPerUnit || 0,        // 13: 铜重
+      (item as WireItem).aluminumWeightPerUnit || 0,      // 14: 铝重
+      (item as WireItem).nonMetalCostPerUnit || 0,        // 15: 非金属成本
+    ]);
+    return [BOM_HEADERS, ...rows];
+  };
+
+  const arrayToBom = (data: (string | number | null)[][]): (BomItem | WireItem)[] => {
+    const rows = data.slice(1);
+    return rows
+      .filter(row => row.some((cell, i) => i > 0 && cell !== null && cell !== ''))
+      .map(row => {
+        const itemCategory = (row[10] as any) || 'other';
+        const qty = Number(row[7] || 0);
+        const unitPrice = Number(row[11] || 0);
+        const semiFlag = String(row[4] || '').toUpperCase();
+
+        const base: BomItem = {
+          partNo: String(row[2] || ''),
+          partName: String(row[3] || ''),
+          itemCategory,
+          spec: String(row[6] || ''),
+          unit: String(row[8] || ''),
+          qty,
+          unitPrice,
+          amount: Number((qty * unitPrice).toFixed(4)),
+          functionText: String(row[1] || ''),
+          sapNo: String(row[5] || ''),
+          supplier: String(row[9] || ''),
+          isSemiFinished: semiFlag === 'Y' || semiFlag === '是',
+        };
+
+        if (itemCategory === 'wire') {
+          return {
+            ...base,
+            copperWeightPerUnit: Number(row[13] || 0),
+            aluminumWeightPerUnit: Number(row[14] || 0),
+            nonMetalCostPerUnit: Number(row[15] || 0),
+          } as WireItem;
+        }
+        return base;
+      });
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
+      {/* 1. Single-row Toolbar — all controls merged into one bar */}
+      <div style={{ 
+        height: TOOLBAR_HEIGHT, 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        padding: '0 12px',
+        borderBottom: '1px solid var(--semi-color-border)',
+        backgroundColor: 'var(--semi-color-bg-0)',
+        zIndex: 10
+      }}>
+        {/* Left: back + title */}
+        <Space spacing={4}>
+          <Button
+            icon={<IconArrowLeft />}
+            theme="borderless"
+            size="small"
+            onClick={() => isNew ? navigate(`/project/${id}`) : navigate(`/project/${id}/harness/${harnessId}`)}
+          />
+          <Text strong style={{ fontSize: 14 }}>
+            {isNew ? '新建线束' : `${formData.harnessId} · ${formData.harnessName || ''}`}
+          </Text>
+          <Divider layout="vertical" style={{ margin: '0 4px' }} />
+          {(() => {
+            const level = detectPrecisionLevel(formData);
+            if (level === 3) return <Tag size="small" color="green">B级</Tag>;
+            if (level === 2) return <Tag size="small" color="orange">C级</Tag>;
+            return <Tag size="small" color="red">D级</Tag>;
+          })()}
+        </Space>
+
+        {/* Right: popover panels + action buttons */}
+        <Space spacing={4}>
+          {/* 基本信息 & 工时 — Popover */}
+          <Popover
+            trigger="click"
+            position="bottomRight"
+            showArrow
+            content={
+              <div style={{ padding: '12px 16px', width: 620 }}>
+                <Text strong size="small" style={{ marginBottom: 8, display: 'block' }}>基本信息 & 工时</Text>
+                <Row gutter={8}>
+                  <Col span={5}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>零件号</Text>
+                    <Input size="small" value={formData.harnessId} disabled={!isNew} onChange={val => isNew && updateFormData({ harnessId: val })} />
+                  </Col>
+                  <Col span={5}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>名称</Text>
+                    <Input size="small" value={formData.harnessName} onChange={val => updateFormData({ harnessName: val })} />
+                  </Col>
+                  <Col span={4}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>装车比</Text>
+                    <InputNumber size="small" value={formData.vehicleRatio} onChange={val => updateFormData({ vehicleRatio: Number(val) })} precision={3} style={{ width: '100%' }} />
+                  </Col>
+                  <Col span={5}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>前道工时(h)</Text>
+                    <InputNumber size="small" value={formData.frontHours} onChange={val => updateFormData({ frontHours: Number(val) })} precision={6} style={{ width: '100%' }} />
+                  </Col>
+                  <Col span={5}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>后道工时(h)</Text>
+                    <InputNumber size="small" value={formData.backHours} onChange={val => updateFormData({ backHours: Number(val) })} precision={6} style={{ width: '100%' }} />
+                  </Col>
+                </Row>
+              </div>
+            }
+          >
+            <Button icon={<IconSetting />} theme="borderless" size="small">基本信息</Button>
+          </Popover>
+
+          {/* 包装 & 运输费 — Popover */}
+          <Popover
+            trigger="click"
+            position="bottomRight"
+            showArrow
+            content={
+              <div style={{ padding: '12px 16px', width: 720 }}>
+                <Row gutter={24}>
+                  <Col span={12}>
+                    <Text strong size="small" style={{ marginBottom: 8, display: 'block' }}>包装费</Text>
+                    <Row gutter={6}>
+                      <Col span={4}><Text type="secondary" style={{ fontSize: 11 }}>内盒</Text><InputNumber size="small" value={formData.packaging.innerBoxCost} onChange={val => updatePackaging({ innerBoxCost: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={4}><Text type="secondary" style={{ fontSize: 11 }}>外箱</Text><InputNumber size="small" value={formData.packaging.outerBoxCost} onChange={val => updatePackaging({ outerBoxCost: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={4}><Text type="secondary" style={{ fontSize: 11 }}>托盘</Text><InputNumber size="small" value={formData.packaging.palletCost} onChange={val => updatePackaging({ palletCost: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={4}><Text type="secondary" style={{ fontSize: 11 }}>隔板</Text><InputNumber size="small" value={formData.packaging.trayDividerCost} onChange={val => updatePackaging({ trayDividerCost: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={4}><Text type="secondary" style={{ fontSize: 11 }}>缓冲</Text><InputNumber size="small" value={formData.packaging.bubbleWrapCost} onChange={val => updatePackaging({ bubbleWrapCost: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={4}><Text type="secondary" style={{ fontSize: 11 }}>标签</Text><InputNumber size="small" value={formData.packaging.labelCost} onChange={val => updatePackaging({ labelCost: Number(val) })} style={{ width: '100%' }} /></Col>
+                    </Row>
+                  </Col>
+                  <Col span={12}>
+                    <Text strong size="small" style={{ marginBottom: 8, display: 'block' }}>运输费</Text>
+                    <Row gutter={6}>
+                      <Col span={6}><Text type="secondary" style={{ fontSize: 11 }}>运费</Text><InputNumber size="small" value={formData.freight.freight} onChange={val => updateFreight({ freight: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={6}><Text type="secondary" style={{ fontSize: 11 }}>超额运费</Text><InputNumber size="small" value={formData.freight.excessFreight} onChange={val => updateFreight({ excessFreight: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={6}><Text type="secondary" style={{ fontSize: 11 }}>短驳/三方</Text><InputNumber size="small" value={formData.freight.shortHaul + formData.freight.thirdPartyWarehouse} onChange={val => updateFreight({ shortHaul: Number(val) })} style={{ width: '100%' }} /></Col>
+                      <Col span={6}><Text type="secondary" style={{ fontSize: 11 }}>仓储</Text><InputNumber size="small" value={formData.freight.storage} onChange={val => updateFreight({ storage: Number(val) })} style={{ width: '100%' }} /></Col>
+                    </Row>
+                  </Col>
+                </Row>
+              </div>
+            }
+          >
+            <Button icon={<IconBox />} theme="borderless" size="small">包装运输</Button>
+          </Popover>
+
+          <Divider layout="vertical" style={{ margin: '0 4px' }} />
+
+          <RoleGuard field="bomEdit">
+            <Button icon={<IconUpload />} size="small" onClick={() => setImportVisible(true)}>导入BOM</Button>
+          </RoleGuard>
+          
+          {isDirty && (
+            <Popconfirm
+              title="放弃未保存的更改?"
+              onConfirm={() => isNew ? navigate(`/project/${id}`) : navigate(`/project/${id}/harness/${harnessId}`)}
+            >
+              <Button icon={<IconClose />} theme="light" type="danger" size="small">放弃</Button>
+            </Popconfirm>
+          )}
+
+          <RoleGuard field="bomEdit" readOnlyFallback>
+            <Button icon={<IconSave />} type="primary" theme="solid" size="small" disabled={!isDirty} onClick={handleSave}>保存</Button>
+          </RoleGuard>
+        </Space>
+      </div>
+
+      {/* 3. Univer BOM Sheet — full width, no border for immersive Excel look */}
+      <div style={{ flex: 1, position: 'relative' }}>
+        <UniverSheet
+          data={bomToArray(formData.bom)}
+          onChange={newData => {
+            const newBom = arrayToBom(newData);
+            updateFormData({ bom: newBom });
+          }}
+          columnWidths={[45, 120, 160, 180, 55, 110, 160, 65, 50, 120, 80, 75, 85, 70, 70, 90]}
+          height="100%"
+          freezeRows={1}
+          hideToolbar
+        />
+      </div>
+
+      {/* 4. Status Bar */}
+      <div style={{ 
+        height: STATUS_BAR_HEIGHT, 
+        backgroundColor: 'var(--semi-color-bg-2)', 
+        borderTop: '1px solid var(--semi-color-border)',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 16px',
+        fontSize: '12px'
+      }}>
+        <Space spacing="medium">
+          <Text type="secondary">BOM: <Text strong>{formData.bom.length}</Text> 项</Text>
+          <Divider layout="vertical" />
+          {result ? (
+            <>
+              <Text>材料: <Text strong style={{ color: 'var(--semi-color-primary)' }}>¥{result.materialCost.toFixed(2)}</Text></Text>
+              <Text>人工: <Text strong>¥{result.directLabor.toFixed(2)}</Text></Text>
+              <Text>制造: <Text strong>¥{result.manufacturing.toFixed(2)}</Text></Text>
+              <Text>出厂: <Text strong style={{ color: 'var(--semi-color-warning)' }}>¥{result.exFactoryPrice.toFixed(2)}</Text></Text>
+              <Text>到厂: <Text strong style={{ color: 'var(--semi-color-danger)' }}>¥{result.deliveredPrice.toFixed(2)}</Text></Text>
+            </>
+          ) : (
+            <Text>正在计算...</Text>
+          )}
+        </Space>
+      </div>
+
+      <BomImportDialog
+        visible={importVisible}
+        projectId={id!}
+        harnessId={formData.harnessId}
+        harnessName={formData.harnessName}
+        existingBomItems={formData.bom}
+        onClose={() => setImportVisible(false)}
+        onImport={handleImportBom}
+      />
+    </div>
+  );
+}
