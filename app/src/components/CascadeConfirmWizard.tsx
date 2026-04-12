@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { AssemblyPartRow, ChangeHistoryRow, KskBomRow, SecondaryMaterialRow } from '@/types/bomWorkbook';
+import type { AssemblyPartRow, KskBomRow, SecondaryMaterialRow } from '@/types/bomWorkbook';
 import type { BomChangeDetectionResult } from '@/engine/change_detector';
 import type { SemanticChange } from '@/engine/change_pattern_classifier';
 import {
@@ -7,13 +7,10 @@ import {
   computeKskImpact,
   computeSecondaryMaterialImpact,
   type CascadeAction,
-  type ImpactPreviewRow,
 } from '@/engine/cascade_impact';
 import { writeChangeHistory } from '@/engine/change_history_writer';
 
-type StepKey = 'ksk_bom' | 'secondary_material' | 'assembly_parts';
-
-const STEP_ORDER: StepKey[] = ['ksk_bom', 'secondary_material', 'assembly_parts'];
+type WizardTab = 'assembly_parts' | 'secondary_material' | 'ksk_bom';
 
 interface Props {
   detection: BomChangeDetectionResult;
@@ -21,80 +18,30 @@ interface Props {
   assemblyRows: AssemblyPartRow[];
   secondaryRows: SecondaryMaterialRow[];
   kskRows: KskBomRow[];
-  existingHistoryRows: ChangeHistoryRow[];
+  historyRowCount: number;
   onConfirm: (actions: CascadeAction[]) => Promise<void>;
   onCancel: () => void;
 }
 
-interface StepResult {
-  key: StepKey;
-  title: string;
-  preview: ImpactPreviewRow[];
-  actions: CascadeAction[];
-}
-
-function headersFor(step: StepKey): string[] {
-  if (step === 'ksk_bom') return ['Part No.', 'Part Name', 'Current Qty', 'Action'];
-  if (step === 'secondary_material') return ['Part No.', 'Part Name', 'Current Qty', 'Action'];
-  return ['Part No.', 'Part Name', 'Current Qty', 'Action'];
-}
-
-function titleFor(step: StepKey): string {
-  if (step === 'ksk_bom') return 'Step 1 / 3 - KSK BOM';
-  if (step === 'secondary_material') return 'Step 2 / 3 - Secondary Material';
-  return 'Step 3 / 3 - Assembly Parts';
-}
-
-export function CascadeConfirmWizard({
-  detection,
-  semanticChanges,
-  assemblyRows,
-  secondaryRows,
-  kskRows,
-  existingHistoryRows,
-  onConfirm,
-  onCancel,
-}: Props) {
-  const impacts = useMemo(() => {
-    const ksk = computeKskImpact(detection.changes, semanticChanges, kskRows);
-    const secondary = computeSecondaryMaterialImpact(detection.changes, semanticChanges, secondaryRows);
-    const assembly = computeAssemblyPartsImpact(detection.changes, semanticChanges, assemblyRows);
-    const steps: Record<StepKey, StepResult> = {
-      ksk_bom: { key: 'ksk_bom', title: titleFor('ksk_bom'), preview: ksk.preview, actions: ksk.actions },
-      secondary_material: {
-        key: 'secondary_material',
-        title: titleFor('secondary_material'),
-        preview: secondary.preview,
-        actions: secondary.actions,
-      },
-      assembly_parts: {
-        key: 'assembly_parts',
-        title: titleFor('assembly_parts'),
-        preview: assembly.preview,
-        actions: assembly.actions,
-      },
-    };
-    return steps;
-  }, [detection, semanticChanges, kskRows, secondaryRows, assemblyRows]);
-
-  const [stepIndex, setStepIndex] = useState(0);
+export function CascadeConfirmWizard({ detection, semanticChanges, assemblyRows, secondaryRows, kskRows, historyRowCount, onConfirm, onCancel }: Props) {
+  const [activeTab, setActiveTab] = useState<WizardTab>('assembly_parts');
   const [confirming, setConfirming] = useState(false);
-  const currentStep: StepKey = STEP_ORDER[stepIndex] ?? 'ksk_bom';
-  const result = impacts[currentStep];
-  const totalActions = STEP_ORDER.reduce((sum, step) => sum + impacts[step].actions.length, 0);
 
-  const nextStep = () => setStepIndex(index => Math.min(index + 1, STEP_ORDER.length - 1));
-  const previousStep = () => setStepIndex(index => Math.max(index - 1, 0));
+  const assemblyImpact = useMemo(() => computeAssemblyPartsImpact(detection.changes, semanticChanges, assemblyRows), [detection, semanticChanges, assemblyRows]);
+  const secondaryImpact = useMemo(() => computeSecondaryMaterialImpact(detection.changes, semanticChanges, secondaryRows), [detection, semanticChanges, secondaryRows]);
+  const kskImpact = useMemo(() => computeKskImpact(detection.changes, semanticChanges, kskRows), [detection, semanticChanges, kskRows]);
 
-  const confirmAll = async () => {
+  const totalActions = assemblyImpact.actions.length + secondaryImpact.actions.length + kskImpact.actions.length;
+
+  const handleConfirm = async () => {
     setConfirming(true);
     try {
       const allActions = [
-        ...impacts.ksk_bom.actions,
-        ...impacts.secondary_material.actions,
-        ...impacts.assembly_parts.actions,
+        ...assemblyImpact.actions,
+        ...secondaryImpact.actions,
+        ...kskImpact.actions,
       ];
-      allActions.push(writeChangeHistory(detection, semanticChanges, allActions, existingHistoryRows));
+      allActions.push(writeChangeHistory(detection, semanticChanges, allActions, historyRowCount));
       await onConfirm(allActions);
     } finally {
       setConfirming(false);
@@ -103,46 +50,26 @@ export function CascadeConfirmWizard({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-lg shadow-xl w-[980px] max-h-[82vh] flex flex-col">
+      <div className="bg-white rounded-lg shadow-xl w-[980px] max-h-[80vh] flex flex-col">
         <div className="px-6 py-4 border-b">
-          <h2 className="text-lg font-bold">BOM Cascade Confirmation</h2>
+          <h2 className="text-lg font-bold">BOM 变更联动确认</h2>
           <p className="text-sm text-gray-500 mt-1">{detection.summary}</p>
         </div>
-        <div className="px-6 py-3 border-b">
-          <div className="text-sm font-medium">{result.title}</div>
-          <div className="text-xs text-gray-500 mt-1">
-            Review order is fixed: KSK -&gt; Secondary Material -&gt; Assembly Parts -&gt; Change History
-          </div>
+        <div className="flex border-b px-6">
+          <TabButton active={activeTab === 'assembly_parts'} onClick={() => setActiveTab('assembly_parts')} label="总成散件清单" badge={assemblyImpact.actions.length} />
+          <TabButton active={activeTab === 'secondary_material'} onClick={() => setActiveTab('secondary_material')} label="二次物料明细表" badge={secondaryImpact.actions.length} />
+          <TabButton active={activeTab === 'ksk_bom'} onClick={() => setActiveTab('ksk_bom')} label="KSK 配置BOM明细表" badge={kskImpact.actions.length} />
         </div>
         <div className="flex-1 overflow-y-auto p-6">
-          <ImpactTable headers={headersFor(currentStep)} rows={result.preview} />
+          {activeTab === 'assembly_parts' && <ImpactTable headers={['零件号', '零件名称', '当前/原数量', '变更后/动作', '类型']} rows={assemblyImpact.preview} />}
+          {activeTab === 'secondary_material' && <ImpactTable headers={['零件号', '零件名称', '当前/原数量', '变更后/动作', '类型']} rows={secondaryImpact.preview} />}
+          {activeTab === 'ksk_bom' && <ImpactTable headers={['零件号', '零件名称', '当前/原数量', '变更后/动作', '类型']} rows={kskImpact.preview} />}
         </div>
         <div className="px-6 py-4 border-t flex justify-between items-center">
-          <span className="text-sm text-gray-500">Prepared actions: {totalActions}</span>
+          <span className="text-sm text-gray-500">共 {totalActions} 处联动修改</span>
           <div className="flex gap-3">
-            <button className="px-4 py-2 text-sm rounded border hover:bg-gray-50" onClick={onCancel}>
-              Cancel
-            </button>
-            <button
-              className="px-4 py-2 text-sm rounded border hover:bg-gray-50 disabled:opacity-50"
-              onClick={previousStep}
-              disabled={stepIndex === 0}
-            >
-              Previous
-            </button>
-            {stepIndex < STEP_ORDER.length - 1 ? (
-              <button className="px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700" onClick={nextStep}>
-                Confirm This Step
-              </button>
-            ) : (
-              <button
-                className="px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
-                onClick={confirmAll}
-                disabled={confirming}
-              >
-                {confirming ? 'Applying...' : 'Finish And Write History'}
-              </button>
-            )}
+            <button className="px-4 py-2 text-sm rounded border hover:bg-gray-50" onClick={onCancel}>取消</button>
+            <button className="px-4 py-2 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50" onClick={handleConfirm} disabled={confirming || totalActions === 0}>{confirming ? '执行中...' : `确认修改 (${totalActions} 处)`}</button>
           </div>
         </div>
       </div>
@@ -150,48 +77,35 @@ export function CascadeConfirmWizard({
   );
 }
 
-function ImpactTable({
-  headers,
-  rows,
-}: {
-  headers: string[];
-  rows: ImpactPreviewRow[];
-}) {
-  const rowColor: Record<ImpactPreviewRow['changeType'], string> = {
+function TabButton({ active, onClick, label, badge }: { active: boolean; onClick: () => void; label: string; badge: number }) {
+  return (
+    <button className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${active ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`} onClick={onClick}>
+      {label}
+      {badge > 0 && <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-600">{badge}</span>}
+    </button>
+  );
+}
+
+function ImpactTable({ headers, rows }: { headers: string[]; rows: Array<{ rowKey?: string; cells: (string | number)[]; changeType: 'added' | 'removed' | 'modified' | 'unchanged' }> }) {
+  const rowColor: Record<string, string> = {
     added: 'bg-green-50',
-    removed: 'bg-red-50',
+    removed: 'bg-red-50 line-through',
     modified: 'bg-amber-50',
     unchanged: '',
   };
-
   return (
     <table className="w-full text-sm border-collapse">
       <thead>
         <tr className="bg-gray-50">
-          {headers.map(header => (
-            <th key={header} className="px-3 py-2 text-left">
-              {header}
-            </th>
-          ))}
+          {headers.map(header => <th key={header} className="px-3 py-2 text-left">{header}</th>)}
         </tr>
       </thead>
       <tbody>
         {rows.map((row, index) => (
           <tr key={row.rowKey || index} className={`border-b ${rowColor[row.changeType]}`}>
-            {row.cells.map((cell, cellIndex) => (
-              <td key={cellIndex} className="px-3 py-2">
-                {cell}
-              </td>
-            ))}
+            {row.cells.map((cell, cellIndex) => <td key={cellIndex} className="px-3 py-2">{cell}</td>)}
           </tr>
         ))}
-        {rows.length === 0 && (
-          <tr>
-            <td className="px-3 py-6 text-gray-400" colSpan={headers.length}>
-              No impacted rows in this step.
-            </td>
-          </tr>
-        )}
       </tbody>
     </table>
   );

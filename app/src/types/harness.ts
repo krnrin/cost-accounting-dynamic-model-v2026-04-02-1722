@@ -30,6 +30,22 @@ export interface BomItem {
   supplier?: string;
   /** 是否半成品 */
   isSemiFinished?: boolean;
+  /** 总成名称（用于跨sheet验证） */
+  assemblyName?: string;
+  /** 总成编号（用于跨sheet验证） */
+  assemblyNo?: string;
+  /** 线束编号（用于跨sheet验证） */
+  harnessNo?: string;
+  /** KSK编号（用于跨sheet验证） */
+  kskNo?: string;
+  /** 物料名称（别名，用于兼容） */
+  itemName?: string;
+  /** 物料编号（别名，用于兼容） */
+  itemNo?: string;
+  /** 数量（别名，用于兼容） */
+  quantity?: number;
+  /** 价格（别名，用于兼容） */
+  price?: number;
 }
 
 /** 导线型 BOM 物料 (扩展) */
