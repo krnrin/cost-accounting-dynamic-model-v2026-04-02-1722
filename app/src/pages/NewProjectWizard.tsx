@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Steps, Form, Input, InputNumber, Button, ArrayField, Typography, Toast, Card } from '@douyinfe/semi-ui';
 import type { ProjectConfig } from '@/types/project';
 import { useNavigate } from 'react-router-dom';
+import type { CSSProperties } from 'react';
 
 const { Title, Text } = Typography;
 
@@ -20,6 +21,16 @@ const STEPS: WizardStep[] = [
   { title: '成本参数', description: '费率与金属价格' },
   { title: '确认创建', description: '预览并创建项目' },
 ];
+
+const S: Record<string, CSSProperties> = {
+  container: { maxWidth: 800, margin: '0 auto', padding: 24 },
+  steps: { marginBottom: 24 },
+  configRow: { display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 },
+  flexTwo: { flex: 2 },
+  flexOne: { flex: 1 },
+  pre: { background: '#f5f5f5', padding: 16, borderRadius: 8, fontSize: 12, overflow: 'auto' },
+  footer: { marginTop: 24, display: 'flex', justifyContent: 'space-between' },
+};
 
 export default function NewProjectWizard() {
   const [step, setStep] = useState(0);
@@ -69,9 +80,9 @@ export default function NewProjectWizard() {
   };
 
   return (
-    <div style= maxWidth: 800, margin: '0 auto', padding: 24 >
+    <div style={S.container}>
       <Title heading={3}>🆕 新建项目</Title>
-      <Steps current={step} style= marginBottom: 24 >
+      <Steps current={step} style={S.steps}>
         {STEPS.map((s, i) => (
           <Steps.Step key={i} title={s.title} description={s.description} />
         ))}
@@ -100,10 +111,10 @@ export default function NewProjectWizard() {
               {({ add, arrayFields }) => (
                 <>
                   {arrayFields.map(({ field, key, remove }) => (
-                    <div key={key} style= display: 'flex', gap: 8, marginBottom: 8 >
-                      <Form.Input field={`${field}.harnessId`} placeholder="线束号" style= flex: 2  />
-                      <Form.Input field={`${field}.configType`} placeholder="标配/选配" style= flex: 1  />
-                      <Form.InputNumber field={`${field}.vehicleRatio`} placeholder="装车比" min={0} max={1} step={0.01} style= flex: 1  />
+                    <div key={key} style={S.configRow}>
+                      <Form.Input field={`${field}.harnessId`} placeholder="线束号" style={S.flexTwo} />
+                      <Form.Input field={`${field}.configType`} placeholder="标配/选配" style={S.flexOne} />
+                      <Form.InputNumber field={`${field}.vehicleRatio`} placeholder="装车比" min={0} max={1} step={0.01} style={S.flexOne} />
                       <Button type="danger" theme="borderless" onClick={remove}>删除</Button>
                     </div>
                   ))}
@@ -131,13 +142,13 @@ export default function NewProjectWizard() {
 
       {step === 3 && (
         <Card title="确认项目配置">
-          <pre style= background: '#f5f5f5', padding: 16, borderRadius: 8, fontSize: 12, overflow: 'auto', maxHeight: 400 >
+          <pre style={S.pre}>
             {JSON.stringify(formData, null, 2)}
           </pre>
         </Card>
       )}
 
-      <div style= marginTop: 24, display: 'flex', justifyContent: 'space-between' >
+      <div style={S.footer}>
         <Button disabled={step === 0} onClick={handlePrev}>上一步</Button>
         {step < STEPS.length - 1 ? (
           <Button type="primary" theme="solid" onClick={handleNext}>下一步</Button>
