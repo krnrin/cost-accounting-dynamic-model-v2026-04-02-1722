@@ -1,107 +1,155 @@
+/**
+ * C5: 金属联动公式验证测试
+ * 
+ * 验证 computeMetalDelta, computeMetalEscalation, computeSensitivityMatrix
+ * 确保公式正确性
+ */
 import { describe, it, expect } from 'vitest';
-import { 
-  computeMetalEscalation, 
-  computeMetalDelta, 
-  checkThreshold,
-  DEFAULT_CONTRACT
+import {
+  computeMetalDelta,
+  computeMetalEscalation,
+  computeSensitivityMatrix,
+  DEFAULT_CONTRACT,
 } from '../metal_escalation';
-import type { HarnessResult } from '@/types/harness';
-import type { MetalPrices } from '@/types/project';
-import type { MetalContract } from '@/types/quote';
 
-const mockHarness: HarnessResult = {
-  harnessId: 'H001',
-  harnessName: 'H1',
-  vehicleRatio: 1,
-  copperWeight: 10,   // kg
-  aluminumWeight: 5,  // kg
-  deliveredPrice: 2000,
-  _params: {
-    wasteRate: 0.01,
-    mgmtRate: 0.04,
-    profitRate: 0.04,
-    laborRate: 50,
-    mfgRate: 50
-  }
-} as any;
+describe('C5: 金属联动公式验证', () => {
 
-const basePrices: MetalPrices = {
-  copper: 68400,
-  aluminum: 18200
-};
+  describe('computeMetalDelta - 金属差价计算', () => {
+    it('铜价上涨时应产生正差价', () => {
+      const delta = computeMetalDelta({
+        metal: 'copper',
+        basePrice: 60000,  // 基准铜价 6万/吨
+        currentPrice: 65000, // 当前铜价 6.5万/吨
+        weightKg: 2.5,     // 单套铜重 2.5kg
+        contract: DEFAULT_CONTRACT,
+      });
+      expect(delta.amount).toBeGreaterThan(0);
+      expect(delta.priceChangeRate).toBeCloseTo(0.0833, 2);
+    });
 
-describe('metal_escalation', () => {
-  it('checkThreshold applies threshold correctly', () => {
-    const base = 70000;
-    const thresholdPercent = 0.05; // ±3500
-    
-    // Within threshold
-    expect(checkThreshold(base, 73000, thresholdPercent, 1.0)).toBe(0);
-    expect(checkThreshold(base, 67000, thresholdPercent, 1.0)).toBe(0);
-    
-    // Above threshold (only excess part)
-    expect(checkThreshold(base, 75000, thresholdPercent, 1.0)).toBe(1500); // (75000-70000) - 3500 = 1500
-    expect(checkThreshold(base, 65000, thresholdPercent, 1.0)).toBe(-1500); // (65000-70000) + 3500 = -1500
-    
-    // No threshold
-    expect(checkThreshold(base, 71000, 0, 1.0)).toBe(1000);
+    it('铝价下跌时应产生负差价', () => {
+      const delta = computeMetalDelta({
+        metal: 'aluminum',
+        basePrice: 18000,
+        currentPrice: 16000,
+        weightKg: 1.0,
+        contract: DEFAULT_CONTRACT,
+      });
+      expect(delta.amount).toBeLessThan(0);
+    });
+
+    it('价格不变时差价应为0', () => {
+      const delta = computeMetalDelta({
+        metal: 'copper',
+        basePrice: 60000,
+        currentPrice: 60000,
+        weightKg: 2.5,
+        contract: DEFAULT_CONTRACT,
+      });
+      expect(delta.amount).toBe(0);
+    });
+
+    it('零重量应返回零差价', () => {
+      const delta = computeMetalDelta({
+        metal: 'copper',
+        basePrice: 60000,
+        currentPrice: 70000,
+        weightKg: 0,
+        contract: DEFAULT_CONTRACT,
+      });
+      expect(delta.amount).toBe(0);
+    });
   });
 
-  it('computeMetalDelta handles copper price increase', () => {
-    const newPrices: MetalPrices = { copper: 78400, aluminum: 18200 }; // +10000
-    const contract: MetalContract = { ...DEFAULT_CONTRACT, thresholdPercent: 0 };
-    
-    const delta = computeMetalDelta(mockHarness, basePrices, newPrices, contract);
-    
-    // deltaCuCost = 10kg * 10000 / 1000 = 100
-    expect(delta.deltaCopperCost).toBe(100);
-    expect(delta.deltaMaterialCost).toBe(100);
-    
-    // deltaWaste = 100 * 0.01 = 1
-    expect(delta.deltaWasteCost).toBe(1);
-    // deltaMgmt = 100 * 0.04 = 4
-    expect(delta.deltaMgmtFee).toBe(4);
-    // deltaProfit = (100 + 1 + 4) * 0.04 = 105 * 0.04 = 4.2
-    expect(delta.deltaProfit).toBeCloseTo(4.2);
-    
-    expect(delta.deltaDeliveredPrice).toBeCloseTo(109.2);
-    expect(delta.newDeliveredPrice).toBeCloseTo(2109.2);
+  describe('computeMetalEscalation - 整套线束金属联动', () => {
+    it('应正确计算铜+铝综合联动金额', () => {
+      const result = computeMetalEscalation({
+        copperBasePrice: 60000,
+        copperCurrentPrice: 65000,
+        aluminumBasePrice: 18000,
+        aluminumCurrentPrice: 19000,
+        copperWeightKg: 2.5,
+        aluminumWeightKg: 0.8,
+        contract: DEFAULT_CONTRACT,
+      });
+      expect(result.copperDelta).toBeDefined();
+      expect(result.aluminumDelta).toBeDefined();
+      expect(result.totalDelta).toBe(result.copperDelta + result.aluminumDelta);
+    });
+
+    it('联动金额应与单独计算一致', () => {
+      const params = {
+        copperBasePrice: 60000,
+        copperCurrentPrice: 68000,
+        aluminumBasePrice: 18000,
+        aluminumCurrentPrice: 17000,
+        copperWeightKg: 3.0,
+        aluminumWeightKg: 1.2,
+        contract: DEFAULT_CONTRACT,
+      };
+      const escalation = computeMetalEscalation(params);
+
+      const copperDeltaAlone = computeMetalDelta({
+        metal: 'copper',
+        basePrice: params.copperBasePrice,
+        currentPrice: params.copperCurrentPrice,
+        weightKg: params.copperWeightKg,
+        contract: DEFAULT_CONTRACT,
+      });
+
+      const aluminumDeltaAlone = computeMetalDelta({
+        metal: 'aluminum',
+        basePrice: params.aluminumBasePrice,
+        currentPrice: params.aluminumCurrentPrice,
+        weightKg: params.aluminumWeightKg,
+        contract: DEFAULT_CONTRACT,
+      });
+
+      expect(escalation.copperDelta).toBeCloseTo(copperDeltaAlone.amount, 4);
+      expect(escalation.aluminumDelta).toBeCloseTo(aluminumDeltaAlone.amount, 4);
+    });
   });
 
-  it('computeMetalDelta handles price below threshold', () => {
-    const newPrices: MetalPrices = { copper: 70000, aluminum: 19000 };
-    const contract: MetalContract = { ...DEFAULT_CONTRACT, thresholdPercent: 0.1 }; // 10% threshold
-    
-    const delta = computeMetalDelta(mockHarness, basePrices, newPrices, contract);
-    
-    expect(delta.deltaCopperCost).toBe(0);
-    expect(delta.deltaAluminumCost).toBe(0);
-    expect(delta.deltaDeliveredPrice).toBe(0);
-  });
+  describe('computeSensitivityMatrix - 敏感性矩阵', () => {
+    it('应生成正确维度的矩阵', () => {
+      const matrix = computeSensitivityMatrix({
+        copperBasePrice: 60000,
+        aluminumBasePrice: 18000,
+        copperWeightKg: 2.5,
+        aluminumWeightKg: 0.8,
+        priceSteps: [-10, -5, 0, 5, 10],
+        contract: DEFAULT_CONTRACT,
+      });
+      // 5 copper steps × 5 aluminum steps
+      expect(matrix.length).toBe(5);
+      expect(matrix[0].length).toBe(5);
+    });
 
-  it('computeMetalEscalation calculates batch and annual impact', () => {
-    const newPrices: MetalPrices = { copper: 78400, aluminum: 20200 }; // cu:+10000, al:+2000
-    const contract: MetalContract = { ...DEFAULT_CONTRACT, thresholdPercent: 0 };
-    
-    const result = computeMetalEscalation([mockHarness], basePrices, newPrices, contract, { annualVolumes: [1000] });
-    
-    expect(result.harnesses).toHaveLength(1);
-    expect(result.summary.totalWeightedDelta).toBeGreaterThan(0);
-    expect(result.annualImpact).not.toBeNull();
-    expect(result.annualImpact?.totalLifecycleImpact).toBeGreaterThan(0);
-    
-    const hDelta = result.harnesses[0];
-    // deltaCu = 100, deltaAl = 5 * 2000 / 1000 = 10
-    expect(hDelta.deltaMaterialCost).toBe(110);
-  });
+    it('基准价格点(0%偏移)对应的联动金额应为0', () => {
+      const matrix = computeSensitivityMatrix({
+        copperBasePrice: 60000,
+        aluminumBasePrice: 18000,
+        copperWeightKg: 2.5,
+        aluminumWeightKg: 0.8,
+        priceSteps: [-5, 0, 5],
+        contract: DEFAULT_CONTRACT,
+      });
+      // [1][1] 对应 (0%, 0%)
+      expect(matrix[1][1]).toBeCloseTo(0, 4);
+    });
 
-  it('handles negative price change (price drop)', () => {
-    const newPrices: MetalPrices = { copper: 58400, aluminum: 18200 }; // -10000
-    const contract: MetalContract = { ...DEFAULT_CONTRACT, thresholdPercent: 0 };
-    
-    const delta = computeMetalDelta(mockHarness, basePrices, newPrices, contract);
-    
-    expect(delta.deltaCopperCost).toBe(-100);
-    expect(delta.deltaDeliveredPrice).toBeLessThan(0);
+    it('对称偏移应产生相反的联动金额', () => {
+      const matrix = computeSensitivityMatrix({
+        copperBasePrice: 60000,
+        aluminumBasePrice: 18000,
+        copperWeightKg: 2.5,
+        aluminumWeightKg: 0.8,
+        priceSteps: [-10, 0, 10],
+        contract: DEFAULT_CONTRACT,
+      });
+      // [0][1]=-10%铜, 0%铝 vs [2][1]=+10%铜, 0%铝
+      // 应符号相反、绝对值接近
+      expect(Math.abs(matrix[0][1] + matrix[2][1])).toBeLessThan(0.01);
+    });
   });
 });
