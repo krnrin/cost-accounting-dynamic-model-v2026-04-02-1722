@@ -3,7 +3,6 @@
  * 参数值范围校验 + 角色权限检查
  */
 
-import type { CostRates, MetalPrices } from '@/types/project';
 import { hasPermission, type Role } from './rbac';
 
 export interface ParamBoundary {

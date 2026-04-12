@@ -4,7 +4,7 @@
  * 废料回收金额变动 → 自动调整材料净成本 → 逐级联动到出厂价/到厂价
  * 确保价格体系的一致性和自洽
  */
-import type { BomItem, WireItem, HarnessResult } from '@/types/harness';
+import type { WireItem, HarnessResult } from '@/types/harness';
 import type { CostRates } from '@/types/project';
 
 export interface RecycleConfig {

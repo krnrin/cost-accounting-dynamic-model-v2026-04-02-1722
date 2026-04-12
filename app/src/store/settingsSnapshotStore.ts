@@ -5,7 +5,7 @@
  * 支持查看历史快照、对比差异、回滚。
  */
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools } from 'zustand/middleware';
 import { db } from '@/data/db';
 import type { CostRates, MetalPrices, CostStructureSchema, FactoryConfig, AllocationConfig, BomClassificationRule } from '@/types';
 
@@ -110,7 +110,7 @@ function diffSnapshots(a: SettingsSnapshot['data'], b: SettingsSnapshot['data'])
   };
   for (const field of rateFields) {
     if (a.costRates[field] !== b.costRates[field]) {
-      diffs.push({ field: `costRates.${field}`, oldValue: a.costRates[field], newValue: b.costRates[field], label: rateLabels[field] });
+      diffs.push({ field: `costRates.${field}`, oldValue: a.costRates[field], newValue: b.costRates[field], label: rateLabels[field] ?? field });
     }
   }
 
@@ -174,8 +174,7 @@ export const useSettingsSnapshotStore = create<SettingsSnapshotState>()(
           let query = db.table('settingsSnapshots').orderBy('timestamp').reverse();
           if (opts?.projectId) {
             query = db.table('settingsSnapshots')
-              .where('projectId').equals(opts.projectId)
-              .reverse();
+              .where('projectId').equals(opts.projectId!) as any;
           }
           const limit = opts?.limit || 100;
           const snapshots = await query.limit(limit).toArray();

@@ -3,12 +3,22 @@
  * 四步向导: 基本信息 → 线束配置 → 成本参数 → 确认创建
  */
 import { useState } from 'react';
-import { Steps, Form, Input, InputNumber, Button, ArrayField, Typography, Toast, Card } from '@douyinfe/semi-ui';
+import { Steps, Form, Button, ArrayField, Typography, Toast, Card } from '@douyinfe/semi-ui';
 import type { ProjectConfig } from '@/types/project';
 import { useNavigate } from 'react-router-dom';
 import type { CSSProperties } from 'react';
 
 const { Title, Text } = Typography;
+
+/** Wizard form data extends ProjectConfig with project metadata */
+interface WizardData extends Partial<ProjectConfig> {
+  projectCode?: string;
+  projectName?: string;
+  customer?: string;
+  platform?: string;
+  lifecycleYears?: number;
+  vehicleConfigs?: Array<{ harnessId: string; configType: string; vehicleRatio: number }>;
+}
 
 interface WizardStep {
   title: string;
@@ -34,7 +44,7 @@ const S: Record<string, CSSProperties> = {
 
 export default function NewProjectWizard() {
   const [step, setStep] = useState(0);
-  const [formData, setFormData] = useState<Partial<ProjectConfig>>({
+  const [formData, setFormData] = useState<WizardData>({
     projectCode: '',
     projectName: '',
     customer: '',

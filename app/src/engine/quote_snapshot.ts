@@ -125,7 +125,7 @@ export function compareQuoteSnapshots(
   const rateLabels: Record<string, string> = { laborRate: '人工费率', mfgRate: '制造费率', wasteRate: '废品率', mgmtRate: '管理费率', profitRate: '利润率' };
   for (const key of rateKeys) {
     if (snapA.params.costRates[key] !== snapB.params.costRates[key]) {
-      paramDiffs.push({ field: key, label: rateLabels[key], valueA: snapA.params.costRates[key], valueB: snapB.params.costRates[key] });
+      paramDiffs.push({ field: key, label: rateLabels[key] ?? key, valueA: snapA.params.costRates[key], valueB: snapB.params.costRates[key] });
     }
   }
 

@@ -46,11 +46,15 @@ export function parseClipboardTable(text: string): Array<Record<string, string>>
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split('\t').map(h => h.trim());
+  const firstLine = lines[0];
+  if (!firstLine) return [];
+  const headers = firstLine.split('\t').map(h => h.trim());
   const rows: Array<Record<string, string>> = [];
 
   for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split('\t');
+    const line = lines[i];
+    if (!line) continue;
+    const values = line.split('\t');
     const row: Record<string, string> = {};
     headers.forEach((h, idx) => {
       row[h] = (values[idx] || '').trim();
@@ -65,7 +69,7 @@ export function guessColumnMappings(headers: string[]): ColumnMapping[] {
   return headers.map(header => {
     const trimmed = header.trim();
     if (HEADER_ALIASES[trimmed]) {
-      return { sourceColumn: header, targetField: HEADER_ALIASES[trimmed], confidence: 1.0 };
+      return { sourceColumn: header, targetField: HEADER_ALIASES[trimmed]!, confidence: 1.0 };
     }
     for (const [alias, field] of Object.entries(HEADER_ALIASES)) {
       if (trimmed.includes(alias) || alias.includes(trimmed)) {
@@ -82,7 +86,8 @@ export function smartPaste(clipboardText: string): PasteParseResult {
     return { rows: [], columnMappings: [], unmappedColumns: [], preview: [] };
   }
 
-  const headers = Object.keys(rows[0]);
+  const firstRow = rows[0]!;
+  const headers = Object.keys(firstRow);
   const columnMappings = guessColumnMappings(headers);
   const unmappedColumns = columnMappings.filter(m => !m.targetField).map(m => m.sourceColumn);
 
