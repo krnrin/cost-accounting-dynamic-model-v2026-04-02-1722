@@ -108,7 +108,7 @@ export async function transitionScenario(
     updates.statusNote = options.note;
   }
 
-  await db.scenarios.update(scenarioId, updates);
+  await db.scenarios.update(scenarioId, updates as any);
 
   // 冻结时自动锁定所有线束
   if (targetStatus === 'frozen') {

@@ -4,7 +4,7 @@
  */
 
 import type { BomItem, WireItem } from '@/types/harness';
-import { diffBom, type BomDiffResult } from './bom_diff';
+import { diffBom } from './bom_diff';
 
 export interface ChangeOrder {
   id: string;

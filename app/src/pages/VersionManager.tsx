@@ -21,7 +21,7 @@ const S: Record<string, CSSProperties> = {
 const paginationConfig = { pageSize: 20 };
 
 export default function VersionManager() {
-  const { snapshots, loadSnapshots, compareSnapshots } = useSettingsSnapshotStore();
+  const { snapshots, loadSnapshots } = useSettingsSnapshotStore();
   const [quoteSnapshots, setQuoteSnapshots] = useState<QuoteSnapshot[]>([]);
   const [compareModalVisible, setCompareModalVisible] = useState(false);
   const [selectedA, setSelectedA] = useState<string>('');

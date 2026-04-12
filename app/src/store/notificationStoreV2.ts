@@ -154,7 +154,7 @@ export const useNotificationStoreV2 = create<NotificationState>()(
           const groups: Record<string, NotificationItem[]> = {};
           for (const n of get().notifications) {
             if (!groups[n.type]) groups[n.type] = [];
-            groups[n.type].push(n);
+            groups[n.type]!.push(n);
           }
           return groups as Record<NotificationType, NotificationItem[]>;
         },
