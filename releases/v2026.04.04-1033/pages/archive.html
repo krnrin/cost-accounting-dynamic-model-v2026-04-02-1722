@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>归档 — 版本与审计中心</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
+  <link rel="stylesheet" href="../ui/dashboard.css">
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
+    .page-header { padding: 20px 24px 12px; }
+    .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .page-header p { margin: 4px 0 0; font-size: 13px; color: #888; }
+    .archive-content { padding: 0 24px 24px; }
+    .arc-section { margin-top: 16px; background: #1a1a2e; border-radius: 10px; padding: 18px; border: 1px solid #2a2a3e; }
+    .arc-section h2 { margin: 0 0 10px; font-size: 16px; font-weight: 600; }
+    .arc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .arc-card { padding: 12px; border-radius: 8px; background: #111125; border: 1px solid #33334b; min-height: 160px; }
+    .arc-card h3 { margin:0 0 8px; font-size:14px; }
+  </style>
+</head>
+<body>
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+
+  <div class="page-header">
+    <h1>归档</h1>
+    <p>版本时间线 / Release 包 / BOM &amp; 费用快照 / 审批与回滚</p>
+  </div>
+
+  <div class="archive-content">
+    <div class="arc-section">
+      <h2>版本时间线</h2>
+      <div id="arcTimelineMount" class="arc-card">
+        <p style="color:#9ca3af; font-size:12px;">timeline + compare 挂载 · 预留 builder 渲染</p>
+      </div>
+    </div>
+    <div class="arc-grid">
+      <div class="arc-card" id="releasePackMount">
+        <h3>Release 包</h3>
+        <p id="releasePackHint">LATEST_RELEASE.json + metadata 明细</p>
+      </div>
+      <div class="arc-card" id="approvalMount">
+        <h3>审批记录</h3>
+        <p id="approvalHint">审批状态 + 审计 ID + 线上/本地差异</p>
+      </div>
+      <div class="arc-card" id="snapshotMount">
+        <h3>阶段快照</h3>
+        <p id="snapshotHint">Quote / Fixed / Change / Annual Drop 快照</p>
+      </div>
+    </div>
+    <div class="arc-section">
+      <h2>BOM &amp; 模板</h2>
+      <div id="arcWorkbookMount" class="arc-card">工作簿 + 模板映射预览 · 预留 builder 说明</div>
+    </div>
+  </div>
+
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+
+  <script src="../engine/shared_utils.js"></script>
+  <script src="../engine/state_normalizer.js"></script>
+  <script src="../engine/snapshot_resolver.js"></script>
+  <script src="../engine/annual_calc.js"></script>
+  <script src="../engine/config_bridge.js"></script>
+  <script src="../engine/computation_path.js"></script>
+  <script src="../engine/compute_model.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../engine/bom_parser.js"></script>
+  <script src="../engine/bom_schema.js"></script>
+  <script src="../engine/bom_db.js"></script>
+  <script src="../engine/align_key_enhancer.js"></script>
+  <script src="../engine/workflow_stage_board_builder.js"></script>
+  <script src="../engine/customer_quote_template_adapter.js"></script>
+  <script src="../engine/bom_workbook_adapter.js"></script>
+
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+  <script src="../engine/schema_migrator.js"></script>
+
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../core/storage_adapter.js"></script>
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      G281Nav.mountNavBar();
+      const releaseMount = document.getElementById('releasePackMount');
+      releaseMount?.insertAdjacentHTML('beforeend', '<p style="font-size:12px; color:#9ca3af;">新结构 release + metadata</p>');
+    });
+  </script>
+</body>
+</html>

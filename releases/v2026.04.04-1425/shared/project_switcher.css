@@ -1,0 +1,53 @@
+/* Issue #14: 项目切换器样式 */
+
+.project-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: var(--nav-bg, #f5f5f5);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.project-switcher__label {
+  color: var(--text-secondary, #666);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.project-switcher__select {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  background: var(--input-bg, #fff);
+  color: var(--text-primary, #333);
+  font-size: 13px;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.project-switcher__select:hover {
+  border-color: var(--accent-color, #4a90d9);
+}
+
+.project-switcher__select:focus {
+  outline: none;
+  border-color: var(--accent-color, #4a90d9);
+  box-shadow: 0 0 0 2px rgba(74, 144, 217, 0.2);
+}
+
+.project-switcher__lock {
+  padding: 2px 8px;
+  background: var(--warning-bg, #fff3cd);
+  color: var(--warning-text, #856404);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: help;
+}
+
+.project-switcher__error {
+  color: var(--error-color, #dc3545);
+  font-size: 12px;
+}
