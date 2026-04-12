@@ -83,6 +83,19 @@ export async function transitionScenario(
     throw new Error(`不允许从 ${currentStatus} 转换到 ${targetStatus}`);
   }
 
+  // 冻结时先调用后端 API 刷新快照
+  if (targetStatus === 'frozen' && currentStatus === 'draft') {
+    try {
+      const { apiClient } = await import('@/lib/apiClient');
+      await apiClient(`/projects/${scenario.projectId}/scenarios/${scenarioId}/freeze`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Failed to refresh snapshot on freeze:', error);
+      throw new Error('冻结失败：无法刷新参数快照');
+    }
+  }
+
   const now = new Date().toISOString();
   const updates: Record<string, unknown> = {
     status: targetStatus,

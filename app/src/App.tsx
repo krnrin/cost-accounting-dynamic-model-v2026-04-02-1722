@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import RouteErrorBoundary from '@/components/RouteErrorBoundary';
 import MainLayout from '@/layouts/MainLayout';
 import LoginPage from '@/pages/LoginPage';
 import ProjectListPage from '@/pages/ProjectListPage';
@@ -29,13 +28,9 @@ import ConfigMatrixPage from '@/pages/ConfigMatrixPage';
 import ConnectorPricingPage from '@/pages/ConnectorPricingPage';
 import WirePricingPage from '@/pages/WirePricingPage';
 import DevPartPricingPage from '@/pages/DevPartPricingPage';
-import NewProjectWizard from '@/pages/NewProjectWizard';
-import VersionManager from '@/pages/VersionManager';
-import EngineerWorkbench from '@/pages/EngineerWorkbench';
 import SWUpdatePrompt from '@/components/SWUpdatePrompt';
 import { useAuthStore } from '@/store/authStore';
 import { useTheme } from '@/hooks/useTheme';
-import { useGlobalErrorHandler } from '@/hooks/useGlobalErrorHandler';
 
 export default function App() {
   const { isAuthenticated, restoreToken } = useAuthStore();
@@ -46,10 +41,6 @@ export default function App() {
   }, [restoreToken]);
 
   useTheme();
-
-  // Global error handler: catches unhandled errors & promise rejections,
-  // shows Toast notification, and logs to console
-  useGlobalErrorHandler();
 
   if (!isAuthenticated) {
     return (
@@ -64,50 +55,39 @@ export default function App() {
       <SWUpdatePrompt />
       <Routes>
         {/* Full-screen pages (no sidebar/header) for immersive Excel experience */}
-        <Route path="/project/:id/s/:sid/harness/:harnessId/edit" element={
-          <RouteErrorBoundary><HarnessEditPage /></RouteErrorBoundary>
-        } />
-        <Route path="/project/:id/s/:sid/bom-workbook" element={
-          <RouteErrorBoundary><BomWorkbookPage /></RouteErrorBoundary>
-        } />
+        <Route path="/project/:id/s/:sid/harness/:harnessId/edit" element={<HarnessEditPage />} />
+        <Route path="/project/:id/s/:sid/bom-workbook" element={<BomWorkbookPage />} />
         {/* Legacy full-screen routes (backward compat) */}
-        <Route path="/project/:id/harness/:harnessId/edit" element={
-          <RouteErrorBoundary><HarnessEditPage /></RouteErrorBoundary>
-        } />
-        <Route path="/project/:id/bom-workbook" element={
-          <RouteErrorBoundary><BomWorkbookPage /></RouteErrorBoundary>
-        } />
+        <Route path="/project/:id/harness/:harnessId/edit" element={<HarnessEditPage />} />
+        <Route path="/project/:id/bom-workbook" element={<BomWorkbookPage />} />
         <Route element={<MainLayout />}>
-          <Route path="/" element={<RouteErrorBoundary><ProjectListPage /></RouteErrorBoundary>} />
-          <Route path="/manager" element={<RouteErrorBoundary><ManagerDashboardPage /></RouteErrorBoundary>} />
-          <Route path="/wizard" element={<RouteErrorBoundary><WizardPage /></RouteErrorBoundary>} />
-          <Route path="/project/new" element={<RouteErrorBoundary><NewProjectWizard /></RouteErrorBoundary>} />
+          <Route path="/" element={<ProjectListPage />} />
+          <Route path="/manager" element={<ManagerDashboardPage />} />
+          <Route path="/wizard" element={<WizardPage />} />
           {/* 项目级页面 */}
-          <Route path="/project/:id" element={<RouteErrorBoundary><ProjectDashboardOverviewPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/scenarios" element={<RouteErrorBoundary><ProjectScenariosPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/scenario/:sid" element={<RouteErrorBoundary><DashboardPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/compare" element={<RouteErrorBoundary><ScenarioComparePage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/bom/diff" element={<RouteErrorBoundary><BomDiffPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/versions" element={<RouteErrorBoundary><VersionManager /></RouteErrorBoundary>} />
+          <Route path="/project/:id" element={<ProjectDashboardOverviewPage />} />
+          <Route path="/project/:id/scenarios" element={<ProjectScenariosPage />} />
+          <Route path="/project/:id/scenario/:sid" element={<DashboardPage />} />
+          <Route path="/project/:id/compare" element={<ScenarioComparePage />} />
+          <Route path="/project/:id/bom/diff" element={<BomDiffPage />} />
           {/* 场景级页面 */}
-          <Route path="/project/:id/s/:sid" element={<RouteErrorBoundary><DashboardPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/harness/:harnessId" element={<RouteErrorBoundary><HarnessDetailPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/quote" element={<RouteErrorBoundary><QuotePage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/simulation" element={<RouteErrorBoundary><SimulationPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/annual-drop" element={<RouteErrorBoundary><AnnualDropPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/alloc" element={<RouteErrorBoundary><AllocManagerPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/change-engine" element={<RouteErrorBoundary><ChangeEnginePage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/tracking" element={<RouteErrorBoundary><TrackingPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/config" element={<RouteErrorBoundary><ConfigMatrixPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/pricing/connectors" element={<RouteErrorBoundary><ConnectorPricingPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/pricing/wires" element={<RouteErrorBoundary><WirePricingPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/pricing/devparts" element={<RouteErrorBoundary><DevPartPricingPage /></RouteErrorBoundary>} />
-          <Route path="/project/:id/s/:sid/workbench" element={<RouteErrorBoundary><EngineerWorkbench /></RouteErrorBoundary>} />
-          <Route path="/project/:id/alerts" element={<RouteErrorBoundary><AlertsPage /></RouteErrorBoundary>} />
-          <Route path="/alerts" element={<RouteErrorBoundary><AlertsPage /></RouteErrorBoundary>} />
-          <Route path="/settings/alert-rules" element={<RouteErrorBoundary><AlertsPage mode="rules" /></RouteErrorBoundary>} />
-          <Route path="/profile" element={<RouteErrorBoundary><ProfilePage /></RouteErrorBoundary>} />
-          <Route path="/settings" element={<RouteErrorBoundary><SettingsPage /></RouteErrorBoundary>} />
+          <Route path="/project/:id/s/:sid" element={<DashboardPage />} />
+          <Route path="/project/:id/s/:sid/harness/:harnessId" element={<HarnessDetailPage />} />
+          <Route path="/project/:id/s/:sid/quote" element={<QuotePage />} />
+          <Route path="/project/:id/s/:sid/simulation" element={<SimulationPage />} />
+          <Route path="/project/:id/s/:sid/annual-drop" element={<AnnualDropPage />} />
+          <Route path="/project/:id/s/:sid/alloc" element={<AllocManagerPage />} />
+          <Route path="/project/:id/s/:sid/change-engine" element={<ChangeEnginePage />} />
+          <Route path="/project/:id/s/:sid/tracking" element={<TrackingPage />} />
+          <Route path="/project/:id/s/:sid/config" element={<ConfigMatrixPage />} />
+          <Route path="/project/:id/s/:sid/pricing/connectors" element={<ConnectorPricingPage />} />
+          <Route path="/project/:id/s/:sid/pricing/wires" element={<WirePricingPage />} />
+          <Route path="/project/:id/s/:sid/pricing/devparts" element={<DevPartPricingPage />} />
+          <Route path="/project/:id/alerts" element={<AlertsPage />} />
+          <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/settings/alert-rules" element={<AlertsPage mode="rules" />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
