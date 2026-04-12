@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ChangeEnginePage from './ChangeEnginePage';
@@ -22,30 +22,81 @@ vi.mock('@/lib/echarts', () => ({
   default: {},
 }));
 
-const snapshot = {
-  harnesses: [],
-  config: {
-    costRates: {
-      laborRate: 35,
-      mfgRate: 46.69,
-      wasteRate: 0.01,
-      mgmtRate: 0.06,
-      profitRate: 0.056627,
-    },
-    metalPrices: {
-      copper: 65000,
-      aluminum: 18000,
-    },
-    volumes: [],
-    annualDropRate: 0,
+const config = {
+  costRates: {
+    laborRate: 35,
+    mfgRate: 46.69,
+    wasteRate: 0.01,
+    mgmtRate: 0.06,
+    profitRate: 0.056627,
   },
-  summary: {
-    vehicleCost: 100,
-    totalMaterial: 60,
-    totalLabor: 20,
-    harnessCount: 1,
+  metalPrices: {
+    copper: 65000,
+    aluminum: 18000,
   },
+  volumes: [],
+  annualDropRate: 0,
 };
+
+function makeHarnessInput(qty: number, unitPrice: number) {
+  return {
+    harnessId: 'H1',
+    harnessName: 'Harness 1',
+    vehicleRatio: 1,
+    bom: [
+      {
+        partNo: 'P-001',
+        partName: 'Part 001',
+        itemCategory: 'other' as const,
+        qty,
+        unit: 'EA',
+        unitPrice,
+        amount: qty * unitPrice,
+      },
+    ],
+    frontHours: 0.2,
+    backHours: 0.1,
+    packaging: {
+      innerBoxCost: 0,
+      outerBoxCost: 0,
+      palletCost: 0,
+      trayDividerCost: 0,
+      bubbleWrapCost: 0,
+      labelCost: 0,
+      subtotal: 0,
+    },
+    freight: {
+      freight: 0,
+      excessFreight: 0,
+      shortHaul: 0,
+      thirdPartyWarehouse: 0,
+      storage: 0,
+      subtotal: 0,
+    },
+  };
+}
+
+function makeSnapshot(versionLabel: string, qty: number, unitPrice: number, vehicleCost: number) {
+  return {
+    harnesses: [
+      {
+        harnessId: 'H1',
+        harnessName: `Harness ${versionLabel}`,
+        input: makeHarnessInput(qty, unitPrice),
+      },
+    ],
+    config,
+    summary: {
+      vehicleCost,
+      totalMaterial: vehicleCost * 0.6,
+      totalLabor: vehicleCost * 0.2,
+      harnessCount: 1,
+    },
+  };
+}
+
+const snapshotV1 = makeSnapshot('V1', 1, 10, 100);
+const snapshotV2 = makeSnapshot('V2', 2, 10, 120);
 
 function renderPage() {
   return render(
@@ -57,30 +108,36 @@ function renderPage() {
   );
 }
 
-function mockBaseRequests() {
-  apiClientMock.mockImplementation((path: string, options?: { method?: string; body?: any }) => {
+function mockBaseRequests(options?: {
+  versions?: any[];
+  changeEvents?: any[];
+}) {
+  const versions = options?.versions ?? [
+    {
+      id: 'v1',
+      projectId: 'p1',
+      versionNumber: 1,
+      label: 'V1',
+      status: 'draft',
+      snapshot: snapshotV1,
+      createdAt: '2026-04-12T00:00:00.000Z',
+      notes: '',
+    },
+  ];
+  const changeEvents = options?.changeEvents ?? [];
+
+  apiClientMock.mockImplementation((path: string, request?: { method?: string; body?: any }) => {
     if (path === '/versions/project/p1') {
-      return Promise.resolve([
-        {
-          id: 'v1',
-          projectId: 'p1',
-          versionNumber: 1,
-          label: '初版',
-          status: 'draft',
-          snapshot,
-          createdAt: '2026-04-12T00:00:00.000Z',
-          notes: '',
-        },
-      ]);
+      return Promise.resolve(versions);
     }
 
     if (path === '/projects/p1') {
       return Promise.resolve({
         id: 'p1',
         projectCode: 'P1',
-        projectName: '测试项目',
-        costRates: snapshot.config.costRates,
-        metalPrices: snapshot.config.metalPrices,
+        projectName: 'Project P1',
+        costRates: config.costRates,
+        metalPrices: config.metalPrices,
         volumes: [],
       });
     }
@@ -91,25 +148,76 @@ function mockBaseRequests() {
           id: 'h1',
           harnessId: 'H1',
           harnessName: 'Harness 1',
-          input: {
-            bom: [],
-            process: [],
-            packaging: { inner: [], outer: [], returnableShare: 0, logisticsCost: 0 },
-          },
+          input: makeHarnessInput(1, 10),
         },
       ]);
     }
 
-    if (path === '/versions' && options?.method === 'POST') {
+    if (path === '/projects/p1/scenarios/s1/changes' && !request?.method) {
+      return Promise.resolve(changeEvents);
+    }
+
+    if (path === '/projects/p1/scenarios/s1/changes' && request?.method === 'POST') {
+      return Promise.resolve({
+        id: 'change-1',
+        projectId: 'p1',
+        scenarioId: 's1',
+        changeType: request.body.changeType,
+        reason: request.body.reason,
+        affectedHarnessIds: request.body.affectedHarnessIds,
+        affectedBomRows: request.body.affectedBomRows,
+        costImpact: 0,
+        quoteImpact: 0,
+        residualImpact: 0,
+        baselineVersionId: request.body.baselineVersionId,
+        compareVersionId: request.body.compareVersionId,
+        status: 'draft',
+        createdAt: '2026-04-12T01:00:00.000Z',
+      });
+    }
+
+    if (path === '/changes/change-1/calculate-impact' && request?.method === 'POST') {
+      return Promise.resolve({
+        id: 'change-1',
+        projectId: 'p1',
+        scenarioId: 's1',
+        changeType: 'adjust',
+        reason: 'V1 -> V2',
+        affectedHarnessIds: ['H1'],
+        affectedBomRows: [
+          {
+            harnessId: 'H1',
+            harnessName: 'Harness V2',
+            partNo: 'P-001',
+            partName: 'Part 001',
+            changeType: 'qty_changed',
+            beforeQty: 1,
+            afterQty: 2,
+            beforePrice: 10,
+            afterPrice: 10,
+            deltaAmount: 10,
+          },
+        ],
+        costImpact: 10,
+        quoteImpact: 10,
+        residualImpact: 0,
+        baselineVersionId: 'v1',
+        compareVersionId: 'v2',
+        status: 'calculated',
+        createdAt: '2026-04-12T01:00:00.000Z',
+      });
+    }
+
+    if (path === '/versions' && request?.method === 'POST') {
       return Promise.resolve({
         id: 'v2',
         projectId: 'p1',
         versionNumber: 2,
-        label: options.body.label,
+        label: request.body.label,
         status: 'draft',
-        snapshot: options.body.snapshot,
+        snapshot: request.body.snapshot,
         createdAt: '2026-04-12T01:00:00.000Z',
-        notes: options.body.notes,
+        notes: request.body.notes,
       });
     }
 
@@ -123,25 +231,45 @@ describe('ChangeEnginePage', () => {
     mockBaseRequests();
   });
 
-  it('renders versions from server source', async () => {
+  it('renders versions and loads change events from server source', async () => {
+    mockBaseRequests({
+      changeEvents: [
+        {
+          id: 'change-existing',
+          projectId: 'p1',
+          scenarioId: 's1',
+          changeType: 'adjust',
+          reason: 'existing server change',
+          affectedHarnessIds: ['H1'],
+          affectedBomRows: [],
+          costImpact: 12.5,
+          quoteImpact: 12.5,
+          residualImpact: 0,
+          status: 'calculated',
+          createdAt: '2026-04-12T02:00:00.000Z',
+        },
+      ],
+    });
+
     renderPage();
 
-    expect(await screen.findByText('版本管理')).toBeInTheDocument();
-    expect(await screen.findByText('初版')).toBeInTheDocument();
-    expect(screen.getByText('草稿')).toBeInTheDocument();
+    expect(await screen.findByText('V1')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(apiClientMock).toHaveBeenCalledWith('/projects/p1/scenarios/s1/changes');
+    });
+    expect((await screen.findAllByText('existing server change')).length).toBeGreaterThan(0);
+    expect(screen.getAllByText('calculated').length).toBeGreaterThan(0);
   });
 
   it('creates a snapshot through server api', async () => {
     renderPage();
 
-    await screen.findByText('初版');
+    await screen.findByText('V1');
 
-    fireEvent.click(screen.getByRole('button', { name: /创建快照/ }));
-    fireEvent.change(screen.getByPlaceholderText('v2'), { target: { value: '设变 v2' } });
-    fireEvent.change(
-      screen.getByPlaceholderText('如：定点版本 / BOM设变-增加充电插座线束 / 铜价联动Q2'),
-      { target: { value: '用于回归测试' } },
-    );
+    fireEvent.click(screen.getByLabelText('create-snapshot'));
+    fireEvent.change(screen.getByPlaceholderText('v2'), { target: { value: 'change-v2' } });
+    const textboxes = within(document.body).getAllByRole('textbox');
+    fireEvent.change(textboxes[textboxes.length - 1]!, { target: { value: 'test snapshot notes' } });
     fireEvent.click(screen.getByRole('button', { name: 'confirm' }));
 
     await waitFor(() => {
@@ -150,10 +278,68 @@ describe('ChangeEnginePage', () => {
         body: expect.objectContaining({
           projectId: 'p1',
           versionNumber: 2,
-          label: '设变 v2',
+          label: 'change-v2',
           status: 'draft',
-          notes: '用于回归测试',
+          notes: 'test snapshot notes',
         }),
+      });
+    });
+  });
+
+  it('creates and calculates a persisted change event after comparison', async () => {
+    mockBaseRequests({
+      versions: [
+        {
+          id: 'v2',
+          projectId: 'p1',
+          versionNumber: 2,
+          label: 'V2',
+          status: 'draft',
+          snapshot: snapshotV2,
+          createdAt: '2026-04-12T01:00:00.000Z',
+          notes: '',
+        },
+        {
+          id: 'v1',
+          projectId: 'p1',
+          versionNumber: 1,
+          label: 'V1',
+          status: 'draft',
+          snapshot: snapshotV1,
+          createdAt: '2026-04-12T00:00:00.000Z',
+          notes: '',
+        },
+      ],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('V2')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText('run-version-compare')).not.toBeDisabled();
+    });
+
+    fireEvent.click(screen.getByLabelText('run-version-compare'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('create-change-event')).not.toBeDisabled();
+    });
+
+    fireEvent.click(screen.getByLabelText('create-change-event'));
+
+    await waitFor(() => {
+      expect(apiClientMock).toHaveBeenCalledWith('/projects/p1/scenarios/s1/changes', {
+        method: 'POST',
+        body: expect.objectContaining({
+          projectId: 'p1',
+          baselineVersionId: 'v1',
+          compareVersionId: 'v2',
+        }),
+      });
+    });
+    await waitFor(() => {
+      expect(apiClientMock).toHaveBeenCalledWith('/changes/change-1/calculate-impact', {
+        method: 'POST',
       });
     });
   });
