@@ -3,7 +3,7 @@
  * 工程视图 / 成本视图 / 客户视图 切换
  */
 import { useState } from 'react';
-import { Radio, Typography, Tag, Divider } from '@douyinfe/semi-ui';
+import { Radio, Typography, Tag } from '@douyinfe/semi-ui';
 import { tField } from '@/lib/i18n';
 import type { CSSProperties } from 'react';
 

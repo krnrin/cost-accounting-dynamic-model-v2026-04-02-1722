@@ -3,7 +3,7 @@
  * 报价前检查关键参数是否已配置
  */
 import { Typography, Tag, Space } from '@douyinfe/semi-ui';
-import { IconTickCircle, IconAlertTriangle, IconCrossCircle } from '@douyinfe/semi-icons';
+import { IconTickCircle, IconAlertTriangle } from '@douyinfe/semi-icons';
 import type { CSSProperties } from 'react';
 
 const { Text } = Typography;
@@ -27,10 +27,10 @@ const S: Record<string, CSSProperties> = {
   detail: { marginLeft: 8 },
 };
 
-const STATUS_CONFIG: Record<CheckStatus, { icon: React.ReactNode; color: string; label: string }> = {
-  pass: { icon: <IconTickCircle style={S.pass} />, color: 'green', label: '通过' },
-  warn: { icon: <IconAlertTriangle style={S.warn} />, color: 'orange', label: '警告' },
-  fail: { icon: <IconCrossCircle style={S.fail} />, color: 'red', label: '失败' },
+const STATUS_CONFIG = {
+  pass: { icon: <IconTickCircle style={S.pass} />, color: 'green' as const, label: '通过' },
+  warn: { icon: <IconAlertTriangle style={S.warn} />, color: 'orange' as const, label: '警告' },
+  fail: { icon: <span style={S.fail}>✗</span>, color: 'red' as const, label: '失败' },
 };
 
 export default function QuoteParamChecklist({ items }: QuoteParamChecklistProps) {
