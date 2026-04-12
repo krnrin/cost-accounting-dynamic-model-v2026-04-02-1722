@@ -9,3 +9,4 @@ export * from './trackingStore';
 export * from './versionStore';
 export * from './notificationStoreV2';
 export * from './settingsSnapshotStore';
+export * from './allocStore';
