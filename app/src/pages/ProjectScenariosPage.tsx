@@ -104,6 +104,10 @@ export function normalizeScenarioPayload(form: ScenarioFormState) {
   };
 }
 
+export function canDeleteScenario(scenario: Pick<ScenarioItem, 'sourceScenarioId' | 'status'>) {
+  return Boolean(scenario.sourceScenarioId) && scenario.status === 'draft';
+}
+
 function mapScenarioTypeToLocal(type: ScenarioType): LocalScenarioType {
   switch (type) {
     case 'fixed_point':
@@ -271,6 +275,24 @@ export default function ProjectScenariosPage() {
     });
   };
 
+  const handleDelete = (scenario: ScenarioItem) => {
+    Modal.confirm({
+      title: 'Delete scenario',
+      content: `Delete "${scenario.name}" and remove linked allocation/recovery data?`,
+      onOk: async () => {
+        try {
+          await apiClient(`/scenarios/${scenario.id}`, {
+            method: 'DELETE',
+          });
+          Toast.success('Scenario deleted');
+          await reload();
+        } catch (error) {
+          Toast.error(error instanceof Error ? error.message : 'Failed to delete scenario');
+        }
+      },
+    });
+  };
+
   useEffect(() => {
     async function load() {
       if (!id) return;
@@ -359,6 +381,9 @@ export default function ProjectScenariosPage() {
         <Space>
           <Text strong>{record.name}</Text>
           {!record.sourceScenarioId && <Tag color="blue" size="small">根场景</Tag>}
+          {canDeleteScenario(record) && (
+            <Button size="small" theme="borderless" type="danger" onClick={() => handleDelete(record)}>Delete</Button>
+          )}
         </Space>
       ),
     },

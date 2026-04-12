@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeScenarioPayload } from './ProjectScenariosPage';
+import { canDeleteScenario, normalizeScenarioPayload } from './ProjectScenariosPage';
 
 function makeForm(overrides: Partial<Parameters<typeof normalizeScenarioPayload>[0]> = {}) {
   return {
@@ -40,5 +40,25 @@ describe('normalizeScenarioPayload', () => {
     }));
 
     expect(payload.rateSnapshotVersion).toBeUndefined();
+  });
+});
+
+describe('canDeleteScenario', () => {
+  it('only allows deleting draft child scenarios', () => {
+    expect(canDeleteScenario({
+      sourceScenarioId: 'parent-scenario',
+      status: 'draft',
+    })).toBe(true);
+  });
+
+  it('rejects root scenarios and non-draft scenarios', () => {
+    expect(canDeleteScenario({
+      sourceScenarioId: null,
+      status: 'draft',
+    })).toBe(false);
+    expect(canDeleteScenario({
+      sourceScenarioId: 'parent-scenario',
+      status: 'released',
+    })).toBe(false);
   });
 });
