@@ -83,7 +83,6 @@ export default function EngineerWorkbench() {
             <div style= padding: 16 >
               <Title heading={5}>成本计算结果</Title>
               <Text type="tertiary">基于当前BOM和参数的成本计算结果</Text>
-              {/* Cost calculation results will be rendered here */}
             </div>
           </TabPane>
 
@@ -91,7 +90,6 @@ export default function EngineerWorkbench() {
             <div style= padding: 16 >
               <Title heading={5}>仿真分层</Title>
               <Text type="tertiary">叠加多维度仿真层，分析成本敏感性</Text>
-              {/* SimulationLayers UI will be rendered here */}
             </div>
           </TabPane>
 
