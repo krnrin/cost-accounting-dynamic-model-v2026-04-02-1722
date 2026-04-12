@@ -1,0 +1,278 @@
+## [2026-04-11 18:33] - Task: [T29] 项目导入
+
+### 完成的工作:
+- 新增后端 `server/src/routes/projects.ts` 的 `POST /api/projects/import`，对导入包做基础结构校验并记录审计日志
+- 扩展 `server/src/services/projectService.ts`，将导入包中的项目、线束、报价映射到服务端 SQLite，自动生成新项目编号与导入场景映射，避免主键/业务编号冲突
+- 更新前端 `app/src/pages/ProjectListPage.tsx`，项目列表页导入按钮改为调用后端导入接口，保留本地 JSON 包校验并展示真实错误信息
+- 更新 `server/test_api.js`，补充项目导入集成测试，并支持通过 `TEST_PORT/TEST_BASE_URL` 在独立端口跑测试，避免误连现有 3001 服务
+- 更新 `task.json`，将 T29 标记为 done
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- `PORT=3011 TEST_PORT=3011 TEST_BASE_URL=http://localhost:3011 node D:/harness-project/server/test_api.js` 通过（94 passed, 0 failed）
+
+### 备注:
+- 默认 3001 端口已有运行中的旧服务时，`server/test_api.js` 现在可通过环境变量切到独立端口执行，避免测试串线
+- 集成测试清理阶段仍会因级联删除后的审计日志外键触发既有 Prisma 报错输出，但不影响本次 T29 功能验收结果；后续可单独修复审计日志删除策略
+
+## [2026-04-11 18:20] - Task: [T28] 导出功能（PDF/Excel）
+
+### 完成的工作:
+- 新增后端 `server/src/routes/export.ts` 与 `server/src/services/exportService.ts`，补齐 `POST /api/export/excel`、`POST /api/export/pdf`，支持按 `projectId` / `quoteId` 导出 Excel 与 PDF 文件
+- 更新 `server/src/index.ts` 挂载 `/api/export` 路由，并在 `server/package.json` / `server/package-lock.json` 补充 `pdfkit`、`xlsx` 与类型依赖
+- 新增前端 `app/src/lib/exportApi.ts`，统一处理鉴权下载、文件名解析与 Blob 下载
+- 更新 `app/src/pages/ProjectListPage.tsx`，为项目列表增加项目 Excel / PDF 导出按钮
+- 更新 `app/src/pages/QuotePage.tsx`，为报价工作台增加报价 Excel / PDF 导出按钮，并维护当前场景选中的报价记录
+- 调整 `app/src/store/authStore.ts`，在离线登录场景也写入 `authSource`，避免导出请求依赖的认证态不完整
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- API 冒烟：在 `http://127.0.0.1:3002/api` 上验证项目导出 Excel/PDF 返回 200，文件类型分别为 `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`、`application/pdf`
+- API 冒烟：创建测试报价后，验证报价导出 Excel/PDF 返回 200，文件名分别为 `G281_T28-EXPORT_quote_export_2026-04-11.xlsx`、`G281_T28-EXPORT_quote_report_2026-04-11.pdf`
+- Playwright 打开 `http://127.0.0.1:4174/`，验证项目列表页可见行内导出按钮；验收产物 `test-screenshots/t28-login-page.png`、`test-screenshots/t28-project-list.md`
+
+### 备注:
+- `init.ps1` 仍存在 PowerShell 编码/解析问题，本次继续采用手动 build + 指定端口启动 (`3002/4174`) 完成验收
+- 本机 `3001` 端口已有其他仓库旧服务占用，导出接口冒烟改在 `3002` 独立实例完成，避免误连到旧进程
+- 报价页当前依赖本地 Dexie 场景/线束缓存，使用纯后端 seed 数据直达时会显示 `Project not found`；本次导出功能已通过后端 API 完整验证
+
+## [2026-04-11 18:20] - Task: [T28] 导出功能（PDF/Excel）
+
+### 完成的工作:
+- 新增后端 `server/src/routes/export.ts` 与 `server/src/services/exportService.ts`，补齐 `POST /api/export/excel`、`POST /api/export/pdf`，支持按 `projectId` / `quoteId` 导出 Excel 与 PDF 文件
+- 更新 `server/src/index.ts` 挂载 `/api/export` 路由，并在 `server/package.json` / `server/package-lock.json` 补充 `pdfkit`、`xlsx` 与类型依赖
+- 新增前端 `app/src/lib/exportApi.ts`，统一处理鉴权下载、文件名解析与 Blob 下载
+- 更新 `app/src/pages/ProjectListPage.tsx`，为项目列表增加项目 Excel / PDF 导出按钮
+- 更新 `app/src/pages/QuotePage.tsx`，为报价工作台增加报价 Excel / PDF 导出按钮，并维护当前场景选中的报价记录
+- 调整 `app/src/store/authStore.ts`，在离线登录场景也写入 `authSource`，避免导出请求依赖的认证态不完整
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- API 冒烟：在 `http://127.0.0.1:3002/api` 上验证项目导出 Excel/PDF 返回 200，文件类型分别为 `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`、`application/pdf`
+- API 冒烟：创建测试报价后，验证报价导出 Excel/PDF 返回 200，文件名分别为 `G281_T28-EXPORT_quote_export_2026-04-11.xlsx`、`G281_T28-EXPORT_quote_report_2026-04-11.pdf`
+- Playwright 打开 `http://127.0.0.1:4174/`，验证项目列表页可见行内导出按钮；验收产物 `test-screenshots/t28-login-page.png`、`test-screenshots/t28-project-list.md`
+
+### 备注:
+- `init.ps1` 仍存在 PowerShell 编码/解析问题，本次继续采用手动 build + 指定端口启动 (`3002/4174`) 完成验收
+- 本机 `3001` 端口已有其他仓库旧服务占用，导出接口冒烟改在 `3002` 独立实例完成，避免误连到旧进程
+- 报价页当前依赖本地 Dexie 场景/线束缓存，使用纯后端 seed 数据直达时会显示 `Project not found`；本次导出功能已通过后端 API 完整验证
+
+# 高压线束精算与决策引擎 — 开发进度日志
+# 每个 Claude Code session 完成任务后在此追加记录
+# ============================================
+
+## [2026-04-11 17:20] - Task: [T27] 认证 + 用户管理
+
+### 完成的工作:
+- 复核并确认后端认证与用户管理主链路已完整可用：`server/src/routes/auth.ts` 提供 `POST /api/auth/login`、受鉴权保护的 `POST /api/auth/logout`，`server/src/routes/users.ts` 提供管理员/经理可访问的 `GET /api/users`
+- 补充前端 `app/src/layouts/MainLayout.tsx`，在全局头部展示当前登录用户姓名/角色，并接入真正的退出动作按钮，完成“侧边栏用户信息”验收要求对应的全局身份展示
+- 复用既有 `app/src/store/authStore.ts` 与 `app/src/lib/profileApi.ts` 的认证状态、profile 同步与 logout 请求链路，确保登录后身份展示、退出后返回登录页能够闭环工作
+- 补充浏览器验收产物 `test-screenshots/t27-login-page.png`、`test-screenshots/t27-after-logout.png` 与对应快照文件
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（91 passed, 0 failed），覆盖 login / logout / users / profile 等认证链路
+- Playwright 打开 `http://127.0.0.1:4173/`，验证登录后顶部显示当前用户“系统管理员-测试 / ADMIN”，点击“退出”后返回登录页；截图 `test-screenshots/t27-login-page.png`、`test-screenshots/t27-after-logout.png`
+
+### 备注:
+- `init.ps1` 仍存在 PowerShell 解析问题，本次继续采用手动 build、server start 与 app preview 方式完成验收
+- API 集成测试会继续写入本地 SQLite 数据文件，`server/data/harness_cost.db` 与 `server/prisma/dev.db` 有测试副作用变更
+
+## [2026-04-11 16:31] - Task: [T26] Profile 与个人中心
+
+### 完成的工作:
+- 新增后端 `server/src/services/profileService.ts`、`server/src/routes/profile.ts`、`server/src/routes/users.ts`，补齐 `/api/profile`、`/api/profile/permissions`、`/api/profile/preferences` 与 `/api/users` 能力，并在 `server/src/index.ts` 完成挂载
+- 扩展 `server/src/routes/auth.ts`，补齐受鉴权保护的 `POST /api/auth/logout` 接口
+- 新增前端 `app/src/lib/profileApi.ts`，统一封装个人信息、偏好、权限矩阵与用户列表请求
+- 重写 `app/src/pages/ProfilePage.tsx`，实现个人信息编辑、主题模式切换、通知偏好保存、用户列表与权限概览展示
+- 更新 `app/src/store/authStore.ts`，登录后主动同步 Profile/偏好到本地状态，并在退出登录时调用后端 logout
+- 扩展 `server/test_api.js`，补充 Profile、权限、偏好、用户列表、logout/relogin 集成测试覆盖
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（91 passed, 0 failed）
+- Playwright 打开 `http://127.0.0.1:4173/profile`，验证用户配置页可见个人信息、主题模式、用户列表、权限概览；截图 `test-screenshots/t26-login-page.png`、`test-screenshots/t26-profile-page.png`
+
+### 备注:
+- `init.ps1` 仍无法在当前 shell 直接执行（`pwsh` 缺失），本次继续采用手动 build + preview/server 启动方式验收
+- 集成测试会继续向本地 SQLite 写入测试用户与项目数据，`/profile` 页面中的用户列表因此包含多条历史测试账号
+
+## [2026-04-11 16:31] - Task: [T26] Profile 与个人中心
+
+### 完成的工作:
+- 新增后端 `server/src/services/profileService.ts`、`server/src/routes/profile.ts`、`server/src/routes/users.ts`，补齐 `/api/profile`、`/api/profile/permissions`、`/api/profile/preferences` 与 `/api/users` 能力，并在 `server/src/index.ts` 完成挂载
+- 扩展 `server/src/routes/auth.ts`，补齐受鉴权保护的 `POST /api/auth/logout` 接口
+- 新增前端 `app/src/lib/profileApi.ts`，统一封装个人信息、偏好、权限矩阵与用户列表请求
+- 重写 `app/src/pages/ProfilePage.tsx`，实现个人信息编辑、主题模式切换、通知偏好保存、用户列表与权限概览展示
+- 更新 `app/src/store/authStore.ts`，登录后主动同步 Profile/偏好到本地状态，并在退出登录时调用后端 logout
+- 扩展 `server/test_api.js`，补充 Profile、权限、偏好、用户列表、logout/relogin 集成测试覆盖
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（91 passed, 0 failed）
+- Playwright 打开 `http://127.0.0.1:4173/profile`，验证用户配置页可见个人信息、主题模式、用户列表、权限概览；截图 `test-screenshots/t26-login-page.png`、`test-screenshots/t26-profile-page.png`
+
+### 备注:
+- `init.ps1` 仍无法在当前 shell 直接执行（`pwsh` 缺失），本次继续采用手动 build + preview/server 启动方式验收
+- 集成测试会继续向本地 SQLite 写入测试用户与项目数据，`/profile` 页面中的用户列表因此包含多条历史测试账号
+
+## [2026-04-11 15:55] - Task: [T24] 自动版本快照（BOM冻结/报价发布/场景发布）
+
+### 完成的工作:
+- 扩展 `server/src/services/extraServices.ts`，新增 `VersionService.createAutoVersion()`，自动递增项目版本号并写入快照内容
+- 更新 `server/src/services/scenarioService.ts` 与 `server/src/routes/scenarios.ts`，在场景 BOM 冻结和场景发布时自动生成版本快照，快照中包含场景关键字段与当前 BOM 明细
+- 更新 `server/src/services/settingsService.ts`，在费率发布时为每个项目自动生成版本快照，记录发布版本号、发布时间和当次设置内容
+- 更新 `server/src/services/extraServices.ts` 与 `server/src/routes/quotes.ts`，在报价确认后自动生成报价发布版本快照
+- 扩展 `server/test_api.js`，补充 BOM 冻结、场景发布、费率发布、报价确认四个自动版本快照断言，并顺手修复 `GET /api/scenarios/compare` 路由顺序问题
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（81 passed, 0 failed）
+- `npm --prefix D:/harness-project/app run build` 通过
+
+### 备注:
+- `init.ps1` 当前仍有 PowerShell 编码/解析问题，本次继续采用手动构建与 API 集成测试完成验收
+- 运行集成测试会更新本地 SQLite 数据文件 `server/data/harness_cost.db`，属于测试副作用，已与本任务代码一并保留
+
+## [2026-04-11 15:55] - Task: [T24] 自动版本快照（BOM冻结/报价发布/场景发布）
+
+### 完成的工作:
+- 扩展 `server/src/services/extraServices.ts`，新增 `VersionService.createAutoVersion()`，自动递增项目版本号并写入快照内容
+- 更新 `server/src/services/scenarioService.ts` 与 `server/src/routes/scenarios.ts`，在场景 BOM 冻结和场景发布时自动生成版本快照，快照中包含场景关键字段与当前 BOM 明细
+- 更新 `server/src/services/settingsService.ts`，在费率发布时为每个项目自动生成版本快照，记录发布版本号、发布时间和当次设置内容
+- 更新 `server/src/services/extraServices.ts` 与 `server/src/routes/quotes.ts`，在报价确认后自动生成报价发布版本快照
+- 扩展 `server/test_api.js`，补充 BOM 冻结、场景发布、费率发布、报价确认四个自动版本快照断言，并顺手修复 `GET /api/scenarios/compare` 路由顺序问题
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `node D:/harness-project/server/test_api.js` 通过（81 passed, 0 failed）
+- `npm --prefix D:/harness-project/app run build` 通过
+
+### 备注:
+- `init.ps1` 当前仍有 PowerShell 编码/解析问题，本次继续采用手动构建与 API 集成测试完成验收
+- 运行集成测试会更新本地 SQLite 数据文件 `server/data/harness_cost.db`，属于测试副作用，已与本任务代码一并保留
+
+## [2026-04-11 15:10] - Task: [T22] 利润归因瀑布图 (Shapley)
+
+### 完成的工作:
+- 补充 `server/src/routes/managerDashboard.ts` 的 `/api/manager-dashboard/profit-waterfall` 接口，供管理决策舱读取利润归因数据
+- 扩展 `server/src/services/managerDashboardService.ts`，汇总项目最新报价、年降、设变与金属联动数据，输出 BOM材料、费率/人工制造、未回收分摊、年降、设变、金属联动、最终利润等归因维度
+- 更新 `app/src/lib/managerDashboardApi.ts`，新增利润归因瀑布图数据类型与请求封装
+- 重写 `app/src/pages/ManagerDashboardPage.tsx`，在管理决策舱新增“利润归因瀑布”页签，展示跨项目瀑布图与 Shapley 归因明细表
+- 清理本地未提交半成品中的重复定义与残留冲突内容，保证本任务可构建可验收
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- Playwright 登录 `http://127.0.0.1:5173` 后访问 `/manager`，页面可见“管理决策舱”与“利润归因瀑布”页签；截图 `t22-manager.png`
+- 浏览器快照 `t22-manager.md` 显示管理决策舱主页面正常渲染，项目总览/利润汇总等模块可见
+
+### 备注:
+- 控制台中的飞书 CORS 报错和 Semi UI `findDOMNode` StrictMode 警告为仓库既有问题，与本任务改动无直接关系
+- `init.ps1` 在当前仓库仍存在编码/解析问题，本次继续采用手动启动 server 与 Vite dev 完成验收
+
+
+## [2026-04-11 15:10] - Task: [T22] 利润归因瀑布图 (Shapley)
+
+### 完成的工作:
+- 补充 `server/src/routes/managerDashboard.ts` 的 `/api/manager-dashboard/profit-waterfall` 接口，供管理决策舱读取利润归因数据
+- 扩展 `server/src/services/managerDashboardService.ts`，汇总项目最新报价、年降、设变与金属联动数据，输出 BOM材料、费率/人工制造、未回收分摊、年降、设变、金属联动、最终利润等归因维度
+- 更新 `app/src/lib/managerDashboardApi.ts`，新增利润归因瀑布图数据类型与请求封装
+- 重写 `app/src/pages/ManagerDashboardPage.tsx`，在管理决策舱新增“利润归因瀑布”页签，展示跨项目瀑布图与 Shapley 归因明细表
+- 清理本地未提交半成品中的重复定义与残留冲突内容，保证本任务可构建可验收
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- Playwright 登录 `http://127.0.0.1:5173` 后访问 `/manager`，页面可见“管理决策舱”与“利润归因瀑布”页签；截图 `t22-manager.png`
+- 浏览器快照 `t22-manager.md` 显示管理决策舱主页面正常渲染，项目总览/利润汇总等模块可见
+
+### 备注:
+- 控制台中的飞书 CORS 报错和 Semi UI `findDOMNode` StrictMode 警告为仓库既有问题，与本任务改动无直接关系
+- `init.ps1` 在当前仓库仍存在编码/解析问题，本次继续采用手动启动 server 与 Vite dev 完成验收
+
+
+## [2026-04-11 14:18] - Task: [T21] 管理决策舱 — 跨项目总览
+
+### 完成的工作:
+- 新增后端 `server/src/services/managerDashboardService.ts` 与 `server/src/routes/managerDashboard.ts`，补齐 `GET /api/manager-dashboard`、`/profit-summary`、`/recovery-summary`、`/alert-summary`、`/scenario-comparison`、`/anomaly-summary` 六个跨项目聚合接口
+- 更新 `server/src/index.ts` 注册管理决策舱路由，统一从项目、场景、报价、分摊、预警、设变数据源汇总，不在页面侧重复计算
+- 新增前端 `app/src/lib/managerDashboardApi.ts`，封装管理决策舱全部接口
+- 重写 `app/src/pages/ManagerDashboardPage.tsx`，实现 `/manager` 决策舱页面：项目总览、利润汇总、回收汇总、预警汇总、场景对比、异常汇总，以及高风险项目卡片与全局预警跳转
+- 更新 `task.json`，将 T21 标记为 done，并补充浏览器验收产物到 `test-screenshots/`
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- API 冒烟：登录后验证 `GET /api/manager-dashboard`、`/profit-summary`、`/recovery-summary`、`/alert-summary`、`/scenario-comparison`、`/anomaly-summary` 全部返回 200
+- Playwright 登录 `http://127.0.0.1:4174` 后进入 `/manager`，页面可见“管理决策舱”“项目总览”“利润汇总”等模块；截图 `test-screenshots/t21-login-page.png`、`test-screenshots/t21-manager-dashboard-page.png`
+
+### 备注:
+- 任务定义写的是 `/manager-dashboard`，当前仓库实际前端路由为 `/manager`，本次按现有应用路由落地，后端 API 仍保持 `/api/manager-dashboard`
+- 浏览器控制台仍有既有飞书 CORS 报错（`open.feishu.cn`），与本任务改动无直接关系
+
+
+## [2026-04-11 14:18] - Task: [T21] 管理决策舱 — 跨项目总览
+
+### 完成的工作:
+- 新增后端 `server/src/services/managerDashboardService.ts` 与 `server/src/routes/managerDashboard.ts`，补齐 `GET /api/manager-dashboard`、`/profit-summary`、`/recovery-summary`、`/alert-summary`、`/scenario-comparison`、`/anomaly-summary` 六个跨项目聚合接口
+- 更新 `server/src/index.ts` 注册管理决策舱路由，统一从项目、场景、报价、分摊、预警、设变数据源汇总，不在页面侧重复计算
+- 新增前端 `app/src/lib/managerDashboardApi.ts`，封装管理决策舱全部接口
+- 重写 `app/src/pages/ManagerDashboardPage.tsx`，实现 `/manager` 决策舱页面：项目总览、利润汇总、回收汇总、预警汇总、场景对比、异常汇总，以及高风险项目卡片与全局预警跳转
+- 更新 `task.json`，将 T21 标记为 done，并补充浏览器验收产物到 `test-screenshots/`
+
+### 测试:
+- `npm --prefix D:/harness-project/server run build` 通过
+- `npm --prefix D:/harness-project/app run build` 通过
+- API 冒烟：登录后验证 `GET /api/manager-dashboard`、`/profit-summary`、`/recovery-summary`、`/alert-summary`、`/scenario-comparison`、`/anomaly-summary` 全部返回 200
+- Playwright 登录 `http://127.0.0.1:4174` 后进入 `/manager`，页面可见“管理决策舱”“项目总览”“利润汇总”等模块；截图 `test-screenshots/t21-login-page.png`、`test-screenshots/t21-manager-dashboard-page.png`
+
+### 备注:
+- 任务定义写的是 `/manager-dashboard`，当前仓库实际前端路由为 `/manager`，本次按现有应用路由落地，后端 API 仍保持 `/api/manager-dashboard`
+- 浏览器控制台仍有既有飞书 CORS 报错（`open.feishu.cn`），与本任务改动无直接关系
+
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: [T14] 系统设置 — 成本结构 + 金属价格 + 费率
+
+已完成的工作:
+- 后端已补齐设置接口能力：`GET /api/settings`、`GET /api/settings/:category`、`PUT /api/settings/:category/:key`、`POST /api/settings/publish`、`GET /api/settings/history`、`GET /api/settings/snapshot/:version`
+- 后端 `settingsService` 已支持默认分类数据、发布快照版本、历史记录与快照查询
+- 前端 `app/src/pages/SettingsPage.tsx` 已改为接入后端设置 API，并支持保存后自动发布快照
+- 新增前端 `app/src/lib/settingsApi.ts` 统一访问设置接口
+- 已同步 task.json 中历史已提交任务的状态，避免继续重复执行旧任务
+
+阻塞原因:
+- 前端构建被现有工程配置阻塞：`npm --prefix D:/harness-project/app run build` 在 Vite/PWA 阶段报错，存在非法输出路径 `../../成本核算动态模型/app/index.html`，不是本次 T14 改动直接引入的问题
+- 后端数据库初始化被本机文件占用阻塞：`prisma generate` 在重命名 `query_engine-windows.dll.node` 时触发 `EPERM`，当前无法完成要求中的后端测试链路
+- 前端测试也存在项目既有环境问题：缺失 `src/test/setup.ts` 与 `fake-indexeddb/auto`，导致整套 `vitest run` 无法全绿
+
+需要人工帮助:
+1. 清理或修复前端现有 Vite/PWA 输出路径配置，消除非法 `index.html` 输出名问题
+2. 释放 Prisma 客户端 DLL 占用，或关闭相关进程后重新执行 server 侧 prisma generate/push/seed
+3. 补齐前端测试基础依赖与 `src/test/setup.ts`，使现有测试环境可运行
+
+## [2026-04-11 07:24] - Task: [T01] Project CRUD + 项目列表页
+
+### 完成的工作:
+- 校验并确认 T01 的项目 CRUD 接口与项目列表页主链路已接通，项目列表支持搜索、状态筛选、删除和进入项目
+- 新增 `server/tsconfig.json`，补齐后端 TypeScript 构建配置，保证 server 可正常编译输出 dist
+- 修复后端现有路由中的 TypeScript 类型问题，覆盖 `allocations.ts`、`changes.ts`、`tracking.ts`、`quotes.ts` 与 `extraServices.ts`
+- 调整 `app/src/index.css` 的字体 `@import` 顺序，消除前端 build 的 PostCSS 告警
+- 为 `app/src/pages/ProjectListPage.tsx` 的搜索框补充回车触发刷新，提升项目搜索交互完整性
+
+### 测试:
+- `cd D:/harness-project/server && npm run build` 通过
+- `cd D:/harness-project/app && npm run build` 通过
+- 浏览器打开 `http://127.0.0.1:5173`，验证项目列表页正常渲染并截图 `t01-project-list-page.png`
+- Playwright 验证项目搜索可输入 `E281`，并成功进入项目页 `http://127.0.0.1:5173/project/e281-quote`，截图 `t01-project-dashboard.png`
+- `http://127.0.0.1:3001/health` 返回 `{"status":"ok"...}`
+
+### 备注:

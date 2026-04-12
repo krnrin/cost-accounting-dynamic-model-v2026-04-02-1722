@@ -2,7 +2,7 @@
   "$schema": "./project-config.schema.md",
   "projectId": "G281",
   "projectName": "G281 高压线束",
-  "customer": "",
+  "customer": "吉利",
   "createdAt": "2026-04-02T12:00:00Z",
 
   "baseline": {
@@ -31,24 +31,138 @@
       }
     ],
     "annualVolumes": [
-      { "year": 2026, "volume": 0, "_note": "从 runtime.master.volumes 提取，此处为占位" },
-      { "year": 2027, "volume": 0 },
-      { "year": 2028, "volume": 0 },
-      { "year": 2029, "volume": 0 },
-      { "year": 2030, "volume": 0 },
-      { "year": 2031, "volume": 0 }
+      { "year": 2026, "volume": 85000 },
+      { "year": 2027, "volume": 135000 },
+      { "year": 2028, "volume": 125000 },
+      { "year": 2029, "volume": 114000 },
+      { "year": 2030, "volume": 94000 },
+      { "year": 2031, "volume": 47000 }
     ]
   },
 
   "harnesses": [
     {
-      "id": "H1",
-      "name": "主线束",
-      "partNumber": "",
-      "unit": "set",
-      "_note": "从 bomValidation.harnessOrder + BOM header 提取"
+      "id": "6608491523",
+      "name": "直流母线总成",
+      "family": "直流母线",
+      "vehicleRatio": 0.525,
+      "unit": "set"
+    },
+    {
+      "id": "6608491524",
+      "name": "直流母线总成",
+      "family": "直流母线",
+      "vehicleRatio": 0.105,
+      "unit": "set"
+    },
+    {
+      "id": "6608442962",
+      "name": "直流母线总成",
+      "family": "直流母线",
+      "vehicleRatio": 0.07,
+      "unit": "set"
+    },
+    {
+      "id": "6608544875",
+      "name": "前驱直流母线总成",
+      "family": "直流母线",
+      "vehicleRatio": 0.105,
+      "unit": "set"
+    },
+    {
+      "id": "6608442964",
+      "name": "电动压缩机线束总成",
+      "family": "电动压缩机",
+      "vehicleRatio": 0.595,
+      "unit": "set"
+    },
+    {
+      "id": "6608519100",
+      "name": "电动压缩机线束总成",
+      "family": "电动压缩机",
+      "vehicleRatio": 0.105,
+      "unit": "set"
+    },
+    {
+      "id": "6608442963",
+      "name": "电动压缩机线束总成",
+      "family": "电动压缩机",
+      "vehicleRatio": 0.03,
+      "unit": "set"
+    },
+    {
+      "id": "6608516992",
+      "name": "电动压缩机线束总成",
+      "family": "电动压缩机",
+      "vehicleRatio": 0.225,
+      "unit": "set"
+    },
+    {
+      "id": "6608442966",
+      "name": "组合式充电插座线束总成",
+      "family": "充电插座",
+      "vehicleRatio": 0.525,
+      "unit": "set"
+    },
+    {
+      "id": "6608442965",
+      "name": "组合式充电插座线束总成",
+      "family": "充电插座",
+      "vehicleRatio": 0.105,
+      "unit": "set"
+    },
+    {
+      "id": "6608507680",
+      "name": "组合式充电插座线束总成",
+      "family": "充电插座",
+      "vehicleRatio": 0.07,
+      "unit": "set"
     }
   ],
+
+  "costRates": {
+    "customer": {
+      "laborRate": 35,
+      "mfgRate": 46.69,
+      "wasteRate": 0.01,
+      "mgmtRate": 0.06,
+      "mgmtBase": "material+labor+mfg",
+      "profitRate": 0.056627,
+      "profitBase": "material+waste+labor+mfg+mgmt",
+      "_note": "客户报价费率 (对外) — 经Excel定点核算.xlsx逐行验证"
+    },
+    "internal": {
+      "laborRate": 29.19,
+      "mfgRateItems": {
+        "indirectLabor": 6.88,
+        "consumables": 0.95,
+        "machineConsumption": 0.68,
+        "factoryAmortization": 5.26,
+        "warehouseAmortization": 1.72,
+        "otherMfg": 4.25
+      },
+      "mfgRateTotal": 19.74,
+      "wasteRate": 0.005,
+      "_note": "内部运营费率 (昆山K1K2)"
+    },
+    "geelyTemplate": {
+      "mgmtRate": 0.04,
+      "financeRate": 0.04,
+      "salesRate": 0.04,
+      "profitRate": 0.04,
+      "wasteRate": 0.009,
+      "_note": "吉利总报价模板费率 (A1+A2+B1+B2 base)"
+    }
+  },
+
+  "metalContract": {
+    "baseCopperPrice": 68400,
+    "baseAluminumPrice": 18200,
+    "thresholdPercent": 0,
+    "escalationRatio": 1.0,
+    "period": "quarterly",
+    "_note": "金属联动合同条款 — 基准价/阈值/联动比例/联动周期"
+  },
 
   "dimensions": {
     "currency": "CNY",
@@ -65,13 +179,13 @@
     "copper": 0.38,
     "aluminum": 0.18,
     "other": 0.20,
-    "_note": "四项之和 = 1.00，来自 engine.js matBase 公式"
+    "_note": "系数近似路径用 (legacy)，当无BOM数据时的材料拆分比"
   },
 
   "metalSensitivity": {
     "copper": 0.65,
     "aluminum": 0.45,
-    "_note": "价格变动对材料成本的传导系数，<1 因为导线含绝缘层等非金属成分"
+    "_note": "legacy — 价格变动对材料成本的传导系数"
   },
 
   "bom": {

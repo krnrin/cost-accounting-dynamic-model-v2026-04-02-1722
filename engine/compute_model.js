@@ -1075,17 +1075,17 @@
       connectorPricing: draft && draft.connectorPricing ? { ...draft.connectorPricing } : {},
     };
 
-    const bomOption = BASE.versions.bom[currentState.bom];
-    const metal = BASE.versions.metal[currentState.metal];
-    const conn = BASE.versions.connector[currentState.connector]
-      || BASE.versions.connector.quote
-      || BASE.versions.connector.fixed
+    const bomOption = BASE.versions?.bom?.[currentState.bom];
+    const metal = BASE.versions?.metal?.[currentState.metal];
+    const conn = BASE.versions?.connector?.[currentState.connector]
+      || BASE.versions?.connector?.quote
+      || BASE.versions?.connector?.fixed
       || { label: currentState.connector || '', factor: 1, note: '' };
-    const laborOption = BASE.versions.labor[currentState.labor];
-    const equipOption = BASE.versions.equipment[currentState.equipment];
-    const packOption = BASE.versions.packaging[currentState.packaging];
-    const sales = BASE.versions.sales[currentState.sales];
-    const mix = BASE.versions.mix[currentState.mix];
+    const laborOption = BASE.versions?.labor?.[currentState.labor];
+    const equipOption = BASE.versions?.equipment?.[currentState.equipment];
+    const packOption = BASE.versions?.packaging?.[currentState.packaging];
+    const sales = BASE.versions?.sales?.[currentState.sales];
+    const mix = BASE.versions?.mix?.[currentState.mix];
     const annualDropOption = BASE.versions.annualDrop?.[currentState.annualDrop] || { label: currentState.annualDrop, annualRate: 0 };
     const oneTimeCustomerOption = BASE.versions.oneTimeCustomer?.[currentState.oneTimeCustomer] || { label: currentState.oneTimeCustomer, amountTotal: 0 };
     const rebateOption = BASE.versions.rebate?.[currentState.rebate] || { label: currentState.rebate, amountPerSet: 0 };
@@ -1115,14 +1115,14 @@
     const tapeLengthM = tapeLengthMm / 1000;
     const tapeTurns = tapePitch > 0 ? wireQuoteMm / tapePitch : 0;
 
-    const mixPrice = weighted(d.mix, BASE.priceMixIndexes) / weighted(BASE.baselineMix, BASE.priceMixIndexes);
-    const mixCost = weighted(d.mix, BASE.costMixIndexes) / weighted(BASE.baselineMix, BASE.costMixIndexes);
+    const mixPrice = weighted(BASE.baselineMix, BASE.priceMixIndexes) > 0 ? weighted(d.mix, BASE.priceMixIndexes) / weighted(BASE.baselineMix, BASE.priceMixIndexes) : 1;
+    const mixCost = weighted(BASE.baselineMix, BASE.costMixIndexes) > 0 ? weighted(d.mix, BASE.costMixIndexes) / weighted(BASE.baselineMix, BASE.costMixIndexes) : 1;
     // Issue #4: 从 projectConfig 读取金属价格敏感度
     const ms = (global.ConfigBridge && global.ConfigBridge.metalSensitivity)
       ? global.ConfigBridge.metalSensitivity()
       : { copper: 0.65, aluminum: 0.45 };
-    const copperFactor = 1 + ((d.copperPrice - BASE.copperPrice) / BASE.copperPrice) * ms.copper;
-    const aluminumFactor = 1 + ((d.aluminumPrice - BASE.aluminumPrice) / BASE.aluminumPrice) * ms.aluminum;
+    const copperFactor = BASE.copperPrice > 0 ? 1 + ((d.copperPrice - BASE.copperPrice) / BASE.copperPrice) * ms.copper : 1;
+    const aluminumFactor = BASE.aluminumPrice > 0 ? 1 + ((d.aluminumPrice - BASE.aluminumPrice) / BASE.aluminumPrice) * ms.aluminum : 1;
     const connectorFactor = connectorScenario.factor || conn.factor;
     const laborBaselinePerSet = quoteLaborSnapshot
       ? (Number(quoteLaborSnapshot.directLaborPerSet) || 0) + (Number(quoteLaborSnapshot.manufacturingPerSet) || 0)
@@ -1202,6 +1202,8 @@
     }
 
     // Issue #4: 从 projectConfig 读取材料成本组成系数
+    // ── 估算路径 (Fallback Path) ──
+    // 当无种子数据 (seed data) 时，使用系数近似逻辑进行降级估算。
     const mc = (global.ConfigBridge && global.ConfigBridge.materialComposition)
       ? global.ConfigBridge.materialComposition()
       : { connector: 0.24, copper: 0.38, aluminum: 0.18, other: 0.20 };
@@ -1353,6 +1355,7 @@
     }));
   }
 
+  /** @deprecated Legacy breakdown - superseded by harness_costing.js (harnessDetail) */
   function attachHarnessProfit(runtime, model, versionKey) {
     if (!global.G281HarnessProfit || typeof global.G281HarnessProfit.buildHarnessProfitBreakdown !== 'function') {
       return null;
@@ -1479,11 +1482,80 @@
       annualRows,
     );
 
+    // ── 单线束号级精算路径 (v2) ──
+    // 当 G281HarnessCosting 可用且有 harness seed 数据时，
+    // 用自底向上的逐零件号核算替代系数近似
+    result.harnessDetail = null;
     try {
-      result.harnessProfit = attachHarnessProfit(runtime, result, referenceFinancialKey || exactFinancialKey);
+      var HarnessCosting = global.G281HarnessCosting;
+      var harnessData = resolveHarnessData(runtime);
+      if (HarnessCosting && harnessData && harnessData.length > 0) {
+        // 从项目配置读取费率
+        var costRates = (global.ConfigBridge && typeof global.ConfigBridge.raw === 'function'
+          ? global.ConfigBridge.raw()
+          : (runtime && runtime.projectConfig)) || {};
+        var customerRates = (costRates.costRates && costRates.costRates.customer) || {};
+        var harnessParams = {
+          laborRate: numberOr(customerRates.laborRate, 35),
+          mfgRate: numberOr(customerRates.mfgRate, 46.69),
+          wasteRate: numberOr(customerRates.wasteRate, 0.01),
+          mgmtRate: numberOr(customerRates.mgmtRate, 0.06),
+          profitRate: numberOr(customerRates.profitRate, 0.056627),
+        };
+
+        // 金属价格: 优先用当前模型的金属价格(可能已被用户调整)
+        if (result.metal) {
+          harnessParams.metalPrices = {
+            copper: numberOr(result.metal.copperPrice, 68400),
+            aluminum: numberOr(result.metal.aluminumPrice, 18200),
+          };
+        }
+
+        var harnessResult = HarnessCosting.computeHarnessesFromSeedData(harnessData, harnessParams);
+        if (harnessResult && harnessResult.project) {
+          var proj = harnessResult.project;
+          // 用线束级汇总覆盖系数近似值 (仅在非exact路径时)
+          if (!exactFinancialVersion) {
+            result.material = proj.weightedMaterial;
+            result.directLabor = proj.weightedLabor;
+            result.manufacturing = proj.weightedMfg;
+            result.packaging = proj.weightedPack;
+            // 重算 operating
+            var newOperating = proj.vehicleCost
+              + numberOr(result.equipment, 0)
+              + numberOr(result.rnd, 0)
+              - numberOr(result.vave && result.vave.savings, 0);
+            result.operating = newOperating;
+            result.dataLayer = '线束级种子数据 + runtime JSON';
+            result.engineLayer = '单线束号级精算引擎 (harness_costing v1)';
+          }
+          // 始终附加线束级明细
+          result.harnessDetail = {
+            harnesses: harnessResult.harnesses,
+            project: proj,
+            table: HarnessCosting.buildHarnessCostTable(harnessResult.harnesses),
+            params: harnessParams,
+            source: 'harness_costing_v2',
+          };
+        }
+      }
+    } catch (hcError) {
+      result.harnessDetail = null;
+      result.financialContext.warnings.push(
+        '线束级精算引擎异常: ' + (hcError && hcError.message ? hcError.message : String(hcError))
+      );
+    }
+
+    // Legacy: 仅在无 harnessDetail 时回退到旧模块
+    try {
+      if (!result.harnessDetail) {
+        result.harnessProfit = attachHarnessProfit(runtime, result, referenceFinancialKey || exactFinancialKey);
+      } else {
+        result.harnessProfit = null;
+      }
     } catch (error) {
       result.harnessProfit = null;
-      result.financialContext.warnings.push(`线束利润拆解生成失败：${error && error.message ? error.message : String(error)}`);
+      result.financialContext.warnings.push('线束利润拆解失败: ' + (error && error.message ? error.message : String(error)));
     }
 
     // Issue #4: 计算路径标记
@@ -1492,6 +1564,24 @@
       : { path: 'unknown', label: '未知' };
 
     return result;
+  }
+
+  /**
+   * resolveHarnessData — 查找可用的线束级数据
+   * 数据源优先级:
+   *   1. runtime.harnessSeedData (直接注入)
+   *   2. runtime.master.harnessSeedData (master JSON中)
+   *   3. null (无数据 → 回退到legacy)
+   */
+  function resolveHarnessData(runtime) {
+    if (!runtime) return null;
+    if (runtime.harnessSeedData && Array.isArray(runtime.harnessSeedData) && runtime.harnessSeedData.length > 0) {
+      return runtime.harnessSeedData;
+    }
+    if (runtime.master && runtime.master.harnessSeedData && Array.isArray(runtime.master.harnessSeedData) && runtime.master.harnessSeedData.length > 0) {
+      return runtime.master.harnessSeedData;
+    }
+    return null;
   }
 
   global.G281Engine = {
@@ -1504,4 +1594,4 @@
     resolvePureFinancialVersionKey,
     resolveReferenceFinancialVersionKey,
   };
-})(window);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : {});

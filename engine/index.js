@@ -26,7 +26,7 @@ require('./computation_cache');
 // ── 业务层 ──
 require('./progress_price_tracker');
 require('./residual_pool_handler');
-require('./harness_profit');
+require('./harness_profit'); // @deprecated legacy
 require('./profit_shapley');
 require('./target_price_solver');
 
@@ -38,6 +38,12 @@ require('./align_key_enhancer');
 
 // ── Schema 迁移 ──
 require('./schema_migrator');
+
+// ── 单线束号级核算层 (v2) ──
+require('./harness_costing');
+require('./change_pricing');
+require('./metal_escalation');
+require('./quote_template');
 
 // ── 计算主入口 ──
 require('./compute_model');
@@ -68,6 +74,11 @@ module.exports = {
   G281AlignKeyEnhancer:    g.G281AlignKeyEnhancer,
   // Schema
   G281SchemaMigrator:      g.G281SchemaMigrator,
+  // 单线束号级核算 (v2)
+  G281HarnessCosting:      g.G281HarnessCosting,
+  G281ChangePricing:       g.G281ChangePricing,
+  G281MetalEscalation:     g.G281MetalEscalation,
+  G281QuoteTemplate:       g.G281QuoteTemplate,
   // 计算主入口
   G281ComputeModel:        g.G281ComputeModel,
 };

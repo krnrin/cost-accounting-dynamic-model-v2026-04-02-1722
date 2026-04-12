@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -29,6 +29,10 @@
           <span class="chip"><span class="dot"></span><span>2026-2031 生命周期</span></span>
           <span class="chip"><span class="dot alt"></span><span>单文件离线原型</span></span>
         </div>
+      </div>
+
+      <div style="padding:0 1.2rem .5rem">
+        <a href="./wizard.html" style="display:inline-block;padding:.45rem 1rem;background:#4361ee;color:#fff;border-radius:6px;text-decoration:none;font-size:.85rem;font-weight:600;letter-spacing:.5px">+ 新建项目</a>
       </div>
 
       <section class="panel" id="scenarioConfigPanel">
@@ -191,8 +195,8 @@
       <section class="card mt harness-profit-section">
         <div class="profit-driver-head">
           <div>
-            <h3>整套线利润汇总与单线束拆解</h3>
-            <p class="section-note">上半区看项目整套线的收入、成本和毛利；下半区按各线束号展开，便于定位是哪一根线束在拉低利润。</p>
+            <h3>单线束号级成本核算</h3>
+            <p class="section-note">每个零件号独立核算: 材料(包含废品) + 人工 + 制造 + 管理费 + 利润 = 出厂价，加上包装和运输 = 到厂价，再按装车比加权汇总到项目级。</p>
           </div>
         </div>
         <div class="harness-profit-summary" id="harnessProfitSummary"></div>
@@ -201,17 +205,19 @@
           <table class="harness-profit-table">
             <thead>
               <tr>
-                <th>线束号</th>
+                <th>零件号</th>
                 <th>线束名称</th>
-                <th>收入/套</th>
-                <th>成本/套</th>
-                <th>毛利额/套</th>
-                <th>毛利率</th>
+                <th>装车比</th>
                 <th>材料</th>
-                <th>工时</th>
+                <th>废品</th>
+                <th>人工</th>
+                <th>制造</th>
+                <th>管理</th>
+                <th>利润</th>
+                <th>出厂价</th>
                 <th>包装</th>
-                <th>设备+研发</th>
-                <th>分摊依据</th>
+                <th>运输</th>
+                <th>到厂价</th>
               </tr>
             </thead>
             <tbody id="harnessProfitTable"></tbody>
@@ -661,7 +667,14 @@
 <script src="../g281_bom_diff_engine.js?v=20260331b"></script>
   <script src="../g281_bom_io.js?v=20260327b"></script>
   <script src="../g281_data_bundle.js?v=20260331b"></script>
-  <script src="../engine/compute_model.js?v=20260331b"></script>
+
+  <script src="../g281_harness_seed_data.js?v=20260403a"></script>
+  <script src="../engine/shared_utils.js?v=20260403a"></script>
+  <script src="../engine/harness_costing.js?v=20260403a"></script>
+  <script src="../engine/change_pricing.js?v=20260403a"></script>
+  <script src="../engine/metal_escalation.js?v=20260403a"></script>
+  <script src="../engine/quote_template.js?v=20260403a"></script>
+  <script src="../engine/compute_model.js?v=20260403a"></script>
   <script src="../core/repo.js"></script>
   <script src="../engine/target_price_solver.js"></script>
   <script src="../engine/profit_shapley.js"></script>
@@ -672,14 +685,21 @@
   <script src="../g281_operating_labor_rate_data.js?v=20260327b"></script>
   <script src="../g281_factory_efficiency_view.js?v=20260327b"></script>
   <script src="../g281_bom_template_runtime.js?v=20260328a"></script>
-  <script src="../engine/harness_profit.js?v=20260328a"></script>
+  <!-- @deprecated legacy script --><script src="../engine/harness_profit.js?v=20260328a"></script>
   <script src="./version_timeline.js?v=20260329a"></script>
   <script src="../vendor/univer-editor/g281_univer_template_editor.js?v=20260329b"></script>
   <script src="../utils/shared.js"></script>
   <script src="../utils/core.js"></script>
   <script src="./dashboard_utils.js?v=20260403a"></script>
   <script src="./modals/modal_base.js?v=20260403a"></script>
-<script src="./dashboard.js?v=20260403c"></script>
+  <script src="./dashboard.js?v=20260404a"></script>
+  <script src="./dash_versions.js?v=20260405a"></script>
+  <script src="./dash_lifecycle.js?v=20260404a"></script>
+  <script src="./dash_version_template.js?v=20260404a"></script>
+  <script src="./dash_version_manager.js?v=20260404a"></script>
+  <script src="./dash_kanban.js?v=20260404a"></script>
+  <script src="./dash_harness.js?v=20260404a"></script>
+  <script src="./dash_charts.js?v=20260404a"></script>
   <script src="./workbook_viewer.js?v=20260330f"></script>
 <script src="../g281_bom_validation_view.js?v=20260331h"></script>
   <script src="../g281_capital_validation_view.js"></script>
@@ -687,3 +707,6 @@
   <script src="../g281_packaging_validation_view.js"></script>
 </body>
 </html>
+
+
+

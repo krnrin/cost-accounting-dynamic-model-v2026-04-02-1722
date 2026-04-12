@@ -1,0 +1,97 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7] [cursor=pointer]:
+        - img "home" [ref=e8]:
+          - img [ref=e9]
+        - generic [ref=e11]: 项目
+      - generic [ref=e12] [cursor=pointer]:
+        - img "file" [ref=e13]:
+          - img [ref=e14]
+        - generic [ref=e16]: 报表
+      - generic [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]:
+          - img "bell" [ref=e19]:
+            - img [ref=e20]
+          - generic [ref=e23]: "3"
+        - generic [ref=e24]: 预警
+      - generic [ref=e25] [cursor=pointer]:
+        - img "user" [ref=e26]:
+          - img [ref=e27]
+        - generic [ref=e30]: 我的
+  - generic [ref=e31]:
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - generic [ref=e35] [cursor=pointer]: 总览
+        - generic [ref=e36] [cursor=pointer]: 分析
+        - generic [ref=e37] [cursor=pointer]: 报价
+        - generic [ref=e38] [cursor=pointer]: 价格
+        - generic [ref=e39] [cursor=pointer]: 模拟
+        - generic [ref=e40] [cursor=pointer]: 分摊
+        - generic [ref=e41] [cursor=pointer]: 设变
+        - generic [ref=e42] [cursor=pointer]: 跟踪
+        - generic [ref=e43] [cursor=pointer]: 配置
+        - generic [ref=e44] [cursor=pointer]: 设置
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - strong [ref=e48]: 系统管理员-测试
+          - generic [ref=e49]: ADMIN
+        - button "退出" [ref=e50] [cursor=pointer]:
+          - generic [ref=e51]: 退出
+    - main [ref=e52]:
+      - generic [ref=e53]:
+        - navigation "Breadcrumb" [ref=e267]:
+          - generic [ref=e268]:
+            - generic [ref=e269]:
+              - img "home" [ref=e270]:
+                - img [ref=e271]
+              - generic [ref=e274]: 项目列表
+            - generic [ref=e275]: /
+          - generic [ref=e279]: G281高压线束项目
+        - generic [ref=e404]:
+          - generic [ref=e405]:
+            - button "返回" [ref=e406] [cursor=pointer]:
+              - img "arrow_left" [ref=e408]:
+                - img [ref=e409]
+            - generic [ref=e411]:
+              - heading "G281高压线束项目" [level=4] [ref=e412]
+              - generic [ref=e413]: G281 / 吉利汽车 / SEA
+          - generic [ref=e416]:
+            - generic [ref=e417]:
+              - generic [ref=e418]:
+                - 'generic "Tag: active" [ref=e419]'
+                - generic [ref=e422]: 场景 2
+                - generic [ref=e424]: 线束 4
+                - generic [ref=e426]: 报价 0
+              - generic [ref=e427]: 最近更新：2026/4/11 13:56:17
+            - button "管理场景" [ref=e428] [cursor=pointer]:
+              - generic [ref=e429]: 管理场景
+          - generic [ref=e430]:
+            - generic [ref=e432]:
+              - text: 内部成本基线
+              - heading "—" [level=3] [ref=e433]
+            - generic [ref=e435]:
+              - text: 当前有效报价
+              - heading "—" [level=3] [ref=e436]
+            - generic [ref=e438]:
+              - text: 利润差异
+              - heading "—" [level=3] [ref=e439]
+            - generic [ref=e441]:
+              - text: 回收进度
+              - generic [ref=e442]:
+                - progressbar [ref=e443]
+                - generic [ref=e447]: ¥2,002,000.00 / ¥2,100,000.00
+          - generic [ref=e448]:
+            - generic [ref=e449]:
+              - heading "模块导航" [level=6] [ref=e453]
+              - generic [ref=e455]:
+                - generic [ref=e457] [cursor=pointer]
+                - generic [ref=e467] [cursor=pointer]
+                - generic [ref=e478] [cursor=pointer]
+                - generic [ref=e491] [cursor=pointer]
+            - generic [ref=e500]:
+              - heading "最近场景与报价" [level=6] [ref=e504]
+              - generic [ref=e506]:
+                - generic [ref=e507] [cursor=pointer]
+                - generic [ref=e514] [cursor=pointer]
+                - button "list 查看全部场景" [ref=e521] [cursor=pointer]

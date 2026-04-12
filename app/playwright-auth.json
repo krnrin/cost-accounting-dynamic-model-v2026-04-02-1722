@@ -1,0 +1,14 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5182",
+      "localStorage": [
+        {
+          "name": "auth-storage",
+          "value": "{\"state\":{\"user\":{\"id\":\"dev-admin\",\"email\":\"admin@harness.dev\",\"name\":\"Admin (离线)\",\"role\":\"ADMIN\"},\"token\":\"dev-offline-token\",\"isAuthenticated\":true,\"feishuAccessToken\":null,\"feishuRefreshToken\":null,\"feishuTokenExpiresAt\":null,\"authSource\":\"local\"},\"version\":0}"
+        }
+      ]
+    }
+  ]
+}

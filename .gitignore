@@ -36,3 +36,14 @@ AGENTS.md
 # === OS ===
 .DS_Store
 Thumbs.db
+
+# === Environment ===
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+!.env.*.example
+
+# === Local worktrees ===
+.worktrees/

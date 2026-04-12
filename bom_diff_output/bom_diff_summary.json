@@ -1,0 +1,32 @@
+{
+  "total_sheets_compared": 4,
+  "total_added": 434,
+  "total_removed": 432,
+  "total_modified": 0,
+  "sheets": [
+    {
+      "name": "配置清单",
+      "added": 14,
+      "removed": 11,
+      "modified": 0
+    },
+    {
+      "name": "总成散件清单",
+      "added": 42,
+      "removed": 43,
+      "modified": 0
+    },
+    {
+      "name": "二次物料明细",
+      "added": 99,
+      "removed": 99,
+      "modified": 0
+    },
+    {
+      "name": "KSK线束BOM明细",
+      "added": 279,
+      "removed": 279,
+      "modified": 0
+    }
+  ]
+}

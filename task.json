@@ -1,0 +1,897 @@
+{
+  "meta": {
+    "spec_version": "2026-04-10-revised",
+    "generated_at": "2026-04-10T19:19:00+08:00",
+    "total_tasks": 38,
+    "priority_breakdown": { "P0": 16, "P1": 13, "P2": 9 },
+    "dev_order": "F01 → F02 → F03 → F04 → F11 → F06 → F07 → F08 → F05 → F10 → F09 → F12"
+  },
+  "tasks": [
+    {
+      "id": "T01",
+      "title": "Project CRUD + 项目列表页",
+      "module": "F01",
+      "priority": "P0",
+      "acceptance": "能新建项目、搜索项目、进入项目",
+      "scope": {
+        "backend": [
+          "GET /api/projects (search + status filter)",
+          "POST /api/projects",
+          "GET /api/projects/:id",
+          "PUT /api/projects/:id",
+          "DELETE /api/projects/:id"
+        ],
+        "frontend": [
+          "项目列表页 (/)：表格 + 搜索 + 状态筛选 + 新建/删除",
+          "点击进入 /project/:id"
+        ],
+        "models": ["Project"]
+      },
+      "depends_on": [],
+      "status": "done"
+    },
+    {
+      "id": "T02",
+      "title": "项目 Dashboard",
+      "module": "F01",
+      "priority": "P0",
+      "acceptance": "项目 Dashboard 展示经营指标卡片 + 模块导航",
+      "scope": {
+        "backend": [
+          "GET /api/projects/:id/dashboard"
+        ],
+        "frontend": [
+          "Dashboard 页 (/project/:id)：指标卡片（成本/报价/利润/回收）+ 模块导航入口"
+        ],
+        "models": []
+      },
+      "depends_on": ["T01"],
+      "status": "done"
+    },
+    {
+      "id": "T03",
+      "title": "场景 CRUD + 场景列表",
+      "module": "F02",
+      "priority": "P0",
+      "acceptance": "能在项目下创建多个场景（区分类型）",
+      "scope": {
+        "backend": [
+          "GET /api/projects/:id/scenarios",
+          "POST /api/projects/:id/scenarios",
+          "GET /api/scenarios/:sid",
+          "PUT /api/scenarios/:sid"
+        ],
+        "frontend": [
+          "场景列表页 (/project/:id/scenarios)",
+          "场景详情页 (/project/:id/scenario/:sid)",
+          "场景新建表单（类型选择：initial_quote/fixed_point/change/annual_drop）"
+        ],
+        "models": ["Scenario"],
+        "business_rules": [
+          "场景之间互相独立，不可覆盖",
+          "必须保留 rate_snapshot / bom_version_ref / quote_param_snapshot",
+          "source_scenario_id + compare_baseline_id 支持继承和基线比较"
+        ]
+      },
+      "depends_on": ["T01"],
+      "status": "done"
+    },
+    {
+      "id": "T04",
+      "title": "场景冻结/发布/克隆 + 场景比较",
+      "module": "F02",
+      "priority": "P0",
+      "acceptance": "场景之间能做基础指标对比",
+      "scope": {
+        "backend": [
+          "POST /api/scenarios/:sid/freeze",
+          "POST /api/scenarios/:sid/release",
+          "POST /api/scenarios/:sid/clone",
+          "GET /api/scenarios/:sid/summary",
+          "GET /api/scenarios/compare?ids=a,b"
+        ],
+        "frontend": [
+          "场景对比页 (/project/:id/scenario/:sid/compare)：双列对比视图",
+          "冻结/发布/克隆操作按钮"
+        ],
+        "business_rules": [
+          "冻结时自动快照 rate_snapshot",
+          "克隆时复制 source_scenario_id 链",
+          "对比维度：成本/报价/利润/分摊回收状态"
+        ]
+      },
+      "depends_on": ["T03"],
+      "status": "done"
+    },
+    {
+      "id": "T05",
+      "title": "BOM 工作簿 CRUD + 导入",
+      "module": "F03",
+      "priority": "P0",
+      "acceptance": "能录入/导入 BOM，按线束号和分类查看",
+      "scope": {
+        "backend": [
+          "GET /api/scenarios/:sid/bom (?harness=&category=)",
+          "POST /api/scenarios/:sid/bom",
+          "PUT /api/bom/:rowId",
+          "DELETE /api/bom/:rowId",
+          "POST /api/scenarios/:sid/bom/import",
+          "GET /api/scenarios/:sid/bom/summary"
+        ],
+        "frontend": [
+          "BOM 工作簿页 (/project/:id/bom)：逐行表格 + 线束号/分类筛选 + 内联编辑",
+          "CSV/Excel 批量导入",
+          "汇总区（行数/线束号维度/成本/分类）"
+        ],
+        "models": ["Harness", "BomRow"],
+        "business_rules": [
+          "unit_cost = quantity × unit_price（自动计算）",
+          "颗粒度到线束号/BOM行，不得回退为项目平均值"
+        ]
+      },
+      "depends_on": ["T03"],
+      "status": "done"
+    },
+    {
+      "id": "T06",
+      "title": "BOM 差异比较",
+      "module": "F03",
+      "priority": "P0",
+      "acceptance": "BOM 版本/场景差异可查看",
+      "scope": {
+        "backend": [
+          "GET /api/scenarios/:sid/bom/diff?base=:sid2"
+        ],
+        "frontend": [
+          "BOM 差异页 (/project/:id/bom/diff)：变更行高亮 (added/replaced/cancelled)"
+        ]
+      },
+      "depends_on": ["T05"],
+      "status": "done"
+    },
+    {
+      "id": "T07",
+      "title": "报价快照 CRUD — 三层价格模型",
+      "module": "F04",
+      "priority": "P0",
+      "acceptance": "能创建报价快照，查看内部成本 vs 客户报价差异",
+      "scope": {
+        "backend": [
+          "GET /api/scenarios/:sid/quotes",
+          "POST /api/scenarios/:sid/quotes",
+          "GET /api/quotes/:qid",
+          "PUT /api/quotes/:qid（受 locked/editable/approval 字段控制）",
+          "GET /api/quotes/:qid/compare（使用 L3 有效执行价）",
+          "GET /api/quotes/:qid/effective-price"
+        ],
+        "frontend": [
+          "报价工作台 (/project/:id/quote)：场景/线束号 + 报价结果 + 内部基线 + 差异 + 利润",
+          "价格展示标注层次 (L1/L2/L3)",
+          "locked_fields → disabled + 🔒",
+          "editable_fields → 正常可编辑",
+          "approval_fields → 可编辑 + ⚠️ 待审批标记"
+        ],
+        "models": ["QuoteSnapshot"],
+        "business_rules": [
+          "三层价格：L1 内部核算价 / L2 客户确认快照价 / L3 当前有效执行价",
+          "profit_gap = effective_customer_price - internal_cost_baseline",
+          "禁止混合计算：同一对比中不得交叉使用不同层次价格",
+          "effective_price_mode: enum [ex_works, arrival, custom]",
+          "customer_burden_mode: enum [supplier_full, customer_full, shared, per_item]",
+          "recovery_completion_behavior: enum [auto_switch_price, notify_only, manual_confirm]"
+        ]
+      },
+      "depends_on": ["T05"],
+      "status": "done"
+    },
+    {
+      "id": "T08",
+      "title": "报价确认与对比 — L2 锁定",
+      "module": "F04",
+      "priority": "P0",
+      "acceptance": "确认报价后锁定为 L2 客户确认快照价",
+      "scope": {
+        "backend": [
+          "POST /api/quotes/:qid/confirm",
+          "GET /api/quotes/compare?ids=a,b"
+        ],
+        "frontend": [
+          "确认操作 → customer_accepted=true → locked_fields 生效",
+          "报价对比页 (/project/:id/quote/:qid/compare)"
+        ],
+        "business_rules": [
+          "customer_accepted=true 后 locked_fields 不可修改",
+          "确认后价格进入 L2 持久化，不随后续 BOM/费率变化"
+        ]
+      },
+      "depends_on": ["T07"],
+      "status": "done"
+    },
+    {
+      "id": "T09",
+      "title": "分摊项 CRUD — 承担方 + 定价影响",
+      "module": "F06",
+      "priority": "P0",
+      "acceptance": "能录入一次性费用，查看单根分摊和回收进度",
+      "scope": {
+        "backend": [
+          "GET /api/scenarios/:sid/allocations (?burden_side=)",
+          "POST /api/scenarios/:sid/allocations",
+          "GET /api/allocations/:aid",
+          "PUT /api/allocations/:aid"
+        ],
+        "frontend": [
+          "分摊管理页 (/project/:id/allocation)：费用类型/线束号/总金额/单根分摊/回收进度",
+          "承担方 (burden_side) 展示：supplier/customer/shared",
+          "定价影响 (pricing_effect) 展示：included_in_price/separate_invoice/internal_only",
+          "回收进度条可视化"
+        ],
+        "models": ["AllocationItem"],
+        "business_rules": [
+          "unit_allocation = total_amount / baseline_volume",
+          "baseline_volume 为独立业务输入，≠ volume × install_ratio",
+          "按线束号独立、按根分摊，不得笼统平均",
+          "分摊 ≠ 回收（分摊=成本口径，回收=执行进度）"
+        ]
+      },
+      "depends_on": ["T05"],
+      "status": "done"
+    },
+    {
+      "id": "T10",
+      "title": "回收跟踪 + 回收完成行为",
+      "module": "F06",
+      "priority": "P0",
+      "acceptance": "回收记录能逐期追踪，回收完成触发对应行为",
+      "scope": {
+        "backend": [
+          "GET /api/allocations/:aid/recovery-history",
+          "POST /api/allocations/:aid/recovery-records",
+          "GET /api/allocations/:aid/recovery-forecast",
+          "POST /api/allocations/:aid/complete"
+        ],
+        "frontend": [
+          "分摊详情页 (/project/:id/allocation/:aid)：回收记录明细 + 进度轨迹",
+          "回收完成按钮 → 触发 recovery_completion_behavior"
+        ],
+        "models": ["RecoveryRecord"],
+        "business_rules": [
+          "recovery_progress = actual_recovered / planned_recovery × 100%",
+          "actual_recovered = cumulative_volume × install_ratio × unit_allocation",
+          "回收完成后按 recovery_completion_behavior 执行：",
+          "  trigger_price_adjust → 自动切换有效执行价 + 调价提醒",
+          "  notify_only → 仅发送通知",
+          "  archive → 直接归档",
+          "回收滞后 → 触发预警",
+          "残余材料不继续计入当前产品成本"
+        ]
+      },
+      "depends_on": ["T09"],
+      "status": "done"
+    },
+    {
+      "id": "T11",
+      "title": "有效执行价计算引擎 (L3)",
+      "module": "F04+F06",
+      "priority": "P0",
+      "acceptance": "有效执行价随回收状态自动切换，计算来源可追溯",
+      "scope": {
+        "backend": [
+          "有效执行价计算服务（被 /api/quotes/:qid/effective-price 和 Dashboard 调用）"
+        ],
+        "business_rules": [
+          "规则 10.6：当前有效执行价逻辑",
+          "if all allocation_items.status == completed:",
+          "  effective_price = ex_works_price（分摊已回收完，不再含分摊）",
+          "elif any allocation_items.status in [recovering, allocated]:",
+          "  effective_price = arrival_price（仍含分摊回收部分）",
+          "else:",
+          "  effective_price = ex_works_price（无分摊项）",
+          "effective_price_mode 记录当前模式",
+          "切换时自动记录版本日志"
+        ]
+      },
+      "depends_on": ["T07", "T10"],
+      "status": "done"
+    },
+    {
+      "id": "T12",
+      "title": "设变事件 CRUD + 影响计算",
+      "module": "F07",
+      "priority": "P1",
+      "acceptance": "能创建设变事件，查看成本/报价影响",
+      "scope": {
+        "backend": [
+          "GET /api/scenarios/:sid/changes",
+          "POST /api/scenarios/:sid/changes",
+          "GET /api/changes/:cid",
+          "PUT /api/changes/:cid",
+          "GET /api/changes/:cid/impact",
+          "POST /api/changes/:cid/calculate-impact"
+        ],
+        "frontend": [
+          "设变管理页 (/project/:id/changes)：事件列表",
+          "设变详情页 (/project/:id/changes/:cid)：BOM 前后对比 + 影响分析"
+        ],
+        "models": ["ChangeEvent"],
+        "business_rules": [
+          "cost_impact = SUM(after.unit_cost) - SUM(before.unit_cost)",
+          "residual_impact = SUM(cancelled_rows.unit_cost × remaining_quantity)",
+          "残余材料池 → 呆滞提报，不继续计入当前产品成本"
+        ]
+      },
+      "depends_on": ["T05"],
+      "status": "done"
+    },
+    {
+      "id": "T13",
+      "title": "跟踪项 CRUD",
+      "module": "F07",
+      "priority": "P1",
+      "acceptance": "能创建跟踪项，管理执行状态",
+      "scope": {
+        "backend": [
+          "GET /api/scenarios/:sid/tracking",
+          "POST /api/scenarios/:sid/tracking",
+          "GET /api/tracking/:tid",
+          "PUT /api/tracking/:tid",
+          "POST /api/tracking/:tid/close"
+        ],
+        "frontend": [
+          "跟踪管理页 (/project/:id/tracking)：列表 + 状态筛选 + 严重度筛选",
+          "跟踪详情页"
+        ],
+        "models": ["TrackingItem"],
+        "business_rules": [
+          "进度价 = 协议价 vs 当前批量价的差距追踪，≠ 加权混合价",
+          "跟踪项必须有状态 + 关闭机制"
+        ]
+      },
+      "depends_on": ["T03"],
+      "status": "done"
+    },
+    {
+      "id": "T14",
+      "title": "系统设置 — 成本结构 + 金属价格 + 费率",
+      "module": "F11",
+      "priority": "P0",
+      "acceptance": "系统设置页面能配置基础费率和金属价格",
+      "scope": {
+        "backend": [
+          "GET /api/settings",
+          "GET /api/settings/:category",
+          "PUT /api/settings/:category/:key",
+          "POST /api/settings/publish",
+          "GET /api/settings/history",
+          "GET /api/settings/snapshot/:version"
+        ],
+        "frontend": [
+          "设置页 (/settings)：成本结构 / 金属价格 / 费率基准 / 预警阈值 / 多工厂 / BOM分类",
+          "费率发布流 UI"
+        ],
+        "models": ["Settings"],
+        "business_rules": [
+          "区分全局基准 vs 项目/场景快照",
+          "费率发布流：全局 → 快照 → 项目/场景引用",
+          "参数快照化，避免后续修改覆盖历史结果"
+        ]
+      },
+      "depends_on": ["T01"],
+      "status": "done"
+    },
+    {
+      "id": "T15",
+      "title": "Simulation 仿真引擎",
+      "module": "F05",
+      "priority": "P1",
+      "acceptance": "Simulation 能调整关键变量并查看结果变化",
+      "scope": {
+        "backend": [
+          "GET /api/scenarios/:sid/simulations",
+          "POST /api/scenarios/:sid/simulations",
+          "GET /api/simulations/:simId",
+          "PUT /api/simulations/:simId",
+          "POST /api/simulations/:simId/run",
+          "POST /api/simulations/:simId/convert-to-scenario"
+        ],
+        "frontend": [
+          "Simulation 页 (/project/:id/simulation)：变量调整 + 结果响应曲线",
+          "保存仿真 + 转正式场景"
+        ],
+        "models": ["SimulationTask"],
+        "business_rules": [
+          "Simulation = 假设测算 ≠ 正式版本",
+          "仿真与正式结果必须分层"
+        ]
+      },
+      "depends_on": ["T04", "T05", "T14"],
+      "status": "done"
+    },
+    {
+      "id": "T16",
+      "title": "年降管理",
+      "module": "F05",
+      "priority": "P1",
+      "acceptance": "年降能设定周期和降幅，查看影响",
+      "scope": {
+        "backend": [
+          "GET /api/scenarios/:sid/annual-drops",
+          "POST /api/scenarios/:sid/annual-drops",
+          "GET /api/annual-drops/:adId",
+          "PUT /api/annual-drops/:adId",
+          "GET /api/annual-drops/:adId/impact"
+        ],
+        "frontend": [
+          "年降页 (/project/:id/annual-drop)：参数设定 + 影响结果 + 成本/报价/利润变化"
+        ],
+        "models": ["AnnualDropRecord"],
+        "business_rules": [
+          "cost_after = cost_before × (1 - drop_rate)",
+          "年降 = 有周期和影响链路的业务对象 ≠ 简单数字减值"
+        ]
+      },
+      "depends_on": ["T04"],
+      "status": "done"
+    },
+    {
+      "id": "T17",
+      "title": "预警规则 CRUD",
+      "module": "F08",
+      "priority": "P1",
+      "acceptance": "预警规则能配置、能触发、能查看",
+      "scope": {
+        "backend": [
+          "GET /api/alert-rules",
+          "POST /api/alert-rules",
+          "PUT /api/alert-rules/:rid",
+          "DELETE /api/alert-rules/:rid"
+        ],
+        "frontend": [
+          "预警规则页 (/settings/alert-rules)：规则列表 + 新建/编辑/删除"
+        ],
+        "models": ["AlertRule"],
+        "business_rules": [
+          "类别：metal_price / allocation_recovery / cost_anomaly / execution / deadline",
+          "分级：info / warning / critical"
+        ]
+      },
+      "depends_on": ["T14"],
+      "status": "done"
+    },
+    {
+      "id": "T18",
+      "title": "预警事件 + Alerts 中心",
+      "module": "F08",
+      "priority": "P1",
+      "acceptance": "Alerts 页面能分类筛选和处理状态",
+      "scope": {
+        "backend": [
+          "GET /api/projects/:id/alerts",
+          "GET /api/alerts",
+          "GET /api/alerts/:eid",
+          "PUT /api/alerts/:eid",
+          "GET /api/alerts/summary"
+        ],
+        "frontend": [
+          "预警中心 (/project/:id/alerts)：事件列表 + 分类/严重度筛选",
+          "状态流转：active → acknowledged → resolved/dismissed",
+          "右上角预警徽章计数"
+        ],
+        "models": ["AlertEvent"]
+      },
+      "depends_on": ["T17"],
+      "status": "done"
+    },
+    {
+      "id": "T19",
+      "title": "预警触发引擎",
+      "module": "F08",
+      "priority": "P1",
+      "acceptance": "金属价格变动/回收滞后/成本异常自动触发预警",
+      "scope": {
+        "backend": [
+          "预警检测服务（定时/事件驱动）",
+          "金属价格变动检测",
+          "回收滞后检测",
+          "成本异常检测",
+          "执行节点超期检测"
+        ],
+        "business_rules": [
+          "触发来源：金属价格变动、回收滞后、成本异常、关键执行节点",
+          "自动创建 AlertEvent 并关联 source_object"
+        ]
+      },
+      "depends_on": ["T17", "T10", "T14"],
+      "status": "done"
+    },
+    {
+      "id": "T20",
+      "title": "设变自动影响计算 + 残余材料池",
+      "module": "F07",
+      "priority": "P1",
+      "acceptance": "设变能自动计算影响和残余材料池",
+      "scope": {
+        "backend": [
+          "设变影响自动计算服务",
+          "残余材料池识别 + 呆滞提报"
+        ],
+        "business_rules": [
+          "BOM 变化自动传导到报价/设变/分摊/跟踪/预警",
+          "残余材料 → 呆滞提报，不继续计入当前产品成本",
+          "自动生成关联跟踪项"
+        ]
+      },
+      "depends_on": ["T12", "T13"],
+      "status": "done"
+    },
+    {
+      "id": "T21",
+      "title": "管理决策舱 — 跨项目总览",
+      "module": "F09",
+      "priority": "P2",
+      "acceptance": "管理决策舱跨项目汇总",
+      "scope": {
+        "backend": [
+          "GET /api/manager-dashboard",
+          "GET /api/manager-dashboard/profit-summary",
+          "GET /api/manager-dashboard/recovery-summary",
+          "GET /api/manager-dashboard/alert-summary",
+          "GET /api/manager-dashboard/scenario-comparison",
+          "GET /api/manager-dashboard/anomaly-summary"
+        ],
+        "frontend": [
+          "管理决策舱 (/manager-dashboard)：利润/回收/预警/异常汇总"
+        ],
+        "business_rules": [
+          "只做汇总与导航，不替代执行页面",
+          "数据来源统一，不在页面内各自计算"
+        ]
+      },
+      "depends_on": ["T02", "T07", "T09", "T18"],
+      "status": "done"
+    },
+    {
+      "id": "T22",
+      "title": "利润归因瀑布图 (Shapley)",
+      "module": "F09",
+      "priority": "P2",
+      "acceptance": "利润归因瀑布图展示",
+      "scope": {
+        "frontend": [
+          "瀑布图组件：利润归因因素拆解（BOM/费率/分摊/年降/设变等）"
+        ],
+        "business_rules": [
+          "Shapley 方向 + 因果链瀑布图表达",
+          "归因维度：材料/人工/制造费/分摊/年降/设变/金属联动"
+        ]
+      },
+      "depends_on": ["T21"],
+      "status": "done"
+    },
+    {
+      "id": "T23",
+      "title": "版本历史 CRUD + 差异对比",
+      "module": "F10",
+      "priority": "P2",
+      "acceptance": "版本历史可追溯、可比较、可回滚",
+      "scope": {
+        "backend": [
+          "GET /api/projects/:id/versions",
+          "POST /api/versions",
+          "GET /api/versions/:vid",
+          "GET /api/versions/compare?a=:vid1&b=:vid2",
+          "POST /api/versions/:vid/publish",
+          "POST /api/versions/:vid/rollback"
+        ],
+        "frontend": [
+          "版本历史页 (/project/:id/versions)：列表 + 差异对比 + 回滚"
+        ],
+        "models": ["VersionRecord"],
+        "business_rules": [
+          "版本 ≠ 场景（版本=时间线追溯，场景=经营语义）",
+          "关键节点自动创建版本快照",
+          "支持 Audit Trace ID"
+        ]
+      },
+      "depends_on": ["T04"],
+      "status": "done"
+    },
+    {
+      "id": "T24",
+      "title": "自动版本快照（BOM冻结/报价发布/场景发布）",
+      "module": "F10",
+      "priority": "P2",
+      "acceptance": "关键节点自动创建版本快照",
+      "scope": {
+        "backend": [
+          "版本快照钩子：BOM冻结/报价发布/场景发布时自动调用 POST /api/versions"
+        ]
+      },
+      "depends_on": ["T23", "T04", "T08"],
+      "status": "done"
+    },
+    {
+      "id": "T25",
+      "title": "费率基准发布流",
+      "module": "F11",
+      "priority": "P2",
+      "acceptance": "费率基准发布流完整实现",
+      "scope": {
+        "backend": [
+          "POST /api/settings/publish → 生成版本快照",
+          "场景引用费率快照时的版本绑定逻辑"
+        ],
+        "business_rules": [
+          "全局 → 快照 → 项目/场景引用",
+          "快照化避免覆盖历史"
+        ]
+      },
+      "depends_on": ["T14"],
+      "status": "done"
+    },
+    {
+      "id": "T26",
+      "title": "Profile 与个人中心",
+      "module": "F12",
+      "priority": "P2",
+      "acceptance": "Profile 与个人偏好可用",
+      "scope": {
+        "backend": [
+          "GET /api/profile",
+          "PUT /api/profile",
+          "GET /api/profile/permissions",
+          "PUT /api/profile/preferences"
+        ],
+        "frontend": [
+          "个人中心 (/profile)：信息/角色/主题/通知设置"
+        ],
+        "models": ["User"]
+      },
+      "depends_on": ["T01"],
+      "status": "done"
+    },
+    {
+      "id": "T27",
+      "title": "认证 + 用户管理",
+      "module": "通用",
+      "priority": "P0",
+      "acceptance": "登录/登出/用户列表可用",
+      "scope": {
+        "backend": [
+          "POST /api/auth/login",
+          "POST /api/auth/logout",
+          "GET /api/users"
+        ],
+        "frontend": [
+          "登录页",
+          "侧边栏用户信息"
+        ],
+        "models": ["User"]
+      },
+      "depends_on": [],
+      "status": "done"
+    },
+    {
+      "id": "T28",
+      "title": "导出功能（PDF/Excel）",
+      "module": "通用",
+      "priority": "P2",
+      "acceptance": "关键数据可导出",
+      "scope": {
+        "backend": [
+          "POST /api/export/:type"
+        ],
+        "frontend": [
+          "各页面导出按钮"
+        ]
+      },
+      "depends_on": ["T05", "T07"],
+      "status": "done"
+    },
+    {
+      "id": "T29",
+      "title": "项目导入",
+      "module": "F01",
+      "priority": "P1",
+      "acceptance": "能导入项目",
+      "scope": {
+        "backend": [
+          "POST /api/projects/import"
+        ],
+        "frontend": [
+          "项目列表页导入按钮 + 上传表单"
+        ]
+      },
+      "depends_on": ["T01"],
+      "status": "done"
+    },
+    {
+      "id": "T30",
+      "title": "深色主题 + 工业蓝图风格",
+      "module": "UI",
+      "priority": "P0",
+      "acceptance": "深色主题视觉一致性",
+      "scope": {
+        "frontend": [
+          "Tailwind 主题配置（深蓝/深灰底，白色文字，蓝色/绿色强调）",
+          "shadcn/ui 组件主题覆写",
+          "侧边栏导航 + 面包屑",
+          "表格/卡片/状态标签/进度条统一风格"
+        ]
+      },
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "id": "T31",
+      "title": "金属价格联动计算",
+      "module": "F03+F08",
+      "priority": "P1",
+      "acceptance": "金属价格变动自动影响 BOM 成本",
+      "scope": {
+        "backend": [
+          "金属价格联动服务"
+        ],
+        "business_rules": [
+          "metal_cost_impact = metal_weight × (current_metal_price - base_metal_price)",
+          "价格变动超阈值 → 触发预警"
+        ]
+      },
+      "depends_on": ["T05", "T14", "T17"],
+      "status": "pending"
+    },
+    {
+      "id": "T32",
+      "title": "SQLite 数据库初始化 + Migration",
+      "module": "基础设施",
+      "priority": "P0",
+      "acceptance": "SQLite 数据持久化，刷新不丢失",
+      "scope": {
+        "backend": [
+          "所有 16 张表的 CREATE TABLE",
+          "初始化脚本 + migration 机制",
+          "开发种子数据"
+        ],
+        "models": ["全部 16 个模型"]
+      },
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "id": "T33",
+      "title": "E2E 测试 — P0 主链路",
+      "module": "测试",
+      "priority": "P0",
+      "acceptance": "主链路 E2E 测试通过",
+      "scope": {
+        "testing": [
+          "Playwright E2E：新建项目 → 创建场景 → 导入 BOM → 计算成本 → 创建报价 → 对比 → 确认",
+          "Playwright E2E：录入分摊 → 查看单根分摊 → 添加回收记录 → 回收完成触发行为"
+        ]
+      },
+      "depends_on": ["T01", "T03", "T05", "T07", "T09", "T10"],
+      "status": "pending"
+    },
+    {
+      "id": "T34",
+      "title": "API 测试 — 核心计算规则",
+      "module": "测试",
+      "priority": "P0",
+      "acceptance": "所有核心计算规则 API 测试通过",
+      "scope": {
+        "testing": [
+          "pytest: unit_cost = quantity × unit_price",
+          "pytest: harness_cost = SUM(bom_rows.unit_cost)",
+          "pytest: unit_allocation = total_amount / baseline_volume",
+          "pytest: recovery_progress 计算",
+          "pytest: profit_gap = effective_customer_price - internal_cost_baseline",
+          "pytest: 有效执行价 L3 切换逻辑 (规则 10.6)",
+          "pytest: metal_cost_impact",
+          "pytest: cost_impact + residual_impact",
+          "pytest: annual_drop impact"
+        ]
+      },
+      "depends_on": ["T32"],
+      "status": "pending"
+    },
+    {
+      "id": "T35",
+      "title": "Lighthouse 性能基线",
+      "module": "测试",
+      "priority": "P1",
+      "acceptance": "所有页面 Lighthouse Performance ≥ 70",
+      "scope": {
+        "testing": [
+          "Lighthouse CI 配置",
+          "关键页面性能基线测试"
+        ]
+      },
+      "depends_on": ["T30"],
+      "status": "pending"
+    },
+    {
+      "id": "T36",
+      "title": "大数据量表格性能",
+      "module": "测试",
+      "priority": "P1",
+      "acceptance": "表格支持 1000+ 行 BOM 数据",
+      "scope": {
+        "frontend": [
+          "虚拟滚动 / 分页方案",
+          "1000+ 行 BOM 渲染性能测试"
+        ],
+        "testing": [
+          "BOM 表格 1000 行性能基准"
+        ]
+      },
+      "depends_on": ["T05"],
+      "status": "pending"
+    },
+    {
+      "id": "T37",
+      "title": "API 响应时间基线",
+      "module": "测试",
+      "priority": "P1",
+      "acceptance": "API 响应时间 < 500ms (p95)",
+      "scope": {
+        "testing": [
+          "关键 API p95 延迟测试",
+          "SQLite 查询优化（索引策略）"
+        ]
+      },
+      "depends_on": ["T32"],
+      "status": "pending"
+    },
+    {
+      "id": "T38",
+      "title": "参数快照化完整实现",
+      "module": "F11+F02",
+      "priority": "P2",
+      "acceptance": "参数快照化完整实现",
+      "scope": {
+        "backend": [
+          "场景创建/冻结时自动快照费率、BOM版本、报价参数",
+          "快照数据不可变性保障"
+        ],
+        "business_rules": [
+          "rate_snapshot / bom_version_ref / quote_param_snapshot 三个快照字段完整工作",
+          "历史结果不受后续参数修改影响"
+        ]
+      },
+      "depends_on": ["T14", "T04"],
+      "status": "pending"
+    }
+  ],
+  "execution_waves": {
+    "wave_1_foundation": {
+      "description": "基础设施 + 认证 + 主题",
+      "tasks": ["T27", "T30", "T32"],
+      "estimated_effort": "2-3 sessions"
+    },
+    "wave_2_core_crud": {
+      "description": "P0 主链路 CRUD（项目→场景→BOM→报价→分摊）",
+      "tasks": ["T01", "T02", "T03", "T05", "T14"],
+      "estimated_effort": "4-6 sessions"
+    },
+    "wave_3_business_logic": {
+      "description": "三层价格 + 分摊回收 + 有效执行价引擎",
+      "tasks": ["T04", "T06", "T07", "T08", "T09", "T10", "T11"],
+      "estimated_effort": "5-7 sessions"
+    },
+    "wave_4_execution_loop": {
+      "description": "设变 + 跟踪 + 预警 + Simulation + 年降",
+      "tasks": ["T12", "T13", "T15", "T16", "T17", "T18", "T19", "T20", "T31"],
+      "estimated_effort": "5-7 sessions"
+    },
+    "wave_5_governance": {
+      "description": "版本治理 + 决策舱 + Profile + 导出",
+      "tasks": ["T21", "T22", "T23", "T24", "T25", "T26", "T28", "T29", "T38"],
+      "estimated_effort": "3-5 sessions"
+    },
+    "wave_6_quality": {
+      "description": "测试 + 性能优化",
+      "tasks": ["T33", "T34", "T35", "T36", "T37"],
+      "estimated_effort": "2-3 sessions"
+    }
+  }
+}
