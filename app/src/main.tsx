@@ -6,8 +6,6 @@ import { seedE281Project } from './data/seeds/e281';
 import App from './App';
 import './index.css';
 
-// 全局强制开启深色科技模式 (Cyberpunk Glassmorphism Vibe)
-document.body.setAttribute('theme-mode', 'dark');
 
 // Force unregister any rogue service workers from production builds on localhost
 if ('serviceWorker' in navigator) {

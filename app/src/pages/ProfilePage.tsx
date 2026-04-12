@@ -1,17 +1,27 @@
-/**
- * 用户配置页 — 个人信息 + 权限概览 + 主题偏好 + 会话管理
- */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Typography, Avatar, Tag, Table, Button, Radio, RadioGroup, Row, Col, Modal, Toast,
+  Typography,
+  Avatar,
+  Tag,
+  Table,
+  Button,
+  Radio,
+  RadioGroup,
+  Row,
+  Col,
+  Modal,
+  Toast,
+  Form,
 } from '@douyinfe/semi-ui';
 import { IconUser, IconExit } from '@douyinfe/semi-icons';
 import { useAuthStore } from '@/store/authStore';
-import { usePermission, type PermissionField, type UserRole } from '@/hooks/usePermission';
 import { useSettingsStore } from '@/store/settingsStore';
+import { fetchProfilePermissions, fetchUsers, updateProfile, type ProfilePermissionRow, type UserSummary } from '@/lib/profileApi';
 
 const { Title, Text } = Typography;
+
+type UserRole = 'ADMIN' | 'MANAGER' | 'ENGINEER' | 'VIEWER';
 
 const ROLE_LABELS: Record<UserRole, string> = {
   ADMIN: '系统管理员',
@@ -20,14 +30,7 @@ const ROLE_LABELS: Record<UserRole, string> = {
   VIEWER: '只读用户',
 };
 
-const ROLE_COLORS: Record<UserRole, string> = {
-  ADMIN: '#000000',
-  MANAGER: '#27272a',
-  ENGINEER: '#3f3f46',
-  VIEWER: '#71717a',
-};
-
-const PERMISSION_LABELS: Record<PermissionField, string> = {
+const PERMISSION_LABELS: Record<string, string> = {
   profit: '利润查看',
   profitRate: '利润率查看',
   mgmtFee: '管理费查看',
@@ -46,28 +49,45 @@ const PERMISSION_LABELS: Record<PermissionField, string> = {
   deleteHarness: '删除线束',
 };
 
-const ROLE_MIN: Record<PermissionField, UserRole> = {
-  profit: 'MANAGER', profitRate: 'MANAGER', mgmtFee: 'MANAGER', mgmtRate: 'MANAGER',
-  costRates: 'ADMIN', metalPrice: 'ENGINEER', internalCost: 'MANAGER', bomEdit: 'ENGINEER',
-  quoteExport: 'ENGINEER', simulation: 'ENGINEER', changeExport: 'ENGINEER',
-  versionLock: 'MANAGER', auditLog: 'MANAGER', auditPublish: 'ADMIN',
-  deleteProject: 'ADMIN', deleteHarness: 'MANAGER',
-};
-
 export default function ProfilePage() {
-  const { user, authSource, logout } = useAuthStore();
-  const { can, role } = usePermission();
+  const { user, authSource, logout, refreshProfile, savePreferences } = useAuthStore();
   const { themeMode, setThemeMode } = useSettingsStore();
   const navigate = useNavigate();
+  const [permissionRows, setPermissionRows] = useState<ProfilePermissionRow[]>([]);
+  const [users, setUsers] = useState<UserSummary[]>([]);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPreferences, setSavingPreferences] = useState(false);
 
-  const permissionRows = useMemo(() => {
-    return (Object.keys(PERMISSION_LABELS) as PermissionField[]).map(field => ({
-      key: field,
-      label: PERMISSION_LABELS[field],
-      minRole: ROLE_LABELS[ROLE_MIN[field]] || ROLE_MIN[field],
-      allowed: can(field),
-    }));
-  }, [can]);
+  useEffect(() => {
+    void refreshProfile();
+  }, [refreshProfile]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const permissions = await fetchProfilePermissions();
+        if (!cancelled) {
+          setPermissionRows(permissions.permissions);
+        }
+      } catch {
+        if (!cancelled) setPermissionRows([]);
+      }
+
+      try {
+        const userList = await fetchUsers();
+        if (!cancelled) {
+          setUsers(userList);
+        }
+      } catch {
+        if (!cancelled) setUsers([]);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const permissionStats = useMemo(() => {
     const total = permissionRows.length;
@@ -79,37 +99,57 @@ export default function ProfilePage() {
     Modal.confirm({
       title: '确认退出',
       content: '退出后需要重新登录，确定继续？',
-      onOk: () => {
-        logout();
+      onOk: async () => {
+        await logout();
         Toast.success('已退出登录');
         navigate('/');
       },
     });
   };
 
+  const handleSaveProfile = async (values: { name: string; email: string }) => {
+    setSavingProfile(true);
+    try {
+      await updateProfile(values);
+      await refreshProfile();
+      Toast.success('个人信息已更新');
+    } catch (error: any) {
+      Toast.error(error.message || '保存失败');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleSavePreferences = async (values: { notifications: { alerts: boolean; system: boolean; releases: boolean } }) => {
+    setSavingPreferences(true);
+    try {
+      await savePreferences({
+        themeMode,
+        notifications: values.notifications,
+      });
+      Toast.success('个人偏好已保存');
+    } catch (error: any) {
+      Toast.error(error.message || '保存失败');
+    } finally {
+      setSavingPreferences(false);
+    }
+  };
+
+  const notificationInitial = user?.preferences?.notifications || {
+    alerts: true,
+    system: true,
+    releases: false,
+  };
+
   return (
-    <div className="page-container" style={{ maxWidth: 1000, margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: 1080, margin: '0 auto' }}>
       <Title heading={2} className="ink-heading" style={{ marginBottom: 28 }}>用户配置</Title>
 
-      {/* Hero Profile Card */}
-      <div className="glass-card animate-fade-up" style={{
-        padding: 0,
-        marginBottom: 20,
-        overflow: 'hidden',
-      }}>
-        {/* Minimal top border accent */}
-        <div style={{
-          height: 3,
-          background: 'rgba(0,0,0,0.08)',
-        }} />
-
+      <div className="glass-card animate-fade-up" style={{ padding: 0, marginBottom: 20, overflow: 'hidden' }}>
+        <div style={{ height: 3, background: 'rgba(0,0,0,0.08)' }} />
         <div style={{ padding: '32px 40px 36px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 24 }}>
-            <Avatar size="large" style={{
-              backgroundColor: '#d4d4d8',
-              width: 72, height: 72, fontSize: 26,
-              flexShrink: 0,
-            }} src={user?.avatarUrl}>
+            <Avatar size="large" style={{ backgroundColor: '#d4d4d8', width: 72, height: 72, fontSize: 26, flexShrink: 0 }} src={user?.avatarUrl}>
               {user?.name?.[0] || <IconUser />}
             </Avatar>
             <div style={{ flex: 1, paddingBottom: 4 }}>
@@ -121,31 +161,18 @@ export default function ProfilePage() {
             </Button>
           </div>
 
-          {/* Role + Auth badges — clean gray */}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', borderRadius: 10,
-              background: 'rgba(0,0,0,0.05)',
-            }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.05)' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>
-                {role ? ROLE_LABELS[role] || role : '离线模式'}
+                {user?.role ? ROLE_LABELS[user.role as UserRole] || user.role : '离线模式'}
               </span>
             </div>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', borderRadius: 10,
-              background: 'rgba(0,0,0,0.03)',
-            }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.03)' }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
                 {authSource === 'feishu' ? '飞书登录' : '本地登录'}
               </span>
             </div>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', borderRadius: 10,
-              background: 'rgba(0,0,0,0.03)',
-            }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.03)' }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
                 {permissionStats.allowed}/{permissionStats.total} 权限
               </span>
@@ -155,44 +182,56 @@ export default function ProfilePage() {
       </div>
 
       <Row gutter={[16, 16]}>
-        {/* Theme Settings */}
         <Col span={12}>
           <div className="glass-card animate-fade-up" style={{ padding: 28, height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <Title heading={5} className="ink-heading" style={{ margin: 0 }}>外观设置</Title>
-            </div>
+            <Title heading={5} className="ink-heading" style={{ marginTop: 0, marginBottom: 20 }}>个人信息</Title>
+            <Form initValues={{ name: user?.name || '', email: user?.email || '' }} onSubmit={handleSaveProfile}>
+              <Form.Input field="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]} />
+              <Form.Input field="email" label="邮箱" rules={[{ required: true, message: '请输入邮箱' }]} />
+              <Button htmlType="submit" type="primary" loading={savingProfile}>保存个人信息</Button>
+            </Form>
+          </div>
+        </Col>
+
+        <Col span={12}>
+          <div className="glass-card animate-fade-up" style={{ padding: 28, height: '100%' }}>
+            <Title heading={5} className="ink-heading" style={{ marginTop: 0, marginBottom: 20 }}>个人偏好</Title>
             <Text style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>主题模式</Text>
             <RadioGroup
               type="button"
               buttonSize="middle"
               value={themeMode}
               onChange={e => setThemeMode(e.target.value)}
-              style={{ width: '100%' }}
+              style={{ width: '100%', marginBottom: 24 }}
             >
               <Radio value="light" style={{ flex: 1, textAlign: 'center' }}>浅色</Radio>
               <Radio value="dark" style={{ flex: 1, textAlign: 'center' }}>深色</Radio>
               <Radio value="system" style={{ flex: 1, textAlign: 'center' }}>跟随系统</Radio>
             </RadioGroup>
+
+            <Form initValues={{ notifications: notificationInitial }} onSubmit={handleSavePreferences}>
+              <Form.Slot label={{ text: '通知设置' }}>
+                <div style={{ display: 'grid', gap: 12, marginBottom: 20 }}>
+                  <Form.Switch field="notifications.alerts" label="预警通知" />
+                  <Form.Switch field="notifications.system" label="系统通知" />
+                  <Form.Switch field="notifications.releases" label="版本发布通知" />
+                </div>
+              </Form.Slot>
+              <Button htmlType="submit" type="primary" loading={savingPreferences}>保存偏好</Button>
+            </Form>
           </div>
         </Col>
 
-        {/* Session Info */}
         <Col span={12}>
           <div className="glass-card animate-fade-up" style={{ padding: 28, height: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-              <Title heading={5} className="ink-heading" style={{ margin: 0 }}>会话信息</Title>
-            </div>
+            <Title heading={5} className="ink-heading" style={{ marginTop: 0, marginBottom: 20 }}>会话信息</Title>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {[
                 { label: '用户 ID', value: user?.id || '-', mono: true },
                 { label: '认证来源', value: authSource === 'feishu' ? '飞书 OAuth' : '本地密码', mono: false },
                 ...(user?.feishuOpenId ? [{ label: '飞书 OpenID', value: user.feishuOpenId, mono: true }] : []),
               ].map(item => (
-                <div key={item.label} style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '10px 14px', borderRadius: 10,
-                  background: 'rgba(0,0,0,0.02)',
-                }}>
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.02)' }}>
                   <Text style={{ fontWeight: 700, fontSize: 11, color: 'var(--text-muted)', width: 80, flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{item.label}</Text>
                   <Text className={item.mono ? 'consolas-font' : ''} style={{ fontSize: 13 }}>{item.value}</Text>
                 </div>
@@ -201,7 +240,22 @@ export default function ProfilePage() {
           </div>
         </Col>
 
-        {/* Permission Matrix */}
+        <Col span={12}>
+          <div className="glass-card animate-fade-up" style={{ padding: 28, height: '100%' }}>
+            <Title heading={5} className="ink-heading" style={{ marginTop: 0, marginBottom: 20 }}>用户列表</Title>
+            <Table
+              columns={[
+                { title: '姓名', dataIndex: 'name', render: (v: string) => <Text strong>{v}</Text> },
+                { title: '角色', dataIndex: 'role', width: 120, render: (v: string) => <Tag size="small">{ROLE_LABELS[v as UserRole] || v}</Tag> },
+              ]}
+              dataSource={users}
+              rowKey="id"
+              pagination={false}
+              size="small"
+            />
+          </div>
+        </Col>
+
         <Col span={24}>
           <div className="glass-card animate-fade-up" style={{ padding: 28 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -224,15 +278,15 @@ export default function ProfilePage() {
               columns={[
                 {
                   title: '功能',
-                  dataIndex: 'label',
+                  dataIndex: 'field',
                   width: 200,
-                  render: (v: string) => <Text strong style={{ fontSize: 13 }}>{v}</Text>,
+                  render: (v: string) => <Text strong style={{ fontSize: 13 }}>{PERMISSION_LABELS[v] || v}</Text>,
                 },
                 {
                   title: '最低角色',
                   dataIndex: 'minRole',
                   width: 140,
-                  render: (v: string) => <Tag size="small" style={{ borderRadius: 6 }}>{v}</Tag>,
+                  render: (v: string) => <Tag size="small" style={{ borderRadius: 6 }}>{ROLE_LABELS[v as UserRole] || v}</Tag>,
                 },
                 {
                   title: '当前权限',
@@ -240,12 +294,7 @@ export default function ProfilePage() {
                   width: 120,
                   align: 'center' as const,
                   render: (v: boolean) => (
-                    <div style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: '3px 10px', borderRadius: 6,
-                      background: v ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.02)',
-                      border: `1px solid ${v ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.04)'}`,
-                    }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 6, background: v ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.02)', border: `1px solid ${v ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.04)'}` }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: v ? '#000' : '#a1a1aa' }}>
                         {v ? '允许' : '禁止'}
                       </span>
@@ -254,7 +303,7 @@ export default function ProfilePage() {
                 },
               ]}
               dataSource={permissionRows}
-              rowKey="key"
+              rowKey="field"
               pagination={false}
               size="small"
             />

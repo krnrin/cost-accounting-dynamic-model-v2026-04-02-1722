@@ -3,6 +3,7 @@
  */
 import { db, type ScenarioType } from './db';
 import type { ProjectConfig } from '@/types/project';
+import { applyE281ScenarioFallback, getScenarioOnetimeCostFallback } from '@/utils/e281Fallback';
 
 /** 生成下一个场景编号 (SCN-001, SCN-002, ...) */
 export async function generateNextScenarioCode(projectId: string): Promise<string> {
@@ -30,8 +31,9 @@ export async function forkScenario(
   parentScenarioId: string,
   options: ForkOptions,
 ): Promise<string> {
-  const parent = await db.scenarios.get(parentScenarioId);
-  if (!parent) throw new Error('父场景不存在');
+  const parentRecord = await db.scenarios.get(parentScenarioId);
+  if (!parentRecord) throw new Error('父场景不存在');
+  const parent = applyE281ScenarioFallback(parentRecord);
 
   const scenarioCode = await generateNextScenarioCode(parent.projectId!);
   const now = new Date().toISOString();
@@ -53,6 +55,9 @@ export async function forkScenario(
     lifecycleYears: options.overrides?.lifecycleYears ?? parent.lifecycleYears,
     config: mergedConfig,
     note: '',
+    relations: parent.relations ? structuredClone(parent.relations) : undefined,
+    vehicleConfigs: parent.vehicleConfigs ? structuredClone(parent.vehicleConfigs) : undefined,
+    vehicleConfigMeta: parent.vehicleConfigMeta ? structuredClone(parent.vehicleConfigMeta) : undefined,
     createdAt: now,
     updatedAt: now,
   });
@@ -70,8 +75,11 @@ export async function forkScenario(
   }
 
   // 3. 深拷贝 onetimeCosts
-  const parentCosts = await db.onetimeCosts
+  const storedParentCosts = await db.onetimeCosts
     .where('scenarioId').equals(parentScenarioId).toArray();
+  const parentCosts = storedParentCosts.length > 0
+    ? storedParentCosts
+    : getScenarioOnetimeCostFallback(parent);
   for (const c of parentCosts) {
     await db.onetimeCosts.add({
       ...structuredClone(c),

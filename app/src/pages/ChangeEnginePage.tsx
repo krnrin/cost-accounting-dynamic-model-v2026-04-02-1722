@@ -16,9 +16,18 @@ import { IconPlus, IconDelete, IconRefresh } from '@douyinfe/semi-icons';
 import ReactECharts from 'echarts-for-react/lib/core';
 import echarts from '@/lib/echarts';
 
-import { useVersionStore } from '@/store/versionStore';
-import type { VersionRecord, VersionStatus } from '@/types/version';
-import { VERSION_STATUS_LABELS } from '@/types/version';
+import { apiClient } from '@/lib/apiClient';
+import { buildChangeComparisonTable, computeChangePricing } from '@/engine/change_pricing';
+import { computeVersionDiff } from '@/engine/version_diff';
+import {
+  buildVersionSnapshot,
+  computeProjectResultFromSnapshot,
+  type HarnessVersionSource,
+  type ProjectVersionSource,
+} from '@/lib/versionSnapshot';
+import type { ChangePricingResult } from '@/types/quote';
+import type { VersionDiff, VersionRecord, VersionStatus } from '@/types/version';
+import { VERSION_STATUS_LABELS, validateTransition } from '@/types/version';
 import type { BomItem, WireItem } from '@/types/harness';
 import ScenarioSelector from '@/components/ScenarioSelector';
 
@@ -29,6 +38,7 @@ const STATUS_COLORS: Record<VersionStatus, any> = {
   bom_ready: 'blue',
   reviewed: 'orange',
   locked: 'green',
+  published: 'green',
   archived: 'purple',
 };
 
@@ -37,69 +47,317 @@ const NEXT_STATUS: Record<VersionStatus, VersionStatus | null> = {
   bom_ready: 'reviewed',
   reviewed: 'locked',
   locked: null,
+  published: null,
   archived: null,
 };
 
-export default function ChangeEnginePage() {
-  const { id: projectId, sid: _sid } = useParams<{ id: string; sid: string }>();
-  const {
-    versions, loading,
-    baseVersionId, compareVersionId,
-    changePricingResult, versionDiffResult, comparisonTable,
-    loadVersions, createSnapshot, deleteVersion, updateStatus,
-    setCompareVersions, runComparison, clear,
-  } = useVersionStore();
+type PersistedChangeType = 'add' | 'replace' | 'cancel' | 'adjust';
 
+interface ChangeBomDiffRow {
+  harnessId: string;
+  harnessName: string;
+  partNo: string;
+  partName: string;
+  changeType: 'added' | 'removed' | 'qty_changed' | 'price_changed' | 'assembly_replace';
+  beforeQty: number;
+  afterQty: number;
+  beforePrice: number;
+  afterPrice: number;
+  deltaAmount: number;
+  replacedAssembly?: string;
+}
+
+interface ChangeEventRecord {
+  id: string;
+  projectId: string;
+  scenarioId: string;
+  changeType: PersistedChangeType;
+  reason?: string;
+  affectedHarnessIds: string[];
+  affectedBomRows: ChangeBomDiffRow[];
+  costImpact: number;
+  quoteImpact: number;
+  residualImpact: number;
+  baselineVersionId?: string;
+  compareVersionId?: string;
+  status: string;
+  createdBy?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+const CHANGE_EVENT_LABELS: Record<PersistedChangeType, string> = {
+  add: '新增',
+  replace: '替换',
+  cancel: '取消',
+  adjust: '调整',
+};
+
+const CHANGE_EVENT_COLORS: Record<PersistedChangeType, any> = {
+  add: 'green',
+  replace: 'purple',
+  cancel: 'red',
+  adjust: 'orange',
+};
+
+function uniqueStrings(values: string[]) {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function resolvePersistedChangeType(rows: ChangeBomDiffRow[]): PersistedChangeType {
+  const kinds = new Set(rows.map((row) => row.changeType));
+  if (kinds.size === 0) return 'adjust';
+  if (kinds.size === 1) {
+    if (kinds.has('added')) return 'add';
+    if (kinds.has('removed')) return 'cancel';
+    if (kinds.has('assembly_replace')) return 'replace';
+    return 'adjust';
+  }
+  if (kinds.has('assembly_replace') || (kinds.has('added') && kinds.has('removed'))) {
+    return 'replace';
+  }
+  return 'adjust';
+}
+
+function buildChangeReason(
+  baseVersion: VersionRecord,
+  compareVersion: VersionRecord,
+  rows: ChangeBomDiffRow[],
+  summary?: ChangePricingResult['summary'] | null,
+) {
+  const addedCount = rows.filter((row) => row.changeType === 'added').length;
+  const removedCount = rows.filter((row) => row.changeType === 'removed').length;
+  const adjustedCount = rows.filter((row) => !['added', 'removed'].includes(row.changeType)).length;
+  const impactText = summary ? `；单车影响 ${summary.totalDelta >= 0 ? '+' : ''}${summary.totalDelta.toFixed(2)}` : '';
+  return `${baseVersion.label} -> ${compareVersion.label}；新增 ${addedCount} 项 / 删除 ${removedCount} 项 / 调整 ${adjustedCount} 项${impactText}`;
+}
+
+export default function ChangeEnginePage() {
+  const { id: projectId, sid } = useParams<{ id: string; sid: string }>();
+  const [versions, setVersions] = useState<VersionRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [baseVersionId, setBaseVersionId] = useState<string | null>(null);
+  const [compareVersionId, setCompareVersionId] = useState<string | null>(null);
+  const [changePricingResult, setChangePricingResult] = useState<ChangePricingResult | null>(null);
+  const [versionDiffResult, setVersionDiffResult] = useState<VersionDiff | null>(null);
+  const [comparisonTable, setComparisonTable] = useState<ReturnType<typeof buildChangeComparisonTable> | null>(null);
+  const [projectSource, setProjectSource] = useState<ProjectVersionSource | null>(null);
+  const [harnessSource, setHarnessSource] = useState<HarnessVersionSource[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newNotes, setNewNotes] = useState('');
   const [creating, setCreating] = useState(false);
+  const [changeEvents, setChangeEvents] = useState<ChangeEventRecord[]>([]);
+  const [changeEventsLoading, setChangeEventsLoading] = useState(false);
+  const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
+  const [creatingChangeEvent, setCreatingChangeEvent] = useState(false);
+
+  const clearComparison = useCallback(() => {
+    setChangePricingResult(null);
+    setVersionDiffResult(null);
+    setComparisonTable(null);
+  }, []);
+
+  const clearPageState = useCallback(() => {
+    setVersions([]);
+    setProjectSource(null);
+    setHarnessSource([]);
+    setBaseVersionId(null);
+    setCompareVersionId(null);
+    clearComparison();
+  }, [clearComparison]);
+
+  const setCompareVersions = useCallback((baseId: string | null, compareId: string | null) => {
+    setBaseVersionId(baseId);
+    setCompareVersionId(compareId);
+    clearComparison();
+  }, [clearComparison]);
+
+  const loadVersions = useCallback(async () => {
+    if (!projectId) {
+      clearPageState();
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const [versionRows, projectRow, harnessRows] = await Promise.all([
+        apiClient<VersionRecord[]>(`/versions/project/${projectId}`),
+        apiClient<ProjectVersionSource>(`/projects/${projectId}`),
+        apiClient<HarnessVersionSource[]>(`/projects/${projectId}/harnesses`),
+      ]);
+
+      const nextVersions = Array.isArray(versionRows)
+        ? [...versionRows].sort((left, right) => right.versionNumber - left.versionNumber)
+        : [];
+
+      setVersions(nextVersions);
+      setProjectSource(projectRow ?? null);
+      setHarnessSource(Array.isArray(harnessRows) ? harnessRows : []);
+      setBaseVersionId((current) => {
+        if (current && nextVersions.some((item) => item.id === current)) return current;
+        return nextVersions.length >= 2 ? nextVersions[1]!.id : null;
+      });
+      setCompareVersionId((current) => {
+        if (current && nextVersions.some((item) => item.id === current)) return current;
+        return nextVersions.length >= 2 ? nextVersions[0]!.id : null;
+      });
+    } catch (err) {
+      console.error('Failed to load change engine data:', err);
+      Toast.error(err instanceof Error ? err.message : '版本数据加载失败');
+      clearPageState();
+    } finally {
+      setLoading(false);
+    }
+  }, [clearPageState, projectId]);
+
+  const loadChangeEvents = useCallback(async () => {
+    if (!projectId || !sid) {
+      setChangeEvents([]);
+      setSelectedChangeId(null);
+      return;
+    }
+
+    setChangeEventsLoading(true);
+    try {
+      const rows = await apiClient<ChangeEventRecord[]>(`/projects/${projectId}/scenarios/${sid}/changes`);
+      const nextRows = Array.isArray(rows) ? rows : [];
+      setChangeEvents(nextRows);
+      setSelectedChangeId((current) => (current && nextRows.some((item) => item.id === current) ? current : nextRows[0]?.id ?? null));
+    } catch (err) {
+      console.error('Failed to load change events:', err);
+      setChangeEvents([]);
+      setSelectedChangeId(null);
+    } finally {
+      setChangeEventsLoading(false);
+    }
+  }, [projectId, sid]);
+
+  const createSnapshot = useCallback(async (label?: string, notes?: string) => {
+    if (!projectId) {
+      throw new Error('项目不存在');
+    }
+    if (!projectSource) {
+      throw new Error('项目快照源尚未加载完成');
+    }
+
+    const nextVersionNumber = versions.reduce((max, item) => Math.max(max, item.versionNumber), 0) + 1;
+    const snapshot = buildVersionSnapshot(projectSource, harnessSource);
+    const payload = {
+      projectId,
+      versionNumber: nextVersionNumber,
+      label: (label || `v${nextVersionNumber}`).trim(),
+      status: 'draft' as VersionStatus,
+      notes: notes?.trim() || undefined,
+      snapshot,
+    };
+
+    return apiClient<VersionRecord>('/versions', {
+      method: 'POST',
+      body: payload,
+    });
+  }, [harnessSource, projectId, projectSource, versions]);
+
+  const deleteVersion = useCallback(async (versionId: string) => {
+    await apiClient(`/versions/${versionId}`, {
+      method: 'DELETE',
+    });
+  }, []);
+
+  const updateStatus = useCallback(async (versionId: string, newStatus: VersionStatus) => {
+    await apiClient<VersionRecord>(`/versions/${versionId}/status`, {
+      method: 'PATCH',
+      body: { status: newStatus },
+    });
+  }, []);
+
+  const runComparison = useCallback(async () => {
+    if (!baseVersionId || !compareVersionId) {
+      return;
+    }
+
+    const baseVersion = versions.find((item) => item.id === baseVersionId);
+    const compareVersion = versions.find((item) => item.id === compareVersionId);
+    if (!baseVersion || !compareVersion) {
+      throw new Error('待对比版本不存在');
+    }
+
+    const baseProject = computeProjectResultFromSnapshot(baseVersion.snapshot);
+    const compareProject = computeProjectResultFromSnapshot(compareVersion.snapshot);
+    const changePricing = computeChangePricing(baseProject, compareProject, 'version_compare');
+    const versionDiff = computeVersionDiff(baseVersion.snapshot, compareVersion.snapshot);
+    versionDiff.beforeVersion = `v${baseVersion.versionNumber} (${baseVersion.label})`;
+    versionDiff.afterVersion = `v${compareVersion.versionNumber} (${compareVersion.label})`;
+
+    setChangePricingResult(changePricing);
+    setVersionDiffResult(versionDiff);
+    setComparisonTable(buildChangeComparisonTable(changePricing));
+  }, [baseVersionId, compareVersionId, versions]);
 
   useEffect(() => {
-    if (projectId) {
-      loadVersions(projectId);
-    }
-    return () => { clear(); };
-  }, [projectId, loadVersions, clear]);
+    void loadVersions();
+    void loadChangeEvents();
+    return () => {
+      clearPageState();
+      setChangeEvents([]);
+      setSelectedChangeId(null);
+    };
+  }, [clearPageState, loadChangeEvents, loadVersions]);
 
   // ── 创建快照 ──
   const handleCreate = useCallback(async () => {
     if (!projectId) return;
     setCreating(true);
     try {
-      const v = await createSnapshot(projectId, newLabel || undefined, newNotes || undefined);
+      const label = newLabel.trim();
+      const notes = newNotes.trim();
+      const v = await createSnapshot(label || undefined, notes || undefined);
       Toast.success(`版本 ${v.label} 创建成功`);
       setShowCreateModal(false);
       setNewLabel('');
       setNewNotes('');
+      await loadVersions();
     } catch (err) {
       Toast.error('创建失败: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setCreating(false);
     }
-  }, [projectId, newLabel, newNotes, createSnapshot]);
+  }, [createSnapshot, loadVersions, newLabel, newNotes, projectId]);
 
   // ── 删除版本 ──
   const handleDelete = useCallback(async (versionId: string) => {
     try {
       await deleteVersion(versionId);
       Toast.success('版本已删除');
+      if (baseVersionId === versionId || compareVersionId === versionId) {
+        setCompareVersions(
+          baseVersionId === versionId ? null : baseVersionId,
+          compareVersionId === versionId ? null : compareVersionId,
+        );
+      }
+      await loadVersions();
     } catch (err) {
       Toast.error(String(err instanceof Error ? err.message : err));
     }
-  }, [deleteVersion]);
+  }, [baseVersionId, compareVersionId, deleteVersion, loadVersions, setCompareVersions]);
 
   // ── 状态流转 ──
   const handleAdvanceStatus = useCallback(async (v: VersionRecord) => {
     const next = NEXT_STATUS[v.status];
     if (!next) return;
+    const validation = validateTransition(v.status, next);
+    if (!validation.valid) {
+      Toast.error(validation.reason || '非法状态流转');
+      return;
+    }
     try {
       await updateStatus(v.id, next);
       Toast.success(`状态已更新为「${VERSION_STATUS_LABELS[next]}」`);
+      await loadVersions();
     } catch (err) {
       Toast.error(String(err instanceof Error ? err.message : err));
     }
-  }, [updateStatus]);
+  }, [loadVersions, updateStatus]);
 
   // ── 执行对比 ──
   const handleCompare = useCallback(async () => {
@@ -111,7 +369,11 @@ export default function ChangeEnginePage() {
       Toast.warning('基准版本和变更版本不能相同');
       return;
     }
-    await runComparison();
+    try {
+      await runComparison();
+    } catch (err) {
+      Toast.error(err instanceof Error ? err.message : '版本对比失败');
+    }
   }, [baseVersionId, compareVersionId, runComparison]);
 
   // ── 变更影响瀑布图 ──
@@ -336,6 +598,64 @@ export default function ChangeEnginePage() {
   }, [bomDiffRows]);
 
   const bomDiffTotalImpact = useMemo(() => bomDiffRows.reduce((s, r) => s + r.deltaAmount, 0), [bomDiffRows]);
+  const selectedChangeEvent = useMemo(
+    () => changeEvents.find((item) => item.id === selectedChangeId) ?? changeEvents[0] ?? null,
+    [changeEvents, selectedChangeId],
+  );
+  const recentChangeEvents = useMemo(() => changeEvents.slice(0, 5), [changeEvents]);
+
+  const handleCreateChangeEvent = useCallback(async () => {
+    if (!projectId || !sid) {
+      Toast.warning('当前页面未绑定场景，无法写入设变台账');
+      return;
+    }
+    if (!baseVersionId || !compareVersionId) {
+      Toast.warning('请先完成版本对比，再写入设变事件');
+      return;
+    }
+    if (!changePricingResult) {
+      Toast.warning('请先执行版本对比，再写入设变事件');
+      return;
+    }
+    if (bomDiffRows.length === 0) {
+      Toast.warning('当前版本对比没有检测到 BOM 差异');
+      return;
+    }
+
+    const baseVersion = versions.find((item) => item.id === baseVersionId);
+    const compareVersion = versions.find((item) => item.id === compareVersionId);
+    if (!baseVersion || !compareVersion) {
+      Toast.warning('版本快照不存在，无法写入设变事件');
+      return;
+    }
+
+    setCreatingChangeEvent(true);
+    try {
+      const created = await apiClient<ChangeEventRecord>(`/projects/${projectId}/scenarios/${sid}/changes`, {
+        method: 'POST',
+        body: {
+          projectId,
+          changeType: resolvePersistedChangeType(bomDiffRows),
+          reason: buildChangeReason(baseVersion, compareVersion, bomDiffRows, changePricingResult?.summary),
+          affectedHarnessIds: uniqueStrings(bomDiffRows.map((row) => row.harnessId)),
+          affectedBomRows: bomDiffRows,
+          baselineVersionId: baseVersionId,
+          compareVersionId,
+          status: 'draft',
+        },
+      });
+      const calculated = await apiClient<ChangeEventRecord>(`/changes/${created.id}/calculate-impact`, {
+        method: 'POST',
+      });
+      setSelectedChangeId(calculated.id);
+      await loadChangeEvents();
+      Toast.success('设变事件已写入，并完成影响测算');
+    } catch (err) {
+      Toast.error(err instanceof Error ? err.message : '设变事件写入失败');
+    } finally {
+      setCreatingChangeEvent(false);
+    }
+  }, [baseVersionId, bomDiffRows, changePricingResult, changePricingResult?.summary, compareVersionId, loadChangeEvents, projectId, sid, versions]);
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><Spin size="large" /></div>;
@@ -356,6 +676,7 @@ export default function ChangeEnginePage() {
                 版本管理
               </Title>
               <Button
+                aria-label="create-snapshot"
                 icon={<IconPlus />}
                 theme="solid"
                 style={{ borderRadius: 12, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}
@@ -482,6 +803,7 @@ export default function ChangeEnginePage() {
               </Col>
               <Col span={6}>
                 <Button
+                  aria-label="run-version-compare"
                   icon={<IconRefresh />}
                   theme="solid"
                   style={{ borderRadius: 12, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)', marginTop: 20 }}
@@ -740,6 +1062,162 @@ export default function ChangeEnginePage() {
         )}
 
         {/* ──── 项目级维度对比 ──── */}
+        <Col span={24}>
+          <div className="glass-card" style={{ padding: 24 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12 }}>
+              <div>
+                <Title heading={5} className="ink-heading" style={{ margin: 0 }}>
+                  设变台账
+                </Title>
+                <Text type="tertiary">
+                  将当前版本对比结果写入正式 ChangeEvent，并回显成本、报价与残余材料影响。
+                </Text>
+              </div>
+              <Button
+                aria-label="create-change-event"
+                theme="solid"
+                loading={creatingChangeEvent}
+                disabled={!baseVersionId || !compareVersionId || !changePricingResult || bomDiffRows.length === 0}
+                style={{ borderRadius: 12, background: 'linear-gradient(135deg, #2563eb, #1d4ed8)' }}
+                onClick={handleCreateChangeEvent}
+              >
+                写入设变事件
+              </Button>
+            </div>
+
+            {selectedChangeEvent ? (
+              <>
+                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                  <Col span={6}>
+                    <div style={{ padding: 16, borderRadius: 12, background: 'rgba(37,99,235,0.06)' }}>
+                      <Text style={{ fontSize: 12, color: '#71717a' }}>当前状态</Text>
+                      <div style={{ marginTop: 8 }}>
+                        <Tag color={selectedChangeEvent.status === 'calculated' ? 'green' : 'orange'}>
+                          {selectedChangeEvent.status}
+                        </Tag>
+                      </div>
+                    </div>
+                  </Col>
+                  <Col span={6}>
+                    <div style={{ padding: 16, borderRadius: 12, background: 'rgba(0,0,0,0.02)' }}>
+                      <Text style={{ fontSize: 12, color: '#71717a' }}>成本影响</Text>
+                      <div className="ledger-number" style={{ marginTop: 8, fontSize: 24, color: selectedChangeEvent.costImpact >= 0 ? '#dc2626' : '#16a34a' }}>
+                        {selectedChangeEvent.costImpact >= 0 ? '+' : ''}{selectedChangeEvent.costImpact.toFixed(2)}
+                      </div>
+                    </div>
+                  </Col>
+                  <Col span={6}>
+                    <div style={{ padding: 16, borderRadius: 12, background: 'rgba(0,0,0,0.02)' }}>
+                      <Text style={{ fontSize: 12, color: '#71717a' }}>报价影响</Text>
+                      <div className="ledger-number" style={{ marginTop: 8, fontSize: 24, color: selectedChangeEvent.quoteImpact >= 0 ? '#dc2626' : '#16a34a' }}>
+                        {selectedChangeEvent.quoteImpact >= 0 ? '+' : ''}{selectedChangeEvent.quoteImpact.toFixed(2)}
+                      </div>
+                    </div>
+                  </Col>
+                  <Col span={6}>
+                    <div style={{ padding: 16, borderRadius: 12, background: 'rgba(0,0,0,0.02)' }}>
+                      <Text style={{ fontSize: 12, color: '#71717a' }}>残余材料影响</Text>
+                      <div className="ledger-number" style={{ marginTop: 8, fontSize: 24, color: selectedChangeEvent.residualImpact > 0 ? '#dc2626' : '#71717a' }}>
+                        {selectedChangeEvent.residualImpact >= 0 ? '+' : ''}{selectedChangeEvent.residualImpact.toFixed(2)}
+                      </div>
+                    </div>
+                  </Col>
+                </Row>
+
+                <div style={{ marginBottom: 16, padding: 16, borderRadius: 12, background: 'rgba(0,0,0,0.02)' }}>
+                  <Text style={{ fontSize: 12, color: '#71717a' }}>事件摘要</Text>
+                  <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    <Tag color={CHANGE_EVENT_COLORS[selectedChangeEvent.changeType]}>{CHANGE_EVENT_LABELS[selectedChangeEvent.changeType]}</Tag>
+                    <Tag>{selectedChangeEvent.affectedHarnessIds.length} 条线束</Tag>
+                    <Tag>{selectedChangeEvent.affectedBomRows.length} 条 BOM 变更</Tag>
+                    <Tag>创建于 {new Date(selectedChangeEvent.createdAt).toLocaleString('zh-CN')}</Tag>
+                  </div>
+                  <Text style={{ display: 'block', marginTop: 12 }}>
+                    {selectedChangeEvent.reason || '未填写设变原因'}
+                  </Text>
+                </div>
+              </>
+            ) : (
+              <Empty
+                description={
+                  changeEventsLoading
+                    ? '设变台账加载中...'
+                    : '当前场景还没有正式设变事件，先完成版本对比后再写入。'
+                }
+              />
+            )}
+
+            {recentChangeEvents.length > 0 && (
+              <Table
+                pagination={false}
+                size="small"
+                dataSource={recentChangeEvents.map((item) => ({ ...item, key: item.id }))}
+                onRow={(record) => {
+                  if (!record) return {};
+                  return {
+                    onClick: () => setSelectedChangeId(record.id),
+                    style: {
+                      cursor: 'pointer',
+                      background: record.id === selectedChangeEvent?.id ? 'rgba(37,99,235,0.06)' : undefined,
+                    },
+                  };
+                }}
+                columns={[
+                  {
+                    title: '创建时间',
+                    dataIndex: 'createdAt',
+                    width: 180,
+                    render: (value: string) => new Date(value).toLocaleString('zh-CN'),
+                  },
+                  {
+                    title: '类型',
+                    dataIndex: 'changeType',
+                    width: 100,
+                    render: (value: PersistedChangeType) => (
+                      <Tag color={CHANGE_EVENT_COLORS[value]} size="small">
+                        {CHANGE_EVENT_LABELS[value]}
+                      </Tag>
+                    ),
+                  },
+                  {
+                    title: '状态',
+                    dataIndex: 'status',
+                    width: 100,
+                    render: (value: string) => <Tag color={value === 'calculated' ? 'green' : 'orange'}>{value}</Tag>,
+                  },
+                  {
+                    title: '成本影响',
+                    dataIndex: 'costImpact',
+                    width: 120,
+                    align: 'right' as const,
+                    render: (value: number) => (
+                      <span className="ledger-number" style={{ color: value >= 0 ? '#dc2626' : '#16a34a' }}>
+                        {value >= 0 ? '+' : ''}{(value || 0).toFixed(2)}
+                      </span>
+                    ),
+                  },
+                  {
+                    title: '残余材料',
+                    dataIndex: 'residualImpact',
+                    width: 120,
+                    align: 'right' as const,
+                    render: (value: number) => (
+                      <span className="ledger-number" style={{ color: value > 0 ? '#dc2626' : '#71717a' }}>
+                        {value >= 0 ? '+' : ''}{(value || 0).toFixed(2)}
+                      </span>
+                    ),
+                  },
+                  {
+                    title: '摘要',
+                    dataIndex: 'reason',
+                    render: (value: string) => <Text ellipsis={{ showTooltip: true }}>{value || '-'}</Text>,
+                  },
+                ]}
+              />
+            )}
+          </div>
+        </Col>
+
         {versionDiffResult && (
           <Col span={24}>
             <div className="glass-card" style={{ padding: 24 }}>

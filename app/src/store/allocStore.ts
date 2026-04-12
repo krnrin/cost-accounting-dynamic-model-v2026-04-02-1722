@@ -1,205 +1,337 @@
-/**
- * 一次性费用分摊 Zustand Store
- * 管理一次性费用录入、分摊计算、回收跟踪
- */
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { db } from '@/data/db';
-import type { OnetimeCostRecord, AllocTrackerRecord } from '@/data/db';
+import type { OnetimeCostRecord } from '@/data/db';
+import { getScenarioOnetimeCostFallback } from '@/utils/e281Fallback';
 import {
   computeProjectAlloc,
   computeProjectRecovery,
   type OnetimeCostInput,
+  type PaymentMode,
   type ProjectAllocSummary,
   type ProjectRecoverySummary,
 } from '@/engine/onetime_alloc';
+import {
+  bulkSyncScenarioAllocations,
+  fetchScenarioAllocations,
+  type ScenarioAllocationItem,
+  type ScenarioAllocationSyncRow,
+} from '@/lib/allocationApi';
+
+export interface ScenarioAllocRow extends ScenarioAllocationSyncRow {}
 
 interface AllocState {
-  /** 当前场景的一次性费用记录 */
   costRecords: OnetimeCostRecord[];
-  /** 当前场景的分摊计算汇总 */
+  scenarioRows: ScenarioAllocRow[];
   allocSummary: ProjectAllocSummary | null;
-  /** 当前场景的回收进度汇总 */
   recoverySummary: ProjectRecoverySummary | null;
-  /** 加载中标志 */
   loading: boolean;
 
-  // ─── Actions ───
-  /** @deprecated 使用 loadScenarioAlloc 替代 */
   loadProjectAlloc: (projectId: string) => Promise<void>;
-  /** 加载场景的一次性费用数据 */
   loadScenarioAlloc: (scenarioId: string) => Promise<void>;
-  /** 保存/更新单条线束的一次性费用 */
+  syncScenarioAllocRows: (projectId: string, rows: ScenarioAllocRow[], scenarioId: string) => Promise<void>;
   saveOnetimeCost: (projectId: string, input: OnetimeCostInput, scenarioId?: string) => Promise<void>;
-  /** 批量保存一次性费用 */
   batchSaveOnetimeCosts: (projectId: string, inputs: OnetimeCostInput[], scenarioId?: string) => Promise<void>;
-  /** 删除单条线束的一次性费用 */
   deleteOnetimeCost: (projectId: string, harnessId: string, scenarioId?: string) => Promise<void>;
-  /** 更新回收跟踪（已生产数量） */
   updateCumProduced: (projectId: string, harnessId: string, cumProduced: number, scenarioId?: string) => Promise<void>;
-  /** 重新计算分摊汇总 */
   recompute: (annualCapacity: number) => void;
-  /** 清空状态 */
   clear: () => void;
+}
+
+function normalizePaymentMode(value?: string | null): PaymentMode {
+  if (value === 'lumpsum' || value === 'mixed') {
+    return value;
+  }
+  return 'amortized';
+}
+
+function createEmptySummary() {
+  return {
+    costRecords: [],
+    scenarioRows: [],
+    allocSummary: null,
+    recoverySummary: null,
+  };
+}
+
+function buildFallbackRows(_scenarioId: string, scenario: any): ScenarioAllocRow[] {
+  return getScenarioOnetimeCostFallback(scenario).map((record) => ({
+    harnessId: record.harnessId,
+    harnessName: record.harnessName,
+    vehicleRatio: record.vehicleRatio,
+    toolingCost: record.input.toolingCost,
+    testingCost: record.input.testingCost,
+    rndCost: record.input.rndCost,
+    allocBase: record.input.allocBase,
+    paymentMode: record.input.paymentMode ?? 'amortized',
+    cumProduced: 0,
+  }));
+}
+
+function aggregateScenarioRows(items: ScenarioAllocationItem[]): ScenarioAllocRow[] {
+  const rowMap = new Map<string, ScenarioAllocRow>();
+
+  for (const item of items) {
+    const current = rowMap.get(item.harnessId) ?? {
+      harnessId: item.harnessId,
+      harnessName: item.harnessId,
+      vehicleRatio: Number(item.latestInstallRatioSnapshot || 1) || 1,
+      toolingCost: 0,
+      testingCost: 0,
+      rndCost: 0,
+      allocBase: Math.max(1, Number(item.baselineVolume || 50000)),
+      paymentMode: normalizePaymentMode(item.allocationBasis),
+      cumProduced: Math.max(0, Number(item.latestCumulativeVolume || 0)),
+    };
+
+    current.allocBase = Math.max(current.allocBase, Number(item.baselineVolume || current.allocBase));
+    current.paymentMode = normalizePaymentMode(item.allocationBasis) || current.paymentMode;
+    current.vehicleRatio = Number(item.latestInstallRatioSnapshot || current.vehicleRatio || 1) || 1;
+    current.cumProduced = Math.max(current.cumProduced, Number(item.latestCumulativeVolume || 0));
+
+    if (item.expenseType === 'tooling') {
+      current.toolingCost += Number(item.totalAmount || 0);
+    } else if (item.expenseType === 'testing') {
+      current.testingCost += Number(item.totalAmount || 0);
+    } else if (item.expenseType === 'rnd') {
+      current.rndCost += Number(item.totalAmount || 0);
+    }
+
+    rowMap.set(item.harnessId, current);
+  }
+
+  return Array.from(rowMap.values()).sort((a, b) => a.harnessId.localeCompare(b.harnessId));
+}
+
+function toOnetimeCostInputs(rows: ScenarioAllocRow[]): OnetimeCostInput[] {
+  return rows.map((row) => ({
+    harnessId: row.harnessId,
+    harnessName: row.harnessName,
+    vehicleRatio: row.vehicleRatio,
+    toolingCost: Number(row.toolingCost || 0),
+    testingCost: Number(row.testingCost || 0),
+    rndCost: Number(row.rndCost || 0),
+    allocBase: Math.max(1, Number(row.allocBase || 1)),
+    paymentMode: row.paymentMode,
+  }));
+}
+
+function toCostRecords(projectId: string, scenarioId: string, rows: ScenarioAllocRow[]): OnetimeCostRecord[] {
+  const now = new Date().toISOString();
+  return rows.map((row) => ({
+    id: `${scenarioId || projectId}::${row.harnessId}`,
+    projectId,
+    scenarioId,
+    harnessId: row.harnessId,
+    harnessName: row.harnessName,
+    vehicleRatio: row.vehicleRatio,
+    input: {
+      harnessId: row.harnessId,
+      harnessName: row.harnessName,
+      vehicleRatio: row.vehicleRatio,
+      toolingCost: row.toolingCost,
+      testingCost: row.testingCost,
+      rndCost: row.rndCost,
+      allocBase: row.allocBase,
+      paymentMode: row.paymentMode,
+    },
+    updatedAt: now,
+  }));
+}
+
+async function buildStateFromRows(projectId: string, scenarioId: string, rows: ScenarioAllocRow[]) {
+  const inputs = toOnetimeCostInputs(rows);
+  const allocSummary = inputs.length > 0 ? computeProjectAlloc(inputs) : null;
+  const scenario = scenarioId ? await db.scenarios.get(scenarioId) : null;
+  const project = projectId ? await db.projects.get(projectId) : null;
+  const annualCapacity = (scenario?.config as any)?.annualCapacity
+    || (scenario?.config as any)?.volumes?.[0]?.volume
+    || (project?.config as any)?.volumes?.[0]?.volume
+    || 100000;
+  const lifecycleYears = scenario?.lifecycleYears || project?.meta?.lifecycleYears || undefined;
+  const cumProducedMap = Object.fromEntries(rows.map((row) => [row.harnessId, Math.max(0, Number(row.cumProduced || 0))]));
+  const recoverySummary = allocSummary
+    ? computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity, lifecycleYears)
+    : null;
+
+  return {
+    costRecords: toCostRecords(projectId, scenarioId, rows),
+    scenarioRows: rows,
+    allocSummary,
+    recoverySummary,
+  };
+}
+
+async function buildLocalFallbackState(projectId: string, scenarioId: string) {
+  const scenario = await db.scenarios.get(scenarioId);
+  const rows = buildFallbackRows(scenarioId, scenario);
+  return buildStateFromRows(projectId, scenarioId, rows);
 }
 
 export const useAllocStore = create<AllocState>()(
   devtools(
     (set, get) => ({
-      costRecords: [],
-      allocSummary: null,
-      recoverySummary: null,
+      ...createEmptySummary(),
       loading: false,
 
       loadProjectAlloc: async (projectId: string) => {
-        // 兼容旧调用：尝试找到该项目的基准场景，委托给 loadScenarioAlloc
-        const scenarios = await db.scenarios
-          .where('projectId').equals(projectId).toArray();
-        const baseline = scenarios.find(s => s.isBaseline) || scenarios[0];
+        const scenarios = await db.scenarios.where('projectId').equals(projectId).toArray();
+        const baseline = scenarios.find((scenario) => scenario.isBaseline) || scenarios[0];
         if (baseline) {
           await get().loadScenarioAlloc(baseline.id);
-        } else {
-          // 降级：直接按 projectId 查（迁移前数据）
-          set({ loading: true });
-          try {
-            const costRecords = await db.onetimeCosts
-              .where('projectId').equals(projectId).toArray();
-            const inputs = costRecords.map(r => r.input);
-            const allocSummary = inputs.length > 0 ? computeProjectAlloc(inputs) : null;
-            const trackerRecords = await db.allocTrackers
-              .where('projectId').equals(projectId).toArray();
-            const cumProducedMap: Record<string, number> = {};
-            for (const t of trackerRecords) cumProducedMap[t.harnessId] = t.cumProduced;
-            const project = await db.projects.get(projectId);
-            const annualCapacity = (project?.meta as any)?.annualCapacity || 100000;
-            const lifecycleYears = project?.meta?.lifecycleYears || undefined;
-            let recoverySummary: ProjectRecoverySummary | null = null;
-            if (allocSummary) {
-              recoverySummary = computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity, lifecycleYears);
-            }
-            set({ costRecords, allocSummary, recoverySummary, loading: false });
-          } catch (err) {
-            console.error('Failed to load alloc data:', err);
-            set({ loading: false });
-          }
+          return;
         }
+        set({ ...createEmptySummary(), loading: false });
       },
 
       loadScenarioAlloc: async (scenarioId: string) => {
         set({ loading: true });
         try {
-          const costRecords = await db.onetimeCosts
-            .where('scenarioId').equals(scenarioId).toArray();
-          const inputs = costRecords.map(r => r.input);
-          const allocSummary = inputs.length > 0 ? computeProjectAlloc(inputs) : null;
-
-          const trackerRecords = await db.allocTrackers
-            .where('scenarioId').equals(scenarioId).toArray();
-          const cumProducedMap: Record<string, number> = {};
-          for (const t of trackerRecords) cumProducedMap[t.harnessId] = t.cumProduced;
-
+          const remoteItems = await fetchScenarioAllocations(scenarioId);
           const scenario = await db.scenarios.get(scenarioId);
-          const annualCapacity = (scenario?.config as any)?.annualCapacity || 100000;
-          const lifecycleYears = scenario?.lifecycleYears || undefined;
-
-          let recoverySummary: ProjectRecoverySummary | null = null;
-          if (allocSummary) {
-            recoverySummary = computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity, lifecycleYears);
+          const projectId = remoteItems[0]?.projectId || scenario?.projectId || '';
+          const rows = remoteItems.length > 0
+            ? aggregateScenarioRows(remoteItems)
+            : buildFallbackRows(scenarioId, scenario);
+          const nextState = await buildStateFromRows(projectId, scenarioId, rows);
+          set({ ...nextState, loading: false });
+        } catch (error) {
+          console.error('Failed to load scenario allocation from server:', error);
+          try {
+            const scenario = await db.scenarios.get(scenarioId);
+            const projectId = scenario?.projectId || '';
+            const fallbackState = await buildLocalFallbackState(projectId, scenarioId);
+            set({ ...fallbackState, loading: false });
+          } catch (fallbackError) {
+            console.error('Failed to build local allocation fallback:', fallbackError);
+            set({ ...createEmptySummary(), loading: false });
           }
-          set({ costRecords, allocSummary, recoverySummary, loading: false });
-        } catch (err) {
-          console.error('Failed to load scenario alloc data:', err);
-          set({ loading: false });
         }
       },
 
-      saveOnetimeCost: async (projectId: string, input: OnetimeCostInput, scenarioId?: string) => {
-        const now = new Date().toISOString();
-        const keyPrefix = scenarioId || projectId;
-        const record: OnetimeCostRecord = {
-          id: `${keyPrefix}::${input.harnessId}`,
+      syncScenarioAllocRows: async (projectId: string, rows: ScenarioAllocRow[], scenarioId: string) => {
+        set({ loading: true });
+        const payloadRows = rows.map((row) => ({
+          harnessId: row.harnessId,
+          harnessName: row.harnessName,
+          vehicleRatio: Number(row.vehicleRatio || 0),
+          toolingCost: Number(row.toolingCost || 0),
+          testingCost: Number(row.testingCost || 0),
+          rndCost: Number(row.rndCost || 0),
+          allocBase: Math.max(1, Number(row.allocBase || 1)),
+          paymentMode: row.paymentMode ?? 'amortized',
+          cumProduced: Math.max(0, Number(row.cumProduced || 0)),
+        }));
+
+        const remoteItems = await bulkSyncScenarioAllocations(scenarioId, {
           projectId,
-          scenarioId: scenarioId || '',
+          rows: payloadRows,
+        });
+        const nextRows = remoteItems.length > 0 ? aggregateScenarioRows(remoteItems) : payloadRows;
+        const nextState = await buildStateFromRows(projectId, scenarioId, nextRows);
+        set({ ...nextState, loading: false });
+      },
+
+      saveOnetimeCost: async (projectId: string, input: OnetimeCostInput, scenarioId?: string) => {
+        const currentRows = get().scenarioRows;
+        const rowMap = new Map(currentRows.map((row) => [row.harnessId, row]));
+        const current = rowMap.get(input.harnessId);
+        rowMap.set(input.harnessId, {
           harnessId: input.harnessId,
           harnessName: input.harnessName,
           vehicleRatio: input.vehicleRatio,
-          input,
-          updatedAt: now,
-        };
-        await db.onetimeCosts.put(record);
-        if (scenarioId) await get().loadScenarioAlloc(scenarioId);
-        else await get().loadProjectAlloc(projectId);
+          toolingCost: input.toolingCost,
+          testingCost: input.testingCost,
+          rndCost: input.rndCost,
+          allocBase: input.allocBase,
+          paymentMode: input.paymentMode ?? current?.paymentMode ?? 'amortized',
+          cumProduced: current?.cumProduced ?? 0,
+        });
+
+        if (scenarioId) {
+          await get().syncScenarioAllocRows(projectId, Array.from(rowMap.values()), scenarioId);
+          return;
+        }
+
+        const nextState = await buildStateFromRows(projectId, '', Array.from(rowMap.values()));
+        set({ ...nextState, loading: false });
       },
 
       batchSaveOnetimeCosts: async (projectId: string, inputs: OnetimeCostInput[], scenarioId?: string) => {
-        const now = new Date().toISOString();
-        const keyPrefix = scenarioId || projectId;
-        const records: OnetimeCostRecord[] = inputs.map(input => ({
-          id: `${keyPrefix}::${input.harnessId}`,
-          projectId,
-          scenarioId: scenarioId || '',
-          harnessId: input.harnessId,
-          harnessName: input.harnessName,
-          vehicleRatio: input.vehicleRatio,
-          input,
-          updatedAt: now,
-        }));
-        await db.onetimeCosts.bulkPut(records);
-        if (scenarioId) await get().loadScenarioAlloc(scenarioId);
-        else await get().loadProjectAlloc(projectId);
+        const currentRows = new Map(get().scenarioRows.map((row) => [row.harnessId, row]));
+        for (const input of inputs) {
+          const current = currentRows.get(input.harnessId);
+          currentRows.set(input.harnessId, {
+            harnessId: input.harnessId,
+            harnessName: input.harnessName,
+            vehicleRatio: input.vehicleRatio,
+            toolingCost: input.toolingCost,
+            testingCost: input.testingCost,
+            rndCost: input.rndCost,
+            allocBase: input.allocBase,
+            paymentMode: input.paymentMode ?? current?.paymentMode ?? 'amortized',
+            cumProduced: current?.cumProduced ?? 0,
+          });
+        }
+
+        const rows = Array.from(currentRows.values());
+        if (scenarioId) {
+          await get().syncScenarioAllocRows(projectId, rows, scenarioId);
+          return;
+        }
+
+        const nextState = await buildStateFromRows(projectId, '', rows);
+        set({ ...nextState, loading: false });
       },
 
       deleteOnetimeCost: async (projectId: string, harnessId: string, scenarioId?: string) => {
-        const keyPrefix = scenarioId || projectId;
-        const id = `${keyPrefix}::${harnessId}`;
-        await db.onetimeCosts.delete(id);
-        if (scenarioId) await get().loadScenarioAlloc(scenarioId);
-        else await get().loadProjectAlloc(projectId);
+        const rows = get().scenarioRows
+          .filter((row) => row.harnessId !== harnessId)
+          .map((row) => ({ ...row }));
+
+        if (scenarioId) {
+          await get().syncScenarioAllocRows(projectId, rows, scenarioId);
+          return;
+        }
+
+        const nextState = await buildStateFromRows(projectId, '', rows);
+        set({ ...nextState, loading: false });
       },
 
       updateCumProduced: async (projectId: string, harnessId: string, cumProduced: number, scenarioId?: string) => {
-        const now = new Date().toISOString();
-        const keyPrefix = scenarioId || projectId;
-        const record: AllocTrackerRecord = {
-          id: `${keyPrefix}::${harnessId}`,
-          projectId,
-          scenarioId: scenarioId || '',
-          harnessId,
-          cumProduced,
-          inheritedFromScenarioId: null,
-          updatedAt: now,
-        };
-        await db.allocTrackers.put(record);
-        if (scenarioId) await get().loadScenarioAlloc(scenarioId);
-        else await get().loadProjectAlloc(projectId);
+        const rows = get().scenarioRows.map((row) => (
+          row.harnessId === harnessId ? { ...row, cumProduced } : row
+        ));
+
+        if (scenarioId) {
+          await get().syncScenarioAllocRows(projectId, rows, scenarioId);
+          return;
+        }
+
+        const nextState = await buildStateFromRows(projectId, '', rows);
+        set({ ...nextState, loading: false });
       },
 
       recompute: (annualCapacity: number) => {
-        const { costRecords } = get();
-        const inputs = costRecords.map(r => r.input);
+        const rows = get().scenarioRows;
+        const inputs = toOnetimeCostInputs(rows);
         if (inputs.length === 0) {
           set({ allocSummary: null, recoverySummary: null });
           return;
         }
         const allocSummary = computeProjectAlloc(inputs);
-        // 同步更新回收进度
-        const recoverySummary = computeProjectRecovery(
-          allocSummary.allocations,
-          {},
-          annualCapacity
-        );
+        const cumProducedMap = Object.fromEntries(rows.map((row) => [row.harnessId, Math.max(0, Number(row.cumProduced || 0))]));
+        const recoverySummary = computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity);
         set({ allocSummary, recoverySummary });
       },
 
       clear: () => {
         set({
-          costRecords: [],
-          allocSummary: null,
-          recoverySummary: null,
+          ...createEmptySummary(),
           loading: false,
         });
       },
     }),
-    { name: 'alloc-store' }
-  )
+    { name: 'alloc-store' },
+  ),
 );

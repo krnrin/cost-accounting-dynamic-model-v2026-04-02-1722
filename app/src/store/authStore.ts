@@ -13,6 +13,13 @@ import {
   refreshUserAccessToken,
   clearFeishuTokenCache,
 } from '@/lib/feishuApi';
+import {
+  fetchProfile,
+  logoutRequest,
+  updateProfilePreferences,
+  type ProfilePreferences,
+} from '@/lib/profileApi';
+import { useSettingsStore } from '@/store/settingsStore';
 
 interface AuthUser {
   id: string;
@@ -22,17 +29,16 @@ interface AuthUser {
   avatarUrl?: string;
   feishuOpenId?: string;
   feishuUserId?: string;
+  preferences?: ProfilePreferences;
 }
 
 interface AuthState {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
-  /** Feishu-specific tokens */
   feishuAccessToken: string | null;
   feishuRefreshToken: string | null;
   feishuTokenExpiresAt: number | null;
-  /** Auth source */
   authSource: 'local' | 'feishu' | null;
 
   login: (email: string, password: string) => Promise<void>;
@@ -40,11 +46,44 @@ interface AuthState {
   feishuLogin: (code: string) => Promise<void>;
   feishuAutoLogin: () => Promise<boolean>;
   refreshFeishuToken: () => Promise<void>;
-  logout: () => void;
+  refreshProfile: () => Promise<void>;
+  savePreferences: (preferences: ProfilePreferences) => Promise<void>;
+  logout: () => Promise<void>;
   restoreToken: () => void;
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
+
+async function syncProfileIntoState(
+  set: (partial: Partial<AuthState>) => void,
+  token: string,
+  authSource: 'local' | 'feishu',
+  extra?: Partial<AuthState>
+) {
+  syncService.setToken(token);
+  set({
+    token,
+    isAuthenticated: true,
+    authSource,
+    ...extra,
+  });
+  const profile = await fetchProfile();
+  useSettingsStore.getState().setThemeMode(profile.preferences.themeMode);
+  set({
+    user: {
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      role: profile.role,
+      feishuOpenId: profile.feishuId || undefined,
+      preferences: profile.preferences,
+    },
+    token,
+    isAuthenticated: true,
+    authSource,
+    ...extra,
+  });
+}
 
 export const useAuthStore = create<AuthState>()(
   devtools(
@@ -70,15 +109,8 @@ export const useAuthStore = create<AuthState>()(
               throw new Error(err.error || 'Login failed');
             }
             const { data } = await res.json();
-            syncService.setToken(data.token);
-            set({
-              user: data.user,
-              token: data.token,
-              isAuthenticated: true,
-              authSource: 'local',
-            });
+            await syncProfileIntoState(set, data.token, 'local');
           } catch (e: any) {
-            // Dev fallback: if backend is unreachable, allow offline login
             if (import.meta.env.DEV) {
               console.warn('[DEV] Backend unreachable, using offline login');
               const devUser: AuthUser = {
@@ -110,64 +142,38 @@ export const useAuthStore = create<AuthState>()(
             throw new Error(err.error || 'Registration failed');
           }
           const { data } = await res.json();
-          syncService.setToken(data.token);
-          set({
-            user: data.user,
-            token: data.token,
-            isAuthenticated: true,
-            authSource: 'local',
-          });
+          await syncProfileIntoState(set, data.token, 'local');
         },
 
-        /**
-         * Login with Feishu auth code
-         * Flow: code → user_access_token → user_info → set auth state
-         */
         feishuLogin: async (code: string) => {
-          // Step 1: Exchange code for user_access_token
           const tokenResult = await getUserAccessToken(code);
-
-          // Step 2: Get user info
           const userInfo = await getFeishuUserInfo(tokenResult.accessToken);
 
-          // Step 3: Set auth state
-          const user: AuthUser = {
-            id: userInfo.openId,
-            email: userInfo.email || `${userInfo.userId}@feishu.user`,
-            name: userInfo.name,
-            role: 'ENGINEER', // Default role, can be adjusted later
-            avatarUrl: userInfo.avatarUrl,
-            feishuOpenId: userInfo.openId,
-            feishuUserId: userInfo.userId,
-          };
-
-          set({
-            user,
-            token: tokenResult.accessToken, // Use user_access_token as auth token
-            isAuthenticated: true,
+          await syncProfileIntoState(set, tokenResult.accessToken, 'feishu', {
             feishuAccessToken: tokenResult.accessToken,
             feishuRefreshToken: tokenResult.refreshToken,
             feishuTokenExpiresAt: Date.now() + tokenResult.expiresIn * 1000,
-            authSource: 'feishu',
+            user: {
+              id: userInfo.openId,
+              email: userInfo.email || `${userInfo.userId}@feishu.user`,
+              name: userInfo.name,
+              role: 'ENGINEER',
+              avatarUrl: userInfo.avatarUrl,
+              feishuOpenId: userInfo.openId,
+              feishuUserId: userInfo.userId,
+            },
           });
         },
 
-        /**
-         * Auto-login in Feishu client environment
-         * Returns true if auto-login succeeded
-         */
         feishuAutoLogin: async () => {
-          // Check if already authenticated
           if (get().isAuthenticated) return true;
 
-          // Check for OAuth callback code first (browser redirect flow)
           const callbackCode = extractOAuthCode();
           if (callbackCode) {
             await get().feishuLogin(callbackCode);
             return true;
           }
 
-          // If in Feishu client and configured, try in-app login
           if (isFeishuEnv() && isFeishuConfigured()) {
             try {
               const code = await requestFeishuAuthCode();
@@ -182,24 +188,42 @@ export const useAuthStore = create<AuthState>()(
           return false;
         },
 
-        /** Refresh Feishu token if expired */
         refreshFeishuToken: async () => {
           const { feishuRefreshToken: rt, feishuTokenExpiresAt } = get();
           if (!rt) throw new Error('No refresh token');
-
-          // Only refresh if expired or about to expire (5 min buffer)
           if (feishuTokenExpiresAt && Date.now() < feishuTokenExpiresAt - 300000) return;
 
           const result = await refreshUserAccessToken(rt);
-          set({
-            token: result.accessToken,
+          await syncProfileIntoState(set, result.accessToken, 'feishu', {
             feishuAccessToken: result.accessToken,
             feishuRefreshToken: result.refreshToken,
             feishuTokenExpiresAt: Date.now() + result.expiresIn * 1000,
           });
         },
 
-        logout: () => {
+        refreshProfile: async () => {
+          const { token, authSource } = get();
+          if (!token || !authSource) return;
+          await syncProfileIntoState(set, token, authSource, {
+            feishuAccessToken: get().feishuAccessToken,
+            feishuRefreshToken: get().feishuRefreshToken,
+            feishuTokenExpiresAt: get().feishuTokenExpiresAt,
+          });
+        },
+
+        savePreferences: async (preferences) => {
+          const saved = await updateProfilePreferences(preferences);
+          useSettingsStore.getState().setThemeMode(saved.themeMode);
+        },
+
+        logout: async () => {
+          try {
+            if (get().token && get().token !== 'dev-offline-token') {
+              await logoutRequest();
+            }
+          } catch {
+            // noop
+          }
           syncService.setToken(null);
           clearFeishuTokenCache();
           set({
@@ -213,7 +237,6 @@ export const useAuthStore = create<AuthState>()(
           });
         },
 
-        /** Restore token to syncService on app startup */
         restoreToken: () => {
           const { token } = get();
           if (token) {

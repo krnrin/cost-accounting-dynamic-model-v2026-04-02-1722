@@ -1,31 +1,71 @@
-import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+﻿import '@testing-library/jest-dom';
+import 'fake-indexeddb/auto';
 
-// Mock Canvas for happy-dom (needed for Semi UI / Lottie)
-if (typeof window !== 'undefined') {
-  HTMLCanvasElement.prototype.getContext = vi.fn().mockReturnValue({
-    fillRect: vi.fn(),
-    clearRect: vi.fn(),
-    getImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4) })),
-    putImageData: vi.fn(),
-    createImageData: vi.fn(() => ({ data: new Uint8ClampedArray(4) })),
-    setTransform: vi.fn(),
-    drawImage: vi.fn(),
-    save: vi.fn(),
-    restore: vi.fn(),
-    beginPath: vi.fn(),
-    moveTo: vi.fn(),
-    lineTo: vi.fn(),
-    closePath: vi.fn(),
-    stroke: vi.fn(),
-    translate: vi.fn(),
-    scale: vi.fn(),
-    rotate: vi.fn(),
-    arc: vi.fn(),
-    fill: vi.fn(),
-    measureText: vi.fn(() => ({ width: 0 })),
-    transform: vi.fn(),
-    rect: vi.fn(),
-    clip: vi.fn(),
+const canvasContextStub = {
+  fillStyle: '',
+  strokeStyle: '',
+  lineWidth: 1,
+  fillRect: () => {},
+  clearRect: () => {},
+  getImageData: () => ({ data: new Uint8ClampedArray(4) }),
+  putImageData: () => {},
+  createImageData: () => ({ data: new Uint8ClampedArray(4) }),
+  setTransform: () => {},
+  drawImage: () => {},
+  save: () => {},
+  restore: () => {},
+  beginPath: () => {},
+  moveTo: () => {},
+  lineTo: () => {},
+  closePath: () => {},
+  stroke: () => {},
+  translate: () => {},
+  scale: () => {},
+  rotate: () => {},
+  arc: () => {},
+  fill: () => {},
+  measureText: () => ({ width: 0 }),
+  transform: () => {},
+  rect: () => {},
+  clip: () => {},
+  canvas: null as HTMLCanvasElement | null,
+};
+
+if (typeof HTMLCanvasElement !== 'undefined') {
+  Object.defineProperty(HTMLCanvasElement.prototype, 'getContext', {
+    value: function getContext() {
+      canvasContextStub.canvas = this;
+      return canvasContextStub;
+    },
+  });
+}
+
+if (typeof window !== 'undefined' && !window.matchMedia) {
+  Object.defineProperty(window, 'matchMedia', {
+    writable: true,
+    value: (query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false,
+    }),
+  });
+}
+
+if (typeof URL !== 'undefined' && !URL.createObjectURL) {
+  Object.defineProperty(URL, 'createObjectURL', {
+    writable: true,
+    value: () => 'blob:mock',
+  });
+}
+
+if (typeof URL !== 'undefined' && !URL.revokeObjectURL) {
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    writable: true,
+    value: () => {},
   });
 }

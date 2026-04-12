@@ -1,25 +1,54 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Typography, Spin, Button, Card, Table, Tabs, TabPane, InputNumber, Toast, Tag, Space, Radio, RadioGroup, Select } from '@douyinfe/semi-ui';
 import { IconArrowLeft, IconDownload, IconSimilarity, IconList } from '@douyinfe/semi-icons';
 import { db } from '@/data/db';
+import { applyE281ScenarioFallback } from '@/data/e281Fallback';
 import type { HarnessRecord, ProjectRecord, ScenarioRecord } from '@/data/db';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
 import { computeChangePricing, buildChangeComparisonTable } from '@/engine/change_pricing';
 import { buildQuoteSheet } from '@/engine/quote_template';
-import { 
-  exportGeelyQuoteExcel, 
-  exportBydQuoteExcel, 
-  exportGenericQuoteExcel, 
+import {
+  exportGeelyQuoteExcel,
+  exportBydQuoteExcel,
+  exportGenericQuoteExcel,
   exportFullQuoteExcel,
   exportChangePricingExcel,
 } from '@/engine/excel_export';
+import { exportQuoteExcel, exportQuotePdf } from '@/lib/exportApi';
+import { apiClient } from '@/lib/apiClient';
+import { applyCustomerQuoteSnapshot } from '@/utils/customerQuoteSnapshots';
 import type { HarnessInput } from '@/types/harness';
-import type { TemplateType } from '@/types/quote';
+import type { QuoteSheet, TemplateType } from '@/types/quote';
 import { RoleGuard } from '@/components/RoleGuard';
 import ScenarioSelector from '@/components/ScenarioSelector';
 
 const { Title, Text } = Typography;
+
+type ApiQuote = {
+  id: string;
+  version: string;
+  projectId: string;
+  scenarioId?: string | null;
+  harnessId?: string | null;
+  status: string;
+  template: string;
+  data?: QuoteSheet;
+};
+
+type QuoteStatus = 'draft' | 'confirmed' | 'published';
+
+function normalizeQuoteStatus(status?: string | null): QuoteStatus {
+  if (status === 'published') return 'published';
+  if (status === 'confirmed') return 'confirmed';
+  return 'draft';
+}
+
+function quoteStatusMeta(status: QuoteStatus): { color: 'blue' | 'green' | 'purple'; label: string } {
+  if (status === 'published') return { color: 'purple', label: '已发布' };
+  if (status === 'confirmed') return { color: 'green', label: '已确认' };
+  return { color: 'blue', label: '草稿' };
+}
 
 export default function QuotePage() {
   const { id, sid } = useParams<{ id: string; sid: string }>();
@@ -29,6 +58,8 @@ export default function QuotePage() {
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [scenario, setScenario] = useState<ScenarioRecord | null>(null);
   const [harnesses, setHarnesses] = useState<HarnessRecord[]>([]);
+  const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
+  const [quoteRecords, setQuoteRecords] = useState<ApiQuote[]>([]);
 
   // Tab 1 Quote Template State
   const [templateType, setTemplateType] = useState<TemplateType>('geely');
@@ -51,25 +82,45 @@ export default function QuotePage() {
           Toast.error('场景不存在');
           return;
         }
+        const scenarioWithFallback = applyE281ScenarioFallback(s);
         const h = await db.harnesses.where('scenarioId').equals(sid).toArray();
+        const quotes = await apiClient<ApiQuote[]>(`/quotes/scenario/${sid}`);
+        const preferredQuote = quotes.find((quote) => quote.template === templateType) || quotes[0] || null;
         setProject(p);
-        setScenario(s);
+        setScenario(scenarioWithFallback);
         setHarnesses(h);
+        setQuoteRecords(quotes);
+        setSelectedQuoteId(preferredQuote?.id ?? null);
       } catch (err) {
         console.error(err);
+        setQuoteRecords([]);
+        setSelectedQuoteId(null);
         Toast.error('数据加载失败');
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, [id, sid]);
+  }, [id, sid, templateType]);
+
+  const customerQuoteSnapshots = useMemo(() => {
+    return scenario?.config.customerQuoteSnapshots;
+  }, [scenario]);
+
+  const baselineComputedResults = useMemo(() => {
+    if (!scenario) return [];
+    return harnesses
+      .map(h => computeHarnessCost(h.input, scenario.config.costRates, scenario.config.metalPrices))
+      .sort((a, b) => a.harnessId.localeCompare(b.harnessId));
+  }, [scenario, harnesses]);
 
   // Baseline results
   const baselineResults = useMemo(() => {
-    if (!scenario) return [];
-    return harnesses.map(h => computeHarnessCost(h.input, scenario.config.costRates, scenario.config.metalPrices));
-  }, [scenario, harnesses]);
+    return baselineComputedResults.map(result => applyCustomerQuoteSnapshot(
+      result,
+      customerQuoteSnapshots?.[result.harnessId],
+    ));
+  }, [baselineComputedResults, customerQuoteSnapshots]);
 
   const baselineProject = useMemo(() => {
     return computeProjectFromHarnesses(baselineResults);
@@ -77,12 +128,155 @@ export default function QuotePage() {
 
   // Tab 1: Quote Template derived data
   const quoteSheet = useMemo(() => {
-    if (!project || !scenario || baselineResults.length === 0) return null;
-    return buildQuoteSheet(baselineResults, templateType, {
-      projectName: project.meta.projectName,
-      customer: project.meta.customer
-    }, scenario.config.nreData, scenario.config.volumes);
-  }, [project, scenario, baselineResults, templateType]);
+    if (!project || !scenario || baselineComputedResults.length === 0) return null;
+    return buildQuoteSheet(
+      baselineComputedResults,
+      templateType,
+      {
+        projectName: project.meta.projectName,
+        customer: project.meta.customer,
+      },
+      scenario.config.nreData,
+      scenario.config.volumes,
+      customerQuoteSnapshots,
+    );
+  }, [project, scenario, baselineComputedResults, templateType, customerQuoteSnapshots]);
+
+  const sortedHarnesses = useMemo(() => {
+    return [...harnesses].sort((a, b) => a.harnessId.localeCompare(b.harnessId));
+  }, [harnesses]);
+
+  const baselineResultsById = useMemo(() => {
+    return new Map(baselineResults.map(result => [result.harnessId, result]));
+  }, [baselineResults]);
+
+  useEffect(() => {
+    if (!sid) return;
+    let active = true;
+    async function syncSelectedQuote() {
+      try {
+        const quotes = await apiClient<ApiQuote[]>(`/quotes/scenario/${sid}`);
+        setQuoteRecords(quotes);
+        if (!active) return;
+        const preferredQuote = quotes.find((quote) => quote.template === templateType) || quotes[0] || null;
+        setSelectedQuoteId(preferredQuote?.id ?? null);
+      } catch {
+        setQuoteRecords([]);
+        if (active) setSelectedQuoteId(null);
+      }
+    }
+    void syncSelectedQuote();
+    return () => {
+      active = false;
+    };
+  }, [sid, templateType]);
+
+  const selectedQuote = useMemo(() => {
+    return quoteRecords.find((quote) => quote.id === selectedQuoteId) || null;
+  }, [quoteRecords, selectedQuoteId]);
+  const selectedQuoteStatus = useMemo(
+    () => normalizeQuoteStatus(selectedQuote?.status),
+    [selectedQuote?.status],
+  );
+  const selectedQuoteStatusMeta = useMemo(
+    () => quoteStatusMeta(selectedQuoteStatus),
+    [selectedQuoteStatus],
+  );
+  const isDraftQuote = selectedQuoteStatus === 'draft';
+  const isConfirmedQuote = selectedQuoteStatus === 'confirmed';
+  const isPublishedQuote = selectedQuoteStatus === 'published';
+
+  const refreshQuotes = async () => {
+    if (!sid) return;
+    const quotes = await apiClient<ApiQuote[]>(`/quotes/scenario/${sid}`);
+    setQuoteRecords(quotes);
+    const preferredQuote = quotes.find((quote) => quote.template === templateType) || quotes[0] || null;
+    setSelectedQuoteId(preferredQuote?.id ?? null);
+  };
+
+  const persistCurrentQuote = useCallback(async () => {
+    if (!id || !sid || !scenario || !quoteSheet) {
+      throw new Error('当前报价内容尚未准备完成');
+    }
+
+    const payload = {
+      projectId: id,
+      version: `${scenario.scenarioCode}-${templateType}`,
+      template: templateType,
+      data: quoteSheet,
+      quoteParams: {
+        templateType,
+        scenarioId: sid,
+        scenarioCode: scenario.scenarioCode,
+        scenarioName: scenario.scenarioName,
+        scenarioType: scenario.scenarioType,
+      },
+      quoteResult: {
+        totals: quoteSheet.totals,
+        harnessCount: quoteSheet.harnessCount,
+        baselineVehicleCost: baselineProject.vehicleCost,
+      },
+      internalCostBaseline: baselineProject.vehicleCost,
+      exWorksPrice: Number(quoteSheet.totals.exFactoryPrice ?? 0),
+      arrivalPrice: Number(quoteSheet.totals.deliveredPrice ?? 0),
+      effectivePrice: Number(quoteSheet.totals.deliveredPrice ?? quoteSheet.totals.exFactoryPrice ?? 0),
+      effectivePriceMode: 'arrival',
+    };
+
+    const canUpdateCurrent = selectedQuoteId && normalizeQuoteStatus(selectedQuote?.status) === 'draft';
+    if (canUpdateCurrent) {
+      return apiClient<ApiQuote>(`/quotes/${selectedQuoteId}`, {
+        method: 'PUT',
+        body: payload,
+      });
+    }
+
+    return apiClient<ApiQuote>(`/quotes/scenario/${sid}`, {
+      method: 'POST',
+      body: payload,
+    });
+  }, [baselineProject.vehicleCost, id, quoteSheet, scenario, selectedQuote?.status, selectedQuoteId, sid, templateType]);
+
+  const handleSaveQuote = useCallback(async () => {
+    try {
+      const saved = await persistCurrentQuote();
+      setSelectedQuoteId(saved.id);
+      await refreshQuotes();
+      Toast.success('报价草稿已保存');
+    } catch (error) {
+      Toast.error(error instanceof Error ? error.message : '报价保存失败');
+    }
+  }, [persistCurrentQuote]);
+
+  const handleConfirmQuote = async () => {
+    try {
+      const saved = await persistCurrentQuote();
+      await apiClient(`/quotes/${saved.id}/confirm`, {
+        method: 'POST',
+      });
+      setSelectedQuoteId(saved.id);
+      Toast.success('报价已确认并写入版本/审计');
+      await refreshQuotes();
+    } catch (error) {
+      Toast.error(error instanceof Error ? error.message : '报价确认失败');
+    }
+  };
+
+  const handlePublishQuote = useCallback(async () => {
+    if (!selectedQuoteId) {
+      Toast.warning('当前没有可发布的报价');
+      return;
+    }
+    try {
+      await apiClient(`/quotes/${selectedQuoteId}/publish`, {
+        method: 'POST',
+      });
+      Toast.success('报价已发布并写入版本/审计');
+      await refreshQuotes();
+    } catch (error) {
+      Toast.error(error instanceof Error ? error.message : '报价发布失败');
+    }
+  }, [selectedQuoteId]);
 
   // Tab 2: Change Pricing Simulation
   const simulatedResults = useMemo(() => {
@@ -90,7 +284,10 @@ export default function QuotePage() {
     return harnesses.map(h => {
       const modifications = modifiedHarnesses[h.harnessId] || {};
       const simulatedInput = { ...h.input, ...modifications };
-      return computeHarnessCost(simulatedInput as HarnessInput, scenario.config.costRates, scenario.config.metalPrices);
+      return applyCustomerQuoteSnapshot(
+        computeHarnessCost(simulatedInput as HarnessInput, scenario.config.costRates, scenario.config.metalPrices),
+        customerQuoteSnapshots?.[h.harnessId],
+      );
     });
   }, [scenario, harnesses, modifiedHarnesses]);
 
@@ -115,7 +312,7 @@ export default function QuotePage() {
   };
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
-  if (!project || !scenario) return <div>Project not found</div>;
+  if (!project || !scenario) return <div>项目不存在</div>;
 
   const geelyColumns = [
     { title: '零件号', render: (_: any, h: any) => h.harnessId, width: 120, fixed: 'left' as const },
@@ -225,6 +422,44 @@ export default function QuotePage() {
               Toast.success('综合报价已导出');
             }}>导出综合报价</Button>
             </RoleGuard>
+            <RoleGuard field="quoteExport">
+            <Button
+              icon={<IconDownload />}
+              theme="borderless"
+              disabled={!selectedQuoteId}
+              onClick={async () => {
+                if (!selectedQuoteId) {
+                  Toast.warning('当前场景暂无可导出的报价记录');
+                  return;
+                }
+                try {
+                  await exportQuoteExcel(selectedQuoteId);
+                  Toast.success('报价 Excel 已导出');
+                } catch (error) {
+                  Toast.error(error instanceof Error ? error.message : '报价 Excel 导出失败');
+                }
+              }}
+            >导出报价Excel</Button>
+            </RoleGuard>
+            <RoleGuard field="quoteExport">
+            <Button
+              icon={<IconDownload />}
+              theme="borderless"
+              disabled={!selectedQuoteId}
+              onClick={async () => {
+                if (!selectedQuoteId) {
+                  Toast.warning('当前场景暂无可导出的报价记录');
+                  return;
+                }
+                try {
+                  await exportQuotePdf(selectedQuoteId);
+                  Toast.success('报价 PDF 已导出');
+                } catch (error) {
+                  Toast.error(error instanceof Error ? error.message : '报价 PDF 导出失败');
+                }
+              }}
+            >导出报价PDF</Button>
+            </RoleGuard>
           </Space>
         </div>
         <Table
@@ -325,16 +560,17 @@ export default function QuotePage() {
             </RadioGroup>
             
             <Table
-              dataSource={harnesses}
+              dataSource={sortedHarnesses}
               pagination={false}
               size="small"
               columns={[
                 { title: '零件号', render: (_: any, h: any) => h.harnessId },
                 { title: '名称', render: (_: any, h: any) => h.harnessName },
                 { title: '当前值', render: (_: any, h: any) => {
-                    if (changeMode === 'bom') return formatCurrency(baselineResults.find(r => r.harnessId === h.harnessId)?.materialCost);
-                    if (changeMode === 'hours') return `${baselineResults.find(r => r.harnessId === h.harnessId)?.processHours.toFixed(2)} h`;
-                    return `${(h.input.vehicleRatio * 100).toFixed(0)}%`;
+                    const current = baselineResultsById.get(h.harnessId);
+                    if (changeMode === 'bom') return formatCurrency(current?.materialCost);
+                    if (changeMode === 'hours') return current ? `${current.processHours.toFixed(2)} h` : '-';
+                    return `${(h.input.vehicleRatio * 100).toFixed(1)}%`;
                   }
                 },
                 { title: changeMode === 'bom' ? '新材料成本' : changeMode === 'hours' ? '新工时' : '新装车比',
@@ -419,10 +655,46 @@ export default function QuotePage() {
           theme="borderless"
           onClick={() => navigate(`/project/${id}/s/${sid}`)}
         />
-        <div>
+        <div style={{ flex: 1 }}>
           <Title heading={4} style={{ margin: 0 }}>报价工作台</Title>
           <Text style={{ color: 'var(--semi-color-text-2)' }}>{project.meta.projectName} / {project.meta.customer}</Text>
         </div>
+        <Space>
+          <Tag color={selectedQuoteStatusMeta.color}>
+            {selectedQuote
+              ? `当前报价：${selectedQuote.version} / ${selectedQuoteStatusMeta.label}`
+              : '当前报价：未生成'}
+          </Tag>
+          {isDraftQuote && (
+            <>
+              <Button
+                theme="light"
+                disabled={!quoteSheet || isPublishedQuote}
+                onClick={handleSaveQuote}
+              >
+                保存报价草稿
+              </Button>
+              <Button
+                theme="solid"
+                disabled={!quoteSheet || isPublishedQuote}
+                onClick={handleConfirmQuote}
+              >
+                确认报价
+              </Button>
+            </>
+          )}
+          {isConfirmedQuote && (
+            <Button
+              theme="solid"
+              type="primary"
+              disabled={!selectedQuoteId}
+              onClick={handlePublishQuote}
+            >
+              发布报价
+            </Button>
+          )}
+          {isPublishedQuote && <Tag color="purple">已发布报价只读</Tag>}
+        </Space>
       </div>
 
       <Tabs type="line">

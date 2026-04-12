@@ -62,7 +62,7 @@ export default function AllocManagerPage() {
   const [editRows, setEditRows] = useState<EditRow[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const { recoverySummary, loadProjectAlloc, loadScenarioAlloc, batchSaveOnetimeCosts } = useAllocStore();
+  const { recoverySummary, loadProjectAlloc, loadScenarioAlloc, batchSaveOnetimeCosts, syncScenarioAllocRows } = useAllocStore();
 
   // 加载数据
   const loadData = useCallback(async () => {
@@ -90,17 +90,11 @@ export default function AllocManagerPage() {
       }
 
       // 初始化编辑行
-      const existingCosts = sid
-        ? await db.onetimeCosts.where('scenarioId').equals(sid).toArray()
-        : await db.onetimeCosts.where('projectId').equals(projectId).toArray();
-      const costMap = new Map(existingCosts.map(c => [c.harnessId, c.input]));
-      const trackerRecords = sid
-        ? await db.allocTrackers.where('scenarioId').equals(sid).toArray()
-        : await db.allocTrackers.where('projectId').equals(projectId).toArray();
-      const trackerMap = new Map(trackerRecords.map(t => [t.harnessId, t.cumProduced]));
+      const persistedRows = useAllocStore.getState().scenarioRows;
+      const persistedRowMap = new Map(persistedRows.map((row) => [row.harnessId, row]));
 
       const rows: EditRow[] = hRecords.map(h => {
-        const existing = costMap.get(h.harnessId);
+        const existing = persistedRowMap.get(h.harnessId);
         return {
           harnessId: h.harnessId,
           harnessName: h.harnessName,
@@ -110,7 +104,7 @@ export default function AllocManagerPage() {
           rndCost: existing?.rndCost ?? 0,
           allocBase: existing?.allocBase ?? 50000,
           paymentMode: existing?.paymentMode ?? 'amortized',
-          cumProduced: trackerMap.get(h.harnessId) ?? 0,
+          cumProduced: existing?.cumProduced ?? 0,
         };
       });
       setEditRows(rows);
@@ -148,28 +142,13 @@ export default function AllocManagerPage() {
         allocBase: r.allocBase,
         paymentMode: r.paymentMode,
       }));
-      await batchSaveOnetimeCosts(projectId, inputs, sid);
-      // 保存 cumProduced
-      const now = new Date().toISOString();
-      const keyPrefix = sid || projectId;
-      for (const r of editRows) {
-        if (r.cumProduced > 0) {
-          await db.allocTrackers.put({
-            id: `${keyPrefix}::${r.harnessId}`,
-            projectId,
-            scenarioId: sid || '',
-            harnessId: r.harnessId,
-            cumProduced: r.cumProduced,
-            inheritedFromScenarioId: null,
-            updatedAt: now,
-          });
-        }
-      }
       if (sid) {
-        await loadScenarioAlloc(sid);
+        await syncScenarioAllocRows(projectId, editRows, sid);
       } else {
-        await loadProjectAlloc(projectId);
+        await batchSaveOnetimeCosts(projectId, inputs, sid);
       }
+      // 保存 cumProduced
+      await loadData();
       Toast.success('分摊数据已保存');
     } catch (err) {
       Toast.error('保存失败: ' + (err instanceof Error ? err.message : String(err)));
