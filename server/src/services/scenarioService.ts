@@ -6,12 +6,36 @@ import { SettingsService } from './settingsService.js';
 
 const JSON_FIELDS = ['rateSnapshot', 'quoteParamSnapshot'] as const;
 
+async function buildRateSnapshotFromVersion(version: string, fallbackRateSnapshot: Record<string, unknown> = {}) {
+  const snapshotRows = await SettingsService.snapshot(version);
+  const costStructure = snapshotRows.filter((row) => row.sourceCategory === 'cost_structure');
+  if (costStructure.length === 0) {
+    return {
+      rateSnapshot: fallbackRateSnapshot,
+      rateSnapshotVersion: version,
+    };
+  }
+
+  return {
+    rateSnapshot: Object.fromEntries(costStructure.map((row) => [row.key, row.value])),
+    rateSnapshotVersion: version,
+  };
+}
+
 async function resolveScenarioRateSnapshot(data: any) {
   if (data.rateSnapshot && Object.keys(data.rateSnapshot).length > 0) {
     return {
       rateSnapshot: data.rateSnapshot,
       rateSnapshotVersion: data.rateSnapshotVersion ?? null,
     };
+  }
+
+  const requestedVersion = typeof data.rateSnapshotVersion === 'string' && data.rateSnapshotVersion !== 'latest'
+    ? data.rateSnapshotVersion.trim()
+    : '';
+  if (requestedVersion) {
+    await SettingsService.assertPublishedVersion(requestedVersion);
+    return buildRateSnapshotFromVersion(requestedVersion, data.rateSnapshot ?? {});
   }
 
   const latestVersion = await SettingsService.getLatestPublishedVersion();
@@ -22,21 +46,7 @@ async function resolveScenarioRateSnapshot(data: any) {
     };
   }
 
-  const snapshotRows = await SettingsService.snapshot(latestVersion);
-  const costStructure = snapshotRows.filter((row) => row.sourceCategory === 'cost_structure');
-  if (costStructure.length === 0) {
-    return {
-      rateSnapshot: data.rateSnapshot ?? {},
-      rateSnapshotVersion: latestVersion,
-    };
-  }
-
-  const rateSnapshot = Object.fromEntries(costStructure.map((row) => [row.key, row.value]));
-
-  return {
-    rateSnapshot,
-    rateSnapshotVersion: latestVersion,
-  };
+  return buildRateSnapshotFromVersion(latestVersion, data.rateSnapshot ?? {});
 }
 
 async function enrichScenario(item: any) {
@@ -57,10 +67,11 @@ async function buildCreatePayload(projectId: string, data: any) {
 }
 
 async function buildUpdatePayload(current: any, data: any) {
+  const wantsSpecificVersion = typeof data.rateSnapshotVersion === 'string' && data.rateSnapshotVersion !== 'latest';
   const wantsRateRefresh = data.rateSnapshotVersion === 'latest';
-  const needsAutoBind = wantsRateRefresh || (!('rateSnapshot' in data) && !('rateSnapshotVersion' in data));
+  const needsAutoBind = wantsRateRefresh || wantsSpecificVersion;
   const snapshotBinding = needsAutoBind
-    ? await resolveScenarioRateSnapshot({ ...current, ...data, rateSnapshot: wantsRateRefresh ? undefined : current.rateSnapshot })
+    ? await resolveScenarioRateSnapshot({ ...current, ...data, rateSnapshot: undefined })
     : {
         rateSnapshot: data.rateSnapshot ?? current.rateSnapshot,
         rateSnapshotVersion: data.rateSnapshotVersion ?? current.rateSnapshotVersion ?? null,

@@ -6,6 +6,7 @@ import { apiClient } from '@/lib/apiClient';
 import { db } from '@/data/db';
 import type { ProjectRecord, ScenarioType as LocalScenarioType } from '@/data/db';
 import { useProjectStore } from '@/store/projectStore';
+import { fetchSettingsHistory } from '@/lib/settingsApi';
 
 interface ScenarioItem {
   id: string;
@@ -36,6 +37,7 @@ interface ScenarioFormState {
   lifecycleYears: number;
   volume: number;
   installRatio: number;
+  rateSnapshotVersion: string;
   bomVersionRef: string;
   notes: string;
   sourceScenarioId?: string;
@@ -48,6 +50,7 @@ const defaultScenarioForm = (): ScenarioFormState => ({
   lifecycleYears: 5,
   volume: 0,
   installRatio: 1,
+  rateSnapshotVersion: 'latest',
   bomVersionRef: '',
   notes: '',
   sourceScenarioId: undefined,
@@ -84,7 +87,7 @@ function formatDate(value: string) {
   return new Date(value).toLocaleString('zh-CN');
 }
 
-function normalizeScenarioPayload(form: ScenarioFormState) {
+export function normalizeScenarioPayload(form: ScenarioFormState) {
   return {
     type: form.type,
     name: form.name.trim(),
@@ -92,6 +95,7 @@ function normalizeScenarioPayload(form: ScenarioFormState) {
     volume: Number(form.volume),
     installRatio: Number(form.installRatio),
     rateSnapshot: {},
+    rateSnapshotVersion: form.rateSnapshotVersion === 'latest' ? 'latest' : (form.rateSnapshotVersion || undefined),
     bomVersionRef: form.bomVersionRef.trim() || undefined,
     quoteParamSnapshot: {},
     sourceScenarioId: form.sourceScenarioId || undefined,
@@ -169,6 +173,7 @@ export default function ProjectScenariosPage() {
   const [submitting, setSubmitting] = useState(false);
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [scenarios, setScenarios] = useState<ScenarioItem[]>([]);
+  const [settingsVersions, setSettingsVersions] = useState<string[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingScenarioId, setEditingScenarioId] = useState<string | null>(null);
   const [form, setForm] = useState<ScenarioFormState>(defaultScenarioForm());
@@ -214,6 +219,11 @@ export default function ProjectScenariosPage() {
     const data = await apiClient<ScenarioItem[]>(`/projects/${id}/scenarios`);
     setScenarios(data.sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
     await db.scenarios.bulkPut(data.map(toLocalScenarioRecord));
+  };
+
+  const loadSettingsVersions = async () => {
+    const rows = await fetchSettingsHistory();
+    setSettingsVersions(rows.map((row) => row.key).filter(Boolean));
   };
 
   const reload = async () => {
@@ -273,7 +283,7 @@ export default function ProjectScenariosPage() {
         }
         setProject(loadedProject);
         setCurrentProject(loadedProject.id, loadedProject.meta.projectName);
-        await loadScenarios();
+        await Promise.all([loadScenarios(), loadSettingsVersions()]);
       } catch (error) {
         Toast.error(error instanceof Error ? error.message : '场景加载失败');
       } finally {
@@ -297,6 +307,7 @@ export default function ProjectScenariosPage() {
       lifecycleYears: scenario.lifecycleYears,
       volume: scenario.volume,
       installRatio: scenario.installRatio,
+      rateSnapshotVersion: scenario.rateSnapshotVersion ?? 'latest',
       bomVersionRef: scenario.bomVersionRef ?? '',
       notes: scenario.notes ?? '',
       sourceScenarioId: scenario.sourceScenarioId ?? undefined,
@@ -431,6 +442,7 @@ export default function ProjectScenariosPage() {
 
   const selectedCompareBaselineId = form.compareBaselineId ?? '';
   const selectedSourceScenarioId = form.sourceScenarioId ?? '';
+  const selectedRateSnapshotVersion = form.rateSnapshotVersion || 'latest';
 
   const renderModal = (
     <Modal
@@ -469,6 +481,19 @@ export default function ProjectScenariosPage() {
           <div>
             <Text style={{ display: 'block', marginBottom: 6 }}>装车比</Text>
             <Input type="number" value={String(form.installRatio)} onChange={(value) => updateForm('installRatio', Number(value || 0))} />
+          </div>
+          <div>
+            <Text style={{ display: 'block', marginBottom: 6 }}>璐圭巼蹇収鐗堟湰</Text>
+            <Select
+              value={selectedRateSnapshotVersion}
+              onChange={(value) => updateForm('rateSnapshotVersion', String(value) || 'latest')}
+              style={{ width: '100%' }}
+            >
+              <Select.Option value="latest">latest</Select.Option>
+              {settingsVersions.map((version) => (
+                <Select.Option key={version} value={version}>{version}</Select.Option>
+              ))}
+            </Select>
           </div>
           <div>
             <Text style={{ display: 'block', marginBottom: 6 }}>BOM 版本引用</Text>

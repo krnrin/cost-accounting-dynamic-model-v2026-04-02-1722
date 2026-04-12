@@ -27,6 +27,23 @@ const allocationSchema = z.object({
   sourceVersionId: z.string().optional(),
 });
 
+const allocationSyncRowSchema = z.object({
+  harnessId: z.string().min(1),
+  harnessName: z.string().min(1),
+  vehicleRatio: z.number().nonnegative(),
+  toolingCost: z.number().nonnegative(),
+  testingCost: z.number().nonnegative(),
+  rndCost: z.number().nonnegative(),
+  allocBase: z.number().int().positive(),
+  paymentMode: z.enum(['amortized', 'lumpsum', 'mixed']).default('amortized'),
+  cumProduced: z.number().int().nonnegative().default(0),
+});
+
+const bulkSyncSchema = z.object({
+  projectId: z.string().min(1),
+  rows: z.array(allocationSyncRowSchema),
+});
+
 scenarioAllocRouter.use(authMiddleware);
 allocationRouter.use(authMiddleware);
 
@@ -50,6 +67,20 @@ scenarioAllocRouter.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), asy
     const data = { ...input, projectId: undefined };
     const created = await AllocationService.create(projectId, req.params.sid as string, data);
     res.status(201).json({ data: created });
+  } catch (error) {
+    next(error);
+  }
+});
+
+scenarioAllocRouter.post('/bulk-sync', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const input = bulkSyncSchema.parse(req.body);
+    const data = await AllocationService.bulkSyncHarnessRows(
+      input.projectId,
+      req.params.sid as string,
+      input.rows,
+    );
+    res.json({ data });
   } catch (error) {
     next(error);
   }

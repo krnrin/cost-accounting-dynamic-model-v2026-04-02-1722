@@ -97,6 +97,18 @@ export class SettingsService {
     return getLatestPublishedVersion();
   }
 
+  static async assertPublishedVersion(version: string) {
+    const row = await prisma.setting.findUnique({
+      where: { category_key: { category: HISTORY_CATEGORY, key: version } },
+    });
+    if (!row) {
+      const err: any = new Error(`Settings version ${version} is not published`);
+      err.status = 400;
+      throw err;
+    }
+    return normalizeRow(row);
+  }
+
   static async getAll() {
     const categories = Object.keys(DEFAULT_SETTINGS);
     const grouped = await Promise.all(categories.map((category) => this.getByCategory(category)));
