@@ -28,6 +28,9 @@ import ConfigMatrixPage from '@/pages/ConfigMatrixPage';
 import ConnectorPricingPage from '@/pages/ConnectorPricingPage';
 import WirePricingPage from '@/pages/WirePricingPage';
 import DevPartPricingPage from '@/pages/DevPartPricingPage';
+import NewProjectWizard from '@/pages/NewProjectWizard';
+import VersionManager from '@/pages/VersionManager';
+import EngineerWorkbench from '@/pages/EngineerWorkbench';
 import SWUpdatePrompt from '@/components/SWUpdatePrompt';
 import { useAuthStore } from '@/store/authStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -64,12 +67,14 @@ export default function App() {
           <Route path="/" element={<ProjectListPage />} />
           <Route path="/manager" element={<ManagerDashboardPage />} />
           <Route path="/wizard" element={<WizardPage />} />
+          <Route path="/project/new" element={<NewProjectWizard />} />
           {/* 项目级页面 */}
           <Route path="/project/:id" element={<ProjectDashboardOverviewPage />} />
           <Route path="/project/:id/scenarios" element={<ProjectScenariosPage />} />
           <Route path="/project/:id/scenario/:sid" element={<DashboardPage />} />
           <Route path="/project/:id/compare" element={<ScenarioComparePage />} />
           <Route path="/project/:id/bom/diff" element={<BomDiffPage />} />
+          <Route path="/project/:id/versions" element={<VersionManager />} />
           {/* 场景级页面 */}
           <Route path="/project/:id/s/:sid" element={<DashboardPage />} />
           <Route path="/project/:id/s/:sid/harness/:harnessId" element={<HarnessDetailPage />} />
@@ -83,6 +88,7 @@ export default function App() {
           <Route path="/project/:id/s/:sid/pricing/connectors" element={<ConnectorPricingPage />} />
           <Route path="/project/:id/s/:sid/pricing/wires" element={<WirePricingPage />} />
           <Route path="/project/:id/s/:sid/pricing/devparts" element={<DevPartPricingPage />} />
+          <Route path="/project/:id/s/:sid/workbench" element={<EngineerWorkbench />} />
           <Route path="/project/:id/alerts" element={<AlertsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/settings/alert-rules" element={<AlertsPage mode="rules" />} />

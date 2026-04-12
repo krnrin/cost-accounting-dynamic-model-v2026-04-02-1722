@@ -3,6 +3,7 @@
  * 内部实绩引擎 vs 客户报价引擎 切换组件
  */
 import { Select, Typography, Tag, Card } from '@douyinfe/semi-ui';
+import type { CSSProperties } from 'react';
 
 const { Text } = Typography;
 
@@ -26,12 +27,18 @@ const ENGINE_INFO: Record<EngineType, { label: string; description: string; colo
   },
 };
 
+const S: Record<string, CSSProperties> = {
+  card: { marginBottom: 16 },
+  row: { display: 'flex', alignItems: 'center', gap: 12 },
+  select: { width: 200 },
+};
+
 export default function EngineSelector({ value = 'customer', onChange }: EngineSelectorProps) {
   return (
-    <Card style= marginBottom: 16 >
-      <div style= display: 'flex', alignItems: 'center', gap: 12 >
+    <Card style={S.card}>
+      <div style={S.row}>
         <Text strong>计算引擎:</Text>
-        <Select value={value} onChange={(v) => onChange?.(v as EngineType)} style= width: 200 >
+        <Select value={value} onChange={(v) => onChange?.(v as EngineType)} style={S.select}>
           <Select.Option value="internal">
             <Tag color="blue" size="small">内部</Tag> 内部实绩引擎
           </Select.Option>
