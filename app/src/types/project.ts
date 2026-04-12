@@ -4,6 +4,11 @@
 
 import type { NreData } from './quote';
 
+export interface CustomerQuoteSnapshot {
+  deliveredPrice: number;
+  exFactoryPrice?: number;
+}
+
 /** 成本费率配置（对外客户报价） */
 export interface CostRates {
   /** 直接人工费率 (元/小时) — 默认 35 */
@@ -124,6 +129,8 @@ export interface ProjectConfig {
   level1Coefficients?: Level1Coefficients;
   /** 返点/返利配置 (如 QS 返点) */
   rebate?: RebateConfig;
+  /** 客户确认报价快照（按线束号保存最终到厂价/出厂价） */
+  customerQuoteSnapshots?: Record<string, CustomerQuoteSnapshot>;
 }
 
 /** 工厂配置 */

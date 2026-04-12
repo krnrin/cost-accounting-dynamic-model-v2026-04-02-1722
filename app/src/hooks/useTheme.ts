@@ -5,7 +5,8 @@ export function useTheme() {
   const themeMode = useSettingsStore((s) => s.themeMode);
 
   useEffect(() => {
-    // Elite Industrial UI — light mode with glass panels over subtle factory watermark
-    document.body.setAttribute('theme-mode', 'light');
+    const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true;
+    const resolvedTheme = themeMode === 'system' ? (prefersDark ? 'dark' : 'light') : themeMode;
+    document.body.setAttribute('theme-mode', resolvedTheme);
   }, [themeMode]);
 }

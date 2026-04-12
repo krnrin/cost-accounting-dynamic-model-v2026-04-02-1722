@@ -1,0 +1,16 @@
+- generic [ref=e5]:
+  - generic [ref=e6]:
+    - img "grid_view" [ref=e8]:
+      - img [ref=e9]
+    - heading "COST ENGINE PRO" [level=3] [ref=e14]
+    - text: 高压线束精算与决策引擎
+  - generic [ref=e15]:
+    - tablist [ref=e16]:
+      - tab "系统登录" [selected] [ref=e17]
+      - tab "申请权限" [ref=e18] [cursor=pointer]
+    - generic [ref=e19]:
+      - tabpanel "系统登录" [ref=e20]:
+        - generic [ref=e21]:
+          - generic [ref=e22]
+          - generic [ref=e42]
+      - text: "* * * *"

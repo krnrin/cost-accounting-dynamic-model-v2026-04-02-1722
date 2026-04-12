@@ -1,0 +1,40 @@
+{
+  "报价文件": "E281项目 报价BOM V01-11.3.xlsx",
+  "定点文件": "吉利E281定点核算_BOM核对版.xlsx",
+  "对比时间": "2026-04-09T19:53:36.726646",
+  "total_sheets_compared": 4,
+  "total_added": 2,
+  "total_removed": 3,
+  "total_modified": 109,
+  "total_unchanged": 52,
+  "sheets": [
+    {
+      "name": "KSK线束BOM明细",
+      "added": 0,
+      "removed": 0,
+      "modified": 11,
+      "unchanged": 0
+    },
+    {
+      "name": "二次物料明细",
+      "added": 2,
+      "removed": 2,
+      "modified": 97,
+      "unchanged": 0
+    },
+    {
+      "name": "总成散件清单",
+      "added": 0,
+      "removed": 1,
+      "modified": 0,
+      "unchanged": 42
+    },
+    {
+      "name": "配置清单",
+      "added": 0,
+      "removed": 0,
+      "modified": 1,
+      "unchanged": 10
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+- generic [ref=e530]:
+  - generic [ref=e531]:
+    - img "grid_view" [ref=e533]:
+      - img [ref=e534]
+    - heading "COST ENGINE PRO" [level=3] [ref=e539]
+    - text: 高压线束精算与决策引擎
+  - generic [ref=e540]:
+    - tablist [ref=e541]:
+      - tab "系统登录" [selected] [ref=e542]
+      - tab "申请权限" [ref=e543] [cursor=pointer]
+    - generic [ref=e544]:
+      - tabpanel "系统登录" [ref=e545]:
+        - generic [ref=e546]:
+          - generic [ref=e547]:
+            - generic [ref=e548]:
+              - generic [ref=e550]: 工作邮箱*
+              - textbox "工作邮箱*" [ref=e553]:
+                - /placeholder: admin@harness.dev
+            - generic [ref=e554]:
+              - generic [ref=e556]: 访问密码*
+              - generic [ref=e558]
+            - button "验证身份并进入" [ref=e565] [cursor=pointer]:
+              - generic [ref=e566]: 验证身份并进入
+          - generic [ref=e567]:
+            - text: "默认账号: admin@harness.dev / admin123"
+            - generic [ref=e569]: 或使用企业网关
+            - button "link 飞书 OAuth 授权登录" [ref=e570] [cursor=pointer]:
+              - generic [ref=e571]
+      - text: "* * * *"

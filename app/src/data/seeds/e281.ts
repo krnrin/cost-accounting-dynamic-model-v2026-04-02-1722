@@ -1,7 +1,37 @@
 import { db, type ProjectRecord, type HarnessRecord, type ScenarioRecord } from '../db';
+import type { VehicleConfig } from '@/types/harness';
+import type { CustomerQuoteSnapshot } from '@/types/project';
 import { E281_BOM_DATA } from './e281_bom';
 
-const HARNESS_SEED_DATA = [
+export const E281_CUSTOMER_QUOTE_SNAPSHOTS: Record<string, CustomerQuoteSnapshot> = {
+  '6608442962': { deliveredPrice: 135.40559232771614, exFactoryPrice: 124.8998089943828 },
+  '6608442963': { deliveredPrice: 125.7094325488182, exFactoryPrice: 119.6069240488182 },
+  '6608442964': { deliveredPrice: 61.63430249131618, exFactoryPrice: 60.99629569131618 },
+  '6608442965': { deliveredPrice: 424.569553714797, exFactoryPrice: 417.99169538146367 },
+  '6608442966': { deliveredPrice: 440.7754565438982, exFactoryPrice: 427.7375982105649 },
+  '6608491523': { deliveredPrice: 131.6729166456282, exFactoryPrice: 121.04713331229486 },
+  '6608491524': { deliveredPrice: 130.3380380924197, exFactoryPrice: 119.63225475908636 },
+  '6608507680': { deliveredPrice: 450.4701650890175, exFactoryPrice: 443.89230675568416 },
+  '6608516992': { deliveredPrice: 101.26720536438722, exFactoryPrice: 100.66469686438722 },
+  '6608519100': { deliveredPrice: 57.292345895918515, exFactoryPrice: 56.81833909591852 },
+  '6608544875': { deliveredPrice: 177.17267494302374, exFactoryPrice: 168.8068916096904 },
+};
+
+export const E281_FINAL_QUOTE_ONETIME_COSTS = {
+  '6608491523': { toolingCost: 88000, testingCost: 222000, rndCost: 0, allocBase: 50000 },
+  '6608491524': { toolingCost: 39000, testingCost: 275000, rndCost: 0, allocBase: 50000 },
+  '6608442962': { toolingCost: 29000, testingCost: 275000, rndCost: 0, allocBase: 50000 },
+  '6608442964': { toolingCost: 0, testingCost: 8200, rndCost: 0, allocBase: 50000 },
+  '6608442963': { toolingCost: 0, testingCost: 275000, rndCost: 0, allocBase: 50000 },
+  '6608516992': { toolingCost: 0, testingCost: 0, rndCost: 0, allocBase: 50000 },
+  '6608519100': { toolingCost: 0, testingCost: 0, rndCost: 0, allocBase: 50000 },
+  '6608442966': { toolingCost: 65000, testingCost: 258000, rndCost: 0, allocBase: 50000 },
+  '6608442965': { toolingCost: 0, testingCost: 0, rndCost: 0, allocBase: 50000 },
+  '6608507680': { toolingCost: 0, testingCost: 0, rndCost: 0, allocBase: 50000 },
+  '6608544875': { toolingCost: 197000, testingCost: 0, rndCost: 0, allocBase: 50000 },
+} as const;
+
+export const E281_HARNESS_SEED_DATA = [
   {
     harnessId: '6608491523',
     name: '直流母线总成',
@@ -185,6 +215,39 @@ const HARNESS_SEED_DATA = [
  *   BOM: E281项目 报价BOM V01-11.3.xlsx
  *   报价: 吉利E281高压财务可行性分析-1125-客户目标价 - V001.xlsx
  */
+export const E281_VEHICLE_CONFIGS: VehicleConfig[] = [
+  {
+    configId: 'cfg-520-qihang',
+    configName: '520启航版',
+    salesRatio: 0.525,
+    harnessIds: ['6608491523', '6608442964', '6608442966'],
+  },
+  {
+    configId: 'cfg-520-pro',
+    configName: '520Pro',
+    salesRatio: 0.105,
+    harnessIds: ['6608491524', '6608519100', '6608442965'],
+  },
+  {
+    configId: 'cfg-524-no-ptc',
+    configName: '52.4(无PTC)',
+    salesRatio: 0.225,
+    harnessIds: ['6608442962', '6608516992', '6608507680'],
+  },
+  {
+    configId: 'cfg-524-ptc',
+    configName: '52.4(带PTC)',
+    salesRatio: 0.04,
+    harnessIds: ['6608442962', '6608442963', '6608507680'],
+  },
+  {
+    configId: 'cfg-front-drive',
+    configName: '前驱版',
+    salesRatio: 0.105,
+    harnessIds: ['6608544875', '6608519100', '6608442965'],
+  },
+];
+
 export async function seedE281Project(): Promise<string> {
   const projectId = 'e281-quote';
   const scenarioId = 'e281-scn-001';
@@ -226,6 +289,7 @@ export async function seedE281Project(): Promise<string> {
       label: 'QS返点',
       yearDistribution: [10000000, 0, 0, 0, 0, 0],
     },
+    customerQuoteSnapshots: E281_CUSTOMER_QUOTE_SNAPSHOTS,
   };
 
   const project: ProjectRecord = {
@@ -262,45 +326,14 @@ export async function seedE281Project(): Promise<string> {
       engineerPublishedAt: now,
       salesPublishedAt: now,
     },
-    vehicleConfigs: [
-      {
-        configId: 'cfg-520-qihang',
-        configName: '520启航版',
-        salesRatio: 0.525,
-        harnessIds: ['6608491523', '6608442964', '6608442966'],
-      },
-      {
-        configId: 'cfg-520-pro',
-        configName: '520Pro',
-        salesRatio: 0.105,
-        harnessIds: ['6608491524', '6608519100', '6608442965'],
-      },
-      {
-        configId: 'cfg-524-no-ptc',
-        configName: '52.4(无PTC)',
-        salesRatio: 0.225,
-        harnessIds: ['6608442962', '6608516992', '6608507680'],
-      },
-      {
-        configId: 'cfg-524-ptc',
-        configName: '52.4(带PTC)',
-        salesRatio: 0.04,
-        harnessIds: ['6608442962', '6608442963', '6608507680'],
-      },
-      {
-        configId: 'cfg-front-drive',
-        configName: '前驱版',
-        salesRatio: 0.105,
-        harnessIds: ['6608544875', '6608519100', '6608442965'],
-      },
-    ],
+    vehicleConfigs: E281_VEHICLE_CONFIGS,
     createdAt: now,
     updatedAt: now,
   };
 
   await db.scenarios.put(scenario);
 
-  const harnessRecords: HarnessRecord[] = HARNESS_SEED_DATA.map((seed) => ({
+  const harnessRecords: HarnessRecord[] = E281_HARNESS_SEED_DATA.map((seed) => ({
     id: `e281-${seed.harnessId}`,
     projectId,
     scenarioId,
@@ -339,6 +372,25 @@ export async function seedE281Project(): Promise<string> {
   }));
 
   await db.harnesses.bulkPut(harnessRecords);
+
+  await db.onetimeCosts.bulkPut(
+    E281_HARNESS_SEED_DATA.map((seed) => ({
+      id: `${scenarioId}::${seed.harnessId}`,
+      projectId,
+      scenarioId,
+      harnessId: seed.harnessId,
+      harnessName: seed.name,
+      vehicleRatio: seed.ratio,
+      input: {
+        harnessId: seed.harnessId,
+        harnessName: seed.name,
+        vehicleRatio: seed.ratio,
+        ...E281_FINAL_QUOTE_ONETIME_COSTS[seed.harnessId as keyof typeof E281_FINAL_QUOTE_ONETIME_COSTS],
+        paymentMode: 'amortized' as const,
+      },
+      updatedAt: now,
+    })),
+  );
 
   // Seed 已知 BOM 差异跟踪项
   await db.trackingItems.put({
