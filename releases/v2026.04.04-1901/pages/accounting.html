@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>核算 - 生命周期成本平台</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
+  <link rel="stylesheet" href="../ui/dashboard.css">
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f1a; color: #e5e7eb; }
+    .page-header { padding: 20px 24px 12px; }
+    .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .page-header p { margin: 4px 0 0; font-size: 13px; color: #9ca3af; }
+    .accounting-content { padding: 0 24px 24px; }
+    .status-bar, .acc-section, .matrix, .action-card { margin-top: 16px; background: #151527; border: 1px solid #2a2a3e; border-radius: 12px; }
+    .status-bar { padding: 14px 16px; font-size: 13px; color: #d1d5db; }
+    .page-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .page-actions-copy {
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.6;
+    }
+    .page-actions-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .acc-section, .matrix, .action-card { padding: 16px; }
+    .acc-section h2, .matrix h2, .action-card h2 { margin: 0 0 10px; font-size: 16px; }
+    .acc-section p, .matrix p, .action-card p { margin: 0 0 12px; font-size: 12px; color: #9ca3af; }
+    .summary-grid, .section-grid, .matrix-grid, .actions-grid { display: grid; gap: 16px; }
+    .summary-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .section-grid { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.1fr); }
+    .matrix-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .actions-grid { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); }
+    .summary-card { padding: 14px; background: #111125; border: 1px solid #27273a; border-radius: 10px; }
+    .summary-card strong { display: block; font-size: 12px; color: #9ca3af; }
+    .summary-card span { display: block; margin-top: 8px; font-size: 22px; font-weight: 700; }
+    .summary-card small { display: block; margin-top: 6px; font-size: 12px; color: #93c5fd; }
+    .sheet-mount { min-height: 240px; }
+    .sheet-workbench { display: flex; flex-direction: column; gap: 16px; }
+    .sheet-jump-list { margin-bottom: 0; }
+    .sheet-stage-grid { display: grid; gap: 16px; }
+    .sheet-stage {
+      padding: 14px;
+      border-radius: 10px;
+      border: 1px solid #27273a;
+      background: #111125;
+    }
+    .sheet-stage-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .sheet-stage-header strong { display: block; font-size: 14px; color: #f3f4f6; }
+    .sheet-stage-note { margin-top: 4px; font-size: 12px; color: #9ca3af; }
+    .sheet-stage-status {
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      font-size: 11px;
+      color: #cbd5e1;
+      white-space: nowrap;
+    }
+    .sheet-stage-body { display: flex; flex-direction: column; gap: 12px; }
+    .sheet-stage-submount { min-height: 80px; }
+    .mini-table th, .mini-table td { white-space: nowrap; }
+    .workflow-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+    .workflow-node { padding: 12px; border-radius: 10px; border: 1px solid #27273a; background: #111125; }
+    .workflow-node strong { display: block; font-size: 13px; color: #e5e7eb; }
+    .workflow-node span { display: block; margin-top: 6px; font-size: 12px; color: #9ca3af; white-space: pre-line; }
+    .chip-list { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+    .chip { padding: 6px 10px; border-radius: 999px; background: #111125; border: 1px solid #27273a; font-size: 12px; color: #cbd5e1; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #27273a; text-align: left; vertical-align: top; }
+    th { color: #cbd5e1; font-weight: 600; }
+    td { color: #e5e7eb; }
+    .empty { padding: 12px; border-radius: 8px; background: #111125; color: #9ca3af; font-size: 12px; }
+    .stack { display: flex; flex-direction: column; gap: 10px; }
+    .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    button {
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1px solid #1d4ed8;
+      background: #1d4ed8;
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    button.secondary { background: #0f172a; color: #cbd5e1; border-color: #334155; }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    @media (max-width: 1180px) {
+      .section-grid, .actions-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>核算</h1>
+    <p>顶部展示流程图总览与节点完成状态，中部展示实际 sheet 工作台，底部展示单线束矩阵、项目汇总、客户模板映射与变更费用核算。</p>
+  </div>
+
+  <div class="accounting-content">
+    <div id="accountingActions" class="status-bar page-actions"></div>
+    <div id="accStatus" class="status-bar">正在初始化生命周期核算上下文...</div>
+
+    <section class="acc-section">
+      <h2>流程图总览</h2>
+      <p>节点固定覆盖线束、BOM、询价、工时、包装、设备/模具/工装、审批发布，状态直接读取本地离线发布与审批记录。</p>
+      <div id="workflowBoardMount" class="workflow-board"></div>
+    </section>
+
+    <section class="acc-section">
+      <h2>流程节点摘要</h2>
+      <div id="workflowSummaryMount" class="summary-grid"></div>
+    </section>
+
+    <div class="section-grid">
+      <section class="acc-section">
+        <h2>Sheet 工作台</h2>
+        <p>直接展示 BOM、总成散件、二次物料和财务快照，不再先压平再做程序模拟分摊。</p>
+        <div id="sheetWorkbenchMount" class="sheet-mount"></div>
+      </section>
+      <section class="acc-section">
+        <h2>报价基线校核矩阵</h2>
+        <p>保留关键单元格与公式来源，作为报价阶段样本校核，不再主导整个平台结构。</p>
+        <div id="quoteBaselineKeys" class="chip-list"></div>
+        <div id="quoteBaselineDetails"></div>
+      </section>
+    </div>
+
+    <div class="actions-grid">
+      <section class="action-card">
+        <h2>局部发布与执行跟踪</h2>
+        <p>发布状态按 `{projectId, harnessId, artifactType, versionKey}` 持久化。线束/BOM/询价/工时/包装/资本节点支持局部先流转。</p>
+        <div id="artifactPublishMount"></div>
+      </section>
+      <section class="action-card">
+        <h2>审批发布</h2>
+        <p>提交审批会生成快照与审批记录，批准后同步写入项目级 approval 发布状态。</p>
+        <div id="approvalActionMount" class="stack"></div>
+        <div id="approvalRecordsMount" style="margin-top:16px;"></div>
+      </section>
+    </div>
+
+    <div class="matrix-grid">
+      <section class="matrix">
+        <h2>单线束费用矩阵</h2>
+        <p>单线束号优先核算，材料、人工、制造费用、设备/模具/工装、研发、包装优先读取真实来源。</p>
+        <div id="harnessCostDetails"></div>
+      </section>
+      <section class="matrix">
+        <h2>项目汇总</h2>
+        <p>从单线束明细回卷到项目、年度与生命周期口径。</p>
+        <div id="projectRollupDetails"></div>
+      </section>
+      <section class="matrix">
+        <h2>客户模板映射预览</h2>
+        <p>当前默认预览 `customer_quote_standard`，通过配置映射 `A1/A2/B1/B2/C1/C2/C3/D/E/F/G`。</p>
+        <div id="templatePreviewDetails"></div>
+      </section>
+      <section class="matrix">
+        <h2>变更费用核算</h2>
+        <p>输出单线束差异、项目差异、模板差异和回收影响，作为报价基线与后续阶段的统一差异口径。</p>
+        <div id="changeImpactDetails"></div>
+      </section>
+    </div>
+  </div>
+
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+  <script src="../g281_data_bundle.js"></script>
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+  <script src="../engine/shared_utils.js"></script>
+  <script src="../engine/state_normalizer.js"></script>
+  <script src="../engine/snapshot_resolver.js"></script>
+  <script src="../engine/annual_calc.js"></script>
+  <script src="../engine/config_bridge.js"></script>
+  <script src="../engine/computation_path.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../engine/compute_model.js"></script>
+  <script src="../engine/harness_profit.js"></script>
+  <script src="../engine/target_price_solver.js"></script>
+  <script src="../engine/bom_parser.js"></script>
+  <script src="../engine/bom_schema.js"></script>
+  <script src="../engine/bom_db.js"></script>
+  <script src="../engine/align_key_enhancer.js"></script>
+  <script src="../engine/bom_workbook_adapter.js"></script>
+  <script src="../engine/financial_workbook_adapter.js"></script>
+  <script src="../engine/customer_quote_template_adapter.js"></script>
+  <script src="../engine/harness_stage_cost_builder.js"></script>
+  <script src="../engine/project_rollup_builder.js"></script>
+  <script src="../engine/workflow_stage_board_builder.js"></script>
+  <script src="../engine/cost_exception_tracker_builder.js"></script>
+  <script src="../engine/change_impact_builder.js"></script>
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+  <script src="../engine/schema_migrator.js"></script>
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../core/storage_adapter.js"></script>
+  <script src="../core/platform_gateways.js"></script>
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+  <script>
+    (function () {
+      const DEFAULT_STATE = {
+        bom: 'freeze',
+        metal: 'quote',
+        connector: 'quote',
+        labor: 'base',
+        equipment: 'base',
+        packaging: 'base',
+        sales: 'quote',
+        mix: 'quote',
+        annualDrop: 'quote',
+        oneTimeCustomer: 'quote',
+        rebate: 'quote',
+        vave: 'none',
+      };
+
+      const KEY_CELLS = ['P3', 'P4', 'P14', 'P16', 'P20', 'P21', 'P22', 'P23', 'P31', 'P32'];
+      const DEFAULT_TEMPLATE_KEY = 'customer_quote_standard';
+      const STAGE_ACTION_LABELS = {
+        harness: '发布线束',
+        bom: '发布 BOM',
+        quotation: '发布询价',
+        labor: '发布工时',
+        packaging: '发布包装',
+        capital: '发布资本项',
+        approval: '批准发布',
+      };
+
+      const WORKBENCH_STAGE_LABELS = {
+        harness: 'Harness intake',
+        bom: 'BOM review',
+        quotation: 'Quotation baseline',
+        labor: 'Labor validation',
+        packaging: 'Packaging and logistics',
+        capital: 'Capital and NRE',
+        approval: 'Approval publish',
+      };
+      const WORKBENCH_STAGE_NOTES = {
+        harness: 'Harness-first cost rows, mix, and per-set totals.',
+        bom: 'Workbook sections, sheet roles, and harness sheet previews.',
+        quotation: 'Quote baseline matrix, key cells, and per-harness baseline totals.',
+        labor: 'Direct labor and manufacturing validation with workbook source traces.',
+        packaging: 'Packaging and logistics values sourced per harness or customer part.',
+        capital: 'Equipment, tooling, fixtures, and R&D source details.',
+        approval: 'Approval records, project publish state, and audit handoff.',
+      };
+
+      function textOf(value, fallback) {
+        const text = String(value == null ? '' : value).trim();
+        return text || (fallback == null ? '' : fallback);
+      }
+
+      function numberOf(value, fallback) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : (fallback == null ? 0 : fallback);
+      }
+
+      function escapeHtml(value) {
+        return textOf(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function uniqueList(values) {
+        return Array.from(new Set((Array.isArray(values) ? values : []).map((value) => textOf(value, '')).filter(Boolean)));
+      }
+
+      function arrayOf(values) {
+        return Array.isArray(values) ? values : [];
+      }
+
+      function looksBroken(text) {
+        return /[\uFFFD]|[??]/.test(String(text || ''));
+      }
+
+      function safeProjectConfig(rawConfig, runtime) {
+        const master = runtime && runtime.master ? runtime.master : {};
+        const projectCode = textOf(rawConfig && (rawConfig.projectCode || rawConfig.projectId), textOf(master.projectCode || master.projectId, 'PROJECT'));
+        const fallbackName = textOf(master.name, projectCode ? `${projectCode} 生命周期成本平台` : '生命周期成本平台');
+        return Object.assign({}, rawConfig || {}, {
+          projectCode,
+          projectId: textOf(rawConfig && rawConfig.projectId, projectCode),
+          projectName: looksBroken(rawConfig && rawConfig.projectName) ? fallbackName : textOf(rawConfig && rawConfig.projectName, fallbackName),
+        });
+      }
+
+      function ensureProject(projectConfig) {
+        const registry = window.G281ProjectRegistry;
+        if (!registry || !projectConfig || !projectConfig.projectCode) return;
+        try {
+          registry.registerProject(projectConfig.projectCode, projectConfig);
+        } catch (error) {}
+        try {
+          if (registry.getActiveCode() !== projectConfig.projectCode) {
+            registry.switchProject(projectConfig.projectCode);
+          }
+        } catch (error) {}
+      }
+
+      function mountProjectSwitcher(nav) {
+        const host = nav && nav.querySelector('.g281-nav-meta');
+        if (!host || !window.G281ProjectSwitcher || !window.G281ProjectSwitcher.render) return;
+        const mount = document.createElement('div');
+        host.appendChild(mount);
+        window.G281ProjectSwitcher.render(mount, { onSwitch: () => location.reload() });
+      }
+
+      function resolveRouterState() {
+        return window.G281PageRouter && typeof window.G281PageRouter.resolveState === 'function'
+          ? window.G281PageRouter.resolveState()
+          : {};
+      }
+
+      function resolveContextBaselineKey(repo, fallbackKey, routerState) {
+        const candidate = textOf(
+          routerState && (routerState.baselineKey || routerState.versionKey || routerState.stageKey),
+          fallbackKey
+        );
+        return repo && typeof repo.getFinancialVersion === 'function' && repo.getFinancialVersion(candidate)
+          ? candidate
+          : fallbackKey;
+      }
+
+      function buildRouterState(context, extraState) {
+        return Object.assign({}, resolveRouterState(), {
+          baselineKey: context.baselineKey,
+          versionKey: context.baselineKey,
+          stageKey: context.baselineKey,
+          sourcePage: 'accounting',
+        }, extraState || {});
+      }
+
+      function persistRouterState(context, extraState) {
+        if (!window.G281PageRouter) return;
+        const nextState = buildRouterState(context, extraState);
+        if (typeof window.G281PageRouter.saveState === 'function') window.G281PageRouter.saveState(nextState);
+        if (typeof window.G281PageRouter.writeUrlParams === 'function') window.G281PageRouter.writeUrlParams(nextState);
+      }
+
+      function navigateWithRouter(pageFile, context, extraState) {
+        const nextState = buildRouterState(context, extraState);
+        if (window.G281PageRouter && typeof window.G281PageRouter.navigateTo === 'function') {
+          window.G281PageRouter.navigateTo(pageFile, nextState);
+          return;
+        }
+        location.href = pageFile;
+      }
+
+      function currency(value) {
+        return numberOf(value, 0).toFixed(4);
+      }
+
+      function percent(value) {
+        return `${(numberOf(value, 0) * 100).toFixed(2)}%`;
+      }
+
+      function resolveTemplateKey(config) {
+        const templates = Array.isArray(config && config.customerTemplates) ? config.customerTemplates : [];
+        const customerTemplate = templates.find((item) => textOf(item && item.channel, '') === 'customer');
+        return textOf(customerTemplate && (customerTemplate.key || customerTemplate.id), DEFAULT_TEMPLATE_KEY);
+      }
+
+      function resolveStageDefinitions(config) {
+        return (Array.isArray(config && config.stageDefinitions) ? config.stageDefinitions : []).map((item) => ({
+          key: textOf(item && (item.id || item.key), ''),
+          label: textOf(item && (item.name || item.label), textOf(item && (item.id || item.key), '--')),
+          artifactType: textOf(item && item.artifactType, textOf(item && (item.id || item.key), '')),
+          scope: textOf(item && item.scope, 'harness'),
+          supportsPartialPublish: Boolean(item && item.supportsPartialPublish),
+        })).filter((item) => item.key);
+      }
+
+      function resolveHarnessIds(context) {
+        return uniqueList(
+          []
+            .concat(context.matrix && context.matrix.harnessColumns ? context.matrix.harnessColumns.map((column) => column.harnessId) : [])
+            .concat(context.stageCost && context.stageCost.rows ? context.stageCost.rows.map((row) => row.harnessId) : [])
+            .concat(context.runtime && context.runtime.bomValidation && context.runtime.bomValidation.harnessOrder ? context.runtime.bomValidation.harnessOrder : [])
+        );
+      }
+
+      function buildContext(runtime, repo, config, session, routerState) {
+        const history = repo.getHistory();
+        const seed = history[0] || {};
+        const draft = Object.assign({}, seed.draft || {});
+        const state = Object.assign({}, DEFAULT_STATE, config && config.stateDefaults ? config.stateDefaults : {}, seed.state || {});
+        const model = window.G281ComputeModel
+          ? window.G281ComputeModel.compute(runtime, draft, state)
+          : window.G281Engine.computeModel(runtime, draft, state);
+        const modelBaselineKey = textOf(model && model.financialContext && (model.financialContext.referenceKey || model.financialContext.exactKey), 'quote');
+        const baselineKey = resolveContextBaselineKey(repo, modelBaselineKey, routerState);
+        const matrix = window.G281FinancialWorkbookAdapter.load(runtime, baselineKey);
+        const bomSnapshot = window.G281BomWorkbookAdapter.load(runtime, baselineKey);
+        const stageCost = model && model.stageCosts && model.stageCosts[baselineKey]
+          ? model.stageCosts[baselineKey]
+          : window.G281HarnessStageCostBuilder.build(runtime, baselineKey);
+        const rollup = model && model.projectRollups && model.projectRollups[baselineKey]
+          ? model.projectRollups[baselineKey]
+          : window.G281ProjectRollupBuilder.build(stageCost.rows || [], runtime, { baselineKey });
+        const templateKey = resolveTemplateKey(config);
+        const template = window.G281CustomerQuoteTemplateAdapter.build(runtime, templateKey, baselineKey, { projectRollup: rollup });
+        const changeImpact = window.G281ChangeImpactBuilder.build(runtime, baselineKey, { templateKey, projectRollup: rollup });
+        return { runtime, repo, config, model, baselineKey, matrix, bomSnapshot, stageCost, rollup, templateKey, template, changeImpact, session };
+      }
+
+      function renderStatus(context) {
+        const publishStates = context.repo.getArtifactPublishStates({ versionKey: context.baselineKey });
+        const approvals = context.repo.getApprovals();
+        const element = document.getElementById('accStatus');
+        const projectName = textOf(context.config && context.config.projectName, '生命周期成本平台');
+        const harnessCount = resolveHarnessIds(context).length;
+        const pathLabel = textOf(context.model && context.model.computationPath && context.model.computationPath.label, '未知路径');
+        element.textContent = `${projectName} / 基线 ${context.baselineKey} / 线束 ${harnessCount} 条 / 发布状态 ${publishStates.length} 条 / 审批 ${approvals.length} 条 / 登录 ${textOf(context.session && context.session.mode, 'local-mock')} / 路径 ${pathLabel}`;
+      }
+
+      function renderPageActions(context) {
+        const mount = document.getElementById('accountingActions');
+        if (!mount) return;
+        mount.innerHTML = `
+          <div class="page-actions-copy">
+            核算页保持当前基线、审批状态和来源页信息，支持继续流转到追踪和归档，也支持回到预演继续做 what-if 校核。
+          </div>
+          <div class="page-actions-buttons row-actions">
+            <button id="accountingBackPreviewButton" class="secondary" type="button">返回预演</button>
+            <button id="accountingGoTrackingButton" type="button">进入追踪</button>
+            <button id="accountingGoArchiveButton" class="secondary" type="button">查看归档</button>
+          </div>
+        `;
+        const backButton = document.getElementById('accountingBackPreviewButton');
+        const trackingButton = document.getElementById('accountingGoTrackingButton');
+        const archiveButton = document.getElementById('accountingGoArchiveButton');
+        if (backButton) {
+          backButton.addEventListener('click', () => {
+            navigateWithRouter('preview.html', context, { targetPage: 'preview' });
+          });
+        }
+        if (trackingButton) {
+          trackingButton.addEventListener('click', () => {
+            navigateWithRouter('tracking.html', context, { targetPage: 'tracking' });
+          });
+        }
+        if (archiveButton) {
+          archiveButton.addEventListener('click', () => {
+            navigateWithRouter('archive.html', context, { targetPage: 'archive' });
+          });
+        }
+      }
+
+      function renderWorkflowBoard(context) {
+        const mount = document.getElementById('workflowBoardMount');
+        const result = window.G281WorkflowStageBoard.attach({ boardMount: mount }, { runtime: context.repo, baselineKey: context.baselineKey });
+        const summaryMount = document.getElementById('workflowSummaryMount');
+        summaryMount.innerHTML = (result.nodes || []).map((node) => `
+          <div class="summary-card">
+            <strong>${escapeHtml(node.label)}</strong>
+            <span>${Math.round(numberOf(node.completionRate, 0) * 100)}%</span>
+            <small>已发布 ${numberOf(node.publishedCount, 0)}/${numberOf(node.totalCount, 0)} | 待处理 ${numberOf(node.pendingCount, 0)} | 异常 ${numberOf(node.exceptionCount, 0)}</small>
+          </div>
+        `).join('');
+        mount.querySelectorAll('article').forEach((nodeEl) => nodeEl.classList.add('workflow-node'));
+      }
+
+      function renderQuoteKeyCells(matrix) {
+        const mount = document.getElementById('quoteBaselineKeys');
+        mount.innerHTML = KEY_CELLS.map((address) => {
+          const item = matrix && matrix.keyCells ? matrix.keyCells[address] : null;
+          const label = item && item.formulaSource ? `${item.value} (${item.formulaSource})` : textOf(item && item.value, '--');
+          return `<span class="chip">${escapeHtml(address)}: ${escapeHtml(label)}</span>`;
+        }).join('');
+      }
+
+      function renderChipItems(items) {
+        const chips = arrayOf(items).filter(Boolean);
+        if (!chips.length) return '';
+        return `<div class="chip-list">${chips.map((item) => `<span class="chip">${escapeHtml(item)}</span>`).join('')}</div>`;
+      }
+
+      function summarizeSource(detail) {
+        if (!detail) return '--';
+        const summary = detail.sourceSummary || {};
+        const sourceSheets = uniqueList(summary.sourceSheets || []);
+        if (sourceSheets.length) return sourceSheets.join(', ');
+        const references = arrayOf(detail.references).map((ref) => {
+          const source = textOf(ref && ref.source, '');
+          if (source) return source;
+          const sheetName = textOf(ref && ref.sheetName, '');
+          const address = textOf(ref && ref.address, '');
+          return sheetName && address ? `${sheetName}!${address}` : '';
+        }).filter(Boolean);
+        if (references.length) return references.slice(0, 3).join(' + ');
+        return textOf(detail.formula, textOf(detail.displayValue, '--'));
+      }
+
+      function stageNodeMap(context) {
+        const board = window.G281WorkflowStageBoard.build(context.repo, {
+          baselineKey: context.baselineKey,
+          config: context.config,
+        });
+        return arrayOf(board && board.nodes).reduce((accumulator, node) => {
+          accumulator[node.key] = node;
+          if (node.key === 'quotation') accumulator.quote = node;
+          return accumulator;
+        }, {});
+      }
+
+      function stageLabel(stageNode, stageKey) {
+        return textOf(stageNode && stageNode.label, WORKBENCH_STAGE_LABELS[stageKey] || stageKey);
+      }
+
+      function stageStatusText(stageNode) {
+        return textOf(stageNode && stageNode.statusText, 'status unavailable');
+      }
+
+      function renderMiniTable(columns, rows, emptyText) {
+        const safeColumns = arrayOf(columns);
+        const safeRows = arrayOf(rows);
+        if (!safeColumns.length || !safeRows.length) {
+          return `<div class="empty">${escapeHtml(textOf(emptyText, 'No records.'))}</div>`;
+        }
+        const headerHtml = safeColumns.map((column) => `<th>${escapeHtml(textOf(column && column.label, '--'))}</th>`).join('');
+        const bodyHtml = safeRows.map((row) => `
+          <tr>
+            ${safeColumns.map((column) => {
+              const rendered = column && typeof column.render === 'function'
+                ? column.render(row)
+                : escapeHtml(textOf(row && column && column.key ? row[column.key] : '--', '--'));
+              const tag = column && column.header ? 'th' : 'td';
+              return `<${tag}>${rendered}</${tag}>`;
+            }).join('')}
+          </tr>
+        `).join('');
+        return `
+          <div class="table-wrap">
+            <table class="mini-table">
+              <thead><tr>${headerHtml}</tr></thead>
+              <tbody>${bodyHtml}</tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderStageShell(section) {
+        return `
+          <section class="sheet-stage" data-stage-key="${escapeHtml(section.key)}" id="sheetStage-${escapeHtml(section.key)}">
+            <div class="sheet-stage-header">
+              <div>
+                <strong>${escapeHtml(section.label)}</strong>
+                <div class="sheet-stage-note">${escapeHtml(section.note)}</div>
+              </div>
+              <div class="sheet-stage-status">${escapeHtml(section.statusText)}</div>
+            </div>
+            ${section.chipsHtml || ''}
+            <div class="sheet-stage-body">${section.bodyHtml || ''}</div>
+          </section>
+        `;
+      }
+
+      function buildSheetWorkbenchSections(context) {
+        const stageNodes = stageNodeMap(context);
+        const harnessRows = arrayOf(context.matrix && context.matrix.harnessRows);
+        const stageRows = arrayOf(context.stageCost && context.stageCost.rows);
+        const bomSnapshot = context.bomSnapshot || {};
+        const bomSections = arrayOf(bomSnapshot.sections);
+        const approvals = context.repo.getApprovals();
+        const approvalState = context.repo.getArtifactPublishStates({ versionKey: context.baselineKey, artifactType: 'approval' })[0] || null;
+        const roleCounts = bomSections.reduce((accumulator, section) => {
+          const role = textOf(section && section.role, 'sheet');
+          accumulator[role] = numberOf(accumulator[role], 0) + 1;
+          return accumulator;
+        }, {});
+        const roleSummary = Object.keys(roleCounts).slice(0, 5).map((role) => `${role} ${roleCounts[role]}`);
+        const harnessDetailRows = stageRows.slice(0, 12);
+        const quotationRows = harnessRows.slice(0, 12);
+        const bomPreviewRows = bomSections.slice(0, 8);
+        const laborRows = quotationRows.map((row) => ({
+          harnessId: row.harnessId,
+          directLabor: row.metrics && row.metrics.directLabor,
+          manufacturing: row.metrics && row.metrics.manufacturing,
+          laborSource: summarizeSource(row.sourceDetails && row.sourceDetails.directLabor),
+          manufacturingSource: summarizeSource(row.sourceDetails && row.sourceDetails.manufacturing),
+        }));
+        const packagingRows = quotationRows.map((row) => ({
+          harnessId: row.harnessId,
+          packaging: row.metrics && row.metrics.packaging,
+          packagingSource: summarizeSource(row.sourceDetails && row.sourceDetails.packaging),
+        }));
+        const capitalRows = quotationRows.map((row) => ({
+          harnessId: row.harnessId,
+          equipment: row.metrics && row.metrics.equipment,
+          tooling: row.values && row.values.toolingAndFixtures,
+          rnd: row.metrics && row.metrics.rnd,
+          capitalSource: uniqueList([
+            summarizeSource(row.sourceDetails && row.sourceDetails.equipment),
+            summarizeSource(row.sourceDetails && row.sourceDetails.toolingAndFixtures),
+            summarizeSource(row.sourceDetails && row.sourceDetails.rnd),
+          ]).filter((value) => value && value !== '--').join(' | ') || '--',
+        }));
+        const approvalRows = approvals.slice(0, 10);
+
+        return [
+          {
+            key: 'harness',
+            label: stageLabel(stageNodes.harness, 'harness'),
+            note: WORKBENCH_STAGE_NOTES.harness,
+            statusText: stageStatusText(stageNodes.harness),
+            chipsHtml: renderChipItems([
+              `baseline ${context.baselineKey}`,
+              `harness rows ${stageRows.length}`,
+              `project rollup ${(context.rollup && context.rollup.harnessCount) || harnessRows.length}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Harness', header: true, render: (row) => escapeHtml(textOf(row && row.harnessId, '--')) },
+              { label: 'Mix', render: (row) => escapeHtml(percent(row && row.usageRatio)) },
+              { label: 'Material', render: (row) => escapeHtml(currency(row && row.materialPerSet)) },
+              { label: 'Labor', render: (row) => escapeHtml(currency(row && row.directLaborPerSet)) },
+              { label: 'Packaging', render: (row) => escapeHtml(currency(row && row.packagingPerSet)) },
+              { label: 'Total', render: (row) => escapeHtml(currency(row && row.totalCostPerSet)) },
+            ], harnessDetailRows, 'No harness stage rows available.'),
+          },
+          {
+            key: 'bom',
+            label: stageLabel(stageNodes.bom, 'bom'),
+            note: WORKBENCH_STAGE_NOTES.bom,
+            statusText: stageStatusText(stageNodes.bom),
+            chipsHtml: renderChipItems([
+              `workbook ${textOf(bomSnapshot.workbookName, bomSnapshot.versionKey || '--')}`,
+              `sections ${bomSections.length}`,
+              `harness sheets ${arrayOf(bomSnapshot.harnesses).length}`,
+            ].concat(roleSummary)),
+            bodyHtml: `
+              ${renderMiniTable([
+                { label: 'Sheet', header: true, render: (row) => escapeHtml(textOf(row && row.sheetName, '--')) },
+                { label: 'Role', render: (row) => escapeHtml(textOf(row && row.role, '--')) },
+                { label: 'Rows', render: (row) => escapeHtml(textOf(row && row.rowCount, '--')) },
+                { label: 'Cols', render: (row) => escapeHtml(textOf(row && row.columnCount, '--')) },
+              ], bomPreviewRows, 'No BOM workbook sections available.')}
+              <div class="sheet-stage-submount" data-bom-preview="true"></div>
+            `,
+          },
+          {
+            key: 'quotation',
+            label: stageLabel(stageNodes.quotation || stageNodes.quote, 'quotation'),
+            note: WORKBENCH_STAGE_NOTES.quotation,
+            statusText: stageStatusText(stageNodes.quotation || stageNodes.quote),
+            chipsHtml: renderChipItems([
+              `sheet ${textOf(context.matrix && context.matrix.summarySheetName, '--')}`,
+              `workbook ${textOf(context.matrix && context.matrix.workbookName, context.matrix && context.matrix.financialKey)}`,
+              `harness columns ${arrayOf(context.matrix && context.matrix.harnessColumns).length}`,
+              `key cells ${KEY_CELLS.length}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Harness', header: true, render: (row) => escapeHtml(textOf(row && row.harnessId, '--')) },
+              { label: 'Qty', render: (row) => escapeHtml(currency(row && row.quantityFactor)) },
+              { label: 'Mix', render: (row) => escapeHtml(percent(row && row.usageRatio)) },
+              { label: 'Total', render: (row) => escapeHtml(currency(row && row.metrics && row.metrics.totalCost)) },
+              { label: 'Material', render: (row) => escapeHtml(currency(row && row.metrics && row.metrics.material)) },
+              { label: 'Sources', render: (row) => escapeHtml(uniqueList(row && row.sourceSummary && row.sourceSummary.sourceSheets).join(', ') || '--') },
+            ], quotationRows, 'No quotation baseline rows available.'),
+          },
+          {
+            key: 'labor',
+            label: stageLabel(stageNodes.labor, 'labor'),
+            note: WORKBENCH_STAGE_NOTES.labor,
+            statusText: stageStatusText(stageNodes.labor),
+            chipsHtml: renderChipItems([
+              `labor rows ${laborRows.length}`,
+              `direct labor traced ${laborRows.filter((row) => row.laborSource !== '--').length}`,
+              `manufacturing traced ${laborRows.filter((row) => row.manufacturingSource !== '--').length}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Harness', header: true, render: (row) => escapeHtml(textOf(row && row.harnessId, '--')) },
+              { label: 'Direct labor', render: (row) => escapeHtml(currency(row && row.directLabor)) },
+              { label: 'Manufacturing', render: (row) => escapeHtml(currency(row && row.manufacturing)) },
+              { label: 'Labor source', render: (row) => escapeHtml(textOf(row && row.laborSource, '--')) },
+              { label: 'Manufacturing source', render: (row) => escapeHtml(textOf(row && row.manufacturingSource, '--')) },
+            ], laborRows, 'No labor validation rows available.'),
+          },
+          {
+            key: 'packaging',
+            label: stageLabel(stageNodes.packaging, 'packaging'),
+            note: WORKBENCH_STAGE_NOTES.packaging,
+            statusText: stageStatusText(stageNodes.packaging),
+            chipsHtml: renderChipItems([
+              `packaging rows ${packagingRows.length}`,
+              `sheet ${textOf(context.matrix && context.matrix.summarySheetName, '--')}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Harness', header: true, render: (row) => escapeHtml(textOf(row && row.harnessId, '--')) },
+              { label: 'Packaging per set', render: (row) => escapeHtml(currency(row && row.packaging)) },
+              { label: 'Source', render: (row) => escapeHtml(textOf(row && row.packagingSource, '--')) },
+            ], packagingRows, 'No packaging validation rows available.'),
+          },
+          {
+            key: 'capital',
+            label: stageLabel(stageNodes.capital, 'capital'),
+            note: WORKBENCH_STAGE_NOTES.capital,
+            statusText: stageStatusText(stageNodes.capital),
+            chipsHtml: renderChipItems([
+              `capital rows ${capitalRows.length}`,
+              `R&D traced ${capitalRows.filter((row) => row.capitalSource !== '--').length}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Harness', header: true, render: (row) => escapeHtml(textOf(row && row.harnessId, '--')) },
+              { label: 'Equipment', render: (row) => escapeHtml(currency(row && row.equipment)) },
+              { label: 'Tooling/fixtures', render: (row) => escapeHtml(currency(row && row.tooling)) },
+              { label: 'R&D', render: (row) => escapeHtml(currency(row && row.rnd)) },
+              { label: 'Source', render: (row) => escapeHtml(textOf(row && row.capitalSource, '--')) },
+            ], capitalRows, 'No capital validation rows available.'),
+          },
+          {
+            key: 'approval',
+            label: stageLabel(stageNodes.approval, 'approval'),
+            note: WORKBENCH_STAGE_NOTES.approval,
+            statusText: stageStatusText(stageNodes.approval),
+            chipsHtml: renderChipItems([
+              `records ${approvals.length}`,
+              `publish ${textOf(approvalState && approvalState.status, 'draft')}`,
+              `baseline ${context.baselineKey}`,
+            ]),
+            bodyHtml: renderMiniTable([
+              { label: 'Approval', header: true, render: (row) => escapeHtml(textOf(row && (row.title || row.id), '--')) },
+              { label: 'Status', render: (row) => escapeHtml(textOf(row && row.status, '--')) },
+              { label: 'Submitted', render: (row) => escapeHtml(textOf(row && (row.submittedAt || row.createdAt), '--')) },
+              { label: 'Approved', render: (row) => escapeHtml(textOf(row && row.approvedAt, '--')) },
+              { label: 'Snapshot', render: (row) => escapeHtml(textOf(row && row.relatedVersionId, '--')) },
+            ], approvalRows, 'No approval records available yet.'),
+          },
+        ];
+      }
+
+      function renderSheetWorkbench(context) {
+        const mount = document.getElementById('sheetWorkbenchMount');
+        if (!mount) return;
+        const sections = buildSheetWorkbenchSections(context);
+        mount.innerHTML = `
+          <div class="sheet-workbench">
+            <div class="chip-list sheet-jump-list">
+              ${sections.map((section) => `
+                <button
+                  type="button"
+                  class="secondary"
+                  data-jump-stage="${escapeHtml(section.key)}"
+                >${escapeHtml(section.label)}</button>
+              `).join('')}
+            </div>
+            <div class="sheet-stage-grid">
+              ${sections.map(renderStageShell).join('')}
+            </div>
+          </div>
+        `;
+
+        mount.querySelectorAll('button[data-jump-stage]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const stageKey = textOf(button.getAttribute('data-jump-stage'), '');
+            const section = mount.querySelector(`[data-stage-key="${stageKey}"]`);
+            if (section && typeof section.scrollIntoView === 'function') {
+              section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          });
+        });
+
+        const bomPreviewMount = mount.querySelector('[data-bom-preview="true"]');
+        if (bomPreviewMount && window.G281BomWorkbookAdapter && typeof window.G281BomWorkbookAdapter.renderWorkbench === 'function') {
+          window.G281BomWorkbookAdapter.renderWorkbench(bomPreviewMount, context.bomSnapshot);
+        }
+      }
+
+      function renderHarnessCost(stageCost) {
+        const rows = stageCost && stageCost.rows ? stageCost.rows : [];
+        const mount = document.getElementById('harnessCostDetails');
+        if (!rows.length) {
+          mount.innerHTML = '<div class="empty">暂无单线束阶段成本。</div>';
+          return;
+        }
+        mount.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>线束号</th>
+                  <th>装车比</th>
+                  <th>材料</th>
+                  <th>直接人工</th>
+                  <th>制造费用</th>
+                  <th>设备+研发</th>
+                  <th>包装物流</th>
+                  <th>单套总成本</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map((row) => `
+                  <tr>
+                    <th>${escapeHtml(textOf(row.harnessId, '--'))}</th>
+                    <td>${currency(row.usageRatio)}</td>
+                    <td>${currency(row.materialPerSet)}</td>
+                    <td>${currency(row.directLaborPerSet)}</td>
+                    <td>${currency(row.manufacturingPerSet)}</td>
+                    <td>${currency(numberOf(row.equipmentPerSet, 0) + numberOf(row.rndPerSet, 0))}</td>
+                    <td>${currency(row.packagingPerSet)}</td>
+                    <td>${currency(row.totalCostPerSet)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderProjectRollup(rollup) {
+        const mount = document.getElementById('projectRollupDetails');
+        const perSet = rollup && rollup.perSet ? rollup.perSet : {};
+        const lifecycle = rollup && rollup.lifecycle ? rollup.lifecycle : [];
+        mount.innerHTML = `
+          <div class="chip-list">
+            <span class="chip">单套收入 ${currency(perSet.revenue)}</span>
+            <span class="chip">单套成本 ${currency(perSet.cost)}</span>
+            <span class="chip">单套利润 ${currency(perSet.profit)}</span>
+            <span class="chip">毛利率 ${percent(perSet.margin)}</span>
+            <span class="chip">成本差异 ${currency(rollup && rollup.deltas && rollup.deltas.costPerSet)}</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>年份</th>
+                  <th>销量</th>
+                  <th>收入</th>
+                  <th>成本</th>
+                  <th>利润</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${lifecycle.map((row) => `
+                  <tr>
+                    <th>${escapeHtml(textOf(row.year, '--'))}</th>
+                    <td>${currency(row.volume)}</td>
+                    <td>${currency(row.revenue)}</td>
+                    <td>${currency(row.cost)}</td>
+                    <td>${currency(row.profit)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderTemplatePreview(template) {
+        const mount = document.getElementById('templatePreviewDetails');
+        const rows = template && template.fields ? template.fields : [];
+        if (!rows.length) {
+          mount.innerHTML = '<div class="empty">暂无客户模板映射。</div>';
+          return;
+        }
+        mount.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>模板单元格</th>
+                  <th>含义</th>
+                  <th>值</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map((row) => `
+                  <tr>
+                    <th>${escapeHtml(textOf(row.cellKey, '--'))}</th>
+                    <td>${escapeHtml(textOf(row.label, '--'))}</td>
+                    <td>${escapeHtml(row.valueKey === 'margin' ? percent(row.value) : textOf(row.value, '--'))}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderChangeImpact(changeImpact) {
+        const mount = document.getElementById('changeImpactDetails');
+        const harnessRows = changeImpact && changeImpact.harnessDiffs ? changeImpact.harnessDiffs.slice(0, 12) : [];
+        const templateRows = changeImpact && changeImpact.templateDiffs ? changeImpact.templateDiffs.slice(0, 8) : [];
+        mount.innerHTML = `
+          <div class="chip-list">
+            <span class="chip">对比 ${escapeHtml(textOf(changeImpact && changeImpact.stageKey, '--'))} vs ${escapeHtml(textOf(changeImpact && changeImpact.comparisonKey, '--'))}</span>
+            <span class="chip">项目单套成本差 ${currency(changeImpact && changeImpact.projectDiff && changeImpact.projectDiff.costPerSetDelta)}</span>
+            <span class="chip">项目单套利润差 ${currency(changeImpact && changeImpact.projectDiff && changeImpact.projectDiff.profitPerSetDelta)}</span>
+            <span class="chip">回收影响 ${currency(changeImpact && changeImpact.recoveryImpact && changeImpact.recoveryImpact.obsoleteValue)}</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>线束号</th>
+                  <th>总成本差</th>
+                  <th>材料差</th>
+                  <th>人工差</th>
+                  <th>包装差</th>
+                  <th>资本差</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${harnessRows.map((row) => `
+                  <tr>
+                    <th>${escapeHtml(textOf(row.harnessId, '--'))}</th>
+                    <td>${currency(row.totalCostDelta)}</td>
+                    <td>${currency(row.materialDelta)}</td>
+                    <td>${currency(row.laborDelta)}</td>
+                    <td>${currency(row.packagingDelta)}</td>
+                    <td>${currency(row.equipmentDelta)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          <div class="chip-list">
+            ${templateRows.length
+              ? templateRows.map((row) => `<span class="chip">${escapeHtml(textOf(row.cellKey, '--'))}: ${escapeHtml(textOf(row.value, '--'))} -> ${escapeHtml(textOf(row.compareValue, '--'))}</span>`).join('')
+              : '<span class="chip">暂无模板差异</span>'}
+          </div>
+        `;
+      }
+
+      function buildPublishStateMap(repo, baselineKey) {
+        return new Map(repo.getArtifactPublishStates({ versionKey: baselineKey }).map((item) => {
+          const harnessKey = textOf(item && item.harnessId, '*');
+          return [`${textOf(item && item.artifactType, '')}:${harnessKey}`, item];
+        }));
+      }
+
+      function renderPublishBoard(context) {
+        const mount = document.getElementById('artifactPublishMount');
+        const stageDefinitions = resolveStageDefinitions(context.config).filter((stage) => stage.artifactType !== 'approval');
+        const harnessIds = resolveHarnessIds(context);
+        const stateMap = buildPublishStateMap(context.repo, context.baselineKey);
+
+        if (!stageDefinitions.length || !harnessIds.length) {
+          mount.innerHTML = '<div class="empty">当前基线未识别到可发布的线束或流程节点。</div>';
+          return;
+        }
+
+        mount.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>节点</th>
+                  <th>线束号</th>
+                  <th>状态</th>
+                  <th>发布时间</th>
+                  <th>说明</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="artifactPublishTableBody">
+                ${stageDefinitions.map((stage) => harnessIds.map((harnessId) => {
+                  const state = stateMap.get(`${stage.artifactType}:${harnessId}`);
+                  return `
+                    <tr>
+                      <th>${escapeHtml(stage.label)}</th>
+                      <td>${escapeHtml(harnessId)}</td>
+                      <td>${escapeHtml(textOf(state && state.status, 'draft'))}</td>
+                      <td>${escapeHtml(textOf(state && state.publishedAt, '--'))}</td>
+                      <td>${escapeHtml(state && state.note ? state.note : (stage.supportsPartialPublish ? '支持局部发布' : '项目级状态'))}</td>
+                      <td>
+                        <button
+                          type="button"
+                          data-action="publish-artifact"
+                          data-artifact-type="${escapeHtml(stage.artifactType)}"
+                          data-harness-id="${escapeHtml(harnessId)}"
+                        >${escapeHtml(STAGE_ACTION_LABELS[stage.artifactType] || '发布')}</button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        mount.querySelectorAll('button[data-action="publish-artifact"]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const artifactType = textOf(button.getAttribute('data-artifact-type'), '');
+            const harnessId = textOf(button.getAttribute('data-harness-id'), '*');
+            publishArtifact(context, artifactType, harnessId);
+          });
+        });
+      }
+
+      function renderApprovalActions(context) {
+        const mount = document.getElementById('approvalActionMount');
+        const approvals = context.repo.getApprovals();
+        const pending = approvals.find((record) => textOf(record && record.status, '').toUpperCase() === 'PENDING');
+        const approvalState = context.repo.getArtifactPublishStates({ versionKey: context.baselineKey, artifactType: 'approval' })[0] || null;
+        mount.innerHTML = `
+          <div class="chip-list">
+            <span class="chip">审批单 ${approvals.length}</span>
+            <span class="chip">待审批 ${pending ? 1 : 0}</span>
+            <span class="chip">项目发布 ${escapeHtml(textOf(approvalState && approvalState.status, 'draft'))}</span>
+          </div>
+          <div class="row-actions">
+            <button id="submitApprovalButton" type="button"${pending ? ' disabled' : ''}>提交审批</button>
+            <button id="approveReleaseButton" class="secondary" type="button"${pending ? '' : ' disabled'}>批准并发布</button>
+          </div>
+          <div class="empty" id="approvalActionHint">
+            ${escapeHtml(
+              pending
+                ? `当前待审批单: ${textOf(pending.title || pending.id, pending.id)}`
+                : '当前无待审批记录，可提交新的审批流。'
+            )}
+          </div>
+        `;
+
+        const submitButton = document.getElementById('submitApprovalButton');
+        const approveButton = document.getElementById('approveReleaseButton');
+        if (submitButton) {
+          submitButton.addEventListener('click', async () => {
+            submitButton.disabled = true;
+            await submitApproval(context);
+          });
+        }
+        if (approveButton) {
+          approveButton.addEventListener('click', async () => {
+            approveButton.disabled = true;
+            await approveRelease(context, pending);
+          });
+        }
+      }
+
+      function renderApprovalRecords(context) {
+        const mount = document.getElementById('approvalRecordsMount');
+        const approvals = context.repo.getApprovals();
+        if (!approvals.length) {
+          mount.innerHTML = '<div class="empty">暂无审批记录。</div>';
+          return;
+        }
+        mount.innerHTML = `
+          <div class="table-wrap">
+            <table id="approvalRecordsTable">
+              <thead>
+                <tr>
+                  <th>审批单</th>
+                  <th>状态</th>
+                  <th>提交时间</th>
+                  <th>批准时间</th>
+                  <th>关联快照</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${approvals.map((row) => `
+                  <tr>
+                    <th>${escapeHtml(textOf(row.title || row.id, '--'))}</th>
+                    <td>${escapeHtml(textOf(row.status, '--'))}</td>
+                    <td>${escapeHtml(textOf(row.submittedAt || row.createdAt, '--'))}</td>
+                    <td>${escapeHtml(textOf(row.approvedAt, '--'))}</td>
+                    <td>${escapeHtml(textOf(row.relatedVersionId, '--'))}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function publishArtifact(context, artifactType, harnessId) {
+        context.repo.setArtifactPublishState({
+          projectId: textOf(context.config && (context.config.projectCode || context.config.projectId), 'PROJECT'),
+          harnessId,
+          artifactType,
+          versionKey: context.baselineKey,
+          status: 'published',
+          completionRate: 1,
+          blockedCount: 0,
+          pendingCount: 0,
+          exceptionCount: 0,
+          note: `published from accounting:${artifactType}:${harnessId}`,
+        });
+        refreshInteractive(context);
+      }
+
+      async function submitApproval(context) {
+        const versionRecord = context.repo.createHistoryRecord(context.model);
+        context.repo.saveHistory(versionRecord);
+        if (window.ApprovalGateway && typeof window.ApprovalGateway.submit === 'function') {
+          await window.ApprovalGateway.submit({
+            repo: context.repo,
+            versionRecord,
+            model: context.model,
+            title: `${textOf(context.config && context.config.projectName, 'Project')} ${context.baselineKey} approval`,
+            comment: 'Submitted from accounting lifecycle workbench.',
+            meta: {
+              baselineKey: context.baselineKey,
+              publishStates: context.repo.getArtifactPublishStates({ versionKey: context.baselineKey }),
+            },
+          });
+        }
+        refreshInteractive(context);
+      }
+
+      async function approveRelease(context, pendingRecord) {
+        const approvalRecord = pendingRecord || context.repo.getApprovals().find((record) => textOf(record && record.status, '').toUpperCase() === 'PENDING');
+        if (window.ApprovalGateway && typeof window.ApprovalGateway.approve === 'function' && approvalRecord) {
+          await window.ApprovalGateway.approve({
+            repo: context.repo,
+            approvalId: approvalRecord.id,
+            approver: textOf(context.session && (context.session.displayName || context.session.userId), 'local-approver'),
+            comment: 'Approved from accounting lifecycle workbench.',
+          });
+        }
+        context.repo.setArtifactPublishState({
+          projectId: textOf(context.config && (context.config.projectCode || context.config.projectId), 'PROJECT'),
+          harnessId: '*',
+          artifactType: 'approval',
+          versionKey: context.baselineKey,
+          status: 'published',
+          completionRate: 1,
+          blockedCount: 0,
+          pendingCount: 0,
+          exceptionCount: 0,
+          note: approvalRecord ? `approved:${approvalRecord.id}` : 'approved without pending record',
+        });
+        refreshInteractive(context);
+      }
+
+      function refreshInteractive(context) {
+        persistRouterState(context);
+        renderStatus(context);
+        renderPageActions(context);
+        renderWorkflowBoard(context);
+        renderSheetWorkbench(context);
+        renderPublishBoard(context);
+        renderApprovalActions(context);
+        renderApprovalRecords(context);
+      }
+
+      async function bootstrap() {
+        const runtime = window.G281_RUNTIME || {};
+        const repo = window.G281Repo.init(runtime);
+        const config = safeProjectConfig(await window.ConfigLoader.loadProjectConfig('../config/g281.project.json'), runtime);
+        ensureProject(config);
+        const nav = window.G281Nav.mountNavBar(config.projectName);
+        mountProjectSwitcher(nav);
+        const session = window.AuthGateway && window.AuthGateway.getSession
+          ? await window.AuthGateway.getSession({ roleKey: 'costing' })
+          : { mode: 'local-mock', displayName: 'local-user' };
+        const routerState = resolveRouterState();
+        const context = buildContext(runtime, repo, config, session, routerState);
+        persistRouterState(context, routerState);
+        renderStatus(context);
+        renderPageActions(context);
+        renderWorkflowBoard(context);
+        renderSheetWorkbench(context);
+        renderQuoteKeyCells(context.matrix);
+        window.G281FinancialWorkbookAdapter.renderMatrix(document.getElementById('quoteBaselineDetails'), context.matrix);
+        renderHarnessCost(context.stageCost);
+        renderProjectRollup(context.rollup);
+        renderTemplatePreview(context.template);
+        renderChangeImpact(context.changeImpact);
+        renderPublishBoard(context);
+        renderApprovalActions(context);
+        renderApprovalRecords(context);
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        bootstrap().catch((error) => {
+          document.getElementById('accStatus').textContent = `核算页初始化失败: ${error && error.message ? error.message : error}`;
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

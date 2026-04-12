@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>归档 - 生命周期成本平台</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
+  <link rel="stylesheet" href="../ui/dashboard.css">
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f1a; color: #e5e7eb; }
+    .page-header { padding: 20px 24px 12px; }
+    .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .page-header p { margin: 4px 0 0; font-size: 13px; color: #9ca3af; }
+    .archive-content { padding: 0 24px 24px; }
+    .status-bar, .arc-section, .arc-card { margin-top: 16px; background: #151527; border: 1px solid #2a2a3e; border-radius: 12px; }
+    .status-bar { padding: 14px 16px; font-size: 13px; color: #d1d5db; }
+    .arc-section, .arc-card { padding: 16px; }
+    .arc-section h2, .arc-card h3 { margin: 0 0 10px; font-size: 16px; }
+    .arc-section p, .arc-card p { margin: 0 0 12px; font-size: 12px; color: #9ca3af; }
+    .summary-grid, .arc-grid, .two-col { display: grid; gap: 16px; }
+    .summary-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .arc-grid, .two-col { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+    .summary-card { padding: 14px; background: #111125; border: 1px solid #27273a; border-radius: 10px; }
+    .summary-card strong { display: block; font-size: 12px; color: #9ca3af; }
+    .summary-card span { display: block; margin-top: 8px; font-size: 22px; font-weight: 700; }
+    .summary-card small { display: block; margin-top: 6px; font-size: 12px; color: #93c5fd; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #27273a; text-align: left; vertical-align: top; }
+    th { color: #cbd5e1; font-weight: 600; }
+    td { color: #e5e7eb; }
+    .chip-list { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip { padding: 6px 10px; border-radius: 999px; background: #111125; border: 1px solid #27273a; font-size: 12px; color: #cbd5e1; }
+    .empty { padding: 12px; border-radius: 8px; background: #111125; color: #9ca3af; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>归档</h1>
+    <p>管理版本时间线、release 包、审批记录、工作簿快照和导出历史，保留离线回滚链路。</p>
+  </div>
+
+  <div class="archive-content">
+    <div id="arcStatus" class="status-bar">正在初始化归档上下文...</div>
+
+    <section class="arc-section">
+      <h2>归档概览</h2>
+      <div id="arcSummaryMount" class="summary-grid"></div>
+    </section>
+
+    <section class="arc-section">
+      <h2>版本时间线</h2>
+      <p>优先显示本地版本快照；若存在 release timeline，则同步展示发布链路。</p>
+      <div id="arcTimelineMount"></div>
+    </section>
+
+    <div class="arc-grid">
+      <section class="arc-card" id="releasePackMount"></section>
+      <section class="arc-card" id="approvalMount"></section>
+      <section class="arc-card" id="snapshotMount"></section>
+    </div>
+
+    <section class="arc-section">
+      <h2>BOM 与客户模板</h2>
+      <div id="arcWorkbookMount" class="two-col"></div>
+    </section>
+  </div>
+
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+  <script src="../g281_data_bundle.js"></script>
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+  <script src="../engine/shared_utils.js"></script>
+  <script src="../engine/state_normalizer.js"></script>
+  <script src="../engine/snapshot_resolver.js"></script>
+  <script src="../engine/annual_calc.js"></script>
+  <script src="../engine/config_bridge.js"></script>
+  <script src="../engine/computation_path.js"></script>
+  <script src="../engine/compute_model.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../engine/bom_parser.js"></script>
+  <script src="../engine/bom_schema.js"></script>
+  <script src="../engine/bom_db.js"></script>
+  <script src="../engine/align_key_enhancer.js"></script>
+  <script src="../engine/workflow_stage_board_builder.js"></script>
+  <script src="../engine/customer_quote_template_adapter.js"></script>
+  <script src="../engine/bom_workbook_adapter.js"></script>
+  <script src="../engine/harness_stage_cost_builder.js"></script>
+  <script src="../engine/project_rollup_builder.js"></script>
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+  <script src="../engine/schema_migrator.js"></script>
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../core/storage_adapter.js"></script>
+  <script src="../core/platform_gateways.js"></script>
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+  <script>
+    (function () {
+      function textOf(value, fallback) {
+        const text = String(value == null ? '' : value).trim();
+        return text || (fallback == null ? '' : fallback);
+      }
+
+      function numberOf(value, fallback) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : (fallback == null ? 0 : fallback);
+      }
+
+      function looksBroken(text) {
+        return /[Ã�]|[\uFFFD]|(?:楂|绾|鍛|鏍哥畻|棰勬紨|璺熻釜|褰掓。)/.test(String(text || ''));
+      }
+
+      function safeProjectConfig(rawConfig, runtime) {
+        const master = runtime && runtime.master ? runtime.master : {};
+        const projectCode = textOf(rawConfig && (rawConfig.projectCode || rawConfig.projectId), textOf(master.projectCode || master.projectId, 'PROJECT'));
+        const fallbackName = textOf(master.name, `${projectCode} 生命周期成本平台`);
+        return Object.assign({}, rawConfig || {}, {
+          projectCode,
+          projectId: textOf(rawConfig && rawConfig.projectId, projectCode),
+          projectName: looksBroken(rawConfig && rawConfig.projectName) ? fallbackName : textOf(rawConfig && rawConfig.projectName, fallbackName),
+        });
+      }
+
+      function ensureProject(projectConfig) {
+        const registry = window.G281ProjectRegistry;
+        if (!registry || !projectConfig || !projectConfig.projectCode) return;
+        try {
+          registry.registerProject(projectConfig.projectCode, projectConfig);
+        } catch (error) {}
+        try {
+          if (registry.getActiveCode() !== projectConfig.projectCode) {
+            registry.switchProject(projectConfig.projectCode);
+          }
+        } catch (error) {}
+      }
+
+      function mountProjectSwitcher(nav) {
+        const host = nav && nav.querySelector('.g281-nav-meta');
+        if (!host || !window.G281ProjectSwitcher || !window.G281ProjectSwitcher.render) return;
+        const mount = document.createElement('div');
+        host.appendChild(mount);
+        window.G281ProjectSwitcher.render(mount, { onSwitch: () => location.reload() });
+      }
+
+      function releaseCandidates() {
+        return location.pathname.includes('/releases/')
+          ? ['../../LATEST_RELEASE.json']
+          : ['../releases/LATEST_RELEASE.json'];
+      }
+
+      async function fetchFirstJson(candidates) {
+        for (let index = 0; index < candidates.length; index += 1) {
+          const candidate = candidates[index];
+          try {
+            const response = await fetch(candidate, { cache: 'no-store' });
+            if (!response.ok) continue;
+            return await response.json();
+          } catch (error) {}
+        }
+        return null;
+      }
+
+      async function loadReleaseInfo() {
+        const latest = await fetchFirstJson(releaseCandidates());
+        if (!latest || !latest.folderName) {
+          return { latest: null, metadata: null };
+        }
+
+        const metadataCandidates = location.pathname.includes('/releases/')
+          ? [`../../${latest.folderName}/${latest.metadataFile || 'release_metadata.json'}`, '../release_metadata.json']
+          : [`../releases/${latest.folderName}/${latest.metadataFile || 'release_metadata.json'}`];
+        const metadata = await fetchFirstJson(metadataCandidates);
+        return { latest, metadata };
+      }
+
+      function renderStatus(config, session, latest) {
+        document.getElementById('arcStatus').textContent =
+          `${textOf(config && config.projectName, '生命周期成本平台')} / 归档角色 ${textOf(session && session.roleKey, 'costing')} / 最新发布 ${textOf(latest && latest.versionTag, '未生成 release')}`;
+      }
+
+      function renderSummary(repo, latest, metadata) {
+        const history = repo.getHistory();
+        const approvals = repo.getApprovals();
+        const financialVersions = repo.listFinancialVersions();
+        const cards = [
+          ['版本快照', history.length, '本地离线快照数量'],
+          ['审批记录', approvals.length, '含 pending / approved'],
+          ['财务基线', financialVersions.length, '报价/定点等版本'],
+          ['最新发布', textOf(latest && latest.versionTag, '--'), textOf(metadata && metadata.structure, '未发布')],
+        ];
+        document.getElementById('arcSummaryMount').innerHTML = cards.map((card) => `
+          <div class="summary-card">
+            <strong>${card[0]}</strong>
+            <span>${card[1]}</span>
+            <small>${card[2]}</small>
+          </div>
+        `).join('');
+      }
+
+      function renderTimeline(repo, metadata) {
+        const history = repo.getHistory();
+        const releaseEvents = metadata && metadata.timelineEvents ? metadata.timelineEvents : [];
+        const combined = []
+          .concat(history.map((item) => ({
+            id: item.id,
+            type: 'snapshot',
+            name: textOf(item.name || item.scenarioName, '未命名快照'),
+            time: textOf(item.createdAt, ''),
+            note: textOf(item.note, '本地快照'),
+          })))
+          .concat(releaseEvents.map((item) => ({
+            id: item.versionTag,
+            type: 'release',
+            name: textOf(item.versionTag, 'release'),
+            time: textOf(item.publishedAt, ''),
+            note: '发布版本',
+          })));
+
+        const mount = document.getElementById('arcTimelineMount');
+        if (!combined.length) {
+          mount.innerHTML = '<div class="empty">暂无版本时间线数据。</div>';
+          return;
+        }
+
+        mount.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>类型</th>
+                  <th>标识</th>
+                  <th>名称</th>
+                  <th>时间</th>
+                  <th>说明</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${combined.map((item) => `
+                  <tr>
+                    <th>${item.type}</th>
+                    <td>${textOf(item.id, '--')}</td>
+                    <td>${textOf(item.name, '--')}</td>
+                    <td>${textOf(item.time, '--')}</td>
+                    <td>${textOf(item.note, '--')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderReleasePack(latest, metadata) {
+        const mount = document.getElementById('releasePackMount');
+        if (!latest) {
+          mount.innerHTML = '<h3>Release 包</h3><div class="empty">尚未检测到 release。</div>';
+          return;
+        }
+        mount.innerHTML = `
+          <h3>Release 包</h3>
+          <p>保留历史版本，不覆盖旧 release；本页同时显示指针和目录信息。</p>
+          <div class="chip-list">
+            <span class="chip">版本 ${textOf(latest.versionTag, '--')}</span>
+            <span class="chip">目录 ${textOf(latest.folderName, '--')}</span>
+            <span class="chip">结构 ${textOf(latest.structure, '--')}</span>
+            <span class="chip">离线 ${String(Boolean(latest.offlineReady))}</span>
+          </div>
+          <div class="chip-list">
+            ${((metadata && metadata.directories) || []).map((dir) => `<span class="chip">${dir}</span>`).join('')}
+          </div>
+        `;
+      }
+
+      function renderApprovals(records) {
+        const mount = document.getElementById('approvalMount');
+        if (!records.length) {
+          mount.innerHTML = '<h3>审批记录</h3><div class="empty">暂无审批记录。</div>';
+          return;
+        }
+        mount.innerHTML = `
+          <h3>审批记录</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>审批单</th>
+                  <th>状态</th>
+                  <th>提交时间</th>
+                  <th>关联版本</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${records.map((row) => `
+                  <tr>
+                    <th>${textOf(row.title || row.id, '--')}</th>
+                    <td>${textOf(row.status, '--')}</td>
+                    <td>${textOf(row.submittedAt || row.createdAt, '--')}</td>
+                    <td>${textOf(row.relatedVersionId, '--')}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderSnapshots(repo) {
+        const mount = document.getElementById('snapshotMount');
+        const versions = repo.listFinancialVersions();
+        const publishStates = repo.getArtifactPublishStates({});
+        mount.innerHTML = `
+          <h3>阶段快照</h3>
+          <p>这里展示可回滚的财务基线、局部发布状态和离线保留的工作簿版本。</p>
+          <div class="chip-list">
+            ${versions.map((row) => `<span class="chip">${textOf(row.key, '--')} / ${textOf(row.label, '--')}</span>`).join('')}
+            <span class="chip">局部发布 ${publishStates.length} 条</span>
+          </div>
+        `;
+      }
+
+      function renderWorkbookMount(runtime) {
+        const bomSnapshot = window.G281BomWorkbookAdapter.load(runtime, 'quote');
+        const template = window.G281CustomerQuoteTemplateAdapter.build(runtime, 'geely', 'quote', {
+          projectRollup: window.G281ProjectRollupBuilder.build(window.G281HarnessStageCostBuilder.build(runtime, 'quote').rows || [], runtime, { baselineKey: 'quote' }),
+        });
+        const mount = document.getElementById('arcWorkbookMount');
+
+        const bomSections = (bomSnapshot.sections || []).slice(0, 6).map((section) => `
+          <tr>
+            <th>${textOf(section.sheetName, '--')}</th>
+            <td>${textOf(section.role, '--')}</td>
+            <td>${textOf(section.rowCount, '--')}</td>
+            <td>${textOf(section.columnCount, '--')}</td>
+          </tr>
+        `).join('');
+
+        const templateRows = (template.fields || []).map((field) => `
+          <tr>
+            <th>${textOf(field.cellKey, '--')}</th>
+            <td>${textOf(field.label, '--')}</td>
+            <td>${field.valueKey === 'margin' ? `${(numberOf(field.value, 0) * 100).toFixed(2)}%` : textOf(field.value, '--')}</td>
+          </tr>
+        `).join('');
+
+        mount.innerHTML = `
+          <section class="arc-card">
+            <h3>BOM 工作簿快照</h3>
+            <p>线束页、总成散件、二次物料和变更页都保留在离线包中。</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Sheet</th>
+                    <th>角色</th>
+                    <th>行数</th>
+                    <th>列数</th>
+                  </tr>
+                </thead>
+                <tbody>${bomSections || '<tr><td colspan="4">暂无 BOM 快照</td></tr>'}</tbody>
+              </table>
+            </div>
+          </section>
+          <section class="arc-card">
+            <h3>客户模板映射</h3>
+            <p>归档页同时保留模板映射结果，便于导出和版本对比。</p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>单元格</th>
+                    <th>含义</th>
+                    <th>值</th>
+                  </tr>
+                </thead>
+                <tbody>${templateRows || '<tr><td colspan="3">暂无模板映射</td></tr>'}</tbody>
+              </table>
+            </div>
+          </section>
+        `;
+      }
+
+      async function bootstrap() {
+        const runtime = window.G281_RUNTIME || {};
+        const repo = window.G281Repo.init(runtime);
+        const config = safeProjectConfig(await window.ConfigLoader.loadProjectConfig('../config/g281.project.json'), runtime);
+        ensureProject(config);
+        const nav = window.G281Nav.mountNavBar(config.projectName);
+        mountProjectSwitcher(nav);
+
+        const session = window.AuthGateway && window.AuthGateway.getSession
+          ? await window.AuthGateway.getSession({ roleKey: 'costing' })
+          : { roleKey: 'costing' };
+        const approvalBundle = window.ApprovalGateway && window.ApprovalGateway.list
+          ? await window.ApprovalGateway.list({ repo })
+          : { records: repo.getApprovals() };
+        const releaseInfo = await loadReleaseInfo();
+
+        renderStatus(config, session, releaseInfo.latest);
+        renderSummary(repo, releaseInfo.latest, releaseInfo.metadata);
+        renderTimeline(repo, releaseInfo.metadata);
+        renderReleasePack(releaseInfo.latest, releaseInfo.metadata);
+        renderApprovals(approvalBundle.records || []);
+        renderSnapshots(repo);
+        renderWorkbookMount(runtime);
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        bootstrap().catch((error) => {
+          document.getElementById('arcStatus').textContent = `归档页初始化失败: ${error && error.message ? error.message : error}`;
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

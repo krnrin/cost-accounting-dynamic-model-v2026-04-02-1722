@@ -123,21 +123,9 @@ function mapApiProjectToRecord(project: ApiProject): ProjectRecord {
       createdAt: project.createdAt,
       updatedAt: project.updatedAt,
     },
-    config: {
-      costRates: project.costRates ?? {
-        laborRate: 35,
-        mfgRate: 46.69,
-        wasteRate: 0.01,
-        mgmtRate: 0.06,
-        profitRate: 0.056627,
-      },
-      metalPrices: project.metalPrices ?? {
-        copper: 72.5,
-        aluminum: 20.8,
-      },
-      volumes: project.volumes ?? [],
-      annualDropRate: 0,
-    },
+    // config is deprecated — lives on ScenarioRecord since v7
+    // Only kept as minimal fallback for legacy code paths
+    config: undefined,
   };
 }
 

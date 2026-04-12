@@ -1,0 +1,152 @@
+{
+  "$schema": "./project-config.schema.md",
+  "projectId": "G281",
+  "projectName": "G281 高压线束",
+  "customer": "",
+  "createdAt": "2026-04-02T12:00:00Z",
+
+  "baseline": {
+    "version": 1,
+    "lockedAt": "2026-04-02T12:00:00Z",
+    "lifecycle": {
+      "startYear": 2026,
+      "years": 6
+    },
+    "vehicleConfigs": [
+      {
+        "name": "高配",
+        "ratio": 0.3,
+        "harnesses": ["H1", "H2", "H3"],
+        "_note": "从 runtime.master.baselineMix + priceMixIndexes/costMixIndexes 提取"
+      },
+      {
+        "name": "低配",
+        "ratio": 0.5,
+        "harnesses": ["H1", "H3"]
+      },
+      {
+        "name": "出口",
+        "ratio": 0.2,
+        "harnesses": ["H1", "H2"]
+      }
+    ],
+    "annualVolumes": [
+      { "year": 2026, "volume": 0, "_note": "从 runtime.master.volumes 提取，此处为占位" },
+      { "year": 2027, "volume": 0 },
+      { "year": 2028, "volume": 0 },
+      { "year": 2029, "volume": 0 },
+      { "year": 2030, "volume": 0 },
+      { "year": 2031, "volume": 0 }
+    ]
+  },
+
+  "harnesses": [
+    {
+      "id": "H1",
+      "name": "主线束",
+      "partNumber": "",
+      "unit": "set",
+      "_note": "从 bomValidation.harnessOrder + BOM header 提取"
+    }
+  ],
+
+  "dimensions": {
+    "currency": "CNY",
+    "currencySymbol": "¥",
+    "lengthUnit": "mm",
+    "weightUnit": "g",
+    "volumeUnit": "套",
+    "priceDecimalPlaces": 4,
+    "ratioDecimalPlaces": 2
+  },
+
+  "materialComposition": {
+    "connector": 0.24,
+    "copper": 0.38,
+    "aluminum": 0.18,
+    "other": 0.20,
+    "_note": "四项之和 = 1.00，来自 engine.js matBase 公式"
+  },
+
+  "metalSensitivity": {
+    "copper": 0.65,
+    "aluminum": 0.45,
+    "_note": "价格变动对材料成本的传导系数，<1 因为导线含绝缘层等非金属成分"
+  },
+
+  "bom": {
+    "sheetRoleMap": [
+      { "role": "change_history", "matchKeyword": "变更履历" },
+      { "role": "assembly_parts", "matchKeyword": "总成散件清单" },
+      { "role": "secondary_materials", "matchKeyword": "二次物料明细" },
+      { "role": "ksk_bom_detail", "matchKeyword": "KSK线束BOM明细" },
+      { "role": "harness", "matchPattern": "^\\d{6,}" }
+    ],
+    "endGroupAliases": {
+      "接电池端": ["接电池端", "接电池", "电池端"],
+      "接电驱端": ["接电驱端", "接电驱", "电驱端", "电驱"],
+      "接ACCM端": ["接accm端", "接accm", "accm端", "accm"],
+      "接PTC端": ["接ptc端", "接ptc", "ptc端", "ptc"],
+      "二分四分线器": ["二分四分线器", "分线器"],
+      "组合式充电插座": ["组合式充电插座", "充电插座"],
+      "快充端": ["快充连接器", "快充端", "直流充电", "dc充电", "dc端", "直流端", "快充"],
+      "慢充端": ["慢充连接器", "慢充端", "交流充电", "ac充电", "ac端", "交流端", "慢充"],
+      "电子锁": ["电子锁"],
+      "低压INLINE": ["低压inline", "inline"],
+      "DC接地端子": ["dc接地", "直流接地"],
+      "AC接地端子": ["ac接地", "交流接地"]
+    },
+    "itemClassificationKeywords": {
+      "connector": ["连接器", "护套", "主体组合件", "尾盖", "密封圈", "挡板", "插头", "插座", "屏蔽环", "线卡"],
+      "terminal": ["端子"],
+      "ipt_terminal": ["ipt", "压接端子", "焊接端子"],
+      "wire": ["导线", "电缆", "cable"],
+      "bracket_rubber": ["支架", "橡胶"],
+      "tape_tube": ["胶带", "套管", "热缩管", "编织套管"]
+    },
+    "assemblyUnitKeyword": "set",
+    "headerMetaLayout": {
+      "versionText": { "row": 2, "col": 1 },
+      "projectName": { "row": 2, "col": 3 },
+      "harnessNo": { "row": 2, "col": 4 },
+      "harnessName": { "row": 2, "col": 5 },
+      "drawVersion": { "row": 2, "col": 6 },
+      "quoteDate": { "row": 2, "col": 7 }
+    },
+    "dataStartRow": 5,
+    "maxColumns": 17,
+    "fallbackRowCount": 2000
+  },
+
+  "costElements": [
+    { "id": "connector", "name": "连接器", "hasProtocolPrice": true, "hasMaterialCalc": false },
+    { "id": "wire", "name": "导线", "hasProtocolPrice": false, "hasMaterialCalc": true },
+    { "id": "terminal", "name": "端子", "hasProtocolPrice": true, "hasMaterialCalc": false },
+    { "id": "ipt_terminal", "name": "IPT端子", "hasProtocolPrice": true, "hasMaterialCalc": false },
+    { "id": "tape_tube", "name": "胶带套管", "hasProtocolPrice": false, "hasMaterialCalc": false },
+    { "id": "bracket_rubber", "name": "支架橡胶", "hasProtocolPrice": false, "hasMaterialCalc": false }
+  ],
+
+  "nreCostTypes": ["模具", "检具", "研发", "样品", "认证"],
+
+  "stateDefaults": {
+    "bom": "freeze",
+    "metal": "quote",
+    "connector": "quote",
+    "labor": "base",
+    "equipment": "base",
+    "packaging": "base",
+    "sales": "quote",
+    "mix": "quote",
+    "annualDrop": "quote",
+    "oneTimeCustomer": "quote",
+    "rebate": "quote",
+    "vave": "none"
+  },
+
+  "storageKeyPrefix": "g281",
+
+  "globalNamespacePrefix": "G281",
+
+  "changeHistory": []
+}

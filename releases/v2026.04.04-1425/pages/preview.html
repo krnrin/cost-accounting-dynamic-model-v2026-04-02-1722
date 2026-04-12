@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>预演 - 生命周期成本平台</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
+  <link rel="stylesheet" href="../ui/dashboard.css">
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f1a; color: #e5e7eb; }
+    .page-header { padding: 20px 24px 12px; }
+    .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .page-header p { margin: 4px 0 0; font-size: 13px; color: #9ca3af; }
+    .preview-content { padding: 0 24px 24px; }
+    .status-bar, .panel { margin-top: 16px; background: #151527; border: 1px solid #2a2a3e; border-radius: 12px; }
+    .status-bar { padding: 14px 16px; font-size: 13px; color: #d1d5db; }
+    .panel { padding: 16px; }
+    .panel h2 { margin: 0 0 10px; font-size: 16px; }
+    .panel p { margin: 0 0 12px; font-size: 12px; color: #9ca3af; }
+    .state-grid, .kpi-grid, .content-grid { display: grid; gap: 12px; }
+    .state-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+    .content-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .field { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: #111125; border: 1px solid #27273a; border-radius: 10px; }
+    .field label { font-size: 12px; color: #cbd5e1; }
+    .field select, .field button { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #374151; background: #0b1020; color: #e5e7eb; }
+    .field button { cursor: pointer; background: #1d4ed8; border-color: #1d4ed8; }
+    .kpi-card { padding: 14px; background: #111125; border: 1px solid #27273a; border-radius: 10px; }
+    .kpi-card strong { display: block; font-size: 12px; color: #9ca3af; }
+    .kpi-card span { display: block; margin-top: 8px; font-size: 22px; font-weight: 700; }
+    .kpi-card small { display: block; margin-top: 6px; font-size: 12px; color: #93c5fd; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #27273a; text-align: left; vertical-align: top; }
+    th { color: #cbd5e1; font-weight: 600; }
+    td { color: #e5e7eb; }
+    .chip-list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .chip { padding: 6px 10px; border-radius: 999px; background: #111125; border: 1px solid #27273a; font-size: 12px; color: #cbd5e1; }
+    .empty { padding: 12px; border-radius: 8px; background: #111125; color: #9ca3af; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>预演</h1>
+    <p>情景预演、利润校核和报价基线对照。报价阶段数据作为校核基线导入，但页面职责保持为 what-if 预演。</p>
+  </div>
+
+  <div class="preview-content">
+    <div id="previewStatus" class="status-bar">正在初始化预演上下文...</div>
+
+    <section class="panel">
+      <h2>情景参数</h2>
+      <p>这里保留轻量级版本切换。复杂调参仍可回到主看板继续处理，但本页已经能直接重算并校核报价基线。</p>
+      <div id="previewStateMount" class="state-grid"></div>
+    </section>
+
+    <section class="panel">
+      <h2>核心指标</h2>
+      <div id="previewKpiMount" class="kpi-grid"></div>
+    </section>
+
+    <div class="content-grid">
+      <section class="panel">
+        <h2>年度利润表</h2>
+        <div id="previewAnnualMount"></div>
+      </section>
+      <section class="panel">
+        <h2>单线束摘要</h2>
+        <div id="previewHarnessMount"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>报价基线校核矩阵</h2>
+      <p>优先读取报价核算表真实值与公式来源。该区域只做校核，不替代核算页的流程工作台。</p>
+      <div id="previewBaselineMount"></div>
+    </section>
+
+    <section class="panel">
+      <h2>项目汇总对照</h2>
+      <div id="previewRollupMount"></div>
+    </section>
+  </div>
+
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+  <script src="../g281_data_bundle.js"></script>
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+  <script src="../engine/shared_utils.js"></script>
+  <script src="../engine/state_normalizer.js"></script>
+  <script src="../engine/snapshot_resolver.js"></script>
+  <script src="../engine/annual_calc.js"></script>
+  <script src="../engine/config_bridge.js"></script>
+  <script src="../engine/computation_path.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../engine/compute_model.js"></script>
+  <script src="../engine/harness_profit.js"></script>
+  <script src="../engine/target_price_solver.js"></script>
+  <script src="../engine/bom_workbook_adapter.js"></script>
+  <script src="../engine/financial_workbook_adapter.js"></script>
+  <script src="../engine/harness_stage_cost_builder.js"></script>
+  <script src="../engine/project_rollup_builder.js"></script>
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../core/storage_adapter.js"></script>
+  <script src="../core/platform_gateways.js"></script>
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+  <script>
+    (function () {
+      const DEFAULT_STATE = {
+        bom: 'freeze',
+        metal: 'quote',
+        connector: 'quote',
+        labor: 'base',
+        equipment: 'base',
+        packaging: 'base',
+        sales: 'quote',
+        mix: 'quote',
+        annualDrop: 'quote',
+        oneTimeCustomer: 'quote',
+        rebate: 'quote',
+        vave: 'none',
+      };
+
+      const STATE_OPTIONS = {
+        bom: [['freeze', '报价 BOM'], ['light', '定点 BOM']],
+        metal: [['quote', '报价金属价'], ['fixed', '定点金属价']],
+        connector: [['quote', '报价连接器'], ['fixed', '定点连接器']],
+        labor: [['base', '基准工时'], ['optimize', '优化工时']],
+        equipment: [['base', '基准设备'], ['shared', '共享设备']],
+        packaging: [['base', '基准包装'], ['optimize', '优化包装']],
+        sales: [['quote', '报价销量'], ['fixed', '定点销量']],
+        mix: [['quote', '报价配置比'], ['fixed', '定点配置比']],
+      };
+
+      let runtime = null;
+      let repo = null;
+      let config = null;
+      let currentState = null;
+
+      function textOf(value, fallback) {
+        const text = String(value == null ? '' : value).trim();
+        return text || (fallback == null ? '' : fallback);
+      }
+
+      function numberOf(value, fallback) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : (fallback == null ? 0 : fallback);
+      }
+
+      function looksBroken(text) {
+        return /[Ã�]|[\uFFFD]|(?:楂|绾|鍛|鏍哥畻|棰勬紨|璺熻釜|褰掓。)/.test(String(text || ''));
+      }
+
+      function safeProjectConfig(rawConfig, activeRuntime) {
+        const master = activeRuntime && activeRuntime.master ? activeRuntime.master : {};
+        const projectCode = textOf(rawConfig && (rawConfig.projectCode || rawConfig.projectId), textOf(master.projectCode || master.projectId, 'PROJECT'));
+        const fallbackName = textOf(master.name, `${projectCode} 生命周期成本平台`);
+        return Object.assign({}, rawConfig || {}, {
+          projectCode,
+          projectId: textOf(rawConfig && rawConfig.projectId, projectCode),
+          projectName: looksBroken(rawConfig && rawConfig.projectName) ? fallbackName : textOf(rawConfig && rawConfig.projectName, fallbackName),
+        });
+      }
+
+      function ensureProject(projectConfig) {
+        const registry = window.G281ProjectRegistry;
+        if (!registry || !projectConfig || !projectConfig.projectCode) return;
+        try {
+          registry.registerProject(projectConfig.projectCode, projectConfig);
+        } catch (error) {}
+        try {
+          if (registry.getActiveCode() !== projectConfig.projectCode) {
+            registry.switchProject(projectConfig.projectCode);
+          }
+        } catch (error) {}
+      }
+
+      function mountProjectSwitcher(nav) {
+        const host = nav && nav.querySelector('.g281-nav-meta');
+        if (!host || !window.G281ProjectSwitcher || !window.G281ProjectSwitcher.render) return;
+        const mount = document.createElement('div');
+        host.appendChild(mount);
+        window.G281ProjectSwitcher.render(mount, { onSwitch: () => location.reload() });
+      }
+
+      function currency(value) {
+        return Number(numberOf(value, 0)).toFixed(4);
+      }
+
+      function percent(value) {
+        return `${(numberOf(value, 0) * 100).toFixed(2)}%`;
+      }
+
+      function seedState() {
+        const history = repo && repo.getHistory ? repo.getHistory() : [];
+        const seed = history[0] || {};
+        return Object.assign({}, DEFAULT_STATE, config && config.stateDefaults ? config.stateDefaults : {}, seed.state || {});
+      }
+
+      function buildContext() {
+        const history = repo && repo.getHistory ? repo.getHistory() : [];
+        const seed = history[0] || {};
+        const draft = Object.assign({}, seed.draft || {});
+        const model = window.G281ComputeModel
+          ? window.G281ComputeModel.compute(runtime, draft, currentState)
+          : window.G281Engine.computeModel(runtime, draft, currentState);
+        const baselineKey = textOf(model && model.financialContext && (model.financialContext.referenceKey || model.financialContext.exactKey), 'quote');
+        const matrix = window.G281FinancialWorkbookAdapter.load(runtime, baselineKey);
+        const stageCost = model && model.stageCosts && model.stageCosts[baselineKey]
+          ? model.stageCosts[baselineKey]
+          : window.G281HarnessStageCostBuilder.build(runtime, baselineKey);
+        const rollup = model && model.projectRollups && model.projectRollups[baselineKey]
+          ? model.projectRollups[baselineKey]
+          : window.G281ProjectRollupBuilder.build(stageCost.rows || [], runtime, { baselineKey });
+        return { draft, model, baselineKey, matrix, stageCost, rollup };
+      }
+
+      function renderStateMount() {
+        const mount = document.getElementById('previewStateMount');
+        mount.innerHTML = Object.keys(STATE_OPTIONS).map((key) => {
+          const options = STATE_OPTIONS[key].map((entry) => {
+            const selected = currentState[key] === entry[0] ? ' selected' : '';
+            return `<option value="${entry[0]}"${selected}>${entry[1]}</option>`;
+          }).join('');
+          return `
+            <div class="field">
+              <label for="state-${key}">${key}</label>
+              <select id="state-${key}" data-state-key="${key}">${options}</select>
+            </div>
+          `;
+        }).join('') + `
+          <div class="field">
+            <label>动作</label>
+            <button type="button" id="previewResetState">恢复默认</button>
+          </div>
+        `;
+
+        mount.querySelectorAll('select[data-state-key]').forEach((select) => {
+          select.addEventListener('change', () => {
+            currentState[select.getAttribute('data-state-key')] = select.value;
+            renderAll();
+          });
+        });
+
+        document.getElementById('previewResetState').addEventListener('click', () => {
+          currentState = seedState();
+          renderStateMount();
+          renderAll();
+        });
+      }
+
+      function renderStatus(context, session) {
+        const model = context.model || {};
+        const status = document.getElementById('previewStatus');
+        const projectName = textOf(config && config.projectName, textOf(runtime && runtime.master && runtime.master.name, '生命周期成本平台'));
+        const pathLabel = textOf(model && model.computationPath && model.computationPath.label, '未知路径');
+        status.textContent = `${projectName} / 基线 ${context.baselineKey} / 路径 ${pathLabel} / 角色 ${textOf(session && session.roleKey, 'costing')} / 单套利润 ${currency(model.avgProfit)}`;
+      }
+
+      function renderKpis(context) {
+        const model = context.model || {};
+        const cards = [
+          ['单套收入', currency(numberOf(model.totalVolume, 0) ? numberOf(model.totalRevenue, 0) / numberOf(model.totalVolume, 1) : 0), `基线 ${context.baselineKey}`],
+          ['单套成本', currency(model.operating), `线束加权校核 ${currency(context.rollup && context.rollup.weightedCheck && context.rollup.weightedCheck.totalCostPerSet)}`],
+          ['单套利润', currency(model.avgProfit), `生命周期利润 ${currency(model.totalProfit)}`],
+          ['毛利率', percent(model.margin), `路径 ${textOf(model.computationPath && model.computationPath.path, 'unknown')}`],
+          ['线束数', String((context.stageCost && context.stageCost.rows || []).length), `报价矩阵列 ${(context.matrix && context.matrix.harnessColumns || []).length}`],
+        ];
+        document.getElementById('previewKpiMount').innerHTML = cards.map((card) => `
+          <div class="kpi-card">
+            <strong>${card[0]}</strong>
+            <span>${card[1]}</span>
+            <small>${card[2]}</small>
+          </div>
+        `).join('');
+      }
+
+      function renderAnnual(context) {
+        const rows = (context.model && context.model.annual) || [];
+        const mount = document.getElementById('previewAnnualMount');
+        if (!rows.length) {
+          mount.innerHTML = '<div class="empty">暂无年度利润行。</div>';
+          return;
+        }
+        mount.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>年份</th>
+                  <th>销量</th>
+                  <th>收入</th>
+                  <th>成本</th>
+                  <th>利润</th>
+                  <th>毛利率</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map((row) => `
+                  <tr>
+                    <th>${textOf(row.year, '--')}</th>
+                    <td>${currency(row.volume)}</td>
+                    <td>${currency(row.revenue)}</td>
+                    <td>${currency(row.cost)}</td>
+                    <td>${currency(row.profit)}</td>
+                    <td>${percent(row.margin)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderHarness(context) {
+        const rows = (context.stageCost && context.stageCost.rows || []).slice(0, 10);
+        const mount = document.getElementById('previewHarnessMount');
+        if (!rows.length) {
+          mount.innerHTML = '<div class="empty">暂无单线束阶段成本。</div>';
+          return;
+        }
+        mount.innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>线束号</th>
+                  <th>装车比</th>
+                  <th>材料</th>
+                  <th>人工</th>
+                  <th>包装</th>
+                  <th>单套总成本</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map((row) => `
+                  <tr>
+                    <th>${textOf(row.harnessId, '--')}</th>
+                    <td>${currency(row.usageRatio)}</td>
+                    <td>${currency(row.materialPerSet)}</td>
+                    <td>${currency(row.directLaborPerSet + row.manufacturingPerSet)}</td>
+                    <td>${currency(row.packagingPerSet)}</td>
+                    <td>${currency(row.totalCostPerSet)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderRollup(context) {
+        const rollup = context.rollup || {};
+        const perSet = rollup.perSet || {};
+        const keyCells = context.matrix && context.matrix.keyCells ? context.matrix.keyCells : {};
+        const chips = ['P3', 'P14', 'P16', 'P20', 'P22', 'P31', 'P32'].map((cellKey) => {
+          const item = keyCells[cellKey] || {};
+          return `<span class="chip">${cellKey}: ${textOf(item.value, '--')}</span>`;
+        }).join('');
+
+        document.getElementById('previewRollupMount').innerHTML = `
+          <div class="kpi-grid">
+            <div class="kpi-card"><strong>项目单套收入</strong><span>${currency(perSet.revenue)}</span><small>来自财务基线或计算引擎</small></div>
+            <div class="kpi-card"><strong>项目单套成本</strong><span>${currency(perSet.cost)}</span><small>单线束先核算，再项目汇总</small></div>
+            <div class="kpi-card"><strong>项目单套利润</strong><span>${currency(perSet.profit)}</span><small>与报价基线对照</small></div>
+            <div class="kpi-card"><strong>毛利率</strong><span>${percent(perSet.margin)}</span><small>保留 computeModel 兼容入口</small></div>
+          </div>
+          <div class="chip-list">${chips}</div>
+        `;
+      }
+
+      function renderAll() {
+        const sessionPromise = window.AuthGateway && window.AuthGateway.getSession
+          ? window.AuthGateway.getSession({ roleKey: 'costing' })
+          : Promise.resolve({ roleKey: 'costing' });
+
+        sessionPromise.then((session) => {
+          const context = buildContext();
+          renderStatus(context, session);
+          renderKpis(context);
+          renderAnnual(context);
+          renderHarness(context);
+          window.G281FinancialWorkbookAdapter.renderMatrix(document.getElementById('previewBaselineMount'), context.matrix);
+          renderRollup(context);
+        }).catch((error) => {
+          document.getElementById('previewStatus').textContent = `预演计算失败: ${error && error.message ? error.message : error}`;
+        });
+      }
+
+      async function bootstrap() {
+        runtime = window.G281_RUNTIME || {};
+        repo = window.G281Repo.init(runtime);
+        config = safeProjectConfig(await window.ConfigLoader.loadProjectConfig('../config/g281.project.json'), runtime);
+        ensureProject(config);
+        const nav = window.G281Nav.mountNavBar(config.projectName);
+        mountProjectSwitcher(nav);
+        currentState = seedState();
+        renderStateMount();
+        renderAll();
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        bootstrap().catch((error) => {
+          document.getElementById('previewStatus').textContent = `预演初始化失败: ${error && error.message ? error.message : error}`;
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
