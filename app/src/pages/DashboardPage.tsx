@@ -519,8 +519,12 @@ export default function DashboardPage() {
                 { label: '分摊', path: `/project/${id}/s/${sid}/alloc` },
                 { label: '变更', path: `/project/${id}/s/${sid}/change-engine` },
                 { label: '模拟', path: `/project/${id}/s/${sid}/simulation` },
+                { label: '连接器价', path: `/project/${id}/s/${sid}/pricing/connectors` },
+                { label: '导线价', path: `/project/${id}/s/${sid}/pricing/wires` },
+                { label: '开发件价', path: `/project/${id}/s/${sid}/pricing/devparts` },
                 { label: '跟踪', path: `/project/${id}/s/${sid}/tracking` },
                 { label: '预警', path: `/project/${id}/alerts` },
+                { label: '治理', path: `/project/${id}` },
               ].map(btn => (
                 <div
                   key={btn.path}

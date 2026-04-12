@@ -17,6 +17,7 @@ interface ScenarioItem {
   volume: number;
   installRatio: number;
   rateSnapshot: Record<string, unknown>;
+  rateSnapshotVersion?: string | null;
   bomVersionRef?: string | null;
   quoteParamSnapshot: Record<string, unknown>;
   sourceScenarioId?: string | null;
@@ -219,6 +220,47 @@ export default function ProjectScenariosPage() {
     await loadScenarios();
   };
 
+  const executeScenarioAction = async (
+    scenario: ScenarioItem,
+    action: 'freeze' | 'release' | 'clone',
+    successMessage: string,
+  ) => {
+    if (!id) return;
+    try {
+      await apiClient(`/projects/${id}/scenarios/${scenario.id}/${action}`, {
+        method: 'POST',
+      });
+      Toast.success(successMessage);
+      await reload();
+    } catch (error) {
+      Toast.error(error instanceof Error ? error.message : '场景操作失败');
+    }
+  };
+
+  const handleFreeze = (scenario: ScenarioItem) => {
+    Modal.confirm({
+      title: '冻结场景',
+      content: `冻结后会生成版本快照，确认冻结“${scenario.name}”吗？`,
+      onOk: () => executeScenarioAction(scenario, 'freeze', '场景已冻结'),
+    });
+  };
+
+  const handleRelease = (scenario: ScenarioItem) => {
+    Modal.confirm({
+      title: '发布场景',
+      content: `发布后会生成正式版本快照，确认发布“${scenario.name}”吗？`,
+      onOk: () => executeScenarioAction(scenario, 'release', '场景已发布'),
+    });
+  };
+
+  const handleClone = (scenario: ScenarioItem) => {
+    Modal.confirm({
+      title: '克隆场景',
+      content: `将基于“${scenario.name}”创建一个新的草稿场景，是否继续？`,
+      onOk: () => executeScenarioAction(scenario, 'clone', '场景已克隆'),
+    });
+  };
+
   useEffect(() => {
     async function load() {
       if (!id) return;
@@ -340,6 +382,16 @@ export default function ProjectScenariosPage() {
       render: (_: unknown, record: ScenarioItem) => getScenarioDisplaySource(record, scenarios),
     },
     {
+      title: 'BOM版本',
+      dataIndex: 'bomVersionRef',
+      render: (_: unknown, record: ScenarioItem) => record.bomVersionRef || '—',
+    },
+    {
+      title: '费率快照',
+      dataIndex: 'rateSnapshotVersion',
+      render: (_: unknown, record: ScenarioItem) => record.rateSnapshotVersion || 'latest',
+    },
+    {
       title: '备注',
       dataIndex: 'notes',
       render: (_: unknown, record: ScenarioItem) => record.notes || '—',
@@ -353,9 +405,16 @@ export default function ProjectScenariosPage() {
       title: '操作',
       render: (_: unknown, record: ScenarioItem) => (
         <Space>
-          <Button size="small" theme="solid" onClick={() => navigate(`/project/${id}/scenario/${record.id}`)}>进入</Button>
+          <Button size="small" theme="solid" onClick={() => navigate(`/project/${id}/s/${record.id}`)}>进入</Button>
           <Button size="small" onClick={() => openEditModal(record)}>编辑</Button>
           <Button size="small" onClick={() => navigate(`/project/${id}/compare?ids=${record.id}`)}>对比</Button>
+          {record.status === 'draft' && (
+            <Button size="small" theme="light" onClick={() => handleFreeze(record)}>冻结</Button>
+          )}
+          {record.status !== 'released' && (
+            <Button size="small" theme="light" onClick={() => handleRelease(record)}>发布</Button>
+          )}
+          <Button size="small" theme="borderless" onClick={() => handleClone(record)}>克隆</Button>
         </Space>
       ),
     },

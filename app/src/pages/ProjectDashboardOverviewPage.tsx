@@ -5,6 +5,8 @@ import { IconArrowLeft, IconBranch, IconGridView, IconList } from '@douyinfe/sem
 import { apiClient } from '@/lib/apiClient';
 import { db, type ProjectRecord } from '@/data/db';
 import { useProjectStore } from '@/store/projectStore';
+import { VersionPanel } from '@/components/VersionPanel';
+import { AuditLogPanel } from '@/components/AuditLogPanel';
 
 const { Title, Text } = Typography;
 
@@ -47,6 +49,27 @@ interface ProjectDashboardData {
   } | null;
 }
 
+interface ProjectVersionSummary {
+  id: string;
+  versionNumber: number;
+  label: string;
+  status: string;
+  createdAt: string;
+}
+
+interface ProjectAuditLogSummary {
+  id: string;
+  action: string;
+  entity: string;
+  entityId: string;
+  createdAt: string;
+  user?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+  } | null;
+}
+
 const scenarioTypeLabels: Record<string, string> = {
   initial_quote: '初始报价',
   fixed_point: '定点',
@@ -63,6 +86,7 @@ const statusColorMap: Record<string, 'blue' | 'green' | 'red' | 'cyan' | 'grey' 
   active: 'blue',
   released: 'green',
   frozen: 'orange',
+  published: 'green',
 };
 
 function formatCurrency(value: number | null | undefined) {
@@ -83,6 +107,8 @@ export default function ProjectDashboardOverviewPage() {
   const [loading, setLoading] = useState(true);
   const [project, setProject] = useState<ProjectRecord | null>(null);
   const [dashboard, setDashboard] = useState<ProjectDashboardData | null>(null);
+  const [versions, setVersions] = useState<ProjectVersionSummary[]>([]);
+  const [auditLogs, setAuditLogs] = useState<ProjectAuditLogSummary[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -94,10 +120,16 @@ export default function ProjectDashboardOverviewPage() {
           setProject(localProject);
           setCurrentProject(localProject.id, localProject.meta.projectName);
         }
-        const data = await apiClient<ProjectDashboardData>(`/projects/${id}/dashboard`);
-        setDashboard(data);
+        const [dashboardData, versionData, auditData] = await Promise.all([
+          apiClient<ProjectDashboardData>(`/projects/${id}/dashboard`),
+          apiClient<ProjectVersionSummary[]>(`/versions/project/${id}`),
+          apiClient<ProjectAuditLogSummary[]>(`/projects/${id}/audit-logs`),
+        ]);
+        setDashboard(dashboardData);
+        setVersions(versionData);
+        setAuditLogs(auditData);
         if (!localProject) {
-          setCurrentProject(data.id, data.projectName);
+          setCurrentProject(dashboardData.id, dashboardData.projectName);
         }
       } finally {
         setLoading(false);
@@ -160,6 +192,26 @@ export default function ProjectDashboardOverviewPage() {
       },
       disabled: sortedScenarios.length === 0,
     },
+    {
+      key: 'pricing',
+      title: '价格工作台',
+      icon: <IconList />,
+      description: '进入最近场景的连接器、导线与开发件价格台账',
+      onClick: () => {
+        const target = sortedScenarios[0]?.id;
+        if (target) navigate(`/project/${dashboard.id}/s/${target}/pricing/connectors`);
+      },
+      disabled: sortedScenarios.length === 0,
+    },
+    {
+      key: 'governance',
+      title: '版本与审计',
+      icon: <IconList />,
+      description: '查看最近版本、发布快照和审计记录',
+      onClick: () => {
+        document.getElementById('governance-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      },
+    },
   ];
 
   return (
@@ -182,6 +234,7 @@ export default function ProjectDashboardOverviewPage() {
               <Tag color="blue">场景 {dashboard.scenarioCount}</Tag>
               <Tag color="cyan">线束 {dashboard.harnessCount}</Tag>
               <Tag color="green">报价 {dashboard.quoteCount}</Tag>
+              <Tag color="purple">版本 {dashboard.versionCount}</Tag>
             </Space>
             <Text style={{ display: 'block', marginTop: 12, color: 'var(--semi-color-text-2)' }}>
               最近更新：{formatDate(dashboard.updatedAt)}
@@ -285,6 +338,85 @@ export default function ProjectDashboardOverviewPage() {
           )}
         </Card>
       </div>
+
+      <div id="governance-summary">
+      <Card
+        className="glass-card"
+        title="治理摘要"
+        style={{ marginTop: 24 }}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <Card bodyStyle={{ padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text strong>最近版本</Text>
+              <Button size="small" theme="borderless" onClick={() => navigate(`/project/${dashboard.id}/scenarios`)}>
+                去场景治理
+              </Button>
+            </div>
+            {versions.length === 0 ? (
+              <Empty description="暂无版本记录" />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {versions.slice(0, 5).map((version) => (
+                  <div
+                    key={version.id}
+                    style={{
+                      border: '1px solid var(--semi-color-border)',
+                      borderRadius: 12,
+                      padding: 12,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <Text strong>v{version.versionNumber} · {version.label}</Text>
+                      <Tag color={statusColorMap[version.status] || 'grey'}>{version.status}</Tag>
+                    </div>
+                    <Text style={{ display: 'block', marginTop: 6, color: 'var(--semi-color-text-2)' }}>
+                      创建时间：{formatDate(version.createdAt)}
+                    </Text>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card bodyStyle={{ padding: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text strong>最近审计</Text>
+              <Button size="small" theme="borderless" onClick={() => navigate(`/project/${dashboard.id}/scenarios`)}>
+                查看场景动作
+              </Button>
+            </div>
+            {auditLogs.length === 0 ? (
+              <Empty description="暂无审计记录" />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {auditLogs.slice(0, 5).map((log) => (
+                  <div
+                    key={log.id}
+                    style={{
+                      border: '1px solid var(--semi-color-border)',
+                      borderRadius: 12,
+                      padding: 12,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <Text strong>{log.action} · {log.entity}</Text>
+                      <Text type="tertiary">{formatDate(log.createdAt)}</Text>
+                    </div>
+                    <Text style={{ display: 'block', marginTop: 6, color: 'var(--semi-color-text-2)' }}>
+                      {log.user?.name || log.user?.email || '系统'} · {log.entityId.slice(0, 8)}
+                    </Text>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      </Card>
+      </div>
+
+      <VersionPanel projectId={dashboard.id} />
+      <AuditLogPanel projectId={dashboard.id} />
     </div>
   );
 }

@@ -64,6 +64,12 @@ export async function fetchAlertById(id: string) {
   return apiClient<AlertEvent>(`/alerts/${id}`);
 }
 
+export async function detectAlerts() {
+  return apiClient<{ count: number; items: AlertEvent[] }>(`/alerts/detect`, {
+    method: 'POST',
+  });
+}
+
 export async function updateAlert(id: string, payload: Partial<Pick<AlertEvent, 'status' | 'assignedTo' | 'detail' | 'metadata'>>) {
   return apiClient<AlertEvent>(`/alerts/${id}`, { method: 'PUT', body: payload });
 }

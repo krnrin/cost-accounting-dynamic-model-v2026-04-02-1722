@@ -25,6 +25,9 @@ import ProjectDashboardOverviewPage from '@/pages/ProjectDashboardOverviewPage';
 import ProjectScenariosPage from '@/pages/ProjectScenariosPage';
 import ScenarioComparePage from '@/pages/ScenarioComparePage';
 import ConfigMatrixPage from '@/pages/ConfigMatrixPage';
+import ConnectorPricingPage from '@/pages/ConnectorPricingPage';
+import WirePricingPage from '@/pages/WirePricingPage';
+import DevPartPricingPage from '@/pages/DevPartPricingPage';
 import SWUpdatePrompt from '@/components/SWUpdatePrompt';
 import { useAuthStore } from '@/store/authStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -77,6 +80,9 @@ export default function App() {
           <Route path="/project/:id/s/:sid/change-engine" element={<ChangeEnginePage />} />
           <Route path="/project/:id/s/:sid/tracking" element={<TrackingPage />} />
           <Route path="/project/:id/s/:sid/config" element={<ConfigMatrixPage />} />
+          <Route path="/project/:id/s/:sid/pricing/connectors" element={<ConnectorPricingPage />} />
+          <Route path="/project/:id/s/:sid/pricing/wires" element={<WirePricingPage />} />
+          <Route path="/project/:id/s/:sid/pricing/devparts" element={<DevPartPricingPage />} />
           <Route path="/project/:id/alerts" element={<AlertsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/settings/alert-rules" element={<AlertsPage mode="rules" />} />

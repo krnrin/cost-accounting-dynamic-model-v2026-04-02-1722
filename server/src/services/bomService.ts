@@ -57,7 +57,13 @@ export class BomService {
       where: { id: harness.id },
       data: { input: toJson({ ...input, bom }) },
     });
-    return { harnessId: updated.harnessId, rowId: buildBomRowId(updated.harnessId, bom.length - 1), bomRow };
+    return {
+      projectId: updated.projectId,
+      scenarioId: updated.scenarioId,
+      harnessId: updated.harnessId,
+      rowId: buildBomRowId(updated.harnessId, bom.length - 1),
+      bomRow,
+    };
   }
 
   static async updateBomRow(projectId: string, rowId: string, patch: any) {
@@ -77,7 +83,13 @@ export class BomService {
     }
     bom[index] = { ...bom[index], ...patch };
     await prisma.harness.update({ where: { id: harness.id }, data: { input: toJson({ ...input, bom }) } });
-    return { id: rowId, harnessId, ...bom[index] };
+    return {
+      id: rowId,
+      projectId: harness.projectId,
+      scenarioId: harness.scenarioId,
+      harnessId,
+      ...bom[index],
+    };
   }
 
   static async deleteBomRow(projectId: string, rowId: string) {
@@ -97,7 +109,12 @@ export class BomService {
     }
     bom.splice(index, 1);
     await prisma.harness.update({ where: { id: harness.id }, data: { input: toJson({ ...input, bom }) } });
-    return { id: rowId };
+    return {
+      id: rowId,
+      projectId: harness.projectId,
+      scenarioId: harness.scenarioId,
+      harnessId,
+    };
   }
 
   static async importBomRows(scenarioId: string, harnessId: string, rows: any[]) {
@@ -108,11 +125,17 @@ export class BomService {
       throw err;
     }
     const input = fromJson<HarnessInput>(harness.input, {} as HarnessInput);
-    await prisma.harness.update({
+    const updated = await prisma.harness.update({
       where: { id: harness.id },
       data: { input: toJson({ ...input, bom: rows }) },
     });
-    return { harnessId, importedCount: rows.length };
+    return {
+      projectId: updated.projectId,
+      scenarioId: updated.scenarioId,
+      harnessId,
+      importedCount: rows.length,
+      rowCount: rows.length,
+    };
   }
 
   static async summarizeScenarioBom(scenarioId: string) {
