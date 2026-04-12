@@ -18,6 +18,9 @@ export type ScenarioType =
   | 'eop_change'       // EOP 变更
   | 'custom';          // 自定义
 
+/** 场景状态 (B1 lifecycle) */
+export type ScenarioStatus = 'draft' | 'frozen' | 'published' | 'archived';
+
 /** 场景记录 */
 export interface ScenarioRecord {
   /** 主键 (uuid) */
@@ -46,6 +49,14 @@ export interface ScenarioRecord {
   vehicleConfigs?: VehicleConfig[];
   /** 车型配置发布状态 */
   vehicleConfigMeta?: VehicleConfigMeta;
+  /** B1: 场景状态 */
+  status?: ScenarioStatus;
+  frozenAt?: string;
+  frozenBy?: string;
+  publishedAt?: string;
+  publishedBy?: string;
+  archivedAt?: string;
+  statusNote?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -65,6 +76,9 @@ export interface HarnessRecord {
   result?: HarnessResult;
   /** 该线束在本场景中的 EOP 年份, null = 跟随场景 lifecycleYears */
   eopYear: number | null;
+  /** B1: 是否被冻结 */
+  locked?: boolean;
+  lockedAt?: string | null;
   updatedAt: string;
 }
 
@@ -156,6 +170,29 @@ export interface AllocTrackerRecord {
   updatedAt: string;
 }
 
+/** B13: 参数快照记录 */
+export interface SettingsSnapshotRecord {
+  id: string;
+  timestamp: string;
+  reason: string;
+  summary: string;
+  data: Record<string, unknown>;
+}
+
+/** B4: 报价快照记录 */
+export interface QuoteSnapshotRecord {
+  id: string;
+  quoteId: string;
+  scenarioId: string;
+  projectId: string;
+  version: number;
+  label?: string;
+  params: Record<string, unknown>;
+  results: Record<string, unknown>;
+  notes?: string;
+  createdAt: string;
+}
+
 class CostWorkbenchDB extends Dexie {
   projects!: Table<ProjectRecord, string>;
   scenarios!: Table<ScenarioRecord, string>;
@@ -168,7 +205,9 @@ class CostWorkbenchDB extends Dexie {
   onetimeCosts!: Table<OnetimeCostRecord, string>;
   allocTrackers!: Table<AllocTrackerRecord, string>;
   trackingItems!: Table<TrackingItemRecord, string>;
-  
+  settingsSnapshots!: Table<SettingsSnapshotRecord, string>;
+  quoteSnapshots!: Table<QuoteSnapshotRecord, string>;
+
   constructor() {
     super('CostWorkbenchDB');
     this.version(1).stores({
@@ -215,6 +254,7 @@ class CostWorkbenchDB extends Dexie {
           lifecycleYears: p.meta?.lifecycleYears ?? 6,
           config: p.config ?? {},
           note: '从旧版项目自动迁移',
+          status: 'draft',
           createdAt: p.meta?.createdAt ?? new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -238,6 +278,11 @@ class CostWorkbenchDB extends Dexie {
           });
         }
       }
+    });
+    // v8: 添加参数快照和报价快照表
+    this.version(8).stores({
+      settingsSnapshots: 'id, timestamp, reason',
+      quoteSnapshots: 'id, quoteId, scenarioId, projectId, version, createdAt',
     });
   }
 }

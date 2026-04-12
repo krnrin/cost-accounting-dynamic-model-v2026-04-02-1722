@@ -5,11 +5,20 @@
 import { useState } from 'react';
 import { Modal, Steps, Form, Select, Input, Button, Tag, Typography, Toast } from '@douyinfe/semi-ui';
 import type { ChangeOrder } from '@/engine/change_verification';
+import type { CSSProperties } from 'react';
 
 const { Text } = Typography;
 
 const FIELD_LABELS: Record<string, string> = {
   qty: '用量', unitPrice: '单价', supplier: '供应商', spec: '规格', partName: '物料名称',
+};
+
+const S: Record<string, CSSProperties> = {
+  footerRow: { display: 'flex', justifyContent: 'space-between' },
+  steps: { marginBottom: 16 },
+  fullWidth: { width: '100%' },
+  partRow: { marginTop: 8, padding: 8, border: '1px solid #eee', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 8 },
+  fieldSelect: { width: 150, marginLeft: 8 },
 };
 
 interface ChangeOrderWizardProps {
@@ -47,12 +56,12 @@ export default function ChangeOrderWizard({ visible, onClose, onSubmit, availabl
 
   return (
     <Modal
-      title="🔧 创建设变单"
+      title="\ud83d\udd27 创建设变单"
       visible={visible}
       onCancel={onClose}
       width={700}
       footer={
-        <div style= display: 'flex', justifyContent: 'space-between' >
+        <div style={S.footerRow}>
           <Button disabled={step === 0} onClick={() => setStep(step - 1)}>上一步</Button>
           {step < 2 ? (
             <Button type="primary" onClick={() => setStep(step + 1)}>下一步</Button>
@@ -62,7 +71,7 @@ export default function ChangeOrderWizard({ visible, onClose, onSubmit, availabl
         </div>
       }
     >
-      <Steps current={step} size="small" style= marginBottom: 16 >
+      <Steps current={step} size="small" style={S.steps}>
         <Steps.Step title="基本信息" />
         <Steps.Step title="选择零件" />
         <Steps.Step title="预期变更" />
@@ -86,7 +95,7 @@ export default function ChangeOrderWizard({ visible, onClose, onSubmit, availabl
         <Select
           multiple
           placeholder="选择受影响的零件"
-          style= width: '100%' 
+          style={S.fullWidth}
           value={formData.affectedParts}
           onChange={(v) => setFormData({ ...formData, affectedParts: v as string[] })}
         >
@@ -100,11 +109,11 @@ export default function ChangeOrderWizard({ visible, onClose, onSubmit, availabl
         <div>
           <Text type="tertiary">为每个受影响零件指定预期变更</Text>
           {(formData.affectedParts || []).map(partNo => (
-            <div key={partNo} style= marginTop: 8, padding: 8, background: '#f5f5f5', borderRadius: 8 >
+            <div key={partNo} style={S.partRow}>
               <Tag>{partNo}</Tag>
               <Select
                 placeholder="变更字段"
-                style= width: 150, marginLeft: 8 
+                style={S.fieldSelect}
                 onChange={(field) => {
                   const changes = [...(formData.expectedChanges || [])];
                   const existing = changes.find(c => c.partNo === partNo);
@@ -119,7 +128,7 @@ export default function ChangeOrderWizard({ visible, onClose, onSubmit, availabl
               </Select>
               <Input
                 placeholder="新值"
-                style= width: 150, marginLeft: 8 
+                style={S.fieldSelect}
                 onChange={(newValue) => {
                   const changes = [...(formData.expectedChanges || [])];
                   const existing = changes.find(c => c.partNo === partNo);
