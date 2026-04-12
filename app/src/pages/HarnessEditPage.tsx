@@ -21,6 +21,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { RoleGuard } from '@/components/RoleGuard';
 
 import { db } from '@/data/db';
+import type { ScenarioRecord } from '@/data/db';
 import { computeHarnessCostDynamic, computeHarnessCost, getInternalFactoryRates, computeInternalHarnessCost } from '@/engine/harness_costing';
 import { detectPrecisionLevel } from '@/engine/precision';
 import type { HarnessInput, BomItem, WireItem, HarnessResult } from '@/types/harness';
@@ -49,7 +50,7 @@ const TOOLBAR_HEIGHT = 48;
 const STATUS_BAR_HEIGHT = 36;
 
 export default function HarnessEditPage() {
-  const { id, harnessId } = useParams<{ id: string; harnessId: string }>();
+  const { id, sid, harnessId } = useParams<{ id: string; sid?: string; harnessId: string }>();
   const navigate = useNavigate();
   const isNew = harnessId === 'new';
 
@@ -57,11 +58,29 @@ export default function HarnessEditPage() {
   const data = useLiveQuery(async () => {
     if (!id) return null;
     const project = await db.projects.get(id);
-    if (isNew) return { project, harness: null };
+    // 加载场景配置（v7+ config 在 scenario 上，不在 project 上）
+    const scenario = sid ? await db.scenarios.get(sid) : null;
+    if (isNew) return { project, scenario, harness: null };
     if (!harnessId) return null;
-    const harness = await db.harnesses.where({ projectId: id, harnessId: harnessId }).first();
-    return { project, harness: harness ?? null };
-  }, [id, harnessId]);
+    // 按 scenarioId 过滤，避免多场景同零件号冲突
+    let harness;
+    if (sid) {
+      harness = await db.harnesses
+        .where('[scenarioId+harnessId]')
+        .equals([sid, harnessId])
+        .first();
+      // 兜底：查空 scenarioId 的遗留数据
+      if (!harness) {
+        harness = await db.harnesses
+          .where({ projectId: id, harnessId })
+          .filter(h => !h.scenarioId || h.scenarioId === '')
+          .first();
+      }
+    } else {
+      harness = await db.harnesses.where({ projectId: id, harnessId }).first();
+    }
+    return { project, scenario, harness: harness ?? null };
+  }, [id, sid, harnessId]);
 
   // 2. Local State for Form
   const [formData, setFormData] = useState<HarnessInput | null>(null);
@@ -105,26 +124,28 @@ export default function HarnessEditPage() {
   const pricingContext = getPricingContext();
 
   const result: HarnessResult | null = useMemo(() => {
-    if (!data?.project || !formData) return null;
+    if (!data?.project || !data?.scenario || !formData) return null;
     if (!formData.harnessId) return null;
+    const cfg = data.scenario.config;
 
     if (pricingContext) {
       // 注入动态工厂费率 (Issue #45)
-      return computeHarnessCostDynamic(formData, pricingContext, data.project.config!.factories?.[0]?.factoryId || 'K1K2_Factory');
+      return computeHarnessCostDynamic(formData, pricingContext, cfg.factories?.[0]?.factoryId || 'K1K2_Factory');
     }
 
     return computeHarnessCost(
       formData,
-      data.project.config!.costRates,
-      data.project.config!.metalPrices
+      cfg.costRates,
+      cfg.metalPrices
     );
   }, [data, formData, pricingContext]);
 
   const internalResult = useMemo(() => {
-    if (!data?.project || !formData || !pricingContext) return null;
+    if (!data?.project || !data?.scenario || !formData || !pricingContext) return null;
     if (!formData.harnessId) return null;
+    const cfg = data.scenario.config;
 
-    const rates = getInternalFactoryRates(data.project.config!.factories?.[0]?.factoryId || 'K1K2_Factory', pricingContext.benchmark, pricingContext.simulation);
+    const rates = getInternalFactoryRates(cfg.factories?.[0]?.factoryId || 'K1K2_Factory', pricingContext.benchmark, pricingContext.simulation);
     return computeInternalHarnessCost(formData, rates, pricingContext.metalPrices, null, pricingContext.benchmark.audit_trace_id);
   }, [data, formData, pricingContext]);
 
@@ -151,7 +172,7 @@ export default function HarnessEditPage() {
         await db.harnesses.put({
           id: newId,
           projectId: id,
-          scenarioId: '',
+          scenarioId: sid || '',
           eopYear: null,
           harnessId: formData.harnessId,
           harnessName: formData.harnessName || formData.harnessId,

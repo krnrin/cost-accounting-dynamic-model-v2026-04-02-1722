@@ -24,7 +24,8 @@ export default function ScenarioSelector() {
 
   if (scenarios.length <= 1) return null;
 
-  const handleChange = (newSid: string) => {
+  const handleChange = (newSid: string | number | Record<string, any> | (string | number)[]) => {
+    if (typeof newSid !== 'string') return;
     if (newSid === sid) return;
     // Replace sid in current path, keep the rest of the route
     const suffix = location.pathname.replace(`/project/${id}/s/${sid}`, '');
@@ -36,7 +37,7 @@ export default function ScenarioSelector() {
       <Text type="tertiary" size="small">场景:</Text>
       <Select
         value={sid}
-        onChange={handleChange as any}
+        onChange={handleChange}
         style={{ width: 220 }}
         size="small"
         renderSelectedItem={(opt: any) => {

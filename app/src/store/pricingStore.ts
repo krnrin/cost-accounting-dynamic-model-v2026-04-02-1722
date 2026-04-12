@@ -57,10 +57,10 @@ interface PricingState {
     utilizationFactor: number;
     salesAdjustmentBuffer: number;
   };
-  connectorPricing: Map<string, ConnectorPricingRecord>;
-  wirePricing: Map<string, WirePricingRecord>;
-  devPartPricing: Map<string, DevPartPricingRecord>;
-  auxiliaryPricing: Map<string, AuxiliaryPartRecord>;
+  connectorPricing: Record<string, ConnectorPricingRecord>;
+  wirePricing: Record<string, WirePricingRecord>;
+  devPartPricing: Record<string, DevPartPricingRecord>;
+  auxiliaryPricing: Record<string, AuxiliaryPartRecord>;
   priceDiscrepancies: PriceDiscrepancyRecord[];
   currentProjectId: string | null;
   currentScenarioId: string | null;
@@ -115,10 +115,10 @@ const initialState = {
     utilizationFactor: 0.85,
     salesAdjustmentBuffer: 0,
   },
-  connectorPricing: new Map<string, ConnectorPricingRecord>(),
-  wirePricing: new Map<string, WirePricingRecord>(),
-  devPartPricing: new Map<string, DevPartPricingRecord>(),
-  auxiliaryPricing: new Map<string, AuxiliaryPartRecord>(),
+  connectorPricing: {} as Record<string, ConnectorPricingRecord>,
+  wirePricing: {} as Record<string, WirePricingRecord>,
+  devPartPricing: {} as Record<string, DevPartPricingRecord>,
+  auxiliaryPricing: {} as Record<string, AuxiliaryPartRecord>,
   priceDiscrepancies: [] as PriceDiscrepancyRecord[],
   currentProjectId: null as string | null,
   currentScenarioId: null as string | null,
@@ -126,23 +126,23 @@ const initialState = {
   error: null as string | null,
 };
 
-function toPartNoMap<T extends { partNo: string }>(rows: T[]) {
-  return new Map(rows.map((row) => [row.partNo, row]));
+function toPartNoMap<T extends { partNo: string }>(rows: T[]): Record<string, T> {
+  return Object.fromEntries(rows.map((row) => [row.partNo, row]));
 }
 
 function updateMapById<T extends { id: string; partNo: string }>(
-  source: Map<string, T>,
+  source: Record<string, T>,
   id: string,
   next: T
-) {
-  const mapped = new Map(source);
-  for (const [partNo, row] of mapped) {
-    if (row.id === id) {
-      mapped.delete(partNo);
+): Record<string, T> {
+  const mapped = { ...source };
+  for (const partNo in mapped) {
+    if (mapped[partNo]?.id === id) {
+      delete mapped[partNo];
       break;
     }
   }
-  mapped.set(next.partNo, next);
+  mapped[next.partNo] = next;
   return mapped;
 }
 
@@ -248,9 +248,7 @@ export const usePricingStore = create<PricingState>()(
             throw new Error('未选择项目');
           }
           const created = await createConnectorPricing(currentProjectId, payload);
-          const next = new Map(connectorPricing);
-          next.set(created.partNo, created);
-          set({ connectorPricing: next });
+          set({ connectorPricing: { ...connectorPricing, [created.partNo]: created } });
         },
 
         updateConnectorPrice: async (id, updates) => {
@@ -268,7 +266,7 @@ export const usePricingStore = create<PricingState>()(
 
           const createdRows = await Promise.all(
             bomItems.map(async (item) => {
-              const connector = connectorPricing.get(item.partNo);
+              const connector = connectorPricing[item.partNo];
               if (!connector) return null;
               const discrepancy = checkConnectorPriceDiscrepancy(connector);
               if (!discrepancy) return null;
@@ -290,7 +288,7 @@ export const usePricingStore = create<PricingState>()(
         },
 
         getConnectorPrice: (partNo) => {
-          const row = get().connectorPricing.get(partNo);
+          const row = get().connectorPricing[partNo];
           if (!row) return 0;
           return getConnectorFinalPrice(row);
         },
@@ -301,9 +299,7 @@ export const usePricingStore = create<PricingState>()(
             throw new Error('未选择项目');
           }
           const created = await createWirePricing(currentProjectId, payload);
-          const next = new Map(wirePricing);
-          next.set(created.partNo, created);
-          set({ wirePricing: next });
+          set({ wirePricing: { ...wirePricing, [created.partNo]: created } });
         },
 
         updateWirePricingRecord: async (id, payload) => {
@@ -320,7 +316,7 @@ export const usePricingStore = create<PricingState>()(
           if (!currentProjectId) {
             throw new Error('未选择项目');
           }
-          const wire = wirePricing.get(partNo);
+          const wire = wirePricing[partNo];
           if (!wire) return;
           const updated = await updateWirePricing(currentProjectId, wire.id, {
             copperBasePrice: metalPrice.copper,
@@ -358,9 +354,7 @@ export const usePricingStore = create<PricingState>()(
             throw new Error('未选择项目');
           }
           const created = await createDevPartPricing(currentProjectId, payload);
-          const next = new Map(devPartPricing);
-          next.set(created.partNo, created);
-          set({ devPartPricing: next });
+          set({ devPartPricing: { ...devPartPricing, [created.partNo]: created } });
         },
 
         addDevPartMold: async (partNo, payload) => {
@@ -368,12 +362,10 @@ export const usePricingStore = create<PricingState>()(
           if (!currentProjectId) {
             throw new Error('未选择项目');
           }
-          const record = devPartPricing.get(partNo);
+          const record = devPartPricing[partNo];
           if (!record) return;
           const updated = await addDevPartMoldApi(currentProjectId, record.id, payload);
-          const next = new Map(devPartPricing);
-          next.set(updated.partNo, updated);
-          set({ devPartPricing: next });
+          set({ devPartPricing: { ...devPartPricing, [updated.partNo]: updated } });
         },
 
         updateDevPartAmortization: async (partNo, amortizationQty, unitPriceAfterAmortization) => {
@@ -381,19 +373,17 @@ export const usePricingStore = create<PricingState>()(
           if (!currentProjectId) {
             throw new Error('未选择项目');
           }
-          const record = devPartPricing.get(partNo);
+          const record = devPartPricing[partNo];
           if (!record) return;
           const updated = await updateDevPartPricing(currentProjectId, record.id, {
             amortizationQty,
             unitPriceAfterAmortization,
           });
-          const next = new Map(devPartPricing);
-          next.set(updated.partNo, updated);
-          set({ devPartPricing: next });
+          set({ devPartPricing: { ...devPartPricing, [updated.partNo]: updated } });
         },
 
         calculateDevPartPrice: (partNo, lifecycleTotalQty) => {
-          const record = get().devPartPricing.get(partNo);
+          const record = get().devPartPricing[partNo];
           if (!record) return null;
           const result = calculateDevPartLifecycleCost(record, lifecycleTotalQty);
           return {
@@ -408,9 +398,7 @@ export const usePricingStore = create<PricingState>()(
             throw new Error('未选择项目');
           }
           const created = await createAuxiliaryPricing(currentProjectId, payload);
-          const next = new Map(auxiliaryPricing);
-          next.set(created.partNo, created);
-          set({ auxiliaryPricing: next });
+          set({ auxiliaryPricing: { ...auxiliaryPricing, [created.partNo]: created } });
         },
 
         updateAuxiliaryPrice: async (partNo, unitPrice, supplier) => {
@@ -418,7 +406,7 @@ export const usePricingStore = create<PricingState>()(
           if (!currentProjectId) {
             throw new Error('未选择项目');
           }
-          const existing = auxiliaryPricing.get(partNo);
+          const existing = auxiliaryPricing[partNo];
           if (existing) {
             const updated = await updateAuxiliaryPricing(currentProjectId, existing.id, {
               partNo,
@@ -426,9 +414,7 @@ export const usePricingStore = create<PricingState>()(
               supplier: supplier || existing.supplier,
               unitPrice,
             });
-            const next = new Map(auxiliaryPricing);
-            next.set(updated.partNo, updated);
-            set({ auxiliaryPricing: next });
+            set({ auxiliaryPricing: { ...auxiliaryPricing, [updated.partNo]: updated } });
             return;
           }
           const created = await createAuxiliaryPricing(currentProjectId, {
@@ -437,9 +423,7 @@ export const usePricingStore = create<PricingState>()(
             supplier,
             unitPrice,
           });
-          const next = new Map(auxiliaryPricing);
-          next.set(created.partNo, created);
-          set({ auxiliaryPricing: next });
+          set({ auxiliaryPricing: { ...auxiliaryPricing, [created.partNo]: created } });
         },
 
         resolveDiscrepancy: async (id, resolution) => {
