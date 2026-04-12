@@ -47,6 +47,7 @@ export interface AssemblyPartRow extends WorkbookRowBase {
   qty: number;
   unit: string;
   supplier?: string;
+  unitPrice?: number;
   remark?: string;
 }
 
@@ -91,11 +92,3 @@ export interface ChangeHistoryRow extends WorkbookRowBase {
   changeDate: string;
   remark?: string;
 }
-
-export type WorkbookDataRow =
-  | BomSheetRow
-  | AssemblyPartRow
-  | SecondaryMaterialRow
-  | KskBomRow
-  | ChangeHistoryRow;
-
