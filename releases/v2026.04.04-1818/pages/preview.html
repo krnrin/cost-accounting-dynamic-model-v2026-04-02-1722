@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>What-if 预演 - 生命周期成本平台</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
+  <link rel="stylesheet" href="../ui/dashboard.css">
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f1a; color: #e5e7eb; }
+    .page-header { padding: 20px 24px 12px; }
+    .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .page-header p { margin: 4px 0 0; font-size: 13px; color: #9ca3af; line-height: 1.6; }
+    .preview-content { padding: 0 24px 24px; }
+    .status-bar, .panel { margin-top: 16px; background: #151527; border: 1px solid #2a2a3e; border-radius: 12px; }
+    .status-bar { padding: 14px 16px; font-size: 13px; color: #d1d5db; }
+    .page-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .page-actions-copy {
+      font-size: 12px;
+      color: #9ca3af;
+      line-height: 1.6;
+    }
+    .page-actions-buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .panel { padding: 16px; }
+    .panel h2 { margin: 0 0 10px; font-size: 16px; }
+    .panel p { margin: 0 0 12px; font-size: 12px; color: #9ca3af; line-height: 1.6; }
+    .state-grid, .kpi-grid, .content-grid { display: grid; gap: 12px; }
+    .state-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .content-grid { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+    .field { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: #111125; border: 1px solid #27273a; border-radius: 10px; }
+    .field label { font-size: 12px; color: #cbd5e1; }
+    .field input, .field select, .field button { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid #374151; background: #0b1020; color: #e5e7eb; font-size: 13px; }
+    .field button { cursor: pointer; background: #1d4ed8; border-color: #1d4ed8; }
+    .field button.secondary { background: #0f172a; border-color: #334155; color: #cbd5e1; }
+    .page-actions-buttons button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #1d4ed8;
+      background: #1d4ed8;
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .page-actions-buttons button.secondary {
+      background: #0f172a;
+      border-color: #334155;
+      color: #cbd5e1;
+    }
+    .kpi-card { padding: 14px; background: #111125; border: 1px solid #27273a; border-radius: 10px; }
+    .kpi-card strong { display: block; font-size: 12px; color: #9ca3af; }
+    .kpi-card span { display: block; margin-top: 8px; font-size: 22px; font-weight: 700; color: #f8fafc; }
+    .kpi-card small { display: block; margin-top: 6px; font-size: 12px; color: #93c5fd; line-height: 1.5; }
+    .chip-list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .chip { padding: 6px 10px; border-radius: 999px; background: #111125; border: 1px solid #27273a; font-size: 12px; color: #cbd5e1; }
+    .table-wrap { overflow: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th, td { padding: 8px 10px; border-bottom: 1px solid #27273a; text-align: left; vertical-align: top; }
+    th { color: #cbd5e1; font-weight: 600; }
+    td { color: #e5e7eb; }
+    .empty { padding: 12px; border-radius: 8px; background: #111125; color: #9ca3af; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="page-header">
+    <h1>What-if 预演</h1>
+    <p>本页只负责场景预演与目标校核。你可以切换报价基线、调节关键版本参数、运行目标价求解，并观察年度利润和报价基线差异。</p>
+  </div>
+
+  <div class="preview-content">
+    <div id="previewActions" class="status-bar page-actions"></div>
+    <div id="previewStatus" class="status-bar">正在初始化预演上下文...</div>
+
+    <section class="panel">
+      <h2>场景参数</h2>
+      <p>基线切换和关键版本状态都在这里调整；页面会直接重算并保留 what-if 口径，不承载正常流程审批。</p>
+      <div id="previewParameters" class="state-grid"></div>
+    </section>
+
+    <section class="panel">
+      <h2>目标价求解</h2>
+      <div class="state-grid">
+        <div class="field">
+          <label for="targetMargin">目标毛利率 (%)</label>
+          <input id="targetMargin" type="number" min="0" max="100" step="0.1" value="8.0">
+        </div>
+        <div class="field">
+          <label for="targetRevenue">目标单套报价（可选）</label>
+          <input id="targetRevenue" type="number" min="0" step="0.1" placeholder="留空则只求目标毛利率">
+        </div>
+        <div class="field">
+          <label>动作</label>
+          <button id="solveTarget" type="button">运行求解</button>
+        </div>
+      </div>
+      <div id="previewTargetResult" class="chip-list"></div>
+    </section>
+
+    <section class="panel">
+      <h2>核心指标</h2>
+      <div id="previewKpiMount" class="kpi-grid"></div>
+      <div id="previewDrivers" class="chip-list"></div>
+    </section>
+
+    <div class="content-grid">
+      <section class="panel">
+        <h2>年度对比</h2>
+        <div id="previewAnnualMount"></div>
+      </section>
+      <section class="panel">
+        <h2>单线束摘要</h2>
+        <div id="previewHarnessMount"></div>
+      </section>
+    </div>
+
+    <section class="panel">
+      <h2>报价基线对照</h2>
+      <p>这里把当前预演场景和报价基线放在同一张表里，便于校核单套收入、成本、利润率和包装/资本差异。</p>
+      <div id="previewBaselineCompare"></div>
+    </section>
+
+    <section class="panel">
+      <h2>报价基线校核矩阵</h2>
+      <p>优先读取财务工作簿真实值与公式来源，作为 what-if 结果的校核基线，不替代核算页的工作台矩阵。</p>
+      <div id="previewBaselineMount"></div>
+    </section>
+  </div>
+
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+  <script src="../g281_data_bundle.js"></script>
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+  <script src="../engine/shared_utils.js"></script>
+  <script src="../engine/state_normalizer.js"></script>
+  <script src="../engine/snapshot_resolver.js"></script>
+  <script src="../engine/annual_calc.js"></script>
+  <script src="../engine/config_bridge.js"></script>
+  <script src="../engine/computation_path.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../engine/compute_model.js"></script>
+  <script src="../engine/harness_profit.js"></script>
+  <script src="../engine/target_price_solver.js"></script>
+  <script src="../engine/bom_workbook_adapter.js"></script>
+  <script src="../engine/financial_workbook_adapter.js"></script>
+  <script src="../engine/harness_stage_cost_builder.js"></script>
+  <script src="../engine/project_rollup_builder.js"></script>
+  <script src="../engine/customer_quote_template_adapter.js"></script>
+  <script src="../engine/change_impact_builder.js"></script>
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../core/storage_adapter.js"></script>
+  <script src="../core/platform_gateways.js"></script>
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const DEFAULT_STATE = {
+        bom: 'freeze',
+        metal: 'quote',
+        connector: 'quote',
+        labor: 'base',
+        equipment: 'base',
+        packaging: 'base',
+        sales: 'quote',
+        mix: 'quote',
+        annualDrop: 'quote',
+        oneTimeCustomer: 'quote',
+        rebate: 'quote',
+        vave: 'none',
+      };
+
+      const STATE_OPTIONS = {
+        bom: [['freeze', '报价 BOM'], ['light', '定点 BOM']],
+        metal: [['quote', '报价金属价'], ['fixed', '定点金属价']],
+        connector: [['quote', '报价连接器'], ['fixed', '定点连接器']],
+        labor: [['base', '基准工时'], ['optimize', '优化工时']],
+        equipment: [['base', '基准设备'], ['shared', '共享设备']],
+        packaging: [['base', '基准包装'], ['optimize', '优化包装']],
+        sales: [['quote', '报价销量'], ['fixed', '定点销量']],
+        mix: [['quote', '报价配置比'], ['fixed', '定点配置比']],
+      };
+
+      let runtime = null;
+      let repo = null;
+      let config = null;
+      let session = null;
+      let currentState = null;
+      let selectedBaselineKey = 'quote';
+
+      function textOf(value, fallback) {
+        const text = String(value == null ? '' : value).trim();
+        return text || (fallback == null ? '' : fallback);
+      }
+
+      function numberOf(value, fallback) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric : (fallback == null ? 0 : fallback);
+      }
+
+      function escapeHtml(value) {
+        return textOf(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function currency(value) {
+        return numberOf(value, 0).toFixed(4);
+      }
+
+      function percent(value) {
+        return `${(numberOf(value, 0) * 100).toFixed(2)}%`;
+      }
+
+      function looksBroken(text) {
+        return /[Ã�]|[\uFFFD]|(?:楂|绾|鍛|鏍哥畻|棰勬紨|璺熻釜|褰掓。)/.test(String(text || ''));
+      }
+
+      function safeProjectConfig(rawConfig, activeRuntime) {
+        const master = activeRuntime && activeRuntime.master ? activeRuntime.master : {};
+        const projectCode = textOf(rawConfig && (rawConfig.projectCode || rawConfig.projectId), textOf(master.projectCode || master.projectId, 'PROJECT'));
+        const fallbackName = textOf(master.name, `${projectCode} 生命周期成本平台`);
+        return Object.assign({}, rawConfig || {}, {
+          projectCode,
+          projectId: textOf(rawConfig && rawConfig.projectId, projectCode),
+          projectName: looksBroken(rawConfig && rawConfig.projectName) ? fallbackName : textOf(rawConfig && rawConfig.projectName, fallbackName),
+        });
+      }
+
+      function ensureProject(projectConfig) {
+        const registry = window.G281ProjectRegistry;
+        if (!registry || !projectConfig || !projectConfig.projectCode) return;
+        try {
+          registry.registerProject(projectConfig.projectCode, projectConfig);
+        } catch (error) {}
+        try {
+          if (registry.getActiveCode() !== projectConfig.projectCode) {
+            registry.switchProject(projectConfig.projectCode);
+          }
+        } catch (error) {}
+      }
+
+      function mountProjectSwitcher(nav) {
+        const host = nav && nav.querySelector('.g281-nav-meta');
+        if (!host || !window.G281ProjectSwitcher || !window.G281ProjectSwitcher.render) return;
+        const mount = document.createElement('div');
+        host.appendChild(mount);
+        window.G281ProjectSwitcher.render(mount, { onSwitch: () => location.reload() });
+      }
+
+      function resolveBaselineKeys() {
+        const versions = repo && repo.listFinancialVersions ? repo.listFinancialVersions() : [];
+        const keys = versions.map((item) => textOf(item && item.key, '')).filter(Boolean);
+        return keys.length ? keys : ['quote'];
+      }
+
+      function resolveRouterState() {
+        return window.G281PageRouter && typeof window.G281PageRouter.resolveState === 'function'
+          ? window.G281PageRouter.resolveState()
+          : {};
+      }
+
+      function buildRouterState(extraState) {
+        return Object.assign({}, resolveRouterState(), {
+          baselineKey: selectedBaselineKey,
+          versionKey: selectedBaselineKey,
+          stageKey: selectedBaselineKey,
+          sourcePage: 'preview',
+        }, extraState || {});
+      }
+
+      function persistRouterState(extraState) {
+        if (!window.G281PageRouter) return;
+        const nextState = buildRouterState(extraState);
+        if (typeof window.G281PageRouter.saveState === 'function') window.G281PageRouter.saveState(nextState);
+        if (typeof window.G281PageRouter.writeUrlParams === 'function') window.G281PageRouter.writeUrlParams(nextState);
+      }
+
+      function navigateWithRouter(pageFile, extraState) {
+        const nextState = buildRouterState(extraState);
+        if (window.G281PageRouter && typeof window.G281PageRouter.navigateTo === 'function') {
+          window.G281PageRouter.navigateTo(pageFile, nextState);
+          return;
+        }
+        location.href = pageFile;
+      }
+
+      function seedState() {
+        const history = repo && repo.getHistory ? repo.getHistory() : [];
+        const seed = history[0] || {};
+        return Object.assign({}, DEFAULT_STATE, config && config.stateDefaults ? config.stateDefaults : {}, seed.state || {});
+      }
+
+      function seedDraft() {
+        const history = repo && repo.getHistory ? repo.getHistory() : [];
+        const seed = history[0] || {};
+        return Object.assign({}, seed.draft || {});
+      }
+
+      function resolveTemplateKey() {
+        const templates = Array.isArray(config && config.customerTemplates) ? config.customerTemplates : [];
+        const customerTemplate = templates.find((item) => textOf(item && item.channel, '') === 'customer');
+        return textOf(customerTemplate && (customerTemplate.key || customerTemplate.id), textOf(config && config.defaultCustomerTemplateKey, 'customer_quote_standard'));
+      }
+
+      function buildContext() {
+        const draft = seedDraft();
+        const model = window.G281ComputeModel
+          ? window.G281ComputeModel.compute(runtime, draft, currentState)
+          : window.G281Engine.computeModel(runtime, draft, currentState);
+        const baselineKey = selectedBaselineKey || textOf(model && model.financialContext && (model.financialContext.referenceKey || model.financialContext.exactKey), 'quote');
+        const quoteBaselineKey = 'quote';
+        const matrix = window.G281FinancialWorkbookAdapter.load(runtime, baselineKey);
+        const quoteMatrix = baselineKey === quoteBaselineKey ? matrix : window.G281FinancialWorkbookAdapter.load(runtime, quoteBaselineKey);
+        const stageCost = model && model.stageCosts && model.stageCosts[baselineKey]
+          ? model.stageCosts[baselineKey]
+          : window.G281HarnessStageCostBuilder.build(runtime, baselineKey);
+        const quoteStageCost = baselineKey === quoteBaselineKey
+          ? stageCost
+          : window.G281HarnessStageCostBuilder.build(runtime, quoteBaselineKey);
+        const rollup = model && model.projectRollups && model.projectRollups[baselineKey]
+          ? model.projectRollups[baselineKey]
+          : window.G281ProjectRollupBuilder.build(stageCost.rows || [], runtime, { baselineKey });
+        const quoteRollup = baselineKey === quoteBaselineKey
+          ? rollup
+          : window.G281ProjectRollupBuilder.build(quoteStageCost.rows || [], runtime, { baselineKey: quoteBaselineKey });
+        const templateKey = resolveTemplateKey();
+        const template = window.G281CustomerQuoteTemplateAdapter.build(runtime, templateKey, baselineKey, { projectRollup: rollup, baselineKey });
+        const changeImpact = window.G281ChangeImpactBuilder
+          ? window.G281ChangeImpactBuilder.build(runtime, baselineKey, { comparisonKey: quoteBaselineKey, templateKey, projectRollup: rollup })
+          : null;
+        return { draft, model, baselineKey, matrix, quoteMatrix, stageCost, quoteStageCost, rollup, quoteRollup, template, changeImpact };
+      }
+
+      function renderStatus(context) {
+        const model = context.model || {};
+        const pathLabel = textOf(model && model.computationPath && model.computationPath.label, '未知路径');
+        const projectName = textOf(config && config.projectName, textOf(runtime && runtime.master && runtime.master.name, '生命周期成本平台'));
+        document.getElementById('previewStatus').textContent =
+          `${projectName} / 基线 ${context.baselineKey} / 路径 ${pathLabel} / 角色 ${textOf(session && session.roleKey, 'costing')} / 单套利润 ${currency(context.rollup && context.rollup.perSet && context.rollup.perSet.profit)}`;
+      }
+
+      function renderPageActions(context) {
+        const mount = document.getElementById('previewActions');
+        if (!mount) return;
+        mount.innerHTML = `
+          <div class="page-actions-copy">
+            基线、版本状态和来源页会通过页面路由连续传递。当前预演结果可直接带入核算、追踪和归档。
+          </div>
+          <div class="page-actions-buttons">
+            <button id="goAccountingButton" type="button">进入核算页</button>
+            <button id="goTrackingButton" type="button">进入追踪页</button>
+            <button id="goArchiveButton" class="secondary" type="button">查看归档</button>
+          </div>
+        `;
+        const routeState = {
+          baselineKey: context.baselineKey,
+          versionKey: context.baselineKey,
+          stageKey: context.baselineKey,
+        };
+        const accountingButton = document.getElementById('goAccountingButton');
+        const trackingButton = document.getElementById('goTrackingButton');
+        const archiveButton = document.getElementById('goArchiveButton');
+        if (accountingButton) {
+          accountingButton.addEventListener('click', () => {
+            navigateWithRouter('accounting.html', Object.assign({}, routeState, { targetPage: 'accounting' }));
+          });
+        }
+        if (trackingButton) {
+          trackingButton.addEventListener('click', () => {
+            navigateWithRouter('tracking.html', Object.assign({}, routeState, { targetPage: 'tracking' }));
+          });
+        }
+        if (archiveButton) {
+          archiveButton.addEventListener('click', () => {
+            navigateWithRouter('archive.html', Object.assign({}, routeState, { targetPage: 'archive' }));
+          });
+        }
+      }
+
+      function renderParameterMount() {
+        const baselineOptions = resolveBaselineKeys();
+        const mount = document.getElementById('previewParameters');
+        const baselineField = `
+          <div class="field">
+            <label for="previewBaselineSelect">报价基线</label>
+            <select id="previewBaselineSelect">
+              ${baselineOptions.map((key) => `<option value="${escapeHtml(key)}"${key === selectedBaselineKey ? ' selected' : ''}>${escapeHtml(key)}</option>`).join('')}
+            </select>
+          </div>
+        `;
+        const stateFields = Object.keys(STATE_OPTIONS).map((key) => {
+          const options = STATE_OPTIONS[key].map((entry) => {
+            const selected = currentState[key] === entry[0] ? ' selected' : '';
+            return `<option value="${escapeHtml(entry[0])}"${selected}>${escapeHtml(entry[1])}</option>`;
+          }).join('');
+          return `
+            <div class="field">
+              <label for="state-${escapeHtml(key)}">${escapeHtml(key)}</label>
+              <select id="state-${escapeHtml(key)}" data-state-key="${escapeHtml(key)}">${options}</select>
+            </div>
+          `;
+        }).join('');
+        mount.innerHTML = `${baselineField}${stateFields}
+          <div class="field">
+            <label>动作</label>
+            <button class="secondary" type="button" id="previewResetState">恢复默认</button>
+          </div>`;
+
+        document.getElementById('previewBaselineSelect').addEventListener('change', (event) => {
+          selectedBaselineKey = event.target.value;
+          persistRouterState();
+          renderAll();
+        });
+
+        mount.querySelectorAll('select[data-state-key]').forEach((select) => {
+          select.addEventListener('change', () => {
+            currentState[select.getAttribute('data-state-key')] = select.value;
+            renderAll();
+          });
+        });
+
+        document.getElementById('previewResetState').addEventListener('click', () => {
+          currentState = seedState();
+          renderParameterMount();
+          renderAll();
+        });
+      }
+
+      function renderKpis(context) {
+        const current = context.rollup && context.rollup.perSet ? context.rollup.perSet : {};
+        const baseline = context.quoteRollup && context.quoteRollup.perSet ? context.quoteRollup.perSet : {};
+        const cards = [
+          ['单套收入', current.revenue, current.revenue - numberOf(baseline.revenue, 0)],
+          ['单套成本', current.cost, current.cost - numberOf(baseline.cost, 0)],
+          ['单套利润', current.profit, current.profit - numberOf(baseline.profit, 0)],
+          ['毛利率', percent(current.margin), numberOf(current.margin, 0) - numberOf(baseline.margin, 0)],
+          ['线束数量', (context.stageCost && context.stageCost.rows || []).length, (context.stageCost && context.stageCost.rows || []).length - (context.quoteStageCost && context.quoteStageCost.rows || []).length],
+        ];
+
+        document.getElementById('previewKpiMount').innerHTML = cards.map((card) => {
+          const deltaText = typeof card[1] === 'string'
+            ? `对报价基线 ${card[2] >= 0 ? '+' : ''}${(numberOf(card[2], 0) * 100).toFixed(2)}pp`
+            : `对报价基线 ${numberOf(card[2], 0) >= 0 ? '+' : ''}${currency(card[2])}`;
+          return `
+            <div class="kpi-card">
+              <strong>${escapeHtml(card[0])}</strong>
+              <span>${typeof card[1] === 'number' ? escapeHtml(currency(card[1])) : escapeHtml(card[1])}</span>
+              <small>${escapeHtml(deltaText)}</small>
+            </div>
+          `;
+        }).join('');
+
+        const changeImpact = context.changeImpact || {};
+        const recovery = changeImpact.recoveryImpact || {};
+        const projectDiff = changeImpact.projectDiff || {};
+        document.getElementById('previewDrivers').innerHTML = [
+          `单套成本差异 ${currency(projectDiff.costPerSetDelta)}`,
+          `单套利润差异 ${currency(projectDiff.profitPerSetDelta)}`,
+          `呆滞/残余回收 ${currency(recovery.obsoleteValue)}`,
+          `包装影响 ${currency(recovery.packagingDelta)}`,
+          `人工影响 ${currency(recovery.laborDelta)}`,
+        ].map((label) => `<span class="chip">${escapeHtml(label)}</span>`).join('');
+      }
+
+      function renderAnnual(context) {
+        const currentRows = Array.isArray(context.rollup && context.rollup.lifecycle) ? context.rollup.lifecycle : [];
+        const baselineRows = Array.isArray(context.quoteRollup && context.quoteRollup.lifecycle) ? context.quoteRollup.lifecycle : [];
+        if (!currentRows.length) {
+          document.getElementById('previewAnnualMount').innerHTML = '<div class="empty">暂无年度利润数据。</div>';
+          return;
+        }
+        const baselineMap = baselineRows.reduce((accumulator, row) => {
+          accumulator[textOf(row && row.year, '')] = row;
+          return accumulator;
+        }, {});
+        document.getElementById('previewAnnualMount').innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>年份</th>
+                  <th>当前收入</th>
+                  <th>当前成本</th>
+                  <th>当前利润</th>
+                  <th>报价利润</th>
+                  <th>利润差异</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${currentRows.map((row) => {
+                  const baselineRow = baselineMap[textOf(row && row.year, '')] || {};
+                  const delta = numberOf(row && row.profit, 0) - numberOf(baselineRow && baselineRow.profit, 0);
+                  return `
+                    <tr>
+                      <th>${escapeHtml(textOf(row && row.year, '--'))}</th>
+                      <td>${escapeHtml(currency(row && row.revenue))}</td>
+                      <td>${escapeHtml(currency(row && row.cost))}</td>
+                      <td>${escapeHtml(currency(row && row.profit))}</td>
+                      <td>${escapeHtml(currency(baselineRow && baselineRow.profit))}</td>
+                      <td>${escapeHtml(currency(delta))}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderHarness(context) {
+        const rows = (context.stageCost && context.stageCost.rows || []).slice(0, 10);
+        if (!rows.length) {
+          document.getElementById('previewHarnessMount').innerHTML = '<div class="empty">暂无单线束阶段成本。</div>';
+          return;
+        }
+        document.getElementById('previewHarnessMount').innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>线束号</th>
+                  <th>装车比</th>
+                  <th>材料</th>
+                  <th>人工</th>
+                  <th>包装</th>
+                  <th>单套总成本</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map((row) => `
+                  <tr>
+                    <th>${escapeHtml(textOf(row && row.harnessId, '--'))}</th>
+                    <td>${escapeHtml(currency(row && row.usageRatio))}</td>
+                    <td>${escapeHtml(currency(row && row.materialPerSet))}</td>
+                    <td>${escapeHtml(currency(numberOf(row && row.directLaborPerSet, 0) + numberOf(row && row.manufacturingPerSet, 0)))}</td>
+                    <td>${escapeHtml(currency(row && row.packagingPerSet))}</td>
+                    <td>${escapeHtml(currency(row && row.totalCostPerSet))}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderBaselineCompare(context) {
+        const current = context.rollup && context.rollup.perSet ? context.rollup.perSet : {};
+        const baseline = context.quoteRollup && context.quoteRollup.perSet ? context.quoteRollup.perSet : {};
+        const rows = [
+          ['收入', current.revenue, baseline.revenue],
+          ['成本', current.cost, baseline.cost],
+          ['利润', current.profit, baseline.profit],
+          ['毛利率', percent(current.margin), percent(baseline.margin)],
+          ['材料', current.material, baseline.material],
+          ['直接人工', current.directLabor, baseline.directLabor],
+          ['包装物流', current.packaging, baseline.packaging],
+        ];
+        document.getElementById('previewBaselineCompare').innerHTML = `
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>指标</th>
+                  <th>当前场景</th>
+                  <th>报价基线</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rows.map((row) => `
+                  <tr>
+                    <th>${escapeHtml(row[0])}</th>
+                    <td>${typeof row[1] === 'string' ? escapeHtml(row[1]) : escapeHtml(currency(row[1]))}</td>
+                    <td>${typeof row[2] === 'string' ? escapeHtml(row[2]) : escapeHtml(currency(row[2]))}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      function renderBaselineMatrix(context) {
+        if (window.G281FinancialWorkbookAdapter && typeof window.G281FinancialWorkbookAdapter.renderMatrix === 'function') {
+          window.G281FinancialWorkbookAdapter.renderMatrix(document.getElementById('previewBaselineMount'), context.matrix);
+          return;
+        }
+
+        const keyCells = context.matrix && context.matrix.keyCells ? context.matrix.keyCells : {};
+        const rows = Object.keys(keyCells).map((address) => {
+          const item = keyCells[address] || {};
+          return `
+            <tr>
+              <th>${escapeHtml(address)}</th>
+              <td>${escapeHtml(textOf(item && item.value, '--'))}</td>
+              <td>${escapeHtml(textOf(item && item.formulaSource, '--'))}</td>
+            </tr>
+          `;
+        }).join('');
+
+        document.getElementById('previewBaselineMount').innerHTML = rows
+          ? `<div class="table-wrap"><table><thead><tr><th>单元格</th><th>值</th><th>来源</th></tr></thead><tbody>${rows}</tbody></table></div>`
+          : '<div class="empty">暂无报价基线矩阵。</div>';
+      }
+
+      function solveTarget(context) {
+        const targetMargin = numberOf(document.getElementById('targetMargin').value, 8) / 100;
+        const targetRevenue = numberOf(document.getElementById('targetRevenue').value, NaN);
+        const mount = document.getElementById('previewTargetResult');
+        if (!window.G281TargetPriceSolver || typeof window.G281TargetPriceSolver.solveTargetPrice !== 'function') {
+          mount.innerHTML = '<span class="chip">目标价求解器不可用</span>';
+          return;
+        }
+        try {
+          const result = window.G281TargetPriceSolver.solveTargetPrice(runtime, context.draft, currentState, {
+            metric: 'margin',
+            targetValue: targetMargin,
+          });
+          const chips = [
+            `目标毛利率 ${percent(targetMargin)}`,
+            `建议平均 ASP ${currency(result && result.targetAverageAsp)}`,
+            `ASP 变化 ${currency(result && result.averageAspDelta)}`,
+            `求解结果 ${percent(result && result.achievedMetric)}`,
+          ];
+          if (Number.isFinite(targetRevenue)) {
+            chips.push(`目标报价差异 ${currency(targetRevenue - numberOf(context.rollup && context.rollup.perSet && context.rollup.perSet.revenue, 0))}`);
+          }
+          mount.innerHTML = chips.map((item) => `<span class="chip">${escapeHtml(item)}</span>`).join('');
+        } catch (error) {
+          mount.innerHTML = `<span class="chip">求解失败: ${escapeHtml(textOf(error && error.message, error))}</span>`;
+        }
+      }
+
+      function renderAll() {
+        try {
+          const context = buildContext();
+          persistRouterState({
+            baselineKey: context.baselineKey,
+            versionKey: context.baselineKey,
+            stageKey: context.baselineKey,
+          });
+          renderStatus(context);
+          renderPageActions(context);
+          renderKpis(context);
+          renderAnnual(context);
+          renderHarness(context);
+          renderBaselineCompare(context);
+          renderBaselineMatrix(context);
+        } catch (error) {
+          document.getElementById('previewStatus').textContent = `预演计算失败: ${textOf(error && error.message, error)}`;
+        }
+      }
+
+      async function bootstrap() {
+        runtime = window.G281_RUNTIME || {};
+        repo = window.G281Repo.init(runtime);
+        config = safeProjectConfig(await window.ConfigLoader.loadProjectConfig('../config/g281.project.json'), runtime);
+        ensureProject(config);
+        const nav = window.G281Nav.mountNavBar(config.projectName);
+        mountProjectSwitcher(nav);
+        session = window.AuthGateway && window.AuthGateway.getSession
+          ? await window.AuthGateway.getSession({ roleKey: 'costing' })
+          : { roleKey: 'costing' };
+
+        currentState = seedState();
+        const routerState = resolveRouterState();
+        const availableBaselines = resolveBaselineKeys();
+        selectedBaselineKey = textOf(routerState.baselineKey || routerState.versionKey, 'quote');
+        if (!availableBaselines.includes(selectedBaselineKey)) {
+          selectedBaselineKey = availableBaselines[0] || 'quote';
+        }
+        renderParameterMount();
+        renderAll();
+
+        document.getElementById('solveTarget').addEventListener('click', () => {
+          solveTarget(buildContext());
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        bootstrap().catch((error) => {
+          document.getElementById('previewStatus').textContent = `预演初始化失败: ${textOf(error && error.message, error)}`;
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

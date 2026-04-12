@@ -1,4 +1,7 @@
+# === Dependencies ===
 node_modules/
+
+# === Build / Temp ===
 output/
 tmp/
 test-results/
@@ -10,5 +13,37 @@ __pycache__/
 *.tmp
 *.log
 
+# === Excel lock files ===
 ~$*.xlsx
 ~$*.xls
+
+# === Generated data bundles (rebuild with `make data`) ===
+g281_data_bundle.js
+g281_data_bom_workbook_copies.json
+
+# === Source Excel files (too large for git, use Git LFS or keep locally) ===
+# Uncomment below if you want to stop tracking Excel files:
+# *.xlsx
+# *.xls
+
+# === AI session artifacts ===
+MEMORY.md
+.agents/
+.trellis/
+memory/
+AGENTS.md
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === Environment ===
+.env
+.env.*
+.env.local
+.env.*.local
+!.env.example
+!.env.*.example
+
+# === Local worktrees ===
+.worktrees/

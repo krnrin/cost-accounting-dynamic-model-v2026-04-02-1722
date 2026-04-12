@@ -1,0 +1,31 @@
+- generic [ref=e3]:
+  - complementary [ref=e4]:
+    - generic [ref=e6]:
+      - generic [ref=e7] [cursor=pointer]:
+        - img "home" [ref=e8]
+        - generic [ref=e11]: 项目
+      - generic [ref=e12] [cursor=pointer]:
+        - img "file" [ref=e13]
+        - generic [ref=e16]: 报表
+      - generic [ref=e17] [cursor=pointer]:
+        - generic [ref=e18]
+        - generic [ref=e24]: 预警
+      - generic [ref=e25] [cursor=pointer]:
+        - img "user" [ref=e26]
+        - generic [ref=e30]: 我的
+  - generic [ref=e31]:
+    - generic [ref=e33]:
+      - generic [ref=e34] [cursor=pointer]: 总览
+      - generic [ref=e35] [cursor=pointer]: 分析
+      - generic [ref=e36]: 报价
+      - generic [ref=e37]: 价格
+      - generic [ref=e38]: 模拟
+      - generic [ref=e39]: 分摊
+      - generic [ref=e40]: 设变
+      - generic [ref=e41]: 跟踪
+      - generic [ref=e42]: 配置
+      - generic [ref=e43] [cursor=pointer]: 设置
+    - main [ref=e44]:
+      - generic [ref=e45]:
+        - navigation "Breadcrumb" [ref=e47]
+        - generic [ref=e65]

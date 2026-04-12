@@ -1,0 +1,550 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Button,
+  Empty,
+  Input,
+  Modal,
+  Popconfirm,
+  Radio,
+  RadioGroup,
+  Space,
+  Spin,
+  Table,
+  Tag,
+  Toast,
+  Typography,
+} from '@douyinfe/semi-ui';
+import type { ColumnProps } from '@douyinfe/semi-ui/lib/es/table';
+import type { TagColor } from '@douyinfe/semi-ui/lib/es/tag';
+import {
+  IconDelete,
+  IconDownload,
+  IconEdit,
+  IconPlus,
+  IconSearch,
+  IconUpload,
+} from '@douyinfe/semi-icons';
+import { db, type ProjectRecord } from '../data/db';
+import { validateProjectPackage } from '@/engine/project_io';
+import { RoleGuard } from '@/components/RoleGuard';
+import { apiClient } from '@/lib/apiClient';
+import { exportProjectExcel, exportProjectPdf } from '@/lib/exportApi';
+import type { ProjectConfig } from '@/types/project';
+import { useProjectStore } from '@/store/projectStore';
+import type { CSSProperties } from 'react';
+
+const { Title, Text } = Typography;
+
+interface ApiProject {
+  id: string;
+  projectCode: string;
+  projectName: string;
+  customer: string;
+  platform?: string | null;
+  status: 'active' | 'draft' | 'quoted' | 'awarded' | 'production' | 'eol';
+  createdAt: string;
+  updatedAt: string;
+  costRates?: ProjectConfig['costRates'];
+  metalPrices?: ProjectConfig['metalPrices'];
+  volumes?: ProjectConfig['volumes'];
+}
+
+interface ProjectMetrics {
+  harnessCount: number;
+  scenarioCount: number;
+}
+
+interface ProjectFormValues {
+  projectCode: string;
+  projectName: string;
+  customer: string;
+  platform?: string;
+  status: 'draft' | 'quoted' | 'awarded' | 'production' | 'eol';
+}
+
+type ProjectRow = ProjectRecord & {
+  projectCode: string;
+  projectName: string;
+  customer: string;
+  status: ProjectFormValues['status'];
+  updatedAt: string;
+  harnessCount: number;
+  scenarioCount: number;
+};
+
+const statusMap: Record<ProjectFormValues['status'] | 'active', string> = {
+  active: '\u8FDB\u884C\u4E2D',
+  draft: '\u8349\u7A3F',
+  quoted: '\u5DF2\u62A5\u4EF7',
+  awarded: '\u5DF2\u5B9A\u70B9',
+  production: '\u91CF\u4EA7\u4E2D',
+  eol: '\u5DF2\u5F52\u6863',
+};
+
+const statusColorMap: Record<ProjectFormValues['status'] | 'active', TagColor> = {
+  active: 'blue',
+  draft: 'grey',
+  quoted: 'blue',
+  awarded: 'green',
+  production: 'cyan',
+  eol: 'red',
+};
+
+const statusFilterMap: Record<string, ApiProject['status'][]> = {
+  all: ['active', 'draft', 'quoted', 'awarded', 'production', 'eol'],
+  ongoing: ['active', 'draft', 'quoted'],
+  completed: ['awarded', 'production'],
+  archived: ['eol'],
+};
+
+const defaultProjectFormValues: ProjectFormValues = {
+  projectCode: '',
+  projectName: '',
+  customer: '',
+  platform: '',
+  status: 'draft',
+};
+
+function normalizeProjectStatus(status: ApiProject['status']): ProjectFormValues['status'] {
+  return status === 'active' ? 'draft' : status;
+}
+
+function mapApiProjectToRecord(project: ApiProject): ProjectRecord {
+  return {
+    id: project.id,
+    meta: {
+      id: project.id,
+      projectCode: project.projectCode,
+      projectName: project.projectName,
+      customer: project.customer,
+      platform: project.platform ?? undefined,
+      status: normalizeProjectStatus(project.status),
+      createdAt: project.createdAt,
+      updatedAt: project.updatedAt,
+    },
+    // config is deprecated — lives on ScenarioRecord since v7
+    // Only kept as minimal fallback for legacy code paths
+    config: undefined,
+  };
+}
+
+async function syncProjectsToDexie(projects: ProjectRecord[]) {
+  const incomingIds = new Set(projects.map((project) => project.id));
+  await db.transaction('rw', db.projects, async () => {
+    await Promise.all(projects.map((project) => db.projects.put(project)));
+    const existingIds = await db.projects.toCollection().primaryKeys();
+    await Promise.all(
+      existingIds
+        .filter((id): id is string => typeof id === 'string' && !incomingIds.has(id))
+        .map((id) => db.projects.delete(id))
+    );
+  });
+}
+
+/* Extracted styles to avoid double-brace JSX interception */
+const S: Record<string, CSSProperties> = {
+  loadingWrap: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
+  headerTitle: { marginBottom: 4 },
+  filterBar: { display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' as const },
+  searchInput: { width: 280 },
+  projectNameMain: { fontWeight: 500 },
+  modalForm: { display: 'flex', flexDirection: 'column' as const, gap: 12 },
+  formLabel: { display: 'block', marginBottom: 4, fontWeight: 500 },
+  pagination: { pageSize: 20 },
+};
+
+export default function ProjectListPage() {
+  const navigate = useNavigate();
+  const { setCurrentProject } = useProjectStore();
+
+  const [projects, setProjects] = useState<ProjectRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [extraInfo, setExtraInfo] = useState<Record<string, ProjectMetrics>>({});
+
+  /* Edit modal state (create removed — now uses /project/new wizard) */
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingProject, setEditingProject] = useState<ProjectRecord | null>(null);
+  const [projectFormValues, setProjectFormValues] = useState<ProjectFormValues>(defaultProjectFormValues);
+
+  const fetchProjects = useCallback(async () => {
+    setLoading(true);
+    try {
+      const query = new URLSearchParams();
+      if (searchTerm.trim()) {
+        query.set('search', searchTerm.trim());
+      }
+      const data = await apiClient<ApiProject[]>(`/projects${query.toString() ? `?${query.toString()}` : ''}`);
+      const mappedProjects = data.map(mapApiProjectToRecord);
+      setProjects(mappedProjects);
+      await syncProjectsToDexie(mappedProjects);
+    } catch (error) {
+      console.error(error);
+      Toast.error('\u52A0\u8F7D\u9879\u76EE\u5217\u8868\u5931\u8D25');
+    } finally {
+      setLoading(false);
+    }
+  }, [searchTerm]);
+
+  useEffect(() => {
+    void fetchProjects();
+  }, [fetchProjects]);
+
+  useEffect(() => {
+    const fetchExtra = async () => {
+      const info: Record<string, ProjectMetrics> = {};
+      for (const project of projects) {
+        const harnessCount = await db.harnesses.where('projectId').equals(project.id).count();
+        const scenarioCount = await db.scenarios.where('projectId').equals(project.id).count();
+        info[project.id] = { harnessCount, scenarioCount };
+      }
+      setExtraInfo(info);
+    };
+
+    if (projects.length === 0) {
+      setExtraInfo({});
+      return;
+    }
+
+    void fetchExtra();
+  }, [projects]);
+
+  const filteredProjects = useMemo(() => {
+    const allowedStatuses = new Set(statusFilterMap[statusFilter] || statusFilterMap.all);
+    return projects.filter((project) => allowedStatuses.has(project.meta.status));
+  }, [projects, statusFilter]);
+
+  const tableData = useMemo<ProjectRow[]>(() => {
+    return filteredProjects.map((project) => ({
+      ...project,
+      projectCode: project.meta.projectCode,
+      projectName: project.meta.projectName,
+      customer: project.meta.customer,
+      status: project.meta.status,
+      updatedAt: project.meta.updatedAt,
+      harnessCount: extraInfo[project.id]?.harnessCount ?? 0,
+      scenarioCount: extraInfo[project.id]?.scenarioCount ?? 0,
+    }));
+  }, [filteredProjects, extraInfo]);
+
+  /* -- Edit modal handlers -- */
+
+  const openEditModal = (project: ProjectRecord, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setEditingProject(project);
+    setProjectFormValues({
+      projectCode: project.meta.projectCode,
+      projectName: project.meta.projectName,
+      customer: project.meta.customer,
+      platform: project.meta.platform || '',
+      status: project.meta.status,
+    });
+    setEditModalVisible(true);
+  };
+
+  const closeEditModal = () => {
+    setEditModalVisible(false);
+    setEditingProject(null);
+    setProjectFormValues(defaultProjectFormValues);
+  };
+
+  const handleOpenProject = (project: ProjectRecord) => {
+    setCurrentProject(project.id, project.meta.projectName);
+    navigate(`/project/${project.id}`);
+  };
+
+  const handleSubmitEdit = async () => {
+    const values = projectFormValues;
+    if (!values.projectCode.trim() || !values.projectName.trim() || !values.customer.trim()) {
+      Toast.error('\u8BF7\u5B8C\u6574\u586B\u5199\u9879\u76EE\u7F16\u53F7\u3001\u9879\u76EE\u540D\u79F0\u548C\u5BA2\u6237');
+      return;
+    }
+    if (!editingProject) return;
+
+    try {
+      setSubmitting(true);
+      const payload = {
+        projectCode: values.projectCode.trim(),
+        projectName: values.projectName.trim(),
+        customer: values.customer.trim(),
+        platform: values.platform?.trim() || undefined,
+        status: values.status,
+      };
+      await apiClient(`/projects/${editingProject.id}`, {
+        method: 'PUT',
+        body: payload,
+      });
+      Toast.success('\u9879\u76EE\u5DF2\u66F4\u65B0');
+      closeEditModal();
+      await fetchProjects();
+    } catch (error) {
+      if (error instanceof Error && error.message) {
+        Toast.error(error.message);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (projectId: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    try {
+      await apiClient(`/projects/${projectId}`, { method: 'DELETE' });
+      Toast.success('\u5220\u9664\u6210\u529F');
+      await fetchProjects();
+    } catch (error) {
+      console.error(error);
+      Toast.error('\u5220\u9664\u5931\u8D25');
+    }
+  };
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = async (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (!file) {
+        return;
+      }
+
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const validation = validateProjectPackage(data);
+        if (!validation.valid) {
+          Toast.error(`\u5BFC\u5165\u5931\u8D25: ${validation.errors.join(', ')}`);
+          return;
+        }
+        await apiClient('/projects/import', {
+          method: 'POST',
+          body: data,
+        });
+        Toast.success('\u5BFC\u5165\u6210\u529F');
+        await fetchProjects();
+      } catch (error) {
+        console.error(error);
+        Toast.error(error instanceof Error ? `\u5BFC\u5165\u5931\u8D25: ${error.message}` : '\u5BFC\u5165\u5931\u8D25: \u6587\u4EF6\u683C\u5F0F\u9519\u8BEF');
+      }
+    };
+    input.click();
+  };
+
+  const columns: ColumnProps<ProjectRow>[] = [
+    {
+      title: '\u9879\u76EE\u7F16\u53F7',
+      dataIndex: 'projectCode',
+      width: 140,
+      render: (_text, record) => <Text strong>{record.projectCode}</Text>,
+    },
+    {
+      title: '\u9879\u76EE\u540D\u79F0',
+      dataIndex: 'projectName',
+      render: (_text, record) => (
+        <div>
+          <div style={S.projectNameMain}>{record.projectName}</div>
+          <Text type="tertiary" size="small">{record.meta.platform || '-'}</Text>
+        </div>
+      ),
+    },
+    {
+      title: '\u5BA2\u6237',
+      dataIndex: 'customer',
+      width: 180,
+    },
+    {
+      title: '\u72B6\u6001',
+      dataIndex: 'status',
+      width: 120,
+      render: (_text, record) => <Tag color={statusColorMap[record.status]}>{statusMap[record.status]}</Tag>,
+    },
+    {
+      title: '\u7EBF\u675F\u6570',
+      dataIndex: 'harnessCount',
+      width: 100,
+    },
+    {
+      title: '\u573A\u666F\u6570',
+      dataIndex: 'scenarioCount',
+      width: 100,
+    },
+    {
+      title: '\u66F4\u65B0\u65F6\u95F4',
+      dataIndex: 'updatedAt',
+      width: 140,
+      render: (_text, record) => new Date(record.updatedAt).toLocaleDateString('zh-CN'),
+    },
+    {
+      title: '\u64CD\u4F5C',
+      dataIndex: 'id',
+      width: 260,
+      render: (_text, record) => (
+        <Space>
+          <Button
+            theme="solid"
+            type="primary"
+            size="small"
+            onClick={(event) => {
+              event.stopPropagation();
+              handleOpenProject(record);
+            }}
+          >
+            \u8FDB\u5165\u9879\u76EE
+          </Button>
+          <Button icon={<IconEdit />} theme="borderless" size="small" onClick={(event) => openEditModal(record, event)} />
+          <Button
+            icon={<IconDownload />}
+            theme="borderless"
+            size="small"
+            onClick={async (event) => {
+              event.stopPropagation();
+              try {
+                await exportProjectExcel(record.id);
+                Toast.success('\u9879\u76EE Excel \u5DF2\u5BFC\u51FA');
+              } catch (error) {
+                Toast.error(error instanceof Error ? error.message : '\u9879\u76EE Excel \u5BFC\u51FA\u5931\u8D25');
+              }
+            }}
+          />
+          <Button
+            icon={<IconUpload />}
+            theme="borderless"
+            size="small"
+            onClick={async (event) => {
+              event.stopPropagation();
+              try {
+                await exportProjectPdf(record.id);
+                Toast.success('\u9879\u76EE PDF \u5DF2\u5BFC\u51FA');
+              } catch (error) {
+                Toast.error(error instanceof Error ? error.message : '\u9879\u76EE PDF \u5BFC\u51FA\u5931\u8D25');
+              }
+            }}
+          />
+          <RoleGuard field="deleteProject">
+            <Popconfirm
+              title="\u786E\u5B9A\u5220\u9664\u6B64\u9879\u76EE\u5417\uFF1F"
+              content="\u5220\u9664\u540E\u6570\u636E\u5C06\u4E0D\u53EF\u6062\u590D"
+              position="bottomRight"
+              onConfirm={(event) => handleDelete(record.id, event as unknown as React.MouseEvent)}
+              onCancel={(event) => event?.stopPropagation()}
+            >
+              <Button
+                icon={<IconDelete />}
+                type="danger"
+                theme="borderless"
+                size="small"
+                onClick={(event) => event.stopPropagation()}
+              />
+            </Popconfirm>
+          </RoleGuard>
+        </Space>
+      ),
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div style={S.loadingWrap}>
+        <Spin size="large" />
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={S.header}>
+        <div>
+          <Title heading={4} style={S.headerTitle}>\u9879\u76EE\u5217\u8868</Title>
+          <Text type="tertiary">\u652F\u6301\u641C\u7D22\u3001\u72B6\u6001\u7B5B\u9009\u3001\u65B0\u5EFA\u3001\u5220\u9664\u5E76\u8FDB\u5165\u9879\u76EE</Text>
+        </div>
+        <Space>
+          <Button theme="light" icon={<IconUpload />} onClick={handleImport}>
+            \u5BFC\u5165\u9879\u76EE
+          </Button>
+          <Button theme="solid" type="primary" icon={<IconPlus />} onClick={() => navigate('/project/new')}>
+            \u65B0\u5EFA\u9879\u76EE
+          </Button>
+        </Space>
+      </div>
+
+      <div style={S.filterBar}>
+        <Input
+          prefix={<IconSearch />}
+          placeholder="\u641C\u7D22\u9879\u76EE\u540D\u79F0\u3001\u7F16\u53F7\u6216\u5BA2\u6237"
+          value={searchTerm}
+          onChange={setSearchTerm}
+          style={S.searchInput}
+          showClear
+          onEnterPress={() => {
+            void fetchProjects();
+          }}
+        />
+        <RadioGroup type="button" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <Radio value="all">\u5168\u90E8</Radio>
+          <Radio value="ongoing">\u8FDB\u884C\u4E2D</Radio>
+          <Radio value="completed">\u5DF2\u5B8C\u6210</Radio>
+          <Radio value="archived">\u5DF2\u5F52\u6863</Radio>
+        </RadioGroup>
+      </div>
+
+      {tableData.length === 0 ? (
+        <Empty title="\u6682\u65E0\u9879\u76EE" description="\u8BF7\u521B\u5EFA\u9879\u76EE\u6216\u8C03\u6574\u7B5B\u9009\u6761\u4EF6" />
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={tableData}
+          rowKey="id"
+          pagination={S.pagination as any}
+          onRow={(record) => ({
+            onClick: () => handleOpenProject(record as ProjectRecord),
+            style: { cursor: 'pointer' },
+          })}
+        />
+      )}
+
+      {/* Edit-only modal (create now uses /project/new wizard) */}
+      <Modal
+        title="\u7F16\u8F91\u9879\u76EE"
+        visible={editModalVisible}
+        onCancel={closeEditModal}
+        onOk={handleSubmitEdit}
+        confirmLoading={submitting}
+        okText="\u4FDD\u5B58"
+        cancelText="\u53D6\u6D88"
+      >
+        <div style={S.modalForm}>
+          <div>
+            <Text style={S.formLabel}>\u9879\u76EE\u7F16\u53F7</Text>
+            <Input value={projectFormValues.projectCode} placeholder="\u5982 E281" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, projectCode: value }))} />
+          </div>
+          <div>
+            <Text style={S.formLabel}>\u9879\u76EE\u540D\u79F0</Text>
+            <Input value={projectFormValues.projectName} placeholder="\u8BF7\u8F93\u5165\u9879\u76EE\u540D\u79F0" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, projectName: value }))} />
+          </div>
+          <div>
+            <Text style={S.formLabel}>\u5BA2\u6237</Text>
+            <Input value={projectFormValues.customer} placeholder="\u8BF7\u8F93\u5165\u5BA2\u6237\u540D\u79F0" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, customer: value }))} />
+          </div>
+          <div>
+            <Text style={S.formLabel}>\u5E73\u53F0/\u8F66\u578B</Text>
+            <Input value={projectFormValues.platform || ''} placeholder="\u8BF7\u8F93\u5165\u5E73\u53F0\u6216\u8F66\u578B" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, platform: value }))} />
+          </div>
+          <div>
+            <Text style={S.formLabel}>\u72B6\u6001</Text>
+            <RadioGroup type="button" value={projectFormValues.status} onChange={(event) => setProjectFormValues((prev) => ({ ...prev, status: event.target.value }))}>
+              <Radio value="draft">\u8349\u7A3F</Radio>
+              <Radio value="quoted">\u5DF2\u62A5\u4EF7</Radio>
+              <Radio value="awarded">\u5DF2\u5B9A\u70B9</Radio>
+              <Radio value="production">\u91CF\u4EA7\u4E2D</Radio>
+              <Radio value="eol">\u5DF2\u5F52\u6863</Radio>
+            </RadioGroup>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
