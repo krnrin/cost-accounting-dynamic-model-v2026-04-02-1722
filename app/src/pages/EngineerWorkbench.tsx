@@ -10,9 +10,25 @@ import HarnessCompareView from '@/components/HarnessCompareView';
 import ChangeOrderWizard from '@/components/ChangeOrderWizard';
 import type { HarnessResult } from '@/types/harness';
 import type { ChangeOrder } from '@/engine/change_verification';
+import type { CSSProperties } from 'react';
 
 const { Title, Text } = Typography;
 const { Sider, Content } = Layout;
+
+const S: Record<string, CSSProperties> = {
+  layout: { height: '100vh' },
+  sider: { width: 220, background: '#fff', borderRight: '1px solid #e8e8e8' },
+  nav: { height: '100%' },
+  content: { padding: 24, overflow: 'auto' },
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  tabContent: { padding: 16 },
+  toolbar: { marginTop: 16, display: 'flex', gap: 8 },
+  placeholder: { marginTop: 24, padding: 48, background: '#fafafa', textAlign: 'center' as const, borderRadius: 8 },
+  sectionTitle: { marginTop: 24 },
+  tag: { margin: 4 },
+};
+
+const navFooterConfig = { collapseButton: true };
 
 export default function EngineerWorkbench() {
   const [engine, setEngine] = useState<EngineType>('customer');
@@ -32,10 +48,10 @@ export default function EngineerWorkbench() {
   }, []);
 
   return (
-    <Layout style= height: '100vh' >
-      <Sider style= width: 220, background: 'var(--semi-color-bg-1)' >
+    <Layout style={S.layout}>
+      <Sider style={S.sider}>
         <Nav
-          style= height: '100%' 
+          style={S.nav}
           items={[
             { itemKey: 'bom', text: 'BOM编辑', icon: <IconEdit /> },
             { itemKey: 'calc', text: '成本计算', icon: <IconCode /> },
@@ -45,12 +61,12 @@ export default function EngineerWorkbench() {
           ]}
           selectedKeys={[activeTab]}
           onSelect={({ itemKey }) => setActiveTab(itemKey as string)}
-          footer= collapseButton: true 
+          footer={navFooterConfig}
         />
       </Sider>
 
-      <Content style= padding: 24, overflow: 'auto' >
-        <div style= display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 >
+      <Content style={S.content}>
+        <div style={S.header}>
           <Title heading={3}>🔧 工程师工作台</Title>
           <Space>
             <EngineSelector value={engine} onChange={setEngine} />
@@ -62,10 +78,10 @@ export default function EngineerWorkbench() {
 
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
           <TabPane tab="BOM编辑" itemKey="bom">
-            <div style= padding: 16 >
+            <div style={S.tabContent}>
               <Title heading={5}>BOM 数据编辑</Title>
               <Text type="tertiary">在此编辑线束BOM数据，支持智能粘贴导入</Text>
-              <div style= marginTop: 16 >
+              <div style={S.toolbar}>
                 <Space>
                   <Button type="primary" theme="solid">📋 智能粘贴</Button>
                   <Button>📤 导出BOM</Button>
@@ -73,21 +89,21 @@ export default function EngineerWorkbench() {
                 </Space>
               </div>
               {/* UniverSheet BOM editor placeholder - D8 */}
-              <div style= marginTop: 16, height: 500, border: '1px dashed var(--semi-color-border)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' >
+              <div style={S.placeholder}>
                 <Text type="tertiary">UniverSheet BOM 编辑器 (D8 待集成)</Text>
               </div>
             </div>
           </TabPane>
 
           <TabPane tab="成本计算" itemKey="calc">
-            <div style= padding: 16 >
+            <div style={S.tabContent}>
               <Title heading={5}>成本计算结果</Title>
               <Text type="tertiary">基于当前BOM和参数的成本计算结果</Text>
             </div>
           </TabPane>
 
           <TabPane tab="仿真分层" itemKey="sim">
-            <div style= padding: 16 >
+            <div style={S.tabContent}>
               <Title heading={5}>仿真分层</Title>
               <Text type="tertiary">叠加多维度仿真层，分析成本敏感性</Text>
             </div>
@@ -98,7 +114,7 @@ export default function EngineerWorkbench() {
           </TabPane>
 
           <TabPane tab="参数设置" itemKey="settings">
-            <div style= padding: 16 >
+            <div style={S.tabContent}>
               <Title heading={5}>参数设置</Title>
               <Text type="tertiary">费率、金属价格、年降参数配置</Text>
             </div>
@@ -113,10 +129,10 @@ export default function EngineerWorkbench() {
         />
 
         {changeOrders.length > 0 && (
-          <div style= marginTop: 24 >
+          <div style={S.sectionTitle}>
             <Title heading={5}>📋 设变单记录 ({changeOrders.length})</Title>
             {changeOrders.map(co => (
-              <Tag key={co.id} color="orange" style= margin: 4 >
+              <Tag key={co.id} color="orange" style={S.tag}>
                 {co.changeNo}: {co.reason || co.type}
               </Tag>
             ))}
