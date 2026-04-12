@@ -1,0 +1,321 @@
+/* ================================================================== */
+/*  Dashboard extracted styles                                         */
+/*  Replaces all inline style objects from the original monolith.      */
+/* ================================================================== */
+
+/* --- Layout --- */
+.db-root {
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.db-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* --- Project Info Card --- */
+.db-project-card {
+  padding: 24px;
+  min-height: 260px;
+}
+.db-project-title {
+  margin-bottom: 4px;
+}
+.db-project-meta {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+.db-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.db-quick-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.db-quick-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--semi-color-fill-0);
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.db-quick-btn:hover {
+  background: var(--semi-color-fill-1);
+}
+
+/* --- KPI Cards --- */
+.db-kpi-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 140px;
+}
+.db-kpi-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.db-kpi-label {
+  font-size: 13px;
+  color: var(--semi-color-text-2);
+}
+.db-kpi-number {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 4px 0;
+}
+.db-kpi-number-sm {
+  font-size: 22px;
+  font-weight: 700;
+  margin: 4px 0;
+}
+.db-kpi-sub {
+  font-size: 12px;
+  color: var(--semi-color-text-2);
+}
+.db-kpi-hint {
+  font-size: 11px;
+  color: var(--semi-color-text-3);
+  margin-top: 2px;
+}
+
+/* --- Allocation Recovery --- */
+.db-alloc-card {
+  padding: 16px 20px;
+}
+.db-alloc-circle-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+.db-alloc-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.db-alloc-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 160px;
+}
+.db-alloc-bar-label {
+  font-size: 12px;
+  font-family: var(--semi-font-family-code);
+  min-width: 42px;
+}
+.db-alloc-bar-progress {
+  flex: 1;
+}
+.db-alloc-bar-value {
+  font-size: 12px;
+  min-width: 64px;
+  text-align: right;
+}
+.db-alloc-footer {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--semi-color-border);
+}
+.db-alloc-footer-text {
+  font-size: 12px;
+  color: var(--semi-color-text-2);
+}
+
+/* --- Chart Panels --- */
+.db-chart-card {
+  padding: 20px;
+}
+.db-chart-title {
+  margin-bottom: 12px;
+}
+.db-chart-body {
+  width: 100%;
+  overflow-x: auto;
+}
+.db-chart {
+  height: 320px;
+  width: 100%;
+}
+
+/* --- Section Headers --- */
+.db-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.db-section-link {
+  font-size: 13px;
+  color: var(--accent);
+  cursor: pointer;
+}
+.db-section-link:hover {
+  text-decoration: underline;
+}
+
+/* --- P&L Table --- */
+.db-table-wrap {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+.db-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.db-table th {
+  padding: 8px 10px;
+  text-align: right;
+  font-weight: 600;
+  background: var(--semi-color-fill-0);
+  border-bottom: 2px solid var(--semi-color-border);
+  white-space: nowrap;
+}
+.db-table th:first-child {
+  text-align: left;
+}
+.db-table th:last-child {
+  font-weight: 700;
+}
+.db-table td {
+  padding: 6px 10px;
+  text-align: right;
+  border-bottom: 1px solid var(--semi-color-border);
+  white-space: nowrap;
+}
+.db-table td:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+.db-table td:last-child {
+  font-weight: 600;
+}
+.db-table tr.db-row-highlight {
+  background: var(--semi-color-fill-0);
+}
+.db-table tr.db-row-total {
+  border-top: 2px solid var(--semi-color-border);
+  font-weight: 700;
+}
+.db-table .db-cell-positive {
+  color: #16a34a;
+}
+.db-cell-negative {
+  color: #dc2626;
+}
+.db-cell-bold {
+  font-weight: 700;
+}
+.db-cell-rebate {
+  font-style: italic;
+  color: var(--semi-color-text-2);
+}
+
+/* --- Harness Profit Table --- */
+.db-harness-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.db-harness-table th {
+  padding: 6px 8px;
+  text-align: right;
+  font-weight: 600;
+  background: var(--semi-color-fill-0);
+  border-bottom: 2px solid var(--semi-color-border);
+  white-space: nowrap;
+  font-size: 11px;
+}
+.db-harness-table th:first-child {
+  text-align: left;
+}
+.db-harness-table td {
+  padding: 5px 8px;
+  text-align: right;
+  border-bottom: 1px solid var(--semi-color-border);
+  white-space: nowrap;
+}
+.db-harness-table td:first-child {
+  text-align: left;
+}
+.db-harness-table .db-h-link {
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--semi-font-family-code);
+  font-size: 11px;
+}
+.db-harness-table .db-h-link:hover {
+  text-decoration: underline;
+}
+.db-harness-table .db-h-name {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.db-harness-table .db-h-moh {
+  background: var(--semi-color-fill-0);
+}
+.db-cost-bar {
+  height: 4px;
+  display: flex;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 2px;
+}
+.db-cost-bar > div {
+  height: 100%;
+}
+.db-tag-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  margin: 1px 2px;
+  background: var(--semi-color-fill-1);
+  white-space: nowrap;
+}
+.db-h-summary-row td {
+  font-weight: 700;
+  border-top: 2px solid var(--semi-color-border);
+}
+
+/* --- Action Buttons --- */
+.db-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--semi-color-fill-0);
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s;
+}
+.db-action-btn:hover {
+  background: var(--semi-color-fill-1);
+}
+.db-action-icon {
+  font-size: 14px;
+}
+
+/* --- PnL sub-header --- */
+.db-pnl-subheader {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}

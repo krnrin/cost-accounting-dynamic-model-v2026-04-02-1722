@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>核算 — 生命周期成本工作台</title>
+  <link rel="stylesheet" href="../shared/nav.css">
+  <link rel="stylesheet" href="../shared/project_switcher.css">
+  <link rel="stylesheet" href="../ui/dashboard.css">
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; }
+    .page-header { padding: 20px 24px 12px; }
+    .page-header h1 { margin: 0; font-size: 22px; font-weight: 700; }
+    .page-header p { margin: 4px 0 0; font-size: 13px; color: #888; }
+    .accounting-content { padding: 0 24px 24px; }
+    .node-board { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; margin-top: 16px; }
+    .node-card { background: #1a1a2e; border-radius: 10px; padding: 12px 14px; border: 1px solid #333; }
+    .node-card h3 { margin: 0 0 6px; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+    .node-card p { margin: 0; font-size: 12px; color: #9ca3af; }
+    .section-grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin-top: 24px; }
+    .acc-section { margin-top: 16px; background: #1a1a2e; border-radius: 10px; padding: 20px; border: 1px solid #2a2a3e; }
+    .acc-section h2 { margin: 0 0 12px; font-size: 16px; font-weight: 600; }
+    .sheet-mount { min-height: 240px; border: 1px dashed #3b3b5a; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #8b8db9; font-size: 13px; }
+    .grid-rows { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-top: 20px; }
+    .grid-rows .matrix { min-height: 180px; padding: 14px; background: #111125; border-radius: 8px; border: 1px solid #27273a; }
+    .grid-rows .matrix h2 { margin: 0 0 6px; font-size: 15px; }
+    .grid-rows .matrix p { font-size: 12px; color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <script src="../shared/nav.js"></script>
+  <script src="../shared/page_router.js"></script>
+
+  <div class="page-header">
+    <h1>核算</h1>
+    <p>全生命周期成本与变更费用工作台 · 流程总览 / 单线束 / 项目汇总</p>
+  </div>
+
+  <div class="accounting-content">
+    <div id="accStatus"></div>
+
+    <div class="node-board" id="workflowBoardMount">
+      <div class="node-card" data-stage="harness">
+        <h3>线束</h3>
+        <p id="nodeHarnessStatus">待调度</p>
+      </div>
+      <div class="node-card" data-stage="bom">
+        <h3>BOM</h3>
+        <p id="nodeBomStatus">待审查</p>
+      </div>
+      <div class="node-card" data-stage="quotation">
+        <h3>询价</h3>
+        <p id="nodeQuoteStatus">未开启</p>
+      </div>
+      <div class="node-card" data-stage="labor">
+        <h3>工时</h3>
+        <p id="nodeLaborStatus">未录入</p>
+      </div>
+      <div class="node-card" data-stage="packaging">
+        <h3>包装</h3>
+        <p id="nodePackagingStatus">待校核</p>
+      </div>
+      <div class="node-card" data-stage="capital">
+        <h3>设备模具工装</h3>
+        <p id="nodeCapitalStatus">需求待齐</p>
+      </div>
+      <div class="node-card" data-stage="approval">
+        <h3>审批发布</h3>
+        <p id="nodeApprovalStatus">未提交</p>
+      </div>
+    </div>
+
+    <div class="section-grid">
+      <div class="acc-section">
+        <h2>Sheet 工作台</h2>
+        <div id="sheetWorkbenchMount" class="sheet-mount">待加载: BOM / 工时 / 询价 / 包装 / 设备数据</div>
+      </div>
+      <div class="acc-section">
+        <h2>发布记录</h2>
+        <div id="artifactPublishMount" class="sheet-mount">artifactPublishState 挂载点</div>
+      </div>
+    </div>
+
+    <div class="grid-rows">
+      <div class="matrix" id="quoteBaselineMatrix">
+        <h2>报价基线校核矩阵</h2>
+        <p>真实费用明细 · 公式来源 · 状态标签</p>
+        <div id="quoteBaselineDetails" style="margin-top:8px;">等待 FinancialWorkbookAdapter</div>
+      </div>
+      <div class="matrix" id="harnessCostMatrix">
+        <h2>单线束费用矩阵</h2>
+        <p>材料/人工/设备/包装/研发等</p>
+        <div id="harnessCostDetails">HarnessStageCostBuilder 输出</div>
+      </div>
+      <div class="matrix" id="projectRollup">
+        <h2>项目汇总</h2>
+        <p>收入 / 成本 / 生命周期利润</p>
+        <div id="projectRollupDetails">ProjectRollupBuilder 输出</div>
+      </div>
+      <div class="matrix" id="customerTemplatePreview">
+        <h2>客户模板预览</h2>
+        <p>吉利 A1~G 映射 · 预留导出</p>
+        <div id="templatePreviewDetails">CustomerQuoteTemplateAdapter 说明</div>
+      </div>
+      <div class="matrix" id="changeImpactSection">
+        <h2>变更费用</h2>
+        <p>BOM / 工艺 / 商务差异骨架</p>
+        <div id="changeImpactDetails">ChangeImpactBuilder 输出</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../utils/shared.js"></script>
+  <script src="../utils/core.js"></script>
+
+  <script src="../engine/shared_utils.js"></script>
+  <script src="../engine/state_normalizer.js"></script>
+  <script src="../engine/snapshot_resolver.js"></script>
+  <script src="../engine/annual_calc.js"></script>
+  <script src="../engine/config_bridge.js"></script>
+  <script src="../engine/computation_path.js"></script>
+  <script src="../engine/profit_shapley.js"></script>
+  <script src="../engine/compute_model.js"></script>
+  <script src="../engine/harness_profit.js"></script>
+  <script src="../engine/target_price_solver.js"></script>
+  <script src="../engine/bom_parser.js"></script>
+  <script src="../engine/bom_schema.js"></script>
+  <script src="../engine/bom_db.js"></script>
+  <script src="../engine/align_key_enhancer.js"></script>
+  <script src="../engine/bom_workbook_adapter.js"></script>
+  <script src="../engine/financial_workbook_adapter.js"></script>
+  <script src="../engine/customer_quote_template_adapter.js"></script>
+  <script src="../engine/harness_stage_cost_builder.js"></script>
+  <script src="../engine/project_rollup_builder.js"></script>
+  <script src="../engine/workflow_stage_board_builder.js"></script>
+  <script src="../engine/cost_exception_tracker_builder.js"></script>
+  <script src="../engine/change_impact_builder.js"></script>
+
+  <script src="../engine/error_boundary.js"></script>
+  <script src="../engine/computation_cache.js"></script>
+  <script src="../engine/schema_migrator.js"></script>
+
+  <script src="../core/config_loader.js"></script>
+  <script src="../core/repo.js"></script>
+  <script src="../core/storage_adapter.js"></script>
+  <script src="../config/project_registry.js"></script>
+  <script src="../shared/project_switcher.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      G281Nav.mountNavBar();
+      const board = window.G281WorkflowStageBoard;
+      if (board && board.attach) {
+        board.attach({
+          harnessStatusEl: document.getElementById('nodeHarnessStatus'),
+          bomStatusEl: document.getElementById('nodeBomStatus'),
+          quoteStatusEl: document.getElementById('nodeQuoteStatus'),
+          laborStatusEl: document.getElementById('nodeLaborStatus'),
+          packagingStatusEl: document.getElementById('nodePackagingStatus'),
+          capitalStatusEl: document.getElementById('nodeCapitalStatus'),
+          approvalStatusEl: document.getElementById('nodeApprovalStatus'),
+        });
+      }
+    });
+  </script>
+</body>
+</html>

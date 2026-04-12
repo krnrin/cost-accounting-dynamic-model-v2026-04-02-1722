@@ -1,0 +1,119 @@
+/**
+ * ui/tokens.css
+ * P3#12: CSS Design Tokens — 统一色值、间距、圆角、阴影、字号
+ *
+ * 使用方式:
+ *   1. 在 HTML <head> 中最先引入本文件
+ *   2. 其他 CSS 中用 var(--g281-xxx) 引用
+ *   3. dashboard.css 本地拆分时逐步替换硬编码 hex
+ *
+ * 色值来源: dashboard.css / preview.html / insights.css / nav.css 中提取的高频色值
+ */
+
+:root {
+  /* ── Background ── */
+  --g281-bg-body:        #0f0f1a;
+  --g281-bg-surface:     #1a1a2e;
+  --g281-bg-card:        #1e1e32;
+  --g281-bg-elevated:    #252542;
+  --g281-bg-hover:       #2a2a45;
+  --g281-bg-input:       #16162b;
+  --g281-bg-overlay:     rgba(0, 0, 0, 0.55);
+
+  /* ── Text ── */
+  --g281-text-primary:   #e0e0e0;
+  --g281-text-secondary: #a0a0b8;
+  --g281-text-muted:     #888888;
+  --g281-text-disabled:  #555566;
+  --g281-text-inverse:   #0f0f1a;
+
+  /* ── Accent / Brand ── */
+  --g281-accent-blue:    #60a5fa;
+  --g281-accent-cyan:    #0ea5e9;
+  --g281-accent-purple:  #818cf8;
+  --g281-accent-indigo:  #6366f1;
+
+  /* ── Semantic — Status ── */
+  --g281-status-ok:      #4ade80;
+  --g281-status-ok-bg:   rgba(74, 222, 128, 0.10);
+  --g281-status-warn:    #fbbf24;
+  --g281-status-warn-bg: rgba(251, 191, 36, 0.10);
+  --g281-status-err:     #f87171;
+  --g281-status-err-bg:  rgba(248, 113, 113, 0.10);
+  --g281-status-info:    #60a5fa;
+  --g281-status-info-bg: rgba(96, 165, 250, 0.10);
+
+  /* ── Semantic — Profit ── */
+  --g281-profit-positive: #4ade80;
+  --g281-profit-negative: #f87171;
+  --g281-profit-neutral:  #fbbf24;
+
+  /* ── Border ── */
+  --g281-border-default: #2a2a40;
+  --g281-border-subtle:  #1f1f35;
+  --g281-border-hover:   #3a3a55;
+  --g281-border-focus:   #60a5fa;
+
+  /* ── Spacing Scale (4px base) ── */
+  --g281-space-2xs: 2px;
+  --g281-space-xs:  4px;
+  --g281-space-sm:  8px;
+  --g281-space-md:  12px;
+  --g281-space-base: 16px;
+  --g281-space-lg:  20px;
+  --g281-space-xl:  24px;
+  --g281-space-2xl: 32px;
+  --g281-space-3xl: 48px;
+
+  /* ── Border Radius ── */
+  --g281-radius-xs:   2px;
+  --g281-radius-sm:   4px;
+  --g281-radius-md:   8px;
+  --g281-radius-lg:   12px;
+  --g281-radius-xl:   16px;
+  --g281-radius-full: 9999px;
+
+  /* ── Box Shadow ── */
+  --g281-shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.20);
+  --g281-shadow-card:  0 2px 8px rgba(0, 0, 0, 0.30);
+  --g281-shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.50);
+  --g281-shadow-focus: 0 0 0 3px rgba(96, 165, 250, 0.35);
+
+  /* ── Typography ── */
+  --g281-font-family:    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+  --g281-font-mono:      'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+  --g281-font-size-2xs:  10px;
+  --g281-font-size-xs:   11px;
+  --g281-font-size-sm:   13px;
+  --g281-font-size-md:   14px;
+  --g281-font-size-base: 15px;
+  --g281-font-size-lg:   16px;
+  --g281-font-size-xl:   18px;
+  --g281-font-size-2xl:  22px;
+  --g281-font-size-3xl:  28px;
+  --g281-font-weight-normal:  400;
+  --g281-font-weight-medium:  500;
+  --g281-font-weight-semibold: 600;
+  --g281-font-weight-bold:    700;
+  --g281-line-height-tight:   1.25;
+  --g281-line-height-normal:  1.5;
+  --g281-line-height-relaxed: 1.75;
+
+  /* ── Z-Index Scale ── */
+  --g281-z-dropdown:  100;
+  --g281-z-sticky:    200;
+  --g281-z-drawer:    300;
+  --g281-z-modal:     400;
+  --g281-z-toast:     500;
+  --g281-z-tooltip:   600;
+
+  /* ── Transition ── */
+  --g281-transition-fast:   120ms ease;
+  --g281-transition-normal: 200ms ease;
+  --g281-transition-slow:   350ms ease;
+
+  /* ── Layout ── */
+  --g281-sidebar-width:     260px;
+  --g281-nav-height:        48px;
+  --g281-content-max-width: 1400px;
+}

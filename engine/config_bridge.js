@@ -8,7 +8,7 @@
  *
  * Issue #4 — 计算路径系数配置化
  */
-;(function (root) {
+;(function (global) {
   'use strict';
 
   // ============================================================
@@ -32,11 +32,11 @@
   var ConfigBridge = {
     /**
      * 获取材料成本组成系数
-     * @returns  connector: number, copper: number, aluminum: number, other: number 
+     * @returns  connector: number, copper: number, aluminum: number, other: number
      */
     materialComposition: function () {
-      var config = root.ConfigLoader && root.ConfigLoader.active
-        ? root.ConfigLoader.active()
+      var config = global.ConfigLoader && global.ConfigLoader.active
+        ? global.ConfigLoader.active()
         : null;
       if (config && config.materialComposition) {
         return {
@@ -51,11 +51,11 @@
 
     /**
      * 获取金属价格敏感度系数
-     * @returns  copper: number, aluminum: number 
+     * @returns  copper: number, aluminum: number
      */
     metalSensitivity: function () {
-      var config = root.ConfigLoader && root.ConfigLoader.active
-        ? root.ConfigLoader.active()
+      var config = global.ConfigLoader && global.ConfigLoader.active
+        ? global.ConfigLoader.active()
         : null;
       if (config && config.metalSensitivity) {
         return {
@@ -71,8 +71,8 @@
      * @returns {Object}
      */
     stateDefaults: function () {
-      var config = root.ConfigLoader && root.ConfigLoader.active
-        ? root.ConfigLoader.active()
+      var config = global.ConfigLoader && global.ConfigLoader.active
+        ? global.ConfigLoader.active()
         : null;
       if (config && config.stateDefaults) {
         return { ...config.stateDefaults };
@@ -90,7 +90,7 @@
      * @returns {boolean}
      */
     hasConfig: function () {
-      return !!(root.ConfigLoader && root.ConfigLoader.active && root.ConfigLoader.active());
+      return !!(global.ConfigLoader && global.ConfigLoader.active && global.ConfigLoader.active());
     },
 
     /** 导出回退值（供测试使用） */
@@ -98,5 +98,11 @@
     _FALLBACK_METAL: FALLBACK_METAL_SENSITIVITY,
   };
 
-  root.ConfigBridge = ConfigBridge;
+  // P2#7: 统一 G281 前缀，保留旧名向后兼容
+  global.G281ConfigBridge = ConfigBridge;
+  global.ConfigBridge = ConfigBridge;
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = ConfigBridge;
+  }
 })(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

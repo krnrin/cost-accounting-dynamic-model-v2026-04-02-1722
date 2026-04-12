@@ -1,0 +1,46 @@
+{
+  "projectCode": "E281",
+  "projectName": "吉利E281高压线束",
+  "customer": "吉利汽车",
+  "platform": "E281",
+  "lifecycleYears": 6,
+  "status": "quoted",
+  "costRates": {
+    "laborRate": 35,
+    "mfgRate": 46.69,
+    "wasteRate": 0.01,
+    "mgmtRate": 0.06,
+    "profitRate": 0.056627
+  },
+  "metalPrices": {
+    "copper": 76450,
+    "aluminum": 18910
+  },
+  "volumes": [
+    {
+      "year": 1,
+      "volume": 85000
+    },
+    {
+      "year": 2,
+      "volume": 135000
+    },
+    {
+      "year": 3,
+      "volume": 125000
+    },
+    {
+      "year": 4,
+      "volume": 114000
+    },
+    {
+      "year": 5,
+      "volume": 94000
+    },
+    {
+      "year": 6,
+      "volume": 47000
+    }
+  ],
+  "annualDropRate": 0.02
+}

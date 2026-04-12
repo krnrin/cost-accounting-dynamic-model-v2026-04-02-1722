@@ -81,6 +81,18 @@ Examples:
 - `window.dispatchEvent(new CustomEvent(DASHBOARD_VERSION_CHANGE_EVENT, ...))`
 - `g281_bom_validation_view.js` listening for the dashboard version-change event
 
+### Bridge-First Helper Surfaces
+
+If a helper surface needs to trigger page-owned actions, expose a narrow method on the owner bridge first and only fall back to DOM click when the owner module has no stable open function yet.
+
+Examples:
+
+- `window.G281DashboardBridge.setWorkspacePage('profit' | 'data')` for homepage tab switching
+- `window.G281DashboardBridge.openVersionTimeline()` for the version drawer
+- `window.G281LandingWorkbench.refresh()` being called from dashboard `render(...)` after derived profit data changes
+
+This keeps helper modules such as `ui/landing_workbench.js` synchronized with page state without depending on `MutationObserver` or brittle selector-driven clicks as the primary path.
+
 ---
 
 ## Promotion Rules
