@@ -1,13 +1,42 @@
 /**
- * D7: 工程师工作台
- * 集成BOM编辑、成本计算、仿真分层、设变向导的一站式工作台
+ * EngineerWorkbench - One-stop workstation for engineers
+ * Integrates BOM editing, cost calculation, simulation, comparison, and settings
+ *
+ * Now connected to real Dexie data via route params (:id, :sid)
  */
-import { useState, useCallback } from 'react';
-import { Layout, Nav, Typography, Button, Tabs, TabPane, Toast, Space, Tag } from '@douyinfe/semi-ui';
-import { IconCode, IconSetting, IconLayers, IconEdit, IconSearch } from '@douyinfe/semi-icons';
+import { useState, useCallback, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import {
+  Layout,
+  Nav,
+  Typography,
+  Button,
+  Tabs,
+  TabPane,
+  Toast,
+  Space,
+  Tag,
+  Table,
+  Spin,
+  Empty,
+  Card,
+} from '@douyinfe/semi-ui';
+import {
+  IconCode,
+  IconSetting,
+  IconLayers,
+  IconEdit,
+  IconSearch,
+  IconExternalOpen,
+} from '@douyinfe/semi-icons';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '@/data/db';
+import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
 import EngineSelector, { type EngineType } from '@/components/EngineSelector';
 import HarnessCompareView from '@/components/HarnessCompareView';
 import ChangeOrderWizard from '@/components/ChangeOrderWizard';
+import ScenarioSelector from '@/components/ScenarioSelector';
+import { useHarnessSync } from '@/hooks/useHarnessSync';
 import type { HarnessResult } from '@/types/harness';
 import type { ChangeOrder } from '@/engine/change_verification';
 import type { CSSProperties } from 'react';
@@ -16,48 +45,122 @@ const { Title, Text } = Typography;
 const { Sider, Content } = Layout;
 
 const S: Record<string, CSSProperties> = {
-  layout: { height: '100vh' },
-  sider: { width: 220, background: '#fff', borderRight: '1px solid #e8e8e8' },
+  layout: { height: '100%', minHeight: 'calc(100vh - 60px)' },
+  sider: { width: 220, background: 'var(--semi-color-bg-0)', borderRight: '1px solid var(--semi-color-border)' },
   nav: { height: '100%' },
   content: { padding: 24, overflow: 'auto' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
   tabContent: { padding: 16 },
   toolbar: { marginTop: 16, display: 'flex', gap: 8 },
-  placeholder: { marginTop: 24, padding: 48, background: '#fafafa', textAlign: 'center' as const, borderRadius: 8 },
+  placeholder: { marginTop: 24, padding: 48, background: 'var(--semi-color-fill-0)', textAlign: 'center' as const, borderRadius: 8 },
   sectionTitle: { marginTop: 24 },
   tag: { margin: 4 },
+  kpiRow: { display: 'flex', gap: 16, marginBottom: 16, flexWrap: 'wrap' as const },
+  kpiCard: { flex: '1 1 140px', minWidth: 140 },
+  fullWidth: { width: '100%' },
+  loading: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 },
 };
 
 const navFooterConfig = { collapseButton: true };
 
+function formatCurrency(val: number | undefined): string {
+  if (val === undefined || val === null) return '-';
+  return `\u00A5${val.toFixed(2)}`;
+}
+
 export default function EngineerWorkbench() {
+  const { id, sid } = useParams<{ id: string; sid: string }>();
+  const navigate = useNavigate();
   const [engine, setEngine] = useState<EngineType>('customer');
   const [activeTab, setActiveTab] = useState('bom');
   const [changeOrderVisible, setChangeOrderVisible] = useState(false);
   const [changeOrders, setChangeOrders] = useState<ChangeOrder[]>([]);
 
-  // Placeholder data - will be connected to real store
-  const [harnesses] = useState<Array<{ harnessId: string; harnessName: string; result: HarnessResult }>>([
-    { harnessId: 'h1', harnessName: '主驾线束', result: {} as HarnessResult },
-    { harnessId: 'h2', harnessName: '仪表线束', result: {} as HarnessResult },
-  ]);
+  // Auto-sync harness results on mount
+  useHarnessSync(sid);
+
+  // Load real data from Dexie
+  const data = useLiveQuery(async () => {
+    if (!id) return null;
+    const project = await db.projects.get(id);
+    if (!project) return null;
+    const scenario = sid ? await db.scenarios.get(sid) : null;
+    const allHarnesses = await db.harnesses.where('projectId').equals(id).toArray();
+    const harnesses = sid
+      ? allHarnesses.filter(h => h.scenarioId === sid || h.scenarioId === '')
+      : allHarnesses;
+    harnesses.sort((a, b) => a.harnessId.localeCompare(b.harnessId));
+    return { project, scenario, harnesses };
+  }, [id, sid]);
+
+  // Compute cost results
+  const computedResults = useMemo(() => {
+    if (!data?.scenario || !data.harnesses.length) return [];
+    const config = data.scenario.config;
+    if (!config?.costRates || !config?.metalPrices) return [];
+    return data.harnesses
+      .map(h => {
+        try {
+          return computeHarnessCost(h.input, config.costRates, config.metalPrices);
+        } catch {
+          return null;
+        }
+      })
+      .filter((r): r is HarnessResult => r !== null);
+  }, [data?.scenario, data?.harnesses]);
+
+  const projectSummary = useMemo(() => {
+    if (computedResults.length === 0) return null;
+    return computeProjectFromHarnesses(computedResults);
+  }, [computedResults]);
+
+  // Build harness list for CompareView
+  const compareHarnesses = useMemo(() => {
+    return computedResults.map(r => ({
+      harnessId: r.harnessId,
+      harnessName: r.harnessName || r.harnessId,
+      result: r,
+    }));
+  }, [computedResults]);
 
   const handleChangeOrderSubmit = useCallback((order: ChangeOrder) => {
     setChangeOrders(prev => [...prev, order]);
-    Toast.success(`设变单 ${order.changeNo} 已创建`);
+    Toast.success(`\u8BBE\u53D8\u5355 ${order.changeNo} \u5DF2\u521B\u5EFA`);
   }, []);
+
+  if (!data) {
+    return (
+      <div style={S.loading}>
+        <Spin size="large" tip="\u6B63\u5728\u52A0\u8F7D\u5DE5\u4F5C\u53F0\u6570\u636E..." />
+      </div>
+    );
+  }
+
+  const { project, scenario, harnesses } = data;
+
+  // Cost result table columns
+  const costColumns = [
+    { title: '\u96F6\u4EF6\u53F7', dataIndex: 'harnessId', width: 140 },
+    { title: '\u540D\u79F0', dataIndex: 'harnessName', width: 160 },
+    { title: '\u6750\u6599\u6210\u672C', render: (_: unknown, r: HarnessResult) => formatCurrency(r.materialCost), width: 100 },
+    { title: '\u4EBA\u5DE5', render: (_: unknown, r: HarnessResult) => formatCurrency(r.directLabor), width: 90 },
+    { title: '\u5236\u9020\u8D39', render: (_: unknown, r: HarnessResult) => formatCurrency(r.manufacturing), width: 90 },
+    { title: '\u51FA\u5382\u4EF7', render: (_: unknown, r: HarnessResult) => formatCurrency(r.exFactoryPrice), width: 100 },
+    { title: '\u5230\u5382\u4EF7', render: (_: unknown, r: HarnessResult) => formatCurrency(r.deliveredPrice), width: 100 },
+  ];
 
   return (
     <Layout style={S.layout}>
+      <ScenarioSelector />
       <Sider style={S.sider}>
         <Nav
           style={S.nav}
           items={[
-            { itemKey: 'bom', text: 'BOM编辑', icon: <IconEdit /> },
-            { itemKey: 'calc', text: '成本计算', icon: <IconCode /> },
-            { itemKey: 'sim', text: '仿真分层', icon: <IconLayers /> },
-            { itemKey: 'compare', text: '线束对比', icon: <IconSearch /> },
-            { itemKey: 'settings', text: '参数设置', icon: <IconSetting /> },
+            { itemKey: 'bom', text: 'BOM\u7F16\u8F91', icon: <IconEdit /> },
+            { itemKey: 'calc', text: '\u6210\u672C\u8BA1\u7B97', icon: <IconCode /> },
+            { itemKey: 'sim', text: '\u4EFF\u771F\u5206\u5C42', icon: <IconLayers /> },
+            { itemKey: 'compare', text: '\u7EBF\u675F\u5BF9\u6BD4', icon: <IconSearch /> },
+            { itemKey: 'settings', text: '\u53C2\u6570\u8BBE\u7F6E', icon: <IconSetting /> },
           ]}
           selectedKeys={[activeTab]}
           onSelect={({ itemKey }) => setActiveTab(itemKey as string)}
@@ -67,56 +170,181 @@ export default function EngineerWorkbench() {
 
       <Content style={S.content}>
         <div style={S.header}>
-          <Title heading={3}>🔧 工程师工作台</Title>
+          <div>
+            <Title heading={3}>
+              {String.fromCodePoint(0x1F527)} \u5DE5\u7A0B\u5E08\u5DE5\u4F5C\u53F0
+            </Title>
+            <Text type="tertiary">
+              {project.meta.projectName || project.meta.projectCode}
+              {scenario ? ` / ${scenario.scenarioName}` : ''}
+            </Text>
+          </div>
           <Space>
             <EngineSelector value={engine} onChange={setEngine} />
             <Tag color={engine === 'internal' ? 'blue' : 'green'} size="large">
-              {engine === 'internal' ? '内部实绩' : '客户报价'}
+              {engine === 'internal' ? '\u5185\u90E8\u5B9E\u7EE9' : '\u5BA2\u6237\u62A5\u4EF7'}
             </Tag>
           </Space>
         </div>
 
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
-          <TabPane tab="BOM编辑" itemKey="bom">
+          {/* BOM Tab */}
+          <TabPane tab="BOM\u7F16\u8F91" itemKey="bom">
             <div style={S.tabContent}>
-              <Title heading={5}>BOM 数据编辑</Title>
-              <Text type="tertiary">在此编辑线束BOM数据，支持智能粘贴导入</Text>
+              <Title heading={5}>BOM \u6570\u636E\u7F16\u8F91</Title>
+              <Text type="tertiary">
+                \u5F53\u524D\u573A\u666F\u5171 {harnesses.length} \u6761\u7EBF\u675F\uFF0C\u70B9\u51FB\u4E0B\u65B9\u6309\u94AE\u8FDB\u5165\u5168\u529F\u80FD BOM \u5DE5\u4F5C\u7C3F
+              </Text>
               <div style={S.toolbar}>
                 <Space>
-                  <Button type="primary" theme="solid">📋 智能粘贴</Button>
-                  <Button>📤 导出BOM</Button>
-                  <Button type="warning" onClick={() => setChangeOrderVisible(true)}>🔧 创建设变单</Button>
+                  <Button
+                    type="primary"
+                    theme="solid"
+                    icon={<IconExternalOpen />}
+                    onClick={() => navigate(sid ? `/project/${id}/s/${sid}/bom-workbook` : `/project/${id}/bom-workbook`)}
+                  >
+                    \u6253\u5F00 BOM \u5DE5\u4F5C\u7C3F
+                  </Button>
+                  <Button type="warning" onClick={() => setChangeOrderVisible(true)}>
+                    {String.fromCodePoint(0x1F527)} \u521B\u5EFA\u8BBE\u53D8\u5355
+                  </Button>
                 </Space>
               </div>
-              {/* UniverSheet BOM editor placeholder - D8 */}
-              <div style={S.placeholder}>
-                <Text type="tertiary">UniverSheet BOM 编辑器 (D8 待集成)</Text>
+              {harnesses.length === 0 ? (
+                <div style={S.placeholder}>
+                  <Empty
+                    title="\u6682\u65E0\u7EBF\u675F\u6570\u636E"
+                    description="\u8BF7\u5148\u521B\u5EFA\u7EBF\u675F\u5E76\u586B\u5199 BOM"
+                  />
+                </div>
+              ) : (
+                <Table
+                  dataSource={harnesses}
+                  columns={[
+                    { title: '\u96F6\u4EF6\u53F7', dataIndex: 'harnessId', width: 140 },
+                    { title: '\u540D\u79F0', dataIndex: 'harnessName', width: 180 },
+                    { title: 'BOM\u9879\u6570', render: (_: unknown, h: { input: { bom: unknown[] } }) => h.input?.bom?.length || 0, width: 90 },
+                    { title: '\u88C5\u8F66\u6BD4', render: (_: unknown, h: { input: { vehicleRatio: number } }) => `${((h.input?.vehicleRatio || 0) * 100).toFixed(1)}%`, width: 80 },
+                    {
+                      title: '\u64CD\u4F5C',
+                      width: 120,
+                      render: (_: unknown, h: { harnessId: string }) => (
+                        <Button
+                          size="small"
+                          theme="light"
+                          onClick={() => navigate(
+                            sid
+                              ? `/project/${id}/s/${sid}/harness/${h.harnessId}/edit`
+                              : `/project/${id}/harness/${h.harnessId}/edit`
+                          )}
+                        >
+                          \u7F16\u8F91
+                        </Button>
+                      ),
+                    },
+                  ]}
+                  pagination={false}
+                  size="small"
+                  style= marginTop: 16 
+                />
+              )}
+            </div>
+          </TabPane>
+
+          {/* Cost Calc Tab */}
+          <TabPane tab="\u6210\u672C\u8BA1\u7B97" itemKey="calc">
+            <div style={S.tabContent}>
+              <Title heading={5}>\u6210\u672C\u8BA1\u7B97\u7ED3\u679C</Title>
+              {!scenario ? (
+                <Text type="warning">\u672A\u9009\u62E9\u573A\u666F\uFF0C\u65E0\u6CD5\u8BA1\u7B97\u6210\u672C</Text>
+              ) : computedResults.length === 0 ? (
+                <Empty title="\u65E0\u8BA1\u7B97\u7ED3\u679C" description="\u8BF7\u5148\u586B\u5199\u7EBF\u675F BOM \u6570\u636E" />
+              ) : (
+                <>
+                  {projectSummary && (
+                    <div style={S.kpiRow}>
+                      <Card style={S.kpiCard} title="\u5355\u8F66\u6210\u672C" headerLine={false}>
+                        <Title heading={3}>{formatCurrency(projectSummary.vehicleCost)}</Title>
+                      </Card>
+                      <Card style={S.kpiCard} title="\u5355\u8F66\u6750\u6599" headerLine={false}>
+                        <Title heading={3}>{formatCurrency(projectSummary.materialCost)}</Title>
+                      </Card>
+                      <Card style={S.kpiCard} title="\u5355\u8F66\u4EBA\u5DE5" headerLine={false}>
+                        <Title heading={3}>{formatCurrency(projectSummary.laborCost)}</Title>
+                      </Card>
+                      <Card style={S.kpiCard} title="\u7EBF\u675F\u6570" headerLine={false}>
+                        <Title heading={3}>{computedResults.length}</Title>
+                      </Card>
+                    </div>
+                  )}
+                  <Table
+                    dataSource={computedResults}
+                    columns={costColumns}
+                    pagination={false}
+                    size="small"
+                    rowKey="harnessId"
+                  />
+                </>
+              )}
+            </div>
+          </TabPane>
+
+          {/* Simulation Tab */}
+          <TabPane tab="\u4EFF\u771F\u5206\u5C42" itemKey="sim">
+            <div style={S.tabContent}>
+              <Title heading={5}>\u4EFF\u771F\u5206\u5C42</Title>
+              <Text type="tertiary">\u53E0\u52A0\u591A\u7EF4\u5EA6\u4EFF\u771F\u5C42\uFF0C\u5206\u6790\u6210\u672C\u654F\u611F\u6027</Text>
+              <div style={S.toolbar}>
+                <Button
+                  type="primary"
+                  theme="solid"
+                  icon={<IconExternalOpen />}
+                  onClick={() => sid && navigate(`/project/${id}/s/${sid}/simulation`)}
+                  disabled={!sid}
+                >
+                  \u6253\u5F00\u4EFF\u771F\u9875\u9762
+                </Button>
               </div>
+              {!sid && (
+                <div style={S.placeholder}>
+                  <Text type="tertiary">\u8BF7\u5148\u9009\u62E9\u573A\u666F</Text>
+                </div>
+              )}
             </div>
           </TabPane>
 
-          <TabPane tab="成本计算" itemKey="calc">
-            <div style={S.tabContent}>
-              <Title heading={5}>成本计算结果</Title>
-              <Text type="tertiary">基于当前BOM和参数的成本计算结果</Text>
-            </div>
+          {/* Compare Tab */}
+          <TabPane tab="\u7EBF\u675F\u5BF9\u6BD4" itemKey="compare">
+            {compareHarnesses.length > 0 ? (
+              <HarnessCompareView harnesses={compareHarnesses} />
+            ) : (
+              <div style={S.tabContent}>
+                <Empty title="\u65E0\u53EF\u5BF9\u6BD4\u7684\u7EBF\u675F" description="\u8BF7\u5148\u586B\u5199 BOM \u5E76\u8BA1\u7B97\u6210\u672C" />
+              </div>
+            )}
           </TabPane>
 
-          <TabPane tab="仿真分层" itemKey="sim">
+          {/* Settings Tab */}
+          <TabPane tab="\u53C2\u6570\u8BBE\u7F6E" itemKey="settings">
             <div style={S.tabContent}>
-              <Title heading={5}>仿真分层</Title>
-              <Text type="tertiary">叠加多维度仿真层，分析成本敏感性</Text>
-            </div>
-          </TabPane>
-
-          <TabPane tab="线束对比" itemKey="compare">
-            <HarnessCompareView harnesses={harnesses} />
-          </TabPane>
-
-          <TabPane tab="参数设置" itemKey="settings">
-            <div style={S.tabContent}>
-              <Title heading={5}>参数设置</Title>
-              <Text type="tertiary">费率、金属价格、年降参数配置</Text>
+              <Title heading={5}>\u53C2\u6570\u8BBE\u7F6E</Title>
+              <Text type="tertiary">\u8D39\u7387\u3001\u91D1\u5C5E\u4EF7\u683C\u3001\u5E74\u964D\u53C2\u6570\u914D\u7F6E</Text>
+              <div style={S.toolbar}>
+                <Button
+                  theme="solid"
+                  icon={<IconExternalOpen />}
+                  onClick={() => navigate('/settings')}
+                >
+                  \u6253\u5F00\u8BBE\u7F6E\u9875
+                </Button>
+              </div>
+              {scenario && (
+                <Card style= marginTop: 16  title="\u5F53\u524D\u573A\u666F\u914D\u7F6E\u6458\u8981" headerLine={false}>
+                  <Text>\u573A\u666F: {scenario.scenarioName}</Text>
+                  <br />
+                  <Text type="tertiary">\u573A\u666F\u7C7B\u578B: {scenario.scenarioType}</Text>
+                </Card>
+              )}
             </div>
           </TabPane>
         </Tabs>
@@ -130,7 +358,9 @@ export default function EngineerWorkbench() {
 
         {changeOrders.length > 0 && (
           <div style={S.sectionTitle}>
-            <Title heading={5}>📋 设变单记录 ({changeOrders.length})</Title>
+            <Title heading={5}>
+              {String.fromCodePoint(0x1F4CB)} \u8BBE\u53D8\u5355\u8BB0\u5F55 ({changeOrders.length})
+            </Title>
             {changeOrders.map(co => (
               <Tag key={co.id} color="orange" style={S.tag}>
                 {co.changeNo}: {co.reason || co.type}
