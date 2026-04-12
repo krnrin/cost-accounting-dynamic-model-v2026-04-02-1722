@@ -21,3 +21,13 @@ export type {
   MetalContract, MetalDelta, MetalEscalationResult, MetalSensitivityMatrix,
   AnnualDropResult,
 } from './quote';
+export type { AuditEntry } from './audit';
+export type { BomWorkbookRow, BomWorkbookColumn, BomWorkbookConfig } from './bomWorkbook';
+export type {
+  FinancialSchema, FinancialPeriod, CostCenter, CostElement,
+} from './financial_schema';
+export type {
+  ConnectorPriceEntry, WirePriceEntry, DevPartPriceEntry,
+  PricingSource, PricingStatus,
+} from './pricing';
+export type { VersionRecord, VersionDiff } from './version';
