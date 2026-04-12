@@ -6,7 +6,7 @@ export class AuditService {
     userId: string;
     projectId?: string;
     action: 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE';
-    entity: 'project' | 'harness' | 'quote' | 'version';
+    entity: 'project' | 'harness' | 'bom' | 'quote' | 'version' | 'scenario' | 'change' | 'tracking' | 'pricing' | 'setting' | 'alert';
     entityId: string;
     details?: any;
   }) {

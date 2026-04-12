@@ -28,6 +28,7 @@ import feishuRoutes from './routes/feishu.js';
 import profileRoutes from './routes/profile.js';
 import userRoutes from './routes/users.js';
 import exportRoutes from './routes/export.js';
+import pricingRoutes, { scenarioPricingRouter } from './routes/pricing.js';
 
 const app = express();
 
@@ -69,6 +70,8 @@ app.use('/api/manager-dashboard', managerDashboardRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/export', exportRoutes);
+app.use('/api/projects/:id/pricing', pricingRoutes);
+app.use('/api/projects/:id/scenarios/:sid/pricing', scenarioPricingRouter);
 app.use('/api/sync', syncRoutes);
 app.use('/api/feishu', feishuRoutes);
 

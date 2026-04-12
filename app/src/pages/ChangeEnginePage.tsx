@@ -16,9 +16,18 @@ import { IconPlus, IconDelete, IconRefresh } from '@douyinfe/semi-icons';
 import ReactECharts from 'echarts-for-react/lib/core';
 import echarts from '@/lib/echarts';
 
-import { useVersionStore } from '@/store/versionStore';
-import type { VersionRecord, VersionStatus } from '@/types/version';
-import { VERSION_STATUS_LABELS } from '@/types/version';
+import { apiClient } from '@/lib/apiClient';
+import { buildChangeComparisonTable, computeChangePricing } from '@/engine/change_pricing';
+import { computeVersionDiff } from '@/engine/version_diff';
+import {
+  buildVersionSnapshot,
+  computeProjectResultFromSnapshot,
+  type HarnessVersionSource,
+  type ProjectVersionSource,
+} from '@/lib/versionSnapshot';
+import type { ChangePricingResult } from '@/types/quote';
+import type { VersionDiff, VersionRecord, VersionStatus } from '@/types/version';
+import { VERSION_STATUS_LABELS, validateTransition } from '@/types/version';
 import type { BomItem, WireItem } from '@/types/harness';
 import ScenarioSelector from '@/components/ScenarioSelector';
 
@@ -29,6 +38,7 @@ const STATUS_COLORS: Record<VersionStatus, any> = {
   bom_ready: 'blue',
   reviewed: 'orange',
   locked: 'green',
+  published: 'green',
   archived: 'purple',
 };
 
@@ -37,69 +47,199 @@ const NEXT_STATUS: Record<VersionStatus, VersionStatus | null> = {
   bom_ready: 'reviewed',
   reviewed: 'locked',
   locked: null,
+  published: null,
   archived: null,
 };
 
 export default function ChangeEnginePage() {
   const { id: projectId, sid: _sid } = useParams<{ id: string; sid: string }>();
-  const {
-    versions, loading,
-    baseVersionId, compareVersionId,
-    changePricingResult, versionDiffResult, comparisonTable,
-    loadVersions, createSnapshot, deleteVersion, updateStatus,
-    setCompareVersions, runComparison, clear,
-  } = useVersionStore();
-
+  const [versions, setVersions] = useState<VersionRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [baseVersionId, setBaseVersionId] = useState<string | null>(null);
+  const [compareVersionId, setCompareVersionId] = useState<string | null>(null);
+  const [changePricingResult, setChangePricingResult] = useState<ChangePricingResult | null>(null);
+  const [versionDiffResult, setVersionDiffResult] = useState<VersionDiff | null>(null);
+  const [comparisonTable, setComparisonTable] = useState<ReturnType<typeof buildChangeComparisonTable> | null>(null);
+  const [projectSource, setProjectSource] = useState<ProjectVersionSource | null>(null);
+  const [harnessSource, setHarnessSource] = useState<HarnessVersionSource[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newNotes, setNewNotes] = useState('');
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    if (projectId) {
-      loadVersions(projectId);
+  const clearComparison = useCallback(() => {
+    setChangePricingResult(null);
+    setVersionDiffResult(null);
+    setComparisonTable(null);
+  }, []);
+
+  const clearPageState = useCallback(() => {
+    setVersions([]);
+    setProjectSource(null);
+    setHarnessSource([]);
+    setBaseVersionId(null);
+    setCompareVersionId(null);
+    clearComparison();
+  }, [clearComparison]);
+
+  const setCompareVersions = useCallback((baseId: string | null, compareId: string | null) => {
+    setBaseVersionId(baseId);
+    setCompareVersionId(compareId);
+    clearComparison();
+  }, [clearComparison]);
+
+  const loadVersions = useCallback(async () => {
+    if (!projectId) {
+      clearPageState();
+      return;
     }
-    return () => { clear(); };
-  }, [projectId, loadVersions, clear]);
+
+    setLoading(true);
+    try {
+      const [versionRows, projectRow, harnessRows] = await Promise.all([
+        apiClient<VersionRecord[]>(`/versions/project/${projectId}`),
+        apiClient<ProjectVersionSource>(`/projects/${projectId}`),
+        apiClient<HarnessVersionSource[]>(`/projects/${projectId}/harnesses`),
+      ]);
+
+      const nextVersions = Array.isArray(versionRows)
+        ? [...versionRows].sort((left, right) => right.versionNumber - left.versionNumber)
+        : [];
+
+      setVersions(nextVersions);
+      setProjectSource(projectRow ?? null);
+      setHarnessSource(Array.isArray(harnessRows) ? harnessRows : []);
+      setBaseVersionId((current) => (current && nextVersions.some((item) => item.id === current) ? current : null));
+      setCompareVersionId((current) => (current && nextVersions.some((item) => item.id === current) ? current : null));
+    } catch (err) {
+      console.error('Failed to load change engine data:', err);
+      Toast.error(err instanceof Error ? err.message : '版本数据加载失败');
+      clearPageState();
+    } finally {
+      setLoading(false);
+    }
+  }, [clearPageState, projectId]);
+
+  const createSnapshot = useCallback(async (label?: string, notes?: string) => {
+    if (!projectId) {
+      throw new Error('项目不存在');
+    }
+    if (!projectSource) {
+      throw new Error('项目快照源尚未加载完成');
+    }
+
+    const nextVersionNumber = versions.reduce((max, item) => Math.max(max, item.versionNumber), 0) + 1;
+    const snapshot = buildVersionSnapshot(projectSource, harnessSource);
+    const payload = {
+      projectId,
+      versionNumber: nextVersionNumber,
+      label: (label || `v${nextVersionNumber}`).trim(),
+      status: 'draft' as VersionStatus,
+      notes: notes?.trim() || undefined,
+      snapshot,
+    };
+
+    return apiClient<VersionRecord>('/versions', {
+      method: 'POST',
+      body: payload,
+    });
+  }, [harnessSource, projectId, projectSource, versions]);
+
+  const deleteVersion = useCallback(async (versionId: string) => {
+    await apiClient(`/versions/${versionId}`, {
+      method: 'DELETE',
+    });
+  }, []);
+
+  const updateStatus = useCallback(async (versionId: string, newStatus: VersionStatus) => {
+    await apiClient<VersionRecord>(`/versions/${versionId}/status`, {
+      method: 'PATCH',
+      body: { status: newStatus },
+    });
+  }, []);
+
+  const runComparison = useCallback(async () => {
+    if (!baseVersionId || !compareVersionId) {
+      return;
+    }
+
+    const baseVersion = versions.find((item) => item.id === baseVersionId);
+    const compareVersion = versions.find((item) => item.id === compareVersionId);
+    if (!baseVersion || !compareVersion) {
+      throw new Error('待对比版本不存在');
+    }
+
+    const baseProject = computeProjectResultFromSnapshot(baseVersion.snapshot);
+    const compareProject = computeProjectResultFromSnapshot(compareVersion.snapshot);
+    const changePricing = computeChangePricing(baseProject, compareProject, 'version_compare');
+    const versionDiff = computeVersionDiff(baseVersion.snapshot, compareVersion.snapshot);
+    versionDiff.beforeVersion = `v${baseVersion.versionNumber} (${baseVersion.label})`;
+    versionDiff.afterVersion = `v${compareVersion.versionNumber} (${compareVersion.label})`;
+
+    setChangePricingResult(changePricing);
+    setVersionDiffResult(versionDiff);
+    setComparisonTable(buildChangeComparisonTable(changePricing));
+  }, [baseVersionId, compareVersionId, versions]);
+
+  useEffect(() => {
+    void loadVersions();
+    return () => { clearPageState(); };
+  }, [clearPageState, loadVersions]);
 
   // ── 创建快照 ──
   const handleCreate = useCallback(async () => {
     if (!projectId) return;
     setCreating(true);
     try {
-      const v = await createSnapshot(projectId, newLabel || undefined, newNotes || undefined);
+      const label = newLabel.trim();
+      const notes = newNotes.trim();
+      const v = await createSnapshot(label || undefined, notes || undefined);
       Toast.success(`版本 ${v.label} 创建成功`);
       setShowCreateModal(false);
       setNewLabel('');
       setNewNotes('');
+      await loadVersions();
     } catch (err) {
       Toast.error('创建失败: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setCreating(false);
     }
-  }, [projectId, newLabel, newNotes, createSnapshot]);
+  }, [createSnapshot, loadVersions, newLabel, newNotes, projectId]);
 
   // ── 删除版本 ──
   const handleDelete = useCallback(async (versionId: string) => {
     try {
       await deleteVersion(versionId);
       Toast.success('版本已删除');
+      if (baseVersionId === versionId || compareVersionId === versionId) {
+        setCompareVersions(
+          baseVersionId === versionId ? null : baseVersionId,
+          compareVersionId === versionId ? null : compareVersionId,
+        );
+      }
+      await loadVersions();
     } catch (err) {
       Toast.error(String(err instanceof Error ? err.message : err));
     }
-  }, [deleteVersion]);
+  }, [baseVersionId, compareVersionId, deleteVersion, loadVersions, setCompareVersions]);
 
   // ── 状态流转 ──
   const handleAdvanceStatus = useCallback(async (v: VersionRecord) => {
     const next = NEXT_STATUS[v.status];
     if (!next) return;
+    const validation = validateTransition(v.status, next);
+    if (!validation.valid) {
+      Toast.error(validation.reason || '非法状态流转');
+      return;
+    }
     try {
       await updateStatus(v.id, next);
       Toast.success(`状态已更新为「${VERSION_STATUS_LABELS[next]}」`);
+      await loadVersions();
     } catch (err) {
       Toast.error(String(err instanceof Error ? err.message : err));
     }
-  }, [updateStatus]);
+  }, [loadVersions, updateStatus]);
 
   // ── 执行对比 ──
   const handleCompare = useCallback(async () => {
@@ -111,7 +251,11 @@ export default function ChangeEnginePage() {
       Toast.warning('基准版本和变更版本不能相同');
       return;
     }
-    await runComparison();
+    try {
+      await runComparison();
+    } catch (err) {
+      Toast.error(err instanceof Error ? err.message : '版本对比失败');
+    }
   }, [baseVersionId, compareVersionId, runComparison]);
 
   // ── 变更影响瀑布图 ──

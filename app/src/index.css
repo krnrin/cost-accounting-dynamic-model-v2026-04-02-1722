@@ -1,49 +1,56 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap');
 @import './styles/common.css';
 
 /* ═══════════════════════════════════════════
-   PAPER & INK (ELITE INDUSTRIAL) THEME
+   INDUSTRIAL BLUEPRINT THEME
    ═══════════════════════════════════════════ */
 :root {
-  --bg-primary: #eef0f3;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f8fafc;
-  --text-primary: #000000;
-  --text-secondary: #52525b;
-  --text-muted: #94a3b8;
-  --accent: #2563eb;
-  --accent-hover: #1d4ed8;
-  --border: rgba(0, 0, 0, 0.05);
-  
-  /* Status signals — colorful */
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #dc2626;
+  --bg-primary: #06101f;
+  --bg-secondary: rgba(10, 20, 38, 0.92);
+  --bg-tertiary: rgba(13, 27, 48, 0.84);
+  --panel-bg: rgba(8, 18, 34, 0.78);
+  --panel-bg-strong: rgba(6, 14, 28, 0.92);
+  --text-primary: #e2e8f0;
+  --text-secondary: #a8b8cf;
+  --text-muted: #6f89a8;
+  --accent: #60a5fa;
+  --accent-hover: #93c5fd;
+  --accent-soft: rgba(96, 165, 250, 0.14);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+  --border: rgba(125, 211, 252, 0.18);
+  --shadow-panel: 0 18px 48px rgba(2, 6, 23, 0.42);
 
-  /* Semi Design overrides */
-  --semi-color-primary: #2563eb !important;
-  --semi-color-primary-hover: #1d4ed8 !important;
-  --semi-color-primary-active: #1e40af !important;
-  --semi-color-primary-light-default: rgba(0, 0, 0, 0.04) !important;
-  --semi-color-primary-light-hover: rgba(0, 0, 0, 0.08) !important;
-  --semi-color-primary-light-active: rgba(0, 0, 0, 0.12) !important;
+  --semi-color-primary: #60a5fa !important;
+  --semi-color-primary-hover: #93c5fd !important;
+  --semi-color-primary-active: #3b82f6 !important;
+  --semi-color-primary-light-default: rgba(96, 165, 250, 0.12) !important;
+  --semi-color-primary-light-hover: rgba(96, 165, 250, 0.18) !important;
+  --semi-color-primary-light-active: rgba(96, 165, 250, 0.24) !important;
+  --semi-color-success: #34d399 !important;
+  --semi-color-warning: #fbbf24 !important;
+  --semi-color-danger: #fb7185 !important;
   --semi-color-bg-0: transparent !important;
-  --semi-color-bg-1: #ffffff !important;
-  --semi-color-bg-2: rgba(255, 255, 255, 0.8) !important;
-  --semi-color-bg-3: #f4f4f5 !important;
-  --semi-color-fill-0: #f4f4f5 !important;
-  --semi-color-fill-1: #e4e4e7 !important;
-  --semi-color-fill-2: #d4d4d8 !important;
-  --semi-color-text-0: #000000 !important;
-  --semi-color-text-1: #27272a !important;
-  --semi-color-text-2: #52525b !important;
-  --semi-color-text-3: #a1a1aa !important;
-  --semi-color-border: rgba(0, 0, 0, 0.05) !important;
+  --semi-color-bg-1: rgba(10, 20, 38, 0.94) !important;
+  --semi-color-bg-2: rgba(13, 27, 48, 0.9) !important;
+  --semi-color-bg-3: rgba(20, 38, 66, 0.95) !important;
+  --semi-color-fill-0: rgba(96, 165, 250, 0.08) !important;
+  --semi-color-fill-1: rgba(96, 165, 250, 0.14) !important;
+  --semi-color-fill-2: rgba(96, 165, 250, 0.2) !important;
+  --semi-color-text-0: #e2e8f0 !important;
+  --semi-color-text-1: #cbd5e1 !important;
+  --semi-color-text-2: #94a3b8 !important;
+  --semi-color-text-3: #64748b !important;
+  --semi-color-border: rgba(125, 211, 252, 0.18) !important;
+  --semi-color-focus-border: #60a5fa !important;
 }
 
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif !important;
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.14), transparent 28%),
+    linear-gradient(180deg, #081120 0%, #050c18 52%, #030712 100%);
   background-color: var(--bg-primary);
   color: var(--text-primary);
   margin: 0;
@@ -51,274 +58,811 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Force light mode */
-body[theme-mode='dark'] {
-  --semi-color-bg-0: transparent !important;
-  --semi-color-bg-1: #ffffff !important;
-  --semi-color-text-0: #000000 !important;
-  --semi-color-text-1: #27272a !important;
-  --semi-color-text-2: #52525b !important;
-  --semi-color-border: rgba(0, 0, 0, 0.05) !important;
+body[theme-mode='light'] {
+  --bg-primary: #e8eef8;
+  --bg-secondary: rgba(255, 255, 255, 0.92);
+  --bg-tertiary: rgba(241, 245, 249, 0.94);
+  --panel-bg: rgba(255, 255, 255, 0.78);
+  --panel-bg-strong: rgba(248, 250, 252, 0.94);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: rgba(37, 99, 235, 0.1);
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --border: rgba(15, 23, 42, 0.08);
+  --shadow-panel: 0 16px 40px rgba(15, 23, 42, 0.08);
+
   --semi-color-primary: #2563eb !important;
+  --semi-color-primary-hover: #1d4ed8 !important;
+  --semi-color-primary-active: #1e40af !important;
+  --semi-color-primary-light-default: rgba(37, 99, 235, 0.08) !important;
+  --semi-color-primary-light-hover: rgba(37, 99, 235, 0.12) !important;
+  --semi-color-primary-light-active: rgba(37, 99, 235, 0.18) !important;
+  --semi-color-success: #16a34a !important;
+  --semi-color-warning: #d97706 !important;
+  --semi-color-danger: #dc2626 !important;
+  --semi-color-bg-0: transparent !important;
+  --semi-color-bg-1: rgba(255, 255, 255, 0.96) !important;
+  --semi-color-bg-2: rgba(248, 250, 252, 0.94) !important;
+  --semi-color-bg-3: rgba(241, 245, 249, 0.98) !important;
+  --semi-color-fill-0: rgba(37, 99, 235, 0.06) !important;
+  --semi-color-fill-1: rgba(37, 99, 235, 0.1) !important;
+  --semi-color-fill-2: rgba(37, 99, 235, 0.16) !important;
+  --semi-color-text-0: #0f172a !important;
+  --semi-color-text-1: #1e293b !important;
+  --semi-color-text-2: #475569 !important;
+  --semi-color-text-3: #94a3b8 !important;
+  --semi-color-border: rgba(15, 23, 42, 0.08) !important;
+  --semi-color-focus-border: #2563eb !important;
+
+  background:
+    radial-gradient(circle at top, rgba(59, 130, 246, 0.12), transparent 28%),
+    linear-gradient(180deg, #eef4fb 0%, #e2ebf7 100%);
+}
+
+body[theme-mode='dark'] {
+  color-scheme: dark;
 }
 
 ::-webkit-scrollbar { width: 0; height: 0; }
 
 /* ═══════════════════════════════════════════
-   CRISP B&W INDUSTRIAL BACKGROUND (Banknote Feel)
+   INDUSTRIAL BLUEPRINT BACKDROP
    ═══════════════════════════════════════════ */
 .industrial-backdrop, .animated-bg {
   position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
   z-index: 0;
-  background-image: url('/backdrop.png');
-  background-size: cover;
+  background-image:
+    linear-gradient(rgba(96, 165, 250, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(96, 165, 250, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 20% 20%, rgba(96, 165, 250, 0.12), transparent 24%),
+    radial-gradient(circle at 80% 10%, rgba(52, 211, 153, 0.08), transparent 20%),
+    url('/backdrop.png');
+  background-size: 36px 36px, 36px 36px, auto, auto, cover;
   background-position: center;
   background-attachment: fixed;
-  background-repeat: no-repeat;
-  opacity: 0.18;
-  filter: grayscale(0.85) contrast(1.1);
+  background-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat;
+  opacity: 0.34;
+  filter: saturate(0.7) contrast(1.04) brightness(0.52);
   pointer-events: none;
 }
 
+body[theme-mode='light'] .industrial-backdrop,
+body[theme-mode='light'] .animated-bg {
+  opacity: 0.22;
+  filter: saturate(0.72) contrast(1.02) brightness(1.02);
+}
+
+.blueprint-grid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(3, 7, 18, 0.08) 0%, rgba(3, 7, 18, 0.72) 100%),
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.14), transparent 30%);
+}
+
+body[theme-mode='light'] .blueprint-grid::after {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, rgba(226, 232, 240, 0.42) 100%),
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 28%);
+}
+
 /* ═══════════════════════════════════════════
-   FLOATING ISLAND PANELS (Banknote/Ledger Aesthetic)
+   FLOATING PANELS
    ═══════════════════════════════════════════ */
 .glass-card, .elite-card, .variance-card {
-  background: rgba(255, 255, 255, 0.78) !important;
-  backdrop-filter: blur(40px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(150%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+  background: var(--panel-bg) !important;
+  backdrop-filter: blur(26px) saturate(145%) !important;
+  -webkit-backdrop-filter: blur(26px) saturate(145%) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-panel) !important;
   border-radius: 20px !important;
-  color: #000000 !important;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s !important;
+  color: var(--text-primary) !important;
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s !important;
 }
 
 .glass-card:hover {
-  transform: translateY(-4px) !important;
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 22px 56px rgba(2, 6, 23, 0.46) !important;
 }
 
-/* Sidebar & Header Capsule Style (Reference UI.png) */
 .glass-panel, .green-glass-panel, .top-nav-capsule, .sidebar-capsule {
-  background: rgba(255, 255, 255, 0.65) !important;
-  backdrop-filter: blur(40px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(150%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+  background: var(--panel-bg) !important;
+  backdrop-filter: blur(24px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(140%) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-panel) !important;
   border-radius: 28px !important;
 }
 
-/* Active nav pill */
 .nav-active-pill {
-  background: rgba(255, 255, 255, 0.85);
+  background: linear-gradient(180deg, rgba(147, 197, 253, 0.95), rgba(96, 165, 250, 0.92));
   border-radius: 24px;
   font-weight: 700 !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 24px rgba(59, 130, 246, 0.28);
 }
 
-/* ═══════════════════════════════════════════
-   SEMI UI CARD OVERRIDE
-   ═══════════════════════════════════════════ */
-.semi-card {
-  background: rgba(255, 255, 255, 0.78) !important;
-  backdrop-filter: blur(40px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(150%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.5) !important;
-  border-radius: 18px !important;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06) !important;
+body[theme-mode='light'] .nav-active-pill {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(219, 234, 254, 0.98));
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.14);
 }
 
-.semi-card-header-wrapper .semi-typography,
-.semi-card-header .semi-card-header-title {
-  color: var(--text-primary) !important;
-  font-weight: 700 !important;
-  font-size: 16px !important;
-  letter-spacing: -0.01em;
+.blueprint-breadcrumb-shell {
+  padding: 10px 14px;
+  border-radius: 18px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-panel);
 }
 
-/* ═══════════════════════════════════════════
-   TABLE — Clean B&W Ledger
-   ═══════════════════════════════════════════ */
-.semi-table, .semi-table-wrapper, .semi-table-body, .semi-table-header {
-  background: transparent !important;
-}
-
-.semi-table-row {
-  background: transparent !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
-}
-
-.semi-table-row-head {
-  background: rgba(0, 0, 0, 0.02) !important;
-}
-
-.semi-table-row-head th,
-.semi-table-row-head .semi-table-row-cell {
-  color: var(--text-primary) !important;
-  font-weight: 700 !important;
-  font-size: 12px !important;
-  text-transform: capitalize !important;
-}
-
-.semi-table-row-cell {
-  background: transparent !important;
+.blueprint-shell .semi-breadcrumb,
+.blueprint-shell .semi-breadcrumb-item,
+.blueprint-shell .semi-breadcrumb-item-link {
   color: var(--text-secondary) !important;
-  border-color: rgba(0, 0, 0, 0.04) !important;
-  font-size: 13px !important;
 }
 
-/* ── Typography ── */
-.ink-heading, h1, h2, h3, .semi-typography-title {
-  font-family: 'Inter', sans-serif !important;
-  font-weight: 800 !important;
-  letter-spacing: -0.04em !important;
-  color: #000 !important;
+.blueprint-shell .semi-breadcrumb-item-active,
+.blueprint-shell .semi-breadcrumb-item-active .semi-breadcrumb-item-link {
+  color: var(--text-primary) !important;
 }
 
-.semi-typography-secondary {
+.blueprint-shell .semi-badge-count {
+  background: linear-gradient(180deg, #f43f5e, #e11d48) !important;
+  box-shadow: 0 8px 18px rgba(244, 63, 94, 0.34) !important;
+}
+
+.blueprint-shell .semi-button-borderless.semi-button-danger {
+  color: #fecdd3 !important;
+}
+
+.blueprint-shell .semi-button-borderless.semi-button-danger:hover {
+  background: rgba(244, 63, 94, 0.12) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-button-borderless.semi-button-danger {
+  color: #be123c !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-button-borderless.semi-button-danger:hover {
+  background: rgba(225, 29, 72, 0.08) !important;
+}
+
+.blueprint-shell .semi-tag {
+  border: 1px solid var(--border) !important;
+}
+
+.blueprint-shell .semi-tag-blue,
+.blueprint-shell .semi-tag-green,
+.blueprint-shell .semi-tag-cyan,
+.blueprint-shell .semi-tag-orange,
+.blueprint-shell .semi-tag-purple,
+.blueprint-shell .semi-tag-grey,
+.blueprint-shell .semi-tag-red,
+.blueprint-shell .semi-tag-yellow {
+  color: var(--text-primary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-tag-blue,
+body[theme-mode='light'] .blueprint-shell .semi-tag-green,
+body[theme-mode='light'] .blueprint-shell .semi-tag-cyan,
+body[theme-mode='light'] .blueprint-shell .semi-tag-orange,
+body[theme-mode='light'] .blueprint-shell .semi-tag-purple,
+body[theme-mode='light'] .blueprint-shell .semi-tag-grey,
+body[theme-mode='light'] .blueprint-shell .semi-tag-red,
+body[theme-mode='light'] .blueprint-shell .semi-tag-yellow {
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-tabs-tab {
   color: var(--text-secondary) !important;
-  font-weight: 500 !important;
 }
 
-/* ═══════════════════════════════════════════
-   BUTTONS — Monotone Ink
-   ═══════════════════════════════════════════ */
+.blueprint-shell .semi-tabs-tab-active {
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-tabs-ink-bar {
+  background: var(--accent) !important;
+}
+
+.blueprint-shell .semi-radio-addon-buttonRadio,
+.blueprint-shell .semi-radio-cardRadioGroup_checked {
+  background: var(--semi-color-fill-0) !important;
+  border-color: var(--accent) !important;
+}
+
+.blueprint-shell .semi-select-selection,
+.blueprint-shell .semi-input-wrapper,
+.blueprint-shell .semi-input-number,
+.blueprint-shell .semi-input-number-input-wrap,
+.blueprint-shell .semi-textarea-wrapper {
+  background: rgba(8, 18, 34, 0.48) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-select-selection,
+body[theme-mode='light'] .blueprint-shell .semi-input-wrapper,
+body[theme-mode='light'] .blueprint-shell .semi-input-number,
+body[theme-mode='light'] .blueprint-shell .semi-input-number-input-wrap,
+body[theme-mode='light'] .blueprint-shell .semi-textarea-wrapper {
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+.blueprint-shell .semi-select-selection-text,
+.blueprint-shell .semi-input,
+.blueprint-shell .semi-input-number-input,
+.blueprint-shell .semi-textarea,
+.blueprint-shell .semi-form-field-label-text,
+.blueprint-shell .semi-typography,
+.blueprint-shell .semi-descriptions-item-label,
+.blueprint-shell .semi-descriptions-item-text {
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-form-field-label-required::before {
+  color: var(--danger) !important;
+}
+
+.blueprint-shell .semi-empty-title,
+.blueprint-shell .semi-empty-description,
+.blueprint-shell .semi-empty-content {
+  color: var(--text-secondary) !important;
+}
+
+.blueprint-shell .semi-select:hover,
+.blueprint-shell .semi-input-wrapper:hover,
+.blueprint-shell .semi-input-number:hover,
+.blueprint-shell .semi-textarea-wrapper:hover {
+  border-color: rgba(147, 197, 253, 0.38) !important;
+}
+
+.blueprint-shell .semi-input-wrapper-focus,
+.blueprint-shell .semi-input-number.semi-input-number-focus,
+.blueprint-shell .semi-textarea-wrapper-focus,
+.blueprint-shell .semi-select.semi-select-focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.18) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-input-wrapper-focus,
+body[theme-mode='light'] .blueprint-shell .semi-input-number.semi-input-number-focus,
+body[theme-mode='light'] .blueprint-shell .semi-textarea-wrapper-focus,
+body[theme-mode='light'] .blueprint-shell .semi-select.semi-select-focus {
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12) !important;
+}
+
+.blueprint-shell .semi-button.semi-button-primary,
 .btn-gradient {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  color: #fff !important;
-  border: none !important;
-  border-radius: 12px !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
-  transition: all 0.2s ease !important;
-  font-weight: 600 !important;
+  background: linear-gradient(180deg, #60a5fa, #2563eb) !important;
+  color: #eff6ff !important;
+  border: 1px solid rgba(147, 197, 253, 0.26) !important;
+  box-shadow: 0 12px 28px rgba(37, 99, 235, 0.28) !important;
 }
 
+.blueprint-shell .semi-button.semi-button-primary:hover,
 .btn-gradient:hover {
-  transform: scale(1.02) !important;
-  background: linear-gradient(135deg, #1d4ed8, #1e40af) !important;
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35) !important;
+  background: linear-gradient(180deg, #93c5fd, #3b82f6) !important;
 }
 
-.semi-button-primary {
+body[theme-mode='light'] .blueprint-shell .semi-button.semi-button-primary,
+body[theme-mode='light'] .btn-gradient {
+  color: #ffffff !important;
+}
+
+.blueprint-shell .semi-button.semi-button-light,
+.blueprint-shell .semi-button.semi-button-secondary {
+  background: var(--semi-color-fill-0) !important;
+  border-color: var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-card {
+  background: var(--panel-bg) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+
+.blueprint-shell .semi-card-header-wrapper .semi-typography,
+.blueprint-shell .semi-card-header .semi-card-header-title,
+.blueprint-shell .semi-card-body,
+.blueprint-shell .semi-card-extra {
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-table,
+.blueprint-shell .semi-table-wrapper,
+.blueprint-shell .semi-table-body,
+.blueprint-shell .semi-table-header {
+  background: transparent !important;
+}
+
+.blueprint-shell .semi-table-row {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(125, 211, 252, 0.08) !important;
+}
+
+.blueprint-shell .semi-table-row:hover .semi-table-row-cell {
+  background: rgba(96, 165, 250, 0.06) !important;
+}
+
+.blueprint-shell .semi-table-row-head {
+  background: rgba(96, 165, 250, 0.08) !important;
+}
+
+.blueprint-shell .semi-table-row-head th,
+.blueprint-shell .semi-table-row-head .semi-table-row-cell {
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-table-row-cell,
+.blueprint-shell .semi-table-placeholder {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-color: rgba(125, 211, 252, 0.08) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-table-row:hover .semi-table-row-cell {
+  background: rgba(37, 99, 235, 0.05) !important;
+}
+
+.blueprint-shell .semi-modal-content,
+.blueprint-shell .semi-popover-wrapper-content,
+.blueprint-shell .semi-dropdown-menu {
+  background: var(--panel-bg-strong) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-panel) !important;
+}
+
+.blueprint-shell .semi-modal-title,
+.blueprint-shell .semi-modal-body,
+.blueprint-shell .semi-dropdown-item,
+.blueprint-shell .semi-dropdown-item-text,
+.blueprint-shell .semi-popover-content {
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-progress-track-inner {
+  background: rgba(96, 165, 250, 0.14) !important;
+}
+
+.blueprint-shell .semi-progress-line .semi-progress-line-inner {
+  background: linear-gradient(90deg, #60a5fa, #34d399) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-progress-line .semi-progress-line-inner {
+  background: linear-gradient(90deg, #2563eb, #16a34a) !important;
+}
+
+.blueprint-shell .semi-empty-image,
+.blueprint-shell .semi-spin-rotate {
+  color: var(--accent) !important;
+}
+
+.blueprint-shell .semi-typography-secondary,
+.blueprint-shell .semi-typography-tertiary,
+.blueprint-shell .semi-descriptions-item-label {
+  color: var(--text-secondary) !important;
+}
+
+.blueprint-shell .semi-toast,
+.blueprint-shell .semi-notification-notice {
+  background: var(--panel-bg-strong) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.blueprint-shell .semi-toast-content,
+.blueprint-shell .semi-notification-notice-content,
+.blueprint-shell .semi-toast-text,
+.blueprint-shell .semi-notification-title,
+.blueprint-shell .semi-notification-content {
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-switch {
+  background: rgba(96, 165, 250, 0.22) !important;
+}
+
+.blueprint-shell .semi-switch-checked {
+  background: var(--accent) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-switch {
+  background: rgba(37, 99, 235, 0.2) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-spin-rotate,
+body[theme-mode='light'] .blueprint-shell .semi-empty-image {
+  color: var(--accent) !important;
+}
+
+body[theme-mode='light'] .blueprint-breadcrumb-shell,
+body[theme-mode='light'] .glass-card,
+body[theme-mode='light'] .glass-panel,
+body[theme-mode='light'] .green-glass-panel,
+body[theme-mode='light'] .top-nav-capsule,
+body[theme-mode='light'] .sidebar-capsule,
+body[theme-mode='light'] .blueprint-shell .semi-card {
+  box-shadow: var(--shadow-panel) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-button-borderless.semi-button-danger,
+body[theme-mode='light'] .blueprint-shell .semi-breadcrumb,
+body[theme-mode='light'] .blueprint-shell .semi-breadcrumb-item,
+body[theme-mode='light'] .blueprint-shell .semi-breadcrumb-item-link {
+  color: var(--text-secondary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-breadcrumb-item-active,
+body[theme-mode='light'] .blueprint-shell .semi-breadcrumb-item-active .semi-breadcrumb-item-link {
+  color: var(--text-primary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-modal-title,
+body[theme-mode='light'] .blueprint-shell .semi-modal-body,
+body[theme-mode='light'] .blueprint-shell .semi-dropdown-item,
+body[theme-mode='light'] .blueprint-shell .semi-dropdown-item-text,
+body[theme-mode='light'] .blueprint-shell .semi-popover-content,
+body[theme-mode='light'] .blueprint-shell .semi-toast-content,
+body[theme-mode='light'] .blueprint-shell .semi-notification-notice-content,
+body[theme-mode='light'] .blueprint-shell .semi-toast-text,
+body[theme-mode='light'] .blueprint-shell .semi-notification-title,
+body[theme-mode='light'] .blueprint-shell .semi-notification-content {
+  color: var(--text-primary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-table-row-head {
+  background: rgba(37, 99, 235, 0.08) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-table-row,
+body[theme-mode='light'] .blueprint-shell .semi-table-row-cell {
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-badge-count {
+  box-shadow: 0 8px 18px rgba(225, 29, 72, 0.2) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-button.semi-button-light,
+body[theme-mode='light'] .blueprint-shell .semi-button.semi-button-secondary {
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-select-selection-text,
+body[theme-mode='light'] .blueprint-shell .semi-input,
+body[theme-mode='light'] .blueprint-shell .semi-input-number-input,
+body[theme-mode='light'] .blueprint-shell .semi-textarea,
+body[theme-mode='light'] .blueprint-shell .semi-form-field-label-text,
+body[theme-mode='light'] .blueprint-shell .semi-typography,
+body[theme-mode='light'] .blueprint-shell .semi-descriptions-item-label,
+body[theme-mode='light'] .blueprint-shell .semi-descriptions-item-text {
+  color: var(--text-primary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-radio-addon-buttonRadio,
+body[theme-mode='light'] .blueprint-shell .semi-radio-cardRadioGroup_checked {
+  background: rgba(37, 99, 235, 0.08) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-tag {
+  border-color: rgba(15, 23, 42, 0.08) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-popover-wrapper-content,
+body[theme-mode='light'] .blueprint-shell .semi-dropdown-menu,
+body[theme-mode='light'] .blueprint-shell .semi-modal-content,
+body[theme-mode='light'] .blueprint-shell .semi-toast,
+body[theme-mode='light'] .blueprint-shell .semi-notification-notice {
+  background: var(--panel-bg-strong) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-progress-track-inner {
+  background: rgba(37, 99, 235, 0.12) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-card-header-wrapper .semi-typography,
+body[theme-mode='light'] .blueprint-shell .semi-card-header .semi-card-header-title,
+body[theme-mode='light'] .blueprint-shell .semi-card-body,
+body[theme-mode='light'] .blueprint-shell .semi-card-extra {
+  color: var(--text-primary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-typography-secondary,
+body[theme-mode='light'] .blueprint-shell .semi-typography-tertiary,
+body[theme-mode='light'] .blueprint-shell .semi-descriptions-item-label,
+body[theme-mode='light'] .blueprint-shell .semi-empty-title,
+body[theme-mode='light'] .blueprint-shell .semi-empty-description,
+body[theme-mode='light'] .blueprint-shell .semi-empty-content {
+  color: var(--text-secondary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-button-borderless.semi-button-danger:hover {
+  background: rgba(225, 29, 72, 0.08) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-switch-checked {
+  background: var(--accent) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-select:hover,
+body[theme-mode='light'] .blueprint-shell .semi-input-wrapper:hover,
+body[theme-mode='light'] .blueprint-shell .semi-input-number:hover,
+body[theme-mode='light'] .blueprint-shell .semi-textarea-wrapper:hover {
+  border-color: rgba(37, 99, 235, 0.22) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-card,
+body[theme-mode='light'] .blueprint-breadcrumb-shell {
+  background: var(--panel-bg) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-breadcrumb,
+body[theme-mode='light'] .blueprint-shell .semi-breadcrumb-item,
+body[theme-mode='light'] .blueprint-shell .semi-breadcrumb-item-link {
+  color: var(--text-secondary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-breadcrumb-item-active,
+body[theme-mode='light'] .blueprint-shell .semi-breadcrumb-item-active .semi-breadcrumb-item-link {
+  color: var(--text-primary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-progress-line .semi-progress-line-inner {
+  background: linear-gradient(90deg, #2563eb, #16a34a) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-button.semi-button-primary:hover,
+body[theme-mode='light'] .btn-gradient:hover {
+  background: linear-gradient(180deg, #3b82f6, #1d4ed8) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-switch {
+  background: rgba(37, 99, 235, 0.2) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-switch-checked {
   background: #2563eb !important;
-  color: #fff !important;
-  border-radius: 10px !important;
-  font-weight: 600 !important;
 }
 
-.semi-button-primary:hover {
-  background: #1d4ed8 !important;
+body[theme-mode='light'] .blueprint-shell .semi-progress-track-inner {
+  background: rgba(37, 99, 235, 0.12) !important;
 }
 
-/* ═══════════════════════════════════════════
-   DATA FONTS (Ink style)
-   ═══════════════════════════════════════════ */
-.ledger-number, .consolas-font {
-  font-family: 'JetBrains Mono', 'Consolas', monospace !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.05em !important;
-  color: #000 !important;
+body[theme-mode='light'] .blueprint-shell .semi-button.semi-button-primary,
+body[theme-mode='light'] .btn-gradient {
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.18) !important;
 }
 
-.glow-number {
-  color: #000 !important;
-  font-weight: 800 !important;
-  text-shadow: none !important;
+body[theme-mode='light'] .blueprint-shell .semi-radio-addon-buttonRadio,
+body[theme-mode='light'] .blueprint-shell .semi-radio-cardRadioGroup_checked {
+  border-color: #2563eb !important;
 }
 
-.glow-text {
-  text-shadow: none !important;
+body[theme-mode='light'] .blueprint-shell .semi-badge-count {
+  background: linear-gradient(180deg, #fb7185, #e11d48) !important;
 }
 
-.engine-pulse {
-  opacity: 1 !important;
-  transform: none !important;
-  animation: none !important;
+body[theme-mode='light'] .blueprint-shell .semi-tabs-ink-bar {
+  background: #2563eb !important;
 }
 
-/* ═══════════════════════════════════════════
-   CAPSULE NAVIGATION
-   ═══════════════════════════════════════════ */
-.semi-navigation-item-selected {
-  background: #ffffff !important;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+body[theme-mode='light'] .blueprint-shell .semi-input-wrapper-focus,
+body[theme-mode='light'] .blueprint-shell .semi-input-number.semi-input-number-focus,
+body[theme-mode='light'] .blueprint-shell .semi-textarea-wrapper-focus,
+body[theme-mode='light'] .blueprint-shell .semi-select.semi-select-focus {
+  border-color: #2563eb !important;
 }
 
-.semi-navigation-item-selected .semi-navigation-item-text,
-.semi-navigation-item-selected .semi-navigation-item-icon {
-  color: #000000 !important;
-  font-weight: 700 !important;
+body[theme-mode='light'] .blueprint-shell .semi-progress-line .semi-progress-line-inner {
+  background: linear-gradient(90deg, #2563eb, #16a34a) !important;
 }
 
-.semi-navigation-item:hover {
-  background: rgba(0, 0, 0, 0.03) !important;
-  border-radius: 10px;
+body[theme-mode='light'] .blueprint-shell .semi-radio-addon-buttonRadio,
+body[theme-mode='light'] .blueprint-shell .semi-radio-cardRadioGroup_checked {
+  color: var(--text-primary) !important;
 }
 
-.semi-navigation-item-text, .semi-navigation-item-icon {
-  color: #71717a !important;
-  font-weight: 500 !important;
+body[theme-mode='light'] .blueprint-shell .semi-button.semi-button-light,
+body[theme-mode='light'] .blueprint-shell .semi-button.semi-button-secondary,
+body[theme-mode='light'] .blueprint-shell .semi-button.semi-button-tertiary {
+  color: var(--text-primary) !important;
 }
 
-/* ═══════════════════════════════════════════
-   MODALS, DROPDOWNS, POPOVERS
-   ═══════════════════════════════════════════ */
-.semi-popover-wrapper-content,
-.semi-dropdown-menu,
-.semi-modal-content {
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(30px) !important;
-  border: 1px solid rgba(255, 255, 255, 1) !important;
-  border-radius: 16px !important;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.08) !important;
+body[theme-mode='light'] .blueprint-shell .semi-progress-track {
+  background: transparent !important;
 }
 
-.code-drilldown {
-  background: #f4f4f5 !important;
-  color: #000 !important;
-  padding: 16px !important;
-  border-radius: 12px !important;
-  border: 1px solid rgba(0,0,0,0.05) !important;
-  font-family: 'JetBrains Mono', monospace !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
+body[theme-mode='light'] .blueprint-shell .semi-toast-close,
+body[theme-mode='light'] .blueprint-shell .semi-notification-close {
+  color: var(--text-secondary) !important;
 }
 
-/* Generic fixes */
-.semi-tag {
-  background: rgba(0, 0, 0, 0.04) !important;
-  color: #000 !important;
-  border-radius: 6px !important;
-  font-weight: 600 !important;
+.blueprint-shell .semi-toast-close,
+.blueprint-shell .semi-notification-close {
+  color: var(--text-secondary) !important;
 }
 
-.semi-input-wrapper, .semi-select {
-  background: rgba(255, 255, 255, 0.6) !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-  border-radius: 8px !important;
-}
-.semi-input-wrapper:hover, .semi-select:hover {
-  border-color: rgba(0, 0, 0, 0.2) !important;
-}
-.semi-input-wrapper-focus {
-  border-color: #000 !important;
-  box-shadow: none !important;
+.blueprint-shell .semi-divider,
+.blueprint-shell .semi-tabs-bar-line {
+  border-color: rgba(125, 211, 252, 0.12) !important;
 }
 
-.semi-tabs-tab-active {
-  color: #000 !important;
-  font-weight: 700 !important;
-}
-.semi-tabs-ink-bar {
-  background: #000 !important;
-  height: 3px !important;
-  border-radius: 3px !important;
+body[theme-mode='light'] .blueprint-shell .semi-divider,
+body[theme-mode='light'] .blueprint-shell .semi-tabs-bar-line {
+  border-color: rgba(15, 23, 42, 0.08) !important;
 }
 
+.blueprint-shell .semi-empty-image svg,
+.blueprint-shell .semi-spin-rotate svg {
+  fill: currentColor !important;
+}
+
+.blueprint-shell .semi-tree-option-label,
+.blueprint-shell .semi-tree-option-list,
+.blueprint-shell .semi-select-option,
+.blueprint-shell .semi-select-option-selected,
+.blueprint-shell .semi-select-option:hover {
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-select-option:hover,
+.blueprint-shell .semi-dropdown-item:hover {
+  background: var(--semi-color-fill-0) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-select-option:hover,
+body[theme-mode='light'] .blueprint-shell .semi-dropdown-item:hover {
+  background: rgba(37, 99, 235, 0.06) !important;
+}
+
+.blueprint-shell .semi-card-header {
+  border-bottom-color: rgba(125, 211, 252, 0.08) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-card-header {
+  border-bottom-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+.blueprint-shell .semi-descriptions-item {
+  border-color: rgba(125, 211, 252, 0.08) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-descriptions-item {
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+.blueprint-shell .semi-skeleton-title,
+.blueprint-shell .semi-skeleton-paragraph-line {
+  background: rgba(96, 165, 250, 0.12) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-skeleton-title,
+body[theme-mode='light'] .blueprint-shell .semi-skeleton-paragraph-line {
+  background: rgba(37, 99, 235, 0.08) !important;
+}
+
+.blueprint-shell .semi-calendar,
+.blueprint-shell .semi-datepicker,
+.blueprint-shell .semi-timepicker {
+  background: var(--panel-bg-strong) !important;
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-calendar-day,
+.blueprint-shell .semi-datepicker-weekday,
+.blueprint-shell .semi-timepicker-panel-title {
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-calendar-day:hover,
+.blueprint-shell .semi-datepicker-month-main-cell:hover,
+.blueprint-shell .semi-timepicker-panel-list-item:hover {
+  background: var(--semi-color-fill-0) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-calendar-day:hover,
+body[theme-mode='light'] .blueprint-shell .semi-datepicker-month-main-cell:hover,
+body[theme-mode='light'] .blueprint-shell .semi-timepicker-panel-list-item:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+}
+
+.blueprint-shell .semi-checkbox-inner-display,
+.blueprint-shell .semi-radio-inner-display {
+  border-color: var(--border) !important;
+}
+
+.blueprint-shell .semi-checkbox-checked .semi-checkbox-inner-display,
+.blueprint-shell .semi-radio-checked .semi-radio-inner-display {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-checkbox-checked .semi-checkbox-inner-display,
+body[theme-mode='light'] .blueprint-shell .semi-radio-checked .semi-radio-inner-display {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+.blueprint-shell .semi-button-content-right {
+  color: inherit;
+}
+
+.blueprint-shell .semi-select-arrow,
+.blueprint-shell .semi-input-clearbtn,
+.blueprint-shell .semi-input-number-icon,
+.blueprint-shell .semi-calendar-icon {
+  color: var(--text-secondary) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-select-arrow,
+body[theme-mode='light'] .blueprint-shell .semi-input-clearbtn,
+body[theme-mode='light'] .blueprint-shell .semi-input-number-icon,
+body[theme-mode='light'] .blueprint-shell .semi-calendar-icon {
+  color: var(--text-secondary) !important;
+}
+
+.blueprint-shell .semi-steps-item-title,
+.blueprint-shell .semi-steps-item-description,
+.blueprint-shell .semi-statistic-title,
+.blueprint-shell .semi-statistic-content {
+  color: var(--text-primary) !important;
+}
+
+.blueprint-shell .semi-steps-item-process .semi-steps-item-icon,
+.blueprint-shell .semi-steps-item-finish .semi-steps-item-icon {
+  background: var(--accent) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-steps-item-process .semi-steps-item-icon,
+body[theme-mode='light'] .blueprint-shell .semi-steps-item-finish .semi-steps-item-icon {
+  background: #2563eb !important;
+}
+
+.blueprint-shell .semi-statistic-content-prefix,
+.blueprint-shell .semi-statistic-content-suffix {
+  color: var(--text-secondary) !important;
+}
+
+.blueprint-shell .semi-collapse-item,
+.blueprint-shell .semi-collapse-header {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border-color: rgba(125, 211, 252, 0.08) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-collapse-item,
+body[theme-mode='light'] .blueprint-shell .semi-collapse-header {
+  border-color: rgba(15, 23, 42, 0.06) !important;
+}
+
+.blueprint-shell .semi-empty-image svg path {
+  fill: currentColor !important;
+}
+
+.blueprint-shell .semi-progress-circle-track {
+  stroke: rgba(96, 165, 250, 0.12) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-progress-circle-track {
+  stroke: rgba(37, 99, 235, 0.12) !important;
+}
+
+.blueprint-shell .semi-progress-circle-inner {
+  stroke: var(--accent) !important;
+}
+
+body[theme-mode='light'] .blueprint-shell .semi-progress-circle-inner {
+  stroke: #2563eb !important;
+}
 /* ═══════════════════════════════════════════
    LOGIN PAGE
    ═══════════════════════════════════════════ */
@@ -332,49 +876,28 @@ body[theme-mode='dark'] {
 }
 
 /* ═══════════════════════════════════════════
-   GHOST CSS — Glass Tabs / Input / Animations
+   ANIMATIONS & OVERFLOW
    ═══════════════════════════════════════════ */
-.glass-tabs .semi-tabs-bar {
-  background: transparent !important;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
-}
-
-.glass-input .semi-input-wrapper {
-  background: rgba(255, 255, 255, 0.5) !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  border-radius: 10px !important;
-  backdrop-filter: blur(8px) !important;
-}
-.glass-input .semi-input-wrapper:hover {
-  border-color: rgba(0, 0, 0, 0.15) !important;
-}
-.glass-input .semi-input-wrapper-focus {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
-}
-
 .animate-fade-up {
   animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .smooth-transition {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
 }
 
-/* ═══════════════════════════════════════════
-   TOP NAV OVERFLOW
-   ═══════════════════════════════════════════ */
 .top-nav-capsule {
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
   white-space: nowrap;
 }
+
 .top-nav-capsule::-webkit-scrollbar {
   display: none;
 }

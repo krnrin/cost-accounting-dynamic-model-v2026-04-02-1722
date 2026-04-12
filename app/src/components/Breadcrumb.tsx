@@ -104,7 +104,7 @@ export default function Breadcrumb() {
   }
 
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div className="blueprint-breadcrumb-shell" style={{ marginBottom: 16 }}>
       <SemiBreadcrumb>
         {breadcrumbItems.map((item, index) => (
           <SemiBreadcrumb.Item

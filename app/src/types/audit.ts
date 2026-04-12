@@ -3,7 +3,7 @@ export interface AuditLog {
   userId: string;
   projectId: string | null;
   action: 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE';
-  entity: 'project' | 'harness' | 'quote' | 'version';
+  entity: 'project' | 'harness' | 'bom' | 'quote' | 'version' | 'scenario' | 'change' | 'tracking' | 'pricing' | 'setting' | 'alert';
   entityId: string;
   details: string | null;
   createdAt: string;

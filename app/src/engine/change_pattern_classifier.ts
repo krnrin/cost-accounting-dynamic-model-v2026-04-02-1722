@@ -1,31 +1,5 @@
-import type { BomItem } from '../types/harness';
-
-export type BomRowChangeType = 'added' | 'removed' | 'modified';
-
-export interface BomRowFieldChange {
-  field: string;
-  before: string | number | boolean | null;
-  after: string | number | boolean | null;
-}
-
-export interface BomRowChange {
-  changeType: BomRowChangeType;
-  partNo: string;
-  partName: string;
-  rowIndex: number;
-  fieldChanges: BomRowFieldChange[];
-}
-
-export interface BomChangeDetectionResult {
-  harnessId: string;
-  harnessName: string;
-  sheetName: string;
-  hasChanges: boolean;
-  changes: BomRowChange[];
-  summary: string;
-  affectedEndGroups: string[];
-  detectedAt: string;
-}
+import type { BomItem } from '@/types/harness';
+import type { BomChangeDetectionResult, BomRowChange } from '@/engine/change_detector';
 
 export type ChangePattern =
   | 'simple_add'
@@ -49,434 +23,266 @@ export interface ClassifyHint {
   functionText?: string;
 }
 
-export interface SupplierInheritanceCheck {
-  assemblySupplier?: string;
-  allInheritedOrUnknown: boolean;
-  rows: Array<{
-    partNo: string;
-    supplier?: string;
-    inheritsAssemblySupplier: boolean;
-  }>;
-}
-
 export interface SemanticChange {
   pattern: ChangePattern;
   description: string;
   relatedChanges: BomRowChange[];
   confidence: number;
-  supplierCheck?: SupplierInheritanceCheck;
   metadata?: Record<string, unknown>;
 }
 
 export interface ClassifyOptions {
   replaceThreshold?: number;
   wireReplaceThreshold?: number;
+  qtyExplodeRatio?: number;
 }
 
 const DEFAULT_OPTIONS: Required<ClassifyOptions> = {
   replaceThreshold: 5,
-  wireReplaceThreshold: 8,
+  wireReplaceThreshold: 7,
+  qtyExplodeRatio: 2.5,
 };
 
-export function classifyChangePatterns(
-  detection: BomChangeDetectionResult,
-  hints: Map<string, ClassifyHint>,
-  options: ClassifyOptions = {}
-): SemanticChange[] {
-  const mergedOptions = { ...DEFAULT_OPTIONS, ...options };
-  const { changes } = detection;
-  const added = changes.filter(c => c.changeType === 'added');
-  const removed = changes.filter(c => c.changeType === 'removed');
-  const modified = changes.filter(c => c.changeType === 'modified');
+function normalizeText(value: string | undefined): string {
+  return (value || '').trim().toLowerCase();
+}
 
-  const results: SemanticChange[] = [];
-  const usedAdded = new Set<string>();
-  const usedRemoved = new Set<string>();
+function parseQty(change: BomRowChange): { before: number | null; after: number | null } {
+  const field = change.fieldChanges.find(item => item.field === 'qty');
+  const before = field && typeof field.before === 'number' ? field.before : null;
+  const after = field && typeof field.after === 'number' ? field.after : null;
+  return { before, after };
+}
 
-  classifySplit(removed, added, hints, usedRemoved, usedAdded, results);
-  classifyMerge(removed, added, hints, usedRemoved, usedAdded, results);
-  classifyWireSpecReplace(
-    removed,
-    added,
-    hints,
-    usedRemoved,
-    usedAdded,
-    results,
-    mergedOptions.wireReplaceThreshold
-  );
-  classifyReplace(
-    removed,
-    added,
-    hints,
-    usedRemoved,
-    usedAdded,
-    results,
-    mergedOptions.replaceThreshold
-  );
-  classifyModified(modified, results);
-  classifyLeftovers(removed, added, usedRemoved, usedAdded, results);
+function isAssemblyUnit(unit: string | undefined): boolean {
+  const normalized = normalizeText(unit);
+  return ['set', 'assy', 'assembly'].includes(normalized);
+}
 
-  return results.sort((a, b) => {
-    if (b.confidence !== a.confidence) return b.confidence - a.confidence;
-    return a.description.localeCompare(b.description, 'zh-CN');
-  });
+function isComponentUnit(unit: string | undefined): boolean {
+  const normalized = normalizeText(unit);
+  return ['pc', 'pcs', 'ea', 'm'].includes(normalized);
+}
+
+function scoreReplace(
+  removed: BomRowChange,
+  added: BomRowChange,
+  removedHint: ClassifyHint | undefined,
+  addedHint: ClassifyHint | undefined
+): number {
+  let score = 0;
+  if (normalizeText(removed.functionText) === normalizeText(added.functionText)) score += 3;
+  if (normalizeText(removedHint?.endGroup) === normalizeText(addedHint?.endGroup)) score += 2;
+  if (normalizeText(removedHint?.category as string) === normalizeText(addedHint?.category as string)) score += 2;
+  if (normalizeText(removed.unit) === normalizeText(added.unit)) score += 1;
+  if (normalizeText(removed.supplier) === normalizeText(added.supplier)) score += 1;
+  const nameA = normalizeText(removed.partName);
+  const nameB = normalizeText(added.partName);
+  if (nameA && nameB && (nameA.includes(nameB) || nameB.includes(nameA))) score += 1;
+  return score;
+}
+
+function scoreWireReplace(
+  removed: BomRowChange,
+  added: BomRowChange,
+  removedHint: ClassifyHint | undefined,
+  addedHint: ClassifyHint | undefined
+): number {
+  const base = scoreReplace(removed, added, removedHint, addedHint);
+  const looksWire =
+    normalizeText(removedHint?.category as string) === 'wire' ||
+    normalizeText(addedHint?.category as string) === 'wire' ||
+    normalizeText(removed.partName).includes('wire') ||
+    normalizeText(added.partName).includes('wire');
+  if (!looksWire) return base;
+  const specBefore = removed.fieldChanges.find(f => f.field === 'spec')?.before;
+  const specAfter = added.fieldChanges.find(f => f.field === 'spec')?.after;
+  const specChanged = String(specBefore || '') !== String(specAfter || '');
+  return base + (specChanged ? 2 : 1);
+}
+
+function isSameGroup(a: ClassifyHint | undefined, b: ClassifyHint | undefined): boolean {
+  if (!a || !b) return false;
+  if (normalizeText(a.endGroup) && normalizeText(a.endGroup) === normalizeText(b.endGroup)) return true;
+  if (normalizeText(a.functionText) && normalizeText(a.functionText) === normalizeText(b.functionText)) return true;
+  return false;
 }
 
 export function buildClassifyHints(items: BomItem[]): Map<string, ClassifyHint> {
-  const map = new Map<string, ClassifyHint>();
-  items.forEach((item, index) => {
-    map.set(item.partNo, {
+  const hints = new Map<string, ClassifyHint>();
+  items.forEach((item, rowIndex) => {
+    hints.set(item.partNo, {
+      rowIndex,
       endGroup: item.endGroup,
       category: item.itemCategory,
-      rowIndex: index,
       unit: item.unit,
       supplier: item.supplier,
       partName: item.partName,
       functionText: item.functionText,
     });
   });
-  return map;
+  return hints;
 }
 
-function classifySplit(
-  removed: BomRowChange[],
-  added: BomRowChange[],
+export function classifyChangePatterns(
+  detection: BomChangeDetectionResult,
   hints: Map<string, ClassifyHint>,
-  usedRemoved: Set<string>,
-  usedAdded: Set<string>,
-  results: SemanticChange[]
-): void {
+  options: ClassifyOptions = {}
+): SemanticChange[] {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const added = detection.changes.filter(change => change.changeType === 'added');
+  const removed = detection.changes.filter(change => change.changeType === 'removed');
+  const modified = detection.changes.filter(change => change.changeType === 'modified');
+
+  const results: SemanticChange[] = [];
+  const usedAdded = new Set<string>();
+  const usedRemoved = new Set<string>();
+
   for (const rem of removed) {
     if (usedRemoved.has(rem.partNo)) continue;
     const remHint = hints.get(rem.partNo);
     if (!isAssemblyUnit(remHint?.unit)) continue;
 
-    const sameGroupAdded = added.filter(add => {
+    const componentAdds = added.filter(add => {
       if (usedAdded.has(add.partNo)) return false;
-      return isSameGroup(remHint, hints.get(add.partNo));
+      return isSameGroup(remHint, hints.get(add.partNo)) && isComponentUnit(hints.get(add.partNo)?.unit);
     });
-    const componentAdds = sameGroupAdded.filter(add => isComponentUnit(hints.get(add.partNo)?.unit));
-
     if (componentAdds.length < 2) continue;
-
-    const removedSupplier = normalizeText(remHint?.supplier);
-    const allInheritedOrUnknown = componentAdds.every(add => {
-      const supplier = normalizeText(hints.get(add.partNo)?.supplier);
-      return !removedSupplier || !supplier || supplier === removedSupplier;
-    });
-
-    const confidence = allInheritedOrUnknown ? 0.98 : 0.95;
-    const supplierCheck: SupplierInheritanceCheck = {
-      assemblySupplier: remHint?.supplier,
-      allInheritedOrUnknown,
-      rows: componentAdds.map(add => {
-        const supplier = hints.get(add.partNo)?.supplier;
-        const inheritsAssemblySupplier =
-          !removedSupplier || !normalizeText(supplier) || normalizeText(supplier) === removedSupplier;
-        return {
-          partNo: add.partNo,
-          supplier,
-          inheritsAssemblySupplier,
-        };
-      }),
-    };
-
     results.push({
       pattern: 'split',
-      description: `总成拆散件：${rem.partNo}(${rem.partName}) → ${componentAdds.length}个散件`,
+      description: `Split: ${rem.partNo} -> ${componentAdds.map(item => item.partNo).join(', ')}`,
       relatedChanges: [rem, ...componentAdds],
-      confidence,
-      supplierCheck,
+      confidence: 0.95,
     });
-
     usedRemoved.add(rem.partNo);
-    componentAdds.forEach(add => usedAdded.add(add.partNo));
+    componentAdds.forEach(item => usedAdded.add(item.partNo));
   }
-}
 
-function classifyMerge(
-  removed: BomRowChange[],
-  added: BomRowChange[],
-  hints: Map<string, ClassifyHint>,
-  usedRemoved: Set<string>,
-  usedAdded: Set<string>,
-  results: SemanticChange[]
-): void {
   for (const add of added) {
     if (usedAdded.has(add.partNo)) continue;
     const addHint = hints.get(add.partNo);
     if (!isAssemblyUnit(addHint?.unit)) continue;
 
-    const sameGroupRemoved = removed.filter(rem => {
+    const componentRemoves = removed.filter(rem => {
       if (usedRemoved.has(rem.partNo)) return false;
-      return isSameGroup(addHint, hints.get(rem.partNo));
+      return isSameGroup(addHint, hints.get(rem.partNo)) && isComponentUnit(hints.get(rem.partNo)?.unit);
     });
-    const componentRemoved = sameGroupRemoved.filter(rem => isComponentUnit(hints.get(rem.partNo)?.unit));
-
-    if (componentRemoved.length < 2) continue;
-
+    if (componentRemoves.length < 2) continue;
     results.push({
       pattern: 'merge',
-      description: `散件合总成：${componentRemoved.length}个散件 → ${add.partNo}(${add.partName})`,
-      relatedChanges: [...componentRemoved, add],
+      description: `Merge: ${componentRemoves.map(item => item.partNo).join(', ')} -> ${add.partNo}`,
+      relatedChanges: [...componentRemoves, add],
       confidence: 0.9,
     });
-
     usedAdded.add(add.partNo);
-    componentRemoved.forEach(rem => usedRemoved.add(rem.partNo));
+    componentRemoves.forEach(item => usedRemoved.add(item.partNo));
   }
-}
 
-function classifyWireSpecReplace(
-  removed: BomRowChange[],
-  added: BomRowChange[],
-  hints: Map<string, ClassifyHint>,
-  usedRemoved: Set<string>,
-  usedAdded: Set<string>,
-  results: SemanticChange[],
-  threshold: number
-): void {
   for (const rem of removed) {
     if (usedRemoved.has(rem.partNo)) continue;
-    const remHint = hints.get(rem.partNo);
-
-    let bestAdd: BomRowChange | null = null;
+    let best: BomRowChange | null = null;
     let bestScore = -1;
+    const remHint = hints.get(rem.partNo);
 
     for (const add of added) {
       if (usedAdded.has(add.partNo)) continue;
       const addHint = hints.get(add.partNo);
-      if (isAssemblyUnit(remHint?.unit) !== isAssemblyUnit(addHint?.unit)) continue;
-      const score = scoreWireReplace(rem, add, remHint, addHint);
-      if (score > bestScore) {
-        bestScore = score;
-        bestAdd = add;
+      const wireScore = scoreWireReplace(rem, add, remHint, addHint);
+      if (wireScore > bestScore) {
+        bestScore = wireScore;
+        best = add;
       }
     }
 
-    if (!bestAdd || bestScore < threshold) continue;
+    if (best && bestScore >= opts.wireReplaceThreshold) {
+      results.push({
+        pattern: 'wire_spec_replace',
+        description: `Wire replace: ${rem.partNo} -> ${best.partNo}`,
+        relatedChanges: [rem, best],
+        confidence: 0.88,
+      });
+      usedRemoved.add(rem.partNo);
+      usedAdded.add(best.partNo);
+      continue;
+    }
 
-    const addHint = hints.get(bestAdd.partNo);
-    results.push({
-      pattern: 'wire_spec_replace',
-      description: `导线规格替换：${rem.partNo} → ${bestAdd.partNo}`,
-      relatedChanges: [rem, bestAdd],
-      confidence: 0.93,
-      metadata: {
-        beforeSpec: extractSpecToken(rem.partNo) || extractSpecToken(rem.partName) || remHint?.unit,
-        afterSpec: extractSpecToken(bestAdd.partNo) || extractSpecToken(bestAdd.partName) || addHint?.unit,
-      },
-    });
-
-    usedRemoved.add(rem.partNo);
-    usedAdded.add(bestAdd.partNo);
-  }
-}
-
-function classifyReplace(
-  removed: BomRowChange[],
-  added: BomRowChange[],
-  hints: Map<string, ClassifyHint>,
-  usedRemoved: Set<string>,
-  usedAdded: Set<string>,
-  results: SemanticChange[],
-  threshold: number
-): void {
-  for (const rem of removed) {
-    if (usedRemoved.has(rem.partNo)) continue;
-    const remHint = hints.get(rem.partNo);
-
-    let bestAdd: BomRowChange | null = null;
-    let bestScore = -1;
-
+    best = null;
+    bestScore = -1;
     for (const add of added) {
       if (usedAdded.has(add.partNo)) continue;
-      const addHint = hints.get(add.partNo);
-      if (isAssemblyUnit(remHint?.unit) !== isAssemblyUnit(addHint?.unit)) continue;
-      const score = scoreReplace(rem, add, remHint, addHint);
+      const score = scoreReplace(rem, add, hints.get(rem.partNo), hints.get(add.partNo));
       if (score > bestScore) {
         bestScore = score;
-        bestAdd = add;
+        best = add;
       }
     }
-
-    if (!bestAdd || bestScore < threshold) continue;
-
-    results.push({
-      pattern: 'replace',
-      description: `物料替换：${rem.partNo}(${rem.partName}) → ${bestAdd.partNo}(${bestAdd.partName})`,
-      relatedChanges: [rem, bestAdd],
-      confidence: Math.min(0.9, 0.55 + bestScore * 0.05),
-    });
-
-    usedRemoved.add(rem.partNo);
-    usedAdded.add(bestAdd.partNo);
+    if (best && bestScore >= opts.replaceThreshold) {
+      results.push({
+        pattern: 'replace',
+        description: `Replace: ${rem.partNo} -> ${best.partNo}`,
+        relatedChanges: [rem, best],
+        confidence: 0.85,
+      });
+      usedRemoved.add(rem.partNo);
+      usedAdded.add(best.partNo);
+    }
   }
-}
 
-function classifyModified(modified: BomRowChange[], results: SemanticChange[]): void {
   for (const mod of modified) {
-    const qtyChange = mod.fieldChanges.find(change => change.field === 'qty');
-    if (!qtyChange) {
-      results.push({
-        pattern: 'field_modify',
-        description: `字段修改：${mod.partNo}`,
-        relatedChanges: [mod],
-        confidence: 1,
-      });
-      continue;
-    }
-
-    const before = Number(qtyChange.before ?? NaN);
-    const after = Number(qtyChange.after ?? NaN);
-    if (!Number.isNaN(before) && !Number.isNaN(after) && before === 1 && after >= 5) {
-      results.push({
-        pattern: 'qty_explode',
-        description: `数量炸开：${mod.partNo} qty ${before} → ${after}`,
-        relatedChanges: [mod],
-        confidence: 0.6,
-      });
+    const qty = parseQty(mod);
+    if (qty.before !== null && qty.after !== null && qty.before !== qty.after) {
+      const ratio = qty.before === 0 ? Number.POSITIVE_INFINITY : qty.after / qty.before;
+      if (ratio >= opts.qtyExplodeRatio) {
+        results.push({
+          pattern: 'qty_explode',
+          description: `Qty explode: ${mod.partNo} ${qty.before} -> ${qty.after}`,
+          relatedChanges: [mod],
+          confidence: 0.9,
+          metadata: { beforeQty: qty.before, afterQty: qty.after, ratio },
+        });
+      } else {
+        results.push({
+          pattern: 'qty_change',
+          description: `Qty change: ${mod.partNo} ${qty.before} -> ${qty.after}`,
+          relatedChanges: [mod],
+          confidence: 0.92,
+          metadata: { beforeQty: qty.before, afterQty: qty.after, ratio },
+        });
+      }
       continue;
     }
 
     results.push({
-      pattern: 'qty_change',
-      description: `数量变化：${mod.partNo} qty ${qtyChange.before ?? '空'} → ${qtyChange.after ?? '空'}`,
+      pattern: 'field_modify',
+      description: `Field modify: ${mod.partNo}`,
       relatedChanges: [mod],
-      confidence: 1,
+      confidence: 0.8,
     });
   }
-}
 
-function classifyLeftovers(
-  removed: BomRowChange[],
-  added: BomRowChange[],
-  usedRemoved: Set<string>,
-  usedAdded: Set<string>,
-  results: SemanticChange[]
-): void {
-  removed.forEach(rem => {
-    if (usedRemoved.has(rem.partNo)) return;
+  for (const rem of removed) {
+    if (usedRemoved.has(rem.partNo)) continue;
     results.push({
       pattern: 'simple_remove',
-      description: `删除：${rem.partNo}`,
+      description: `Remove: ${rem.partNo}`,
       relatedChanges: [rem],
-      confidence: 1,
+      confidence: 0.75,
     });
-  });
+  }
 
-  added.forEach(add => {
-    if (usedAdded.has(add.partNo)) return;
+  for (const add of added) {
+    if (usedAdded.has(add.partNo)) continue;
     results.push({
       pattern: 'simple_add',
-      description: `新增：${add.partNo}`,
+      description: `Add: ${add.partNo}`,
       relatedChanges: [add],
-      confidence: 1,
+      confidence: 0.75,
     });
+  }
+
+  return results.sort((a, b) => {
+    if (b.confidence !== a.confidence) return b.confidence - a.confidence;
+    return a.description.localeCompare(b.description);
   });
 }
 
-function scoreReplace(
-  rem: BomRowChange,
-  add: BomRowChange,
-  remHint?: ClassifyHint,
-  addHint?: ClassifyHint
-): number {
-  let score = 0;
-  if (isSameGroup(remHint, addHint)) score += 3;
-  if (isSameSupplier(remHint?.supplier, addHint?.supplier)) score += 2;
-  if (isSameUnitKind(remHint?.unit, addHint?.unit)) score += 2;
-  if (normalizeText(rem.partName) === normalizeText(add.partName)) score += 2;
-  if (Math.abs(rem.rowIndex - add.rowIndex) <= 3) score += 1;
-  return score;
-}
-
-function scoreWireReplace(
-  rem: BomRowChange,
-  add: BomRowChange,
-  remHint?: ClassifyHint,
-  addHint?: ClassifyHint
-): number {
-  if (!isWireLike(rem, remHint) || !isWireLike(add, addHint)) return 0;
-
-  let score = 0;
-  if (isSameGroup(remHint, addHint)) score += 3;
-  if (isSameSupplier(remHint?.supplier, addHint?.supplier)) score += 2;
-  if (normalizeText(remHint?.unit) === normalizeText(addHint?.unit)) score += 1;
-
-  const remPartBase = stripSpecToken(rem.partNo);
-  const addPartBase = stripSpecToken(add.partNo);
-  const remNameBase = stripSpecToken(rem.partName);
-  const addNameBase = stripSpecToken(add.partName);
-  if (remPartBase && remPartBase === addPartBase) score += 3;
-  if (remNameBase && remNameBase === addNameBase) score += 2;
-
-  const remSpec = extractSpecToken(rem.partNo) || extractSpecToken(rem.partName);
-  const addSpec = extractSpecToken(add.partNo) || extractSpecToken(add.partName);
-  if (remSpec && addSpec && remSpec !== addSpec) score += 1;
-
-  return score;
-}
-
-function isWireLike(change: BomRowChange, hint?: ClassifyHint): boolean {
-  const partName = normalizeText(hint?.partName || change.partName);
-  const partNo = normalizeText(change.partNo);
-  const unit = normalizeText(hint?.unit);
-  return (
-    unit === 'M' ||
-    unit === '米' ||
-    partName.includes('导线') ||
-    partName.includes('线') ||
-    partNo.includes('FHL') ||
-    partNo.includes('WIRE') ||
-    partNo.includes('CABLE')
-  );
-}
-
-function extractSpecToken(text?: string): string {
-  const value = normalizeText(text);
-  const patterns = [/\d+(?:\.\d+)?MM²/g, /\d+(?:\.\d+)?方/g, /\d+(?:\.\d+)?\/橙/g];
-  for (const pattern of patterns) {
-    const match = value.match(pattern);
-    if (match?.[0]) return match[0];
-  }
-  return '';
-}
-
-function stripSpecToken(text?: string): string {
-  return normalizeText(text)
-    .replace(/\d+(?:\.\d+)?MM²/g, '')
-    .replace(/\d+(?:\.\d+)?方/g, '')
-    .replace(/\d+(?:\.\d+)?\/橙/g, '')
-    .replace(/[0-9.\-_\/]/g, '');
-}
-
-function isSameGroup(a?: ClassifyHint, b?: ClassifyHint): boolean {
-  const ag = normalizeText(a?.endGroup || a?.functionText);
-  const bg = normalizeText(b?.endGroup || b?.functionText);
-  return Boolean(ag && bg && ag === bg);
-}
-
-function isSameSupplier(a?: string, b?: string): boolean {
-  const left = normalizeText(a);
-  const right = normalizeText(b);
-  return !left || !right || left === right;
-}
-
-function isSameUnitKind(a?: string, b?: string): boolean {
-  return isAssemblyUnit(a) === isAssemblyUnit(b);
-}
-
-function isAssemblyUnit(unit?: string): boolean {
-  const value = normalizeText(unit);
-  return value === 'SET' || value === '套' || value === '组';
-}
-
-function isComponentUnit(unit?: string): boolean {
-  const value = normalizeText(unit);
-  return ['PCS', '个', '根', '米', 'M', 'KG', '条'].includes(value);
-}
-
-function normalizeText(value?: string): string {
-  return String(value ?? '').trim().toUpperCase();
-}

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbac.js';
 import { AlertEventService } from '../services/alertEventService.js';
+import { AuditService } from '../services/auditService.js';
 
 const projectAlertsRouter = Router({ mergeParams: true });
 const alertsRouter = Router();
@@ -68,6 +69,18 @@ alertsRouter.get('/summary', async (req: Request, res: Response, next: NextFunct
 alertsRouter.post('/detect', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (_req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await AlertEventService.detectAndSync();
+    const projectIds = Array.from(new Set((data.items || []).map((item: any) => item?.projectId).filter(Boolean)));
+    await Promise.all(projectIds.map((projectId) => AuditService.log({
+      userId: _req.user!.id,
+      projectId,
+      action: 'STATUS_CHANGE',
+      entity: 'alert',
+      entityId: `detect:${new Date().toISOString()}`,
+      details: {
+        count: data.count,
+        categories: Array.from(new Set((data.items || []).map((item: any) => item?.category).filter(Boolean))),
+      },
+    })));
     res.json({ data });
   } catch (error) {
     next(error);
@@ -87,6 +100,18 @@ alertsRouter.put('/:eid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (
   try {
     const input = updateSchema.parse(req.body);
     const data = await AlertEventService.update(req.params.eid as string, input);
+    await AuditService.log({
+      userId: req.user!.id,
+      projectId: data.projectId,
+      action: input.status ? 'STATUS_CHANGE' : 'UPDATE',
+      entity: 'alert',
+      entityId: data.id,
+      details: {
+        updatedFields: Object.keys(input),
+        status: data.status,
+        assignedTo: data.assignedTo,
+      },
+    });
     res.json({ data });
   } catch (error) {
     next(error);

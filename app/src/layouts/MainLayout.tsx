@@ -103,13 +103,12 @@ export default function MainLayout() {
   };
 
   return (
-    <Layout style={{ height: '100vh', background: 'transparent', overflow: 'hidden', position: 'relative' }}>
-      {/* Industrial Banknote Background */}
-      <div className="industrial-backdrop" />
+    <Layout className="blueprint-shell" style={{ height: '100vh', background: 'transparent', overflow: 'hidden', position: 'relative' }}>
+      <div className="industrial-backdrop blueprint-grid" />
 
       {showSider && (
         <Sider
-          style={{ 
+          style={{
             background: 'transparent',
             display: isMobile && collapsed ? 'none' : 'block',
             position: isMobile ? 'absolute' : 'relative',
@@ -117,7 +116,7 @@ export default function MainLayout() {
             height: 'fit-content',
             alignSelf: 'center',
             margin: '0 0 0 24px',
-            width: 72,
+            width: 84,
           }}
         >
           <div className="sidebar-capsule" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32, padding: '32px 0' }}>
@@ -125,31 +124,31 @@ export default function MainLayout() {
               style={{ cursor: 'pointer', opacity: selectedKey === '/' ? 1 : 0.4, transition: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
               onClick={() => navigate('/')}
             >
-              <IconHome style={{ fontSize: 24, color: '#000' }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#000' }}>项目</span>
+              <IconHome style={{ fontSize: 24, color: '#bfdbfe' }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#e2e8f0' }}>项目</span>
             </div>
             <div 
               style={{ cursor: 'pointer', opacity: selectedKey === '/manager' ? 1 : 0.4, transition: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
               onClick={() => navigate('/manager')}
             >
-              <IconFile style={{ fontSize: 24, color: '#000' }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#000' }}>报表</span>
+              <IconFile style={{ fontSize: 24, color: '#bfdbfe' }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#e2e8f0' }}>报表</span>
             </div>
             <div
               style={{ cursor: 'pointer', opacity: selectedKey === '/alerts' ? 1 : 0.4, transition: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
               onClick={() => navigate(currentProjectId ? `/project/${currentProjectId}/alerts` : '/alerts')}
             >
               <Badge count={activeAlertCount} overflowCount={99}>
-                <IconBell style={{ fontSize: 24, color: '#000' }} />
+                <IconBell style={{ fontSize: 24, color: '#bfdbfe' }} />
               </Badge>
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#000' }}>预警</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#e2e8f0' }}>预警</span>
             </div>
             <div
               style={{ cursor: 'pointer', opacity: selectedKey === '/profile' ? 1 : 0.4, transition: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
               onClick={() => navigate('/profile')}
             >
-              <IconUser style={{ fontSize: 24, color: '#000' }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#000' }}>我的</span>
+              <IconUser style={{ fontSize: 24, color: '#bfdbfe' }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: '#e2e8f0' }}>我的</span>
             </div>
           </div>
         </Sider>
@@ -169,7 +168,7 @@ export default function MainLayout() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div className="top-nav-capsule" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px' }}>
+            <div className="top-nav-capsule" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px' }}>
             <div 
               className={selectedKey === '/' ? 'nav-active-pill' : ''} 
               style={{ padding: '8px 24px', cursor: 'pointer', fontSize: 13, transition: '0.2s', color: selectedKey === '/' ? '#000' : '#71717a' }}
@@ -249,14 +248,15 @@ export default function MainLayout() {
                 gap: 12,
                 padding: '8px 16px',
                 borderRadius: 999,
-                border: '1px solid rgba(148, 163, 184, 0.25)',
-                background: 'rgba(255, 255, 255, 0.72)',
+                border: '1px solid rgba(96, 165, 250, 0.26)',
+                background: 'rgba(9, 18, 35, 0.88)',
                 backdropFilter: 'blur(16px)',
+                boxShadow: '0 18px 42px rgba(2, 6, 23, 0.34)',
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
-                <Text strong style={{ color: '#0f172a', fontSize: 13 }}>{user?.name || '未登录用户'}</Text>
-                <Text type="tertiary" style={{ fontSize: 11 }}>{user?.role || 'GUEST'}</Text>
+                <Text strong style={{ color: '#f8fafc', fontSize: 13 }}>{user?.name || '未登录用户'}</Text>
+                <Text type="tertiary" style={{ fontSize: 11, color: '#93c5fd' }}>{user?.role || 'GUEST'}</Text>
               </div>
               <Button theme="borderless" type="danger" size="small" onClick={handleLogout}>
                 退出

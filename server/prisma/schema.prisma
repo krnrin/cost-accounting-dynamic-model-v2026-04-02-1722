@@ -45,6 +45,11 @@ model Project {
   simulations SimulationTask[]
   versions    Version[]
   auditLogs   AuditLog[]
+  connectorPricings ConnectorPricing[]
+  wirePricings WirePricing[]
+  devPartPricings DevPartPricing[]
+  auxiliaryPricings AuxiliaryPricing[]
+  priceDiscrepancies PriceDiscrepancy[]
 }
 
 model Scenario {
@@ -223,6 +228,126 @@ model TrackingItem {
 
   @@index([projectId])
   @@index([scenarioId])
+}
+
+model ConnectorPricing {
+  id                  String   @id @default(uuid())
+  projectId           String
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  partNo              String
+  partName            String
+  supplier            String
+  customerAgreedPrice Float    @default(0)
+  supplierQuotedPrice Float    @default(0)
+  finalNegotiatedPrice Float   @default(0)
+  status              String   @default("pending")
+  disputeReason       String?
+  createdBy           String?
+  approvedBy          String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([projectId, partNo])
+  @@index([projectId])
+  @@index([status])
+}
+
+model WirePricing {
+  id                 String   @id @default(uuid())
+  projectId          String
+  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  partNo             String
+  partName           String
+  supplier           String
+  wireSize           String
+  copperWeightG      Float    @default(0)
+  aluminumWeightG    Float    @default(0)
+  nonMetalCost       Float    @default(0)
+  copperBasePrice    Float    @default(0)
+  aluminumBasePrice  Float    @default(0)
+  processingFee      Float    @default(0)
+  calculatedPrice    Float    @default(0)
+  validFrom          DateTime @default(now())
+  validTo            DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@unique([projectId, partNo])
+  @@index([projectId])
+}
+
+model DevPartPricing {
+  id                        String   @id @default(uuid())
+  projectId                 String
+  project                   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  partNo                    String
+  partName                  String
+  category                  String
+  amortizationQty           Int      @default(0)
+  unitPriceWithAmortization Float    @default(0)
+  unitPriceAfterAmortization Float   @default(0)
+  lifecycleTotalQty         Int      @default(0)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  molds                     DevPartMold[]
+
+  @@unique([projectId, partNo])
+  @@index([projectId])
+  @@index([category])
+}
+
+model DevPartMold {
+  id               String         @id @default(uuid())
+  devPartPricingId String
+  devPartPricing   DevPartPricing @relation(fields: [devPartPricingId], references: [id], onDelete: Cascade)
+  moldType         String
+  moldName         String
+  moldCost         Float          @default(0)
+  isAmortized      Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@index([devPartPricingId])
+}
+
+model AuxiliaryPricing {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  partNo    String
+  partName  String
+  supplier  String
+  unitPrice Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, partNo])
+  @@index([projectId])
+}
+
+model PriceDiscrepancy {
+  id             String   @id @default(uuid())
+  projectId      String
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  scenarioId     String?
+  harnessId      String?
+  partNo         String
+  partName       String
+  partCategory   String
+  referencePrice Float    @default(0)
+  actualPrice    Float    @default(0)
+  discrepancy    Float    @default(0)
+  discrepancyRate Float   @default(0)
+  status         String   @default("open")
+  resolutionType String?
+  resolutionNote String?
+  assignedTo     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([scenarioId])
+  @@index([status])
 }
 
 model Setting {

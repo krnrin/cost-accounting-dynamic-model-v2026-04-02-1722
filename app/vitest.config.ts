@@ -1,10 +1,13 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 
+const appRoot = __dirname;
+
 export default defineConfig({
+  root: appRoot,
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': path.resolve(appRoot, './src'),
     },
   },
   test: {
