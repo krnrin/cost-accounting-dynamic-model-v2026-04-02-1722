@@ -6,10 +6,14 @@
 (function (global) {
   'use strict';
 
-  // P0#1: 防御性解构，避免加载顺序问题导致崩溃
+  // P0#1: 防御性解构 — 提供内联 fallback
   const U = global.G281SharedUtils || {};
-  const { numberOr, safeArray, clamp, normalizeMix,
-          FINANCIAL_VERSION_KEYS, STATE_FINANCIAL_VERSION_MAP } = U;
+  const numberOr = U.numberOr || function (v, fb) { var n = Number(v); return Number.isFinite(n) ? n : fb; };
+  const safeArray = U.safeArray || function (v) { return Array.isArray(v) ? v : []; };
+  const clamp = U.clamp || function (v, lo, hi) { return Math.max(lo, Math.min(hi, v)); };
+  const normalizeMix = U.normalizeMix || function (m) { return Array.isArray(m) ? m : []; };
+  const FINANCIAL_VERSION_KEYS = U.FINANCIAL_VERSION_KEYS || [];
+  const STATE_FINANCIAL_VERSION_MAP = U.STATE_FINANCIAL_VERSION_MAP || {};
 
   // ── 状态-财务版本映射 ─────────────────────
   function stateFinancialVersionKey(group, key) {

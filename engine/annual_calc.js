@@ -6,8 +6,10 @@
 (function (global) {
   'use strict';
 
-  // P0#1: 防御性解构
-  const { numberOr, safeArray } = global.G281SharedUtils || {};
+  // P0#1: 防御性解构 — 提供内联 fallback 防止 G281SharedUtils 未加载
+  const _utils = global.G281SharedUtils || {};
+  const numberOr = _utils.numberOr || function (v, fb) { var n = Number(v); return Number.isFinite(n) ? n : fb; };
+  const safeArray = _utils.safeArray || function (v) { return Array.isArray(v) ? v : []; };
 
   // ── 年度值访问 ────────────────────────────
   function annualValueAt(version, key, index, fallback) {

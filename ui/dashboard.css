@@ -1049,7 +1049,7 @@ body::after{display:none}
   background:linear-gradient(180deg, rgba(245,248,252,.98) 0%, rgba(237,241,246,.94) 100%);
   border:1px solid rgba(203,213,225,.90);font-size:12px;line-height:1.65;color:#526173
 }
-.harness-profit-table{width:100%;border-collapse:collapse;font-size:12px;min-width:1180px}
+.harness-profit-table{width:100%;border-collapse:collapse;font-size:12px;min-width:1400px}
 .harness-profit-table th,.harness-profit-table td{
   padding:8px 10px;border-bottom:1px solid rgba(15,23,42,.08);vertical-align:top
 }
