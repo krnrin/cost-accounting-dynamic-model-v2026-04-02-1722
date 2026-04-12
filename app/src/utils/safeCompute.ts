@@ -1,0 +1,53 @@
+/**
+ * safeCompute - Wrap engine computation calls with error handling.
+ *
+ * Instead of letting computeHarnessCost throw and crash the page,
+ * this wrapper catches errors, logs them, and returns null.
+ *
+ * Usage:
+ *   import { safeComputeHarnessCost } from '@/utils/safeCompute';
+ *   const result = safeComputeHarnessCost(input, costRates, metalPrices);
+ *   if (!result) { /* handle gracefully * / }
+ */
+import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
+import type { HarnessInput, HarnessResult, CostRates, MetalPrices } from '@/types/harness';
+
+export function safeComputeHarnessCost(
+  input: HarnessInput,
+  costRates: CostRates,
+  metalPrices: MetalPrices,
+  context?: string,
+): HarnessResult | null {
+  try {
+    return computeHarnessCost(input, costRates, metalPrices);
+  } catch (error) {
+    console.error(
+      `[safeCompute] computeHarnessCost failed for ${input.harnessId}${context ? ` (${context})` : ''}:`,
+      error,
+    );
+    return null;
+  }
+}
+
+export function safeComputeProjectFromHarnesses(
+  results: HarnessResult[],
+): ReturnType<typeof computeProjectFromHarnesses> | null {
+  try {
+    return computeProjectFromHarnesses(results);
+  } catch (error) {
+    console.error('[safeCompute] computeProjectFromHarnesses failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Batch compute with error isolation.
+ * Failed harnesses are skipped (returned as null), not blocking others.
+ */
+export function batchSafeCompute(
+  inputs: HarnessInput[],
+  costRates: CostRates,
+  metalPrices: MetalPrices,
+): Array<HarnessResult | null> {
+  return inputs.map(input => safeComputeHarnessCost(input, costRates, metalPrices, 'batch'));
+}
