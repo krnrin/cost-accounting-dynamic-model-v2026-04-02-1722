@@ -41,15 +41,41 @@ export function recomputeResult(
 /**
  * Batch recompute all harnesses for a scenario and persist results.
  * Can be called imperatively (e.g. after config change).
+ *
+ * Includes harnesses with empty scenarioId (legacy/v7 migration data)
+ * that belong to the same project.
  */
 export async function syncAllHarnessResults(scenarioId: string): Promise<number> {
   const scenario = await db.scenarios.get(scenarioId);
   if (!scenario) return 0;
 
-  const harnesses = await db.harnesses
+  // Get harnesses that match the exact scenarioId
+  const exactMatch = await db.harnesses
     .where('scenarioId')
     .equals(scenarioId)
     .toArray();
+
+  // Also get harnesses with empty scenarioId from the same project
+  // (legacy data from v7 migration that hasn't been assigned a scenario)
+  let legacyMatch: HarnessRecord[] = [];
+  if (scenario.projectId) {
+    const projectHarnesses = await db.harnesses
+      .where('projectId')
+      .equals(scenario.projectId)
+      .toArray();
+    legacyMatch = projectHarnesses.filter(h => h.scenarioId === '' || h.scenarioId === undefined);
+  }
+
+  // Deduplicate by id
+  const seen = new Set<string>();
+  const harnesses: HarnessRecord[] = [];
+  for (const h of [...exactMatch, ...legacyMatch]) {
+    const key = h.id ?? h.harnessId;
+    if (!seen.has(key)) {
+      seen.add(key);
+      harnesses.push(h);
+    }
+  }
 
   let updated = 0;
   for (const h of harnesses) {
