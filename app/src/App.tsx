@@ -20,6 +20,7 @@ import ChangeEnginePage from '@/pages/ChangeEnginePage';
 import TrackingPage from '@/pages/TrackingPage';
 import AlertsPage from '@/pages/AlertsPage';
 import ProfilePage from '@/pages/ProfilePage';
+import VersionManager from '@/pages/VersionManager';
 import NotFoundPage from '@/pages/NotFoundPage';
 import ProjectDashboardOverviewPage from '@/pages/ProjectDashboardOverviewPage';
 import ProjectScenariosPage from '@/pages/ProjectScenariosPage';
@@ -70,6 +71,7 @@ export default function App() {
           <Route path="/project/:id/scenario/:sid" element={<DashboardPage />} />
           <Route path="/project/:id/compare" element={<ScenarioComparePage />} />
           <Route path="/project/:id/bom/diff" element={<BomDiffPage />} />
+          <Route path="/project/:id/versions" element={<VersionManager />} />
           {/* 场景级页面 */}
           <Route path="/project/:id/s/:sid" element={<DashboardPage />} />
           <Route path="/project/:id/s/:sid/harness/:harnessId" element={<HarnessDetailPage />} />
@@ -86,6 +88,7 @@ export default function App() {
           <Route path="/project/:id/alerts" element={<AlertsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/settings/alert-rules" element={<AlertsPage mode="rules" />} />
+          <Route path="/versions" element={<VersionManager />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFoundPage />} />
