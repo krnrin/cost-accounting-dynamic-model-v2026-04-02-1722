@@ -48,7 +48,13 @@ export class BomService {
             where: { id: harness.id },
             data: { input: toJson({ ...input, bom }) },
         });
-        return { harnessId: updated.harnessId, rowId: buildBomRowId(updated.harnessId, bom.length - 1), bomRow };
+        return {
+            projectId: updated.projectId,
+            scenarioId: updated.scenarioId,
+            harnessId: updated.harnessId,
+            rowId: buildBomRowId(updated.harnessId, bom.length - 1),
+            bomRow,
+        };
     }
     static async updateBomRow(projectId, rowId, patch) {
         const { harnessId, index } = parseBomRowId(rowId);
@@ -67,7 +73,13 @@ export class BomService {
         }
         bom[index] = { ...bom[index], ...patch };
         await prisma.harness.update({ where: { id: harness.id }, data: { input: toJson({ ...input, bom }) } });
-        return { id: rowId, harnessId, ...bom[index] };
+        return {
+            id: rowId,
+            projectId: harness.projectId,
+            scenarioId: harness.scenarioId,
+            harnessId,
+            ...bom[index],
+        };
     }
     static async deleteBomRow(projectId, rowId) {
         const { harnessId, index } = parseBomRowId(rowId);
@@ -86,7 +98,12 @@ export class BomService {
         }
         bom.splice(index, 1);
         await prisma.harness.update({ where: { id: harness.id }, data: { input: toJson({ ...input, bom }) } });
-        return { id: rowId };
+        return {
+            id: rowId,
+            projectId: harness.projectId,
+            scenarioId: harness.scenarioId,
+            harnessId,
+        };
     }
     static async importBomRows(scenarioId, harnessId, rows) {
         const harness = await prisma.harness.findFirst({ where: { scenarioId, harnessId } });
@@ -96,11 +113,17 @@ export class BomService {
             throw err;
         }
         const input = fromJson(harness.input, {});
-        await prisma.harness.update({
+        const updated = await prisma.harness.update({
             where: { id: harness.id },
             data: { input: toJson({ ...input, bom: rows }) },
         });
-        return { harnessId, importedCount: rows.length };
+        return {
+            projectId: updated.projectId,
+            scenarioId: updated.scenarioId,
+            harnessId,
+            importedCount: rows.length,
+            rowCount: rows.length,
+        };
     }
     static async summarizeScenarioBom(scenarioId) {
         const rows = await this.listScenarioBomRows(scenarioId);

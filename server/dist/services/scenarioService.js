@@ -3,6 +3,7 @@ import { hydrateJsonFields, dehydrateJsonFields } from '../lib/json.js';
 import { BomService } from './bomService.js';
 import { VersionService } from './extraServices.js';
 import { SettingsService } from './settingsService.js';
+import { AllocationService } from './allocationService.js';
 const JSON_FIELDS = ['rateSnapshot', 'quoteParamSnapshot'];
 async function buildRateSnapshotFromVersion(version, fallbackRateSnapshot = {}) {
     const snapshotRows = await SettingsService.snapshot(version);
@@ -174,6 +175,51 @@ async function buildScenarioVersionSnapshot(id) {
         },
     };
 }
+// --- Delete helpers (from phase12 delta) ---
+function badRequest(message) {
+    const err = new Error(message);
+    err.status = 400;
+    return err;
+}
+async function assertScenarioDeleteAllowed(client, scenario) {
+    if (!scenario.sourceScenarioId) {
+        throw badRequest('Root scenarios cannot be deleted');
+    }
+    if (scenario.status !== 'draft') {
+        throw badRequest('Only draft scenarios can be deleted');
+    }
+    const referenced = await client.scenario.findFirst({
+        where: {
+            OR: [
+                { sourceScenarioId: scenario.id },
+                { compareBaselineId: scenario.id },
+            ],
+        },
+        select: { id: true, name: true },
+    });
+    if (referenced) {
+        throw badRequest(`Scenario is still referenced by ${referenced.name || referenced.id}`);
+    }
+}
+async function deleteScenarioFacts(client, scenarioId) {
+    await AllocationService.deleteScenarioAllocationsWithClient(client, scenarioId);
+    await client.quote.deleteMany({ where: { scenarioId } });
+    await client.changeEvent.deleteMany({ where: { scenarioId } });
+    await client.trackingItem.deleteMany({ where: { scenarioId } });
+    await client.priceDiscrepancy.deleteMany({ where: { scenarioId } });
+    await client.alertEvent.deleteMany({ where: { scenarioId } });
+    await client.harness.deleteMany({ where: { scenarioId } });
+    await client.simulationTask.deleteMany({
+        where: {
+            OR: [
+                { scenarioId },
+                { baselineScenarioId: scenarioId },
+                { convertedScenarioId: scenarioId },
+            ],
+        },
+    });
+    await client.annualDropRecord.deleteMany({ where: { scenarioId } });
+}
 export class ScenarioService {
     static async listByProject(projectId) {
         const scenarios = await prisma.scenario.findMany({
@@ -238,16 +284,36 @@ export class ScenarioService {
         });
         return hydrated;
     }
+    // Transactional clone with allocation data (from phase12 delta)
     static async clone(id) {
-        const source = await prisma.scenario.findUnique({ where: { id } });
-        if (!source) {
-            const err = new Error('Scenario not found');
-            err.status = 404;
-            throw err;
-        }
-        const dbData = await buildClonePayload(source);
-        const cloned = await prisma.scenario.create({ data: dbData });
-        return enrichScenario(cloned);
+        return prisma.$transaction(async (tx) => {
+            const source = await tx.scenario.findUnique({ where: { id } });
+            if (!source) {
+                const err = new Error('Scenario not found');
+                err.status = 404;
+                throw err;
+            }
+            const dbData = await buildClonePayload(source);
+            const cloned = await tx.scenario.create({ data: dbData });
+            await AllocationService.cloneScenarioAllocationsWithClient(tx, id, cloned.id);
+            return enrichScenario(cloned);
+        });
+    }
+    // Delete with cascade and validation (from phase12 delta)
+    static async delete(id) {
+        return prisma.$transaction(async (tx) => {
+            const scenario = await tx.scenario.findUnique({ where: { id } });
+            if (!scenario) {
+                const err = new Error('Scenario not found');
+                err.status = 404;
+                throw err;
+            }
+            const hydrated = await enrichScenario(scenario);
+            await assertScenarioDeleteAllowed(tx, hydrated);
+            await deleteScenarioFacts(tx, id);
+            await tx.scenario.delete({ where: { id } });
+            return hydrated;
+        });
     }
     static async getSummary(id) {
         const scenario = await this.getById(id);

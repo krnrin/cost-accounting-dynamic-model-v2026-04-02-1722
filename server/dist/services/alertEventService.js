@@ -190,8 +190,8 @@ export class AlertEventService {
             const latestScenario = project.scenarios[0];
             const snapshotPrices = fromJson(latestScenario?.quoteParamSnapshot, {})?.metalPrices ?? {};
             const pairs = [
-                { metal: 'copper', current: projectMetalPrices.copper, baseline: snapshotPrices.copper, metric: 'copper_delta_pct', threshold: toNumber(thresholdMap.get('copperPercent'), 5), label: '铜价' },
-                { metal: 'aluminum', current: projectMetalPrices.aluminum, baseline: snapshotPrices.aluminum, metric: 'aluminum_delta_pct', threshold: toNumber(thresholdMap.get('aluminumPercent'), 5), label: '铝价' },
+                { metal: 'copper', current: projectMetalPrices.copper, baseline: snapshotPrices.copper, metric: 'copper_delta_pct', threshold: toNumber(thresholdMap.get('copperPercent'), 5), label: '\u94dc\u4ef7' },
+                { metal: 'aluminum', current: projectMetalPrices.aluminum, baseline: snapshotPrices.aluminum, metric: 'aluminum_delta_pct', threshold: toNumber(thresholdMap.get('aluminumPercent'), 5), label: '\u94dd\u4ef7' },
             ];
             for (const pair of pairs) {
                 const baseline = toNumber(pair.baseline, 0);
@@ -209,8 +209,8 @@ export class AlertEventService {
                     ruleId: matchedRule?.id ?? null,
                     category: 'metal_price',
                     severity: matchedRule?.severity ?? (Math.abs(deltaPct) >= pair.threshold * 2 ? 'critical' : 'warning'),
-                    title: `${pair.label}变动超阈值`,
-                    detail: `${pair.label}较基准变动 ${deltaPct.toFixed(2)}%，已超过阈值 ${pair.threshold}%。`,
+                    title: `${pair.label}\u53d8\u52a8\u8d85\u9608\u503c`,
+                    detail: `${pair.label}\u8f83\u57fa\u51c6\u53d8\u52a8 ${deltaPct.toFixed(2)}%\uff0c\u5df2\u8d85\u8fc7\u9608\u503c ${pair.threshold}%\u3002`,
                     sourceObjectType: 'project',
                     sourceObjectId: project.id,
                     impactAmount: 0,
@@ -250,10 +250,10 @@ export class AlertEventService {
                 ruleId: matchedRule?.id ?? null,
                 category: 'allocation_recovery',
                 severity: matchedRule?.severity ?? (overdueDays > 30 || lagPercent >= 30 ? 'critical' : 'warning'),
-                title: '分摊回收滞后',
+                title: '\u5206\u644a\u56de\u6536\u6ede\u540e',
                 detail: overdueDays > 0
-                    ? `分摊项 ${allocation.expenseName} 已逾期 ${overdueDays} 天，当前回收进度 ${(toNumber(allocation.recoveryProgress, 0) * 100).toFixed(1)}%。`
-                    : `分摊项 ${allocation.expenseName} 回收进度 ${(toNumber(allocation.recoveryProgress, 0) * 100).toFixed(1)}%，低于预期。`,
+                    ? `\u5206\u644a\u9879 ${allocation.expenseName} \u5df2\u903e\u671f ${overdueDays} \u5929\uff0c\u5f53\u524d\u56de\u6536\u8fdb\u5ea6 ${(toNumber(allocation.recoveryProgress, 0) * 100).toFixed(1)}%\u3002`
+                    : `\u5206\u644a\u9879 ${allocation.expenseName} \u56de\u6536\u8fdb\u5ea6 ${(toNumber(allocation.recoveryProgress, 0) * 100).toFixed(1)}%\uff0c\u4f4e\u4e8e\u9884\u671f\u3002`,
                 sourceObjectType: 'allocation',
                 sourceObjectId: allocation.id,
                 impactAmount: toNumber(allocation.remainingRecovery, 0),
@@ -286,10 +286,10 @@ export class AlertEventService {
                 ruleId: matchedRule?.id ?? null,
                 category: 'cost_anomaly',
                 severity: matchedRule?.severity ?? (costImpact >= 10000 || residualImpact > 0 ? 'critical' : 'warning'),
-                title: '设变成本异常',
+                title: '\u8bbe\u53d8\u6210\u672c\u5f02\u5e38',
                 detail: residualImpact > 0
-                    ? `设变带来成本影响 ${costImpact.toFixed(2)}，残余材料影响 ${residualImpact.toFixed(2)}。`
-                    : `设变带来成本影响 ${costImpact.toFixed(2)}，需复核报价与成本。`,
+                    ? `\u8bbe\u53d8\u5e26\u6765\u6210\u672c\u5f71\u54cd ${costImpact.toFixed(2)}\uff0c\u6b8b\u4f59\u6750\u6599\u5f71\u54cd ${residualImpact.toFixed(2)}\u3002`
+                    : `\u8bbe\u53d8\u5e26\u6765\u6210\u672c\u5f71\u54cd ${costImpact.toFixed(2)}\uff0c\u9700\u590d\u6838\u62a5\u4ef7\u4e0e\u6210\u672c\u3002`,
                 sourceObjectType: 'change',
                 sourceObjectId: change.id,
                 impactAmount: costImpact + residualImpact,
@@ -319,8 +319,8 @@ export class AlertEventService {
                 ruleId: matchedRule?.id ?? null,
                 category: 'deadline',
                 severity: matchedRule?.severity ?? (item.severity === 'critical' || daysOpen >= 60 ? 'critical' : 'warning'),
-                title: '执行节点超期',
-                detail: `跟踪项 ${item.title} 已持续 ${daysOpen} 天，当前状态 ${item.currentStatus}。`,
+                title: '\u6267\u884c\u8282\u70b9\u8d85\u671f',
+                detail: `\u8ddf\u8e2a\u9879 ${item.title} \u5df2\u6301\u7eed ${daysOpen} \u5929\uff0c\u5f53\u524d\u72b6\u6001 ${item.currentStatus}\u3002`,
                 sourceObjectType: 'tracking',
                 sourceObjectId: item.id,
                 impactAmount: 0,

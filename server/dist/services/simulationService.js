@@ -155,7 +155,7 @@ export class SimulationService {
             data: {
                 projectId: sourceScenario.projectId,
                 type: 'change',
-                name: `${sourceScenario.name}-模拟转场景`,
+                name: `${sourceScenario.name}-\u6a21\u62df\u8f6c\u573a\u666f`,
                 status: 'draft',
                 lifecycleYears: sourceScenario.lifecycleYears,
                 volume: sourceScenario.volume,

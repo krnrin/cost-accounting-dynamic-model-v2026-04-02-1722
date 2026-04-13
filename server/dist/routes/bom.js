@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbac.js';
 import { BomService } from '../services/bomService.js';
+import { AuditService } from '../services/auditService.js';
 const scenarioBomRouter = Router({ mergeParams: true });
 const bomRowRouter = Router();
 const bomRowSchema = z.object({
@@ -39,6 +40,18 @@ scenarioBomRouter.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async
         const harnessId = String(req.body.harnessId || '');
         const bomRow = bomRowSchema.parse(req.body.bomRow || req.body);
         const data = await BomService.createBomRow(req.params.sid, harnessId, bomRow);
+        await AuditService.log({
+            userId: req.user.id,
+            projectId: data.projectId,
+            action: 'CREATE',
+            entity: 'bom',
+            entityId: data.rowId,
+            details: {
+                scenarioId: data.scenarioId,
+                harnessId: data.harnessId,
+                partNo: bomRow.partNo,
+            },
+        });
         res.status(201).json({ data });
     }
     catch (error) {
@@ -50,6 +63,18 @@ scenarioBomRouter.post('/import', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']),
         const harnessId = String(req.body.harnessId || '');
         const rows = z.array(bomRowSchema).parse(req.body.rows || []);
         const data = await BomService.importBomRows(req.params.sid, harnessId, rows);
+        await AuditService.log({
+            userId: req.user.id,
+            projectId: data.projectId,
+            action: 'UPDATE',
+            entity: 'bom',
+            entityId: `${data.harnessId}:import`,
+            details: {
+                scenarioId: data.scenarioId,
+                harnessId: data.harnessId,
+                rowCount: data.rowCount,
+            },
+        });
         res.status(201).json({ data });
     }
     catch (error) {
@@ -75,21 +100,23 @@ scenarioBomRouter.get('/diff', async (req, res, next) => {
         next(error);
     }
 });
-scenarioBomRouter.get('/diff', async (req, res, next) => {
-    try {
-        const baseScenarioId = String(req.query.base || '');
-        const data = await BomService.diffScenarioBom(req.params.sid, baseScenarioId);
-        res.json({ data });
-    }
-    catch (error) {
-        next(error);
-    }
-});
 bomRowRouter.put('/:rowId', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, res, next) => {
     try {
         const projectId = String(req.body.projectId || req.query.projectId || '');
         const patch = bomRowSchema.partial().parse(req.body.patch || req.body);
         const data = await BomService.updateBomRow(projectId, req.params.rowId, patch);
+        await AuditService.log({
+            userId: req.user.id,
+            projectId: data.projectId,
+            action: 'UPDATE',
+            entity: 'bom',
+            entityId: req.params.rowId,
+            details: {
+                scenarioId: data.scenarioId,
+                harnessId: data.harnessId,
+                updatedFields: Object.keys(patch),
+            },
+        });
         res.json({ data });
     }
     catch (error) {
@@ -99,7 +126,18 @@ bomRowRouter.put('/:rowId', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async
 bomRowRouter.delete('/:rowId', requireRole(['ADMIN', 'MANAGER']), async (req, res, next) => {
     try {
         const projectId = String(req.body.projectId || req.query.projectId || '');
-        await BomService.deleteBomRow(projectId, req.params.rowId);
+        const data = await BomService.deleteBomRow(projectId, req.params.rowId);
+        await AuditService.log({
+            userId: req.user.id,
+            projectId: data.projectId,
+            action: 'DELETE',
+            entity: 'bom',
+            entityId: req.params.rowId,
+            details: {
+                scenarioId: data.scenarioId,
+                harnessId: data.harnessId,
+            },
+        });
         res.status(204).send();
     }
     catch (error) {

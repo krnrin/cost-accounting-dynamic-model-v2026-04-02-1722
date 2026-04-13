@@ -8,17 +8,17 @@ const DEFAULT_SETTINGS = {
         defaultTemplateType: 'geely',
         defaultAnnualDropRate: 0.03,
         schema: {
-            name: '默认成本结构',
+            name: '\u9ed8\u8ba4\u6210\u672c\u7ed3\u6784',
             version: '1.0',
             items: [
-                { key: 'material', label: '材料成本', calcMethod: 'bom_sum', order: 10, inExFactory: true },
-                { key: 'waste', label: '废品', calcMethod: 'rate_x_base', rate: 0.01, baseRef: ['material'], order: 20, inExFactory: true },
-                { key: 'directLabor', label: '直接人工', calcMethod: 'rate_x_hours', rate: 35, order: 30, inExFactory: true },
-                { key: 'manufacturing', label: '制造费', calcMethod: 'rate_x_hours', rate: 46.69, order: 40, inExFactory: true },
-                { key: 'mgmtFee', label: '管理费', calcMethod: 'rate_x_base', rate: 0.06, baseRef: ['material', 'directLabor', 'manufacturing'], order: 50, inExFactory: true },
-                { key: 'profit', label: '利润', calcMethod: 'rate_x_base', rate: 0.056627, baseRef: ['material', 'waste', 'directLabor', 'manufacturing', 'mgmtFee'], order: 60, inExFactory: true },
-                { key: 'packaging', label: '包装费', calcMethod: 'direct', order: 70, isAddon: true },
-                { key: 'freight', label: '运输费', calcMethod: 'direct', order: 80, isAddon: true },
+                { key: 'material', label: '\u6750\u6599\u6210\u672c', calcMethod: 'bom_sum', order: 10, inExFactory: true },
+                { key: 'waste', label: '\u5e9f\u54c1', calcMethod: 'rate_x_base', rate: 0.01, baseRef: ['material'], order: 20, inExFactory: true },
+                { key: 'directLabor', label: '\u76f4\u63a5\u4eba\u5de5', calcMethod: 'rate_x_hours', rate: 35, order: 30, inExFactory: true },
+                { key: 'manufacturing', label: '\u5236\u9020\u8d39', calcMethod: 'rate_x_hours', rate: 46.69, order: 40, inExFactory: true },
+                { key: 'mgmtFee', label: '\u7ba1\u7406\u8d39', calcMethod: 'rate_x_base', rate: 0.06, baseRef: ['material', 'directLabor', 'manufacturing'], order: 50, inExFactory: true },
+                { key: 'profit', label: '\u5229\u6da6', calcMethod: 'rate_x_base', rate: 0.056627, baseRef: ['material', 'waste', 'directLabor', 'manufacturing', 'mgmtFee'], order: 60, inExFactory: true },
+                { key: 'packaging', label: '\u5305\u88c5\u8d39', calcMethod: 'direct', order: 70, isAddon: true },
+                { key: 'freight', label: '\u8fd0\u8f93\u8d39', calcMethod: 'direct', order: 80, isAddon: true },
             ],
         },
         useSchemaEngine: false,
@@ -50,12 +50,12 @@ const DEFAULT_SETTINGS = {
     },
     bom_classification: {
         rules: [
-            { category: 'wire', patterns: ['^wire$', '^导线$', '^cable$', '^电缆$', '导线|cable|电缆'], matchFields: ['itemCategory', 'partName'], priority: 10 },
-            { category: 'connector', patterns: ['^connector$', '^连接器$', '^护套$', '^插头$', '^插座$', '连接器|护套|插头|插座|屏蔽环'], matchFields: ['itemCategory', 'partName'], priority: 10 },
-            { category: 'terminal', patterns: ['^terminal$', '^端子$', '端子'], matchFields: ['itemCategory', 'partName'], priority: 10 },
+            { category: 'wire', patterns: ['^wire$', '^\u5bfc\u7ebf$', '^cable$', '^\u7535\u7f06$', '\u5bfc\u7ebf|cable|\u7535\u7f06'], matchFields: ['itemCategory', 'partName'], priority: 10 },
+            { category: 'connector', patterns: ['^connector$', '^\u8fde\u63a5\u5668$', '^\u62a4\u5957$', '^\u63d2\u5934$', '^\u63d2\u5ea7$', '\u8fde\u63a5\u5668|\u62a4\u5957|\u63d2\u5934|\u63d2\u5ea7|\u5c4f\u853d\u73af'], matchFields: ['itemCategory', 'partName'], priority: 10 },
+            { category: 'terminal', patterns: ['^terminal$', '^\u7aef\u5b50$', '\u7aef\u5b50'], matchFields: ['itemCategory', 'partName'], priority: 10 },
             { category: 'ipt_terminal', patterns: ['^ipt_terminal$'], matchFields: ['itemCategory'], priority: 10 },
-            { category: 'bracket_rubber', patterns: ['^bracket_rubber$', '支架|橡胶'], matchFields: ['itemCategory', 'partName'], priority: 5 },
-            { category: 'tape_tube', patterns: ['^tape_tube$', '胶带|套管'], matchFields: ['itemCategory', 'partName'], priority: 5 },
+            { category: 'bracket_rubber', patterns: ['^bracket_rubber$', '\u652f\u67b6|\u6a61\u80f6'], matchFields: ['itemCategory', 'partName'], priority: 5 },
+            { category: 'tape_tube', patterns: ['^tape_tube$', '\u80f6\u5e26|\u5957\u7ba1'], matchFields: ['itemCategory', 'partName'], priority: 5 },
         ],
     },
 };
@@ -152,7 +152,7 @@ export class SettingsService {
         ]);
         const projects = await prisma.project.findMany({ select: { id: true } });
         await Promise.all(projects.map((project) => VersionService.createAutoVersion(project.id, {
-            label: `费率发布 - ${version}`,
+            label: `\u8d39\u7387\u53d1\u5e03 - ${version}`,
             notes: `Auto snapshot created when settings version ${version} was published.`,
             snapshot: {
                 triggerSource: 'settings_publish',
