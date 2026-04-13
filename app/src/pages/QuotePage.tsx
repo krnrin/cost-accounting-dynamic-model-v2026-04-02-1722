@@ -1,25 +1,18 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Typography, Spin, Button, Card, Table, Tabs, TabPane, InputNumber, Toast, Tag, Space, Radio, RadioGroup, Select } from '@douyinfe/semi-ui';
+import { Typography, Spin, Button, Card, Table, Tabs, TabPane, InputNumber, Toast, Tag, Space, Radio, RadioGroup } from '@douyinfe/semi-ui';
 import { IconArrowLeft, IconDownload, IconSimilarity, IconList } from '@douyinfe/semi-icons';
 import { db } from '@/data/db';
 import { applyE281ScenarioFallback } from '@/data/e281Fallback';
 import type { HarnessRecord, ProjectRecord, ScenarioRecord } from '@/data/db';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
 import { computeChangePricing, buildChangeComparisonTable } from '@/engine/change_pricing';
-import { buildQuoteSheet } from '@/engine/quote_template';
-import {
-  exportGeelyQuoteExcel,
-  exportBydQuoteExcel,
-  exportGenericQuoteExcel,
-  exportFullQuoteExcel,
-  exportChangePricingExcel,
-} from '@/engine/excel_export';
+import { computeSuggestedPrice } from '@/engine/quote_template';
+import { exportChangePricingExcel } from '@/engine/excel_export';
 import { exportQuoteExcel, exportQuotePdf } from '@/lib/exportApi';
 import { apiClient } from '@/lib/apiClient';
 import { applyCustomerQuoteSnapshot } from '@/utils/customerQuoteSnapshots';
 import type { HarnessInput } from '@/types/harness';
-import type { QuoteSheet, TemplateType } from '@/types/quote';
 import { RoleGuard } from '@/components/RoleGuard';
 import ScenarioSelector from '@/components/ScenarioSelector';
 
@@ -33,7 +26,7 @@ type ApiQuote = {
   harnessId?: string | null;
   status: string;
   template: string;
-  data?: QuoteSheet;
+  data?: Record<string, unknown>;
 };
 
 type QuoteStatus = 'draft' | 'confirmed' | 'published';
@@ -61,8 +54,8 @@ export default function QuotePage() {
   const [selectedQuoteId, setSelectedQuoteId] = useState<string | null>(null);
   const [quoteRecords, setQuoteRecords] = useState<ApiQuote[]>([]);
 
-  // Tab 1 Quote Template State
-  const [templateType, setTemplateType] = useState<TemplateType>('geely');
+  // Tab 1 Suggested Price State
+  const [targetMarginPercent, setTargetMarginPercent] = useState(15);
 
   // Tab 2 Simulation State
   const [changeMode, setChangeMode] = useState<'bom' | 'hours' | 'config'>('bom');
@@ -85,7 +78,7 @@ export default function QuotePage() {
         const scenarioWithFallback = applyE281ScenarioFallback(s);
         const h = await db.harnesses.where('scenarioId').equals(sid).toArray();
         const quotes = await apiClient<ApiQuote[]>(`/quotes/scenario/${sid}`);
-        const preferredQuote = quotes.find((quote) => quote.template === templateType) || quotes[0] || null;
+        const preferredQuote = quotes[0] || null;
         setProject(p);
         setScenario(scenarioWithFallback);
         setHarnesses(h);
@@ -101,7 +94,7 @@ export default function QuotePage() {
       }
     }
     loadData();
-  }, [id, sid, templateType]);
+  }, [id, sid]);
 
   const customerQuoteSnapshots = useMemo(() => {
     return scenario?.config.customerQuoteSnapshots;
@@ -114,7 +107,6 @@ export default function QuotePage() {
       .sort((a, b) => a.harnessId.localeCompare(b.harnessId));
   }, [scenario, harnesses]);
 
-  // Baseline results
   const baselineResults = useMemo(() => {
     return baselineComputedResults.map(result => applyCustomerQuoteSnapshot(
       result,
@@ -126,21 +118,10 @@ export default function QuotePage() {
     return computeProjectFromHarnesses(baselineResults);
   }, [baselineResults]);
 
-  // Tab 1: Quote Template derived data
-  const quoteSheet = useMemo(() => {
-    if (!project || !scenario || baselineComputedResults.length === 0) return null;
-    return buildQuoteSheet(
-      baselineComputedResults,
-      templateType,
-      {
-        projectName: project.meta.projectName,
-        customer: project.meta.customer,
-      },
-      scenario.config.nreData,
-      scenario.config.volumes,
-      customerQuoteSnapshots,
-    );
-  }, [project, scenario, baselineComputedResults, templateType, customerQuoteSnapshots]);
+  // Tab 1: Suggested price from internal cost + target margin
+  const suggestedPrice = useMemo(() => {
+    return computeSuggestedPrice(baselineProject.vehicleCost, targetMarginPercent);
+  }, [baselineProject.vehicleCost, targetMarginPercent]);
 
   const sortedHarnesses = useMemo(() => {
     return [...harnesses].sort((a, b) => a.harnessId.localeCompare(b.harnessId));
@@ -158,7 +139,7 @@ export default function QuotePage() {
         const quotes = await apiClient<ApiQuote[]>(`/quotes/scenario/${sid}`);
         setQuoteRecords(quotes);
         if (!active) return;
-        const preferredQuote = quotes.find((quote) => quote.template === templateType) || quotes[0] || null;
+        const preferredQuote = quotes[0] || null;
         setSelectedQuoteId(preferredQuote?.id ?? null);
       } catch {
         setQuoteRecords([]);
@@ -169,7 +150,7 @@ export default function QuotePage() {
     return () => {
       active = false;
     };
-  }, [sid, templateType]);
+  }, [sid]);
 
   const selectedQuote = useMemo(() => {
     return quoteRecords.find((quote) => quote.id === selectedQuoteId) || null;
@@ -190,37 +171,46 @@ export default function QuotePage() {
     if (!sid) return;
     const quotes = await apiClient<ApiQuote[]>(`/quotes/scenario/${sid}`);
     setQuoteRecords(quotes);
-    const preferredQuote = quotes.find((quote) => quote.template === templateType) || quotes[0] || null;
+    const preferredQuote = quotes[0] || null;
     setSelectedQuoteId(preferredQuote?.id ?? null);
   };
 
   const persistCurrentQuote = useCallback(async () => {
-    if (!id || !sid || !scenario || !quoteSheet) {
+    if (!id || !sid || !scenario || baselineResults.length === 0) {
       throw new Error('当前报价内容尚未准备完成');
     }
 
     const payload = {
       projectId: id,
-      version: `${scenario.scenarioCode}-${templateType}`,
-      template: templateType,
-      data: quoteSheet,
+      version: `${scenario.scenarioCode}-suggested`,
+      template: 'suggested',
+      data: {
+        internalCost: baselineProject.vehicleCost,
+        targetMarginPercent,
+        suggestedPrice,
+        harnessCount: baselineResults.length,
+      },
       quoteParams: {
-        templateType,
+        templateType: 'suggested',
         scenarioId: sid,
         scenarioCode: scenario.scenarioCode,
         scenarioName: scenario.scenarioName,
         scenarioType: scenario.scenarioType,
       },
       quoteResult: {
-        totals: quoteSheet.totals,
-        harnessCount: quoteSheet.harnessCount,
+        totals: {
+          internalCost: baselineProject.vehicleCost,
+          suggestedPrice,
+          targetMarginPercent,
+        },
+        harnessCount: baselineResults.length,
         baselineVehicleCost: baselineProject.vehicleCost,
       },
       internalCostBaseline: baselineProject.vehicleCost,
-      exWorksPrice: Number(quoteSheet.totals.exFactoryPrice ?? 0),
-      arrivalPrice: Number(quoteSheet.totals.deliveredPrice ?? 0),
-      effectivePrice: Number(quoteSheet.totals.deliveredPrice ?? quoteSheet.totals.exFactoryPrice ?? 0),
-      effectivePriceMode: 'arrival',
+      exWorksPrice: suggestedPrice,
+      arrivalPrice: suggestedPrice,
+      effectivePrice: suggestedPrice,
+      effectivePriceMode: 'suggested',
     };
 
     const canUpdateCurrent = selectedQuoteId && normalizeQuoteStatus(selectedQuote?.status) === 'draft';
@@ -235,7 +225,7 @@ export default function QuotePage() {
       method: 'POST',
       body: payload,
     });
-  }, [baselineProject.vehicleCost, id, quoteSheet, scenario, selectedQuote?.status, selectedQuoteId, sid, templateType]);
+  }, [baselineProject.vehicleCost, baselineResults.length, id, scenario, selectedQuote?.status, selectedQuoteId, sid, suggestedPrice, targetMarginPercent]);
 
   const handleSaveQuote = useCallback(async () => {
     try {
@@ -308,121 +298,69 @@ export default function QuotePage() {
     if (val === undefined) return '-';
     const color = val > 0 ? 'var(--semi-color-danger)' : val < 0 ? 'var(--semi-color-success)' : 'inherit';
     const prefix = val > 0 ? '+' : '';
-    return <span style={{ color }}>{prefix}{val.toFixed(2)}</span>;
+    return <span style= color >{prefix}{val.toFixed(2)}</span>;
   };
 
-  if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
+  if (loading) return <Spin size="large" style= margin: '40px auto', display: 'block'  />;
   if (!project || !scenario) return <div>项目不存在</div>;
 
-  const geelyColumns = [
-    { title: '零件号', render: (_: any, h: any) => h.harnessId, width: 120, fixed: 'left' as const },
-    { title: '名称', render: (_: any, h: any) => h.harnessName, width: 150, fixed: 'left' as const },
-    { title: 'A1原材料', render: (_: any, h: any) => formatCurrency(h.A1_rawMaterial) },
-    { title: 'A2外购件', render: (_: any, h: any) => formatCurrency(h.A2_purchasedParts) },
-    { title: 'B1加工费', render: (_: any, h: any) => formatCurrency(h.B1_processingFee) },
-    { title: 'B2废品', render: (_: any, h: any) => formatCurrency(h.B2_wasteLoss) },
-    { title: 'C1管理费', render: (_: any, h: any) => formatCurrency(h.C1_managementFee) },
-    { title: 'C2财务费', render: (_: any, h: any) => formatCurrency(h.C2_financeFee) },
-    { title: 'C3销售费', render: (_: any, h: any) => formatCurrency(h.C3_salesFee) },
-    { title: 'D利润', render: (_: any, h: any) => <RoleGuard field="profitRate">{formatCurrency(h.D_profit)}</RoleGuard> },
-    { title: '出厂价', render: (_: any, h: any) => formatCurrency(h.exFactoryPrice) },
-    { title: 'E工装分摊', render: (_: any, h: any) => formatCurrency(h.E1_borrowedTooling + h.E2_newTooling) },
-    { title: 'F试验分摊', render: (_: any, h: any) => formatCurrency(h.F1_borrowedTesting + h.F2_newTesting) },
-    { title: 'G研发分摊', render: (_: any, h: any) => formatCurrency(h.G1_borrowedRnd + h.G2_newRnd) },
-    { title: '到厂价', render: (_: any, h: any) => formatCurrency(h.deliveredPrice), fixed: 'right' as const, width: 100 },
-  ];
+  // ── Tab 1: 建议售价 + 内部成本明细 ──
+  const renderSuggestedPrice = () => {
+    const profitAmount = suggestedPrice - baselineProject.vehicleCost;
+    const actualMargin = suggestedPrice > 0 ? (profitAmount / suggestedPrice) * 100 : 0;
 
-  const renderQuoteTemplate = () => {
-    if (!quoteSheet) return null;
-    const dataSource = [...quoteSheet.harnesses];
-    const totals = quoteSheet.totals as any;
-
-    let columns = [];
-    if (templateType === 'byd') {
-      columns = [
-        { title: '零件号', render: (_: any, h: any) => h.harnessId, width: 120, fixed: 'left' as const },
-        { title: '名称', render: (_: any, h: any) => h.harnessName, width: 150, fixed: 'left' as const },
-        { title: '直接材料', render: (_: any, h: any) => formatCurrency(h.directMaterial) },
-        { title: '加工费', render: (_: any, h: any) => formatCurrency(h.processingFee) },
-        { title: '废品', render: (_: any, h: any) => formatCurrency(h.wasteLoss) },
-        { title: '管理费(6%)', render: (_: any, h: any) => formatCurrency(h.managementFee) },
-        { title: '利润(5%)', render: (_: any, h: any) => <RoleGuard field="profitRate">{formatCurrency(h.profit)}</RoleGuard> },
-        { title: '出厂价', render: (_: any, h: any) => formatCurrency(h.exFactoryPrice) },
-        { title: '包装费', render: (_: any, h: any) => formatCurrency(h.packagingCost) },
-        { title: '运输费', render: (_: any, h: any) => formatCurrency(h.freightCost) },
-        { title: '到厂价', render: (_: any, h: any) => formatCurrency(h.deliveredPrice), fixed: 'right' as const, width: 100 },
-      ];
-    } else if (templateType === 'generic') {
-      columns = [
-        { title: '零件号', render: (_: any, h: any) => h.harnessId, width: 120, fixed: 'left' as const },
-        { title: '名称', render: (_: any, h: any) => h.harnessName, width: 150, fixed: 'left' as const },
-        { title: '材料成本', render: (_: any, h: any) => formatCurrency(h.materialCost) },
-        { title: '人工', render: (_: any, h: any) => formatCurrency(h.laborCost) },
-        { title: '制造', render: (_: any, h: any) => formatCurrency(h.mfgCost) },
-        { title: '废品', render: (_: any, h: any) => formatCurrency(h.wasteCost) },
-        { title: '管理费', render: (_: any, h: any) => formatCurrency(h.mgmtFee) },
-        { title: '利润', render: (_: any, h: any) => <RoleGuard field="profitRate">{formatCurrency(h.profit)}</RoleGuard> },
-        { title: '出厂价', render: (_: any, h: any) => formatCurrency(h.exFactoryPrice) },
-        { title: '包装费', render: (_: any, h: any) => formatCurrency(h.packagingCost) },
-        { title: '运输费', render: (_: any, h: any) => formatCurrency(h.freightCost) },
-        { title: '到厂价', render: (_: any, h: any) => formatCurrency(h.deliveredPrice), fixed: 'right' as const, width: 100 },
-      ];
-    } else {
-      columns = geelyColumns;
-    }
+    const costColumns = [
+      { title: '零件号', dataIndex: 'harnessId', width: 120, fixed: 'left' as const },
+      { title: '名称', dataIndex: 'harnessName', width: 150, fixed: 'left' as const },
+      { title: '材料成本', dataIndex: 'materialCost', render: (v: number) => formatCurrency(v) },
+      { title: '人工', dataIndex: 'directLabor', render: (v: number) => formatCurrency(v) },
+      { title: '制造费', dataIndex: 'manufacturing', render: (v: number) => formatCurrency(v) },
+      { title: '废品', dataIndex: 'wasteCost', render: (v: number) => formatCurrency(v) },
+      { title: '包装运输', dataIndex: 'packTotal', render: (v: number) => formatCurrency(v) },
+      { title: '内部成本', dataIndex: 'deliveredPrice', render: (v: number) => formatCurrency(v), fixed: 'right' as const, width: 100 },
+    ];
 
     return (
-      <Space vertical align="start" style={{ width: '100%' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-          <Space>
-            <Select 
-              value={templateType} 
-              onChange={v => setTemplateType(v as TemplateType)}
-              style={{ width: 150 }}
-              prefix="切换模板: "
-            >
-              <Select.Option value="geely">吉利 (Geely)</Select.Option>
-              <Select.Option value="byd">比亚迪 (BYD)</Select.Option>
-              <Select.Option value="generic">通用模板</Select.Option>
-            </Select>
-            <Card className="glass-card" style={{ padding: '4px 12px' }}>
-              {templateType === 'geely' && (
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <div><Text size="small" type="secondary">管理:</Text> <Text strong size="small">4%</Text></div>
-                  <div><Text size="small" type="secondary">财务:</Text> <Text strong size="small">4%</Text></div>
-                  <div><Text size="small" type="secondary">销售:</Text> <Text strong size="small">4%</Text></div>
-                  <div><Text size="small" type="secondary">利润:</Text> <Text strong size="small">4%</Text></div>
-                </div>
-              )}
-              {templateType === 'byd' && (
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <div><Text size="small" type="secondary">管理费:</Text> <Text strong size="small">6%</Text></div>
-                  <div><Text size="small" type="secondary">利润:</Text> <Text strong size="small">5%</Text></div>
-                </div>
-              )}
-              {templateType === 'generic' && (
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <div><Text size="small" type="secondary">说明:</Text> <Text size="small">使用项目全局核算费率</Text></div>
-                </div>
-              )}
-            </Card>
-          </Space>
-          <Space>
-            <RoleGuard field="quoteExport">
-            <Button icon={<IconDownload />} onClick={() => {
-              if (templateType === 'byd') exportBydQuoteExcel(baselineResults, project.meta.projectName, project.meta.customer);
-              else if (templateType === 'generic') exportGenericQuoteExcel(baselineResults, project.meta.projectName, project.meta.customer);
-              else exportGeelyQuoteExcel(baselineResults, project.meta.projectName, project.meta.customer);
-              Toast.success('报价模板已导出');
-            }}>导出客户模板</Button>
-            </RoleGuard>
-            <RoleGuard field="quoteExport">
-            <Button icon={<IconDownload />} theme="light" onClick={() => {
-              exportFullQuoteExcel(baselineResults, baselineProject, project.meta.projectName, project.meta.customer, templateType);
-              Toast.success('综合报价已导出');
-            }}>导出综合报价</Button>
-            </RoleGuard>
-            <RoleGuard field="quoteExport">
+      <Space vertical align="start" style= width: '100%' >
+        {/* 建议售价计算器 */}
+        <Card className="glass-card" style= width: '100%' >
+          <div style= display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' >
+            <div>
+              <Text style= display: 'block', marginBottom: 4  type="tertiary">内部成本(单车)</Text>
+              <Title heading={4} style= margin: 0 >{formatCurrency(baselineProject.vehicleCost)}</Title>
+            </div>
+            <div>
+              <Text style= display: 'block', marginBottom: 4  type="tertiary">目标毛利率</Text>
+              <InputNumber
+                value={targetMarginPercent}
+                onChange={(v) => setTargetMarginPercent(Number(v || 0))}
+                min={0}
+                max={99}
+                step={0.5}
+                suffix="%"
+                style= width: 120 
+              />
+            </div>
+            <div>
+              <Text style= display: 'block', marginBottom: 4  type="tertiary">建议售价</Text>
+              <Title heading={3} style= margin: 0, color: 'var(--semi-color-primary)' >{formatCurrency(suggestedPrice)}</Title>
+            </div>
+            <div>
+              <Text style= display: 'block', marginBottom: 4  type="tertiary">利润额</Text>
+              <Title heading={4} style= margin: 0, color: profitAmount > 0 ? 'var(--semi-color-success)' : 'var(--semi-color-danger)' >
+                {formatCurrency(profitAmount)}
+              </Title>
+            </div>
+            <div>
+              <Text style= display: 'block', marginBottom: 4  type="tertiary">实际毛利率</Text>
+              <Text strong>{actualMargin.toFixed(2)}%</Text>
+            </div>
+          </div>
+        </Card>
+
+        {/* 导出按钮 */}
+        <Space>
+          <RoleGuard field="quoteExport">
             <Button
               icon={<IconDownload />}
               theme="borderless"
@@ -440,8 +378,8 @@ export default function QuotePage() {
                 }
               }}
             >导出报价Excel</Button>
-            </RoleGuard>
-            <RoleGuard field="quoteExport">
+          </RoleGuard>
+          <RoleGuard field="quoteExport">
             <Button
               icon={<IconDownload />}
               theme="borderless"
@@ -459,75 +397,23 @@ export default function QuotePage() {
                 }
               }}
             >导出报价PDF</Button>
-            </RoleGuard>
-          </Space>
-        </div>
+          </RoleGuard>
+        </Space>
+
+        {/* 内部成本明细表 */}
         <Table
-          columns={columns}
-          dataSource={dataSource}
+          columns={costColumns}
+          dataSource={baselineResults}
           pagination={false}
-          scroll={{ x: 1400 }}
-          style={{ width: '100%' }}
-          footer={() => {
-            const row: any = { harnessId: '合计', harnessName: '' };
-            columns.forEach((c: any) => {
-              const title = c.title as string;
-              if (title === '零件号') return;
-              if (title === '名称') return;
-              
-              // 匹配合计数据
-              let dataKey: string | undefined = undefined;
-              if (templateType === 'geely') {
-                const keyMap: Record<string, string> = {
-                  'A1原材料': 'A1_rawMaterial', 'A2外购件': 'A2_purchasedParts', 'B1加工费': 'B1_processingFee',
-                  'B2废品': 'B2_wasteLoss', 'C1管理费': 'C1_managementFee', 'C2财务费': 'C2_financeFee',
-                  'C3销售费': 'C3_salesFee', 'D利润': 'D_profit', '出厂价': 'exFactoryPrice', '到厂价': 'deliveredPrice'
-                };
-                if(title === 'E工装分摊') row[title] = totals.E1_borrowedTooling + totals.E2_newTooling;
-                else if(title === 'F试验分摊') row[title] = totals.F1_borrowedTesting + totals.F2_newTesting;
-                else if(title === 'G研发分摊') row[title] = totals.G1_borrowedRnd + totals.G2_newRnd;
-                else if(keyMap[title]) dataKey = keyMap[title];
-              } else if (templateType === 'byd') {
-                const keyMap: Record<string, string> = {
-                   '直接材料': 'directMaterial', '加工费': 'processingFee', '废品': 'wasteLoss',
-                   '管理费(6%)': 'managementFee', '利润(5%)': 'profit', '出厂价': 'exFactoryPrice',
-                   '包装费': 'packagingCost', '运输费': 'freightCost', '到厂价': 'deliveredPrice'
-                };
-                dataKey = keyMap[title];
-              } else {
-                const keyMap: Record<string, string> = {
-                  '材料成本': 'materialCost', '人工': 'laborCost', '制造': 'mfgCost', '废品': 'wasteCost',
-                  '管理费': 'mgmtFee', '利润': 'profit', '出厂价': 'exFactoryPrice',
-                  '包装费': 'packagingCost', '运输费': 'freightCost', '到厂价': 'deliveredPrice'
-                };
-                dataKey = keyMap[title];
-              }
-
-              if (dataKey) row[title] = totals[dataKey];
-            });
-
-            return (
-              <div style={{ display: 'flex', fontWeight: 'bold', padding: '12px 16px', borderTop: '1px solid var(--semi-color-border)' }}>
-                <div style={{ width: 120 }}>合计</div>
-                <div style={{ width: 150 }}></div>
-                {columns.slice(2, -1).map((c: any) => (
-                  <div key={c.title} style={{ flex: 1, textAlign: 'left' }}>
-                    {c.title.includes('利润') ? (
-                      <RoleGuard field="profitRate">{formatCurrency(row[c.title])}</RoleGuard>
-                    ) : (
-                      formatCurrency(row[c.title])
-                    )}
-                  </div>
-                ))}
-                <div style={{ width: 100, textAlign: 'left' }}>{formatCurrency(row['到厂价'])}</div>
-              </div>
-            );
-          }}
+          scroll= x: 900 
+          style= width: '100%' 
+          rowKey="harnessId"
         />
       </Space>
     );
   };
 
+  // ── Tab 2: 设变报价 ──
   const renderChangePricing = () => {
     const comp = buildChangeComparisonTable(changePricingResult);
     const comparisonColumns = [
@@ -544,14 +430,14 @@ export default function QuotePage() {
       { title: '差异', render: (_: any, r: any) => formatDelta(r.deltaPrice) },
       { title: '差异%', render: (_: any, r: any) => {
           const color = r.deltaPercent > 0 ? 'var(--semi-color-danger)' : r.deltaPercent < 0 ? 'var(--semi-color-success)' : 'inherit';
-          return <span style={{ color }}>{r.deltaPercent > 0 ? '+' : ''}{r.deltaPercent.toFixed(2)}%</span>;
+          return <span style= color >{r.deltaPercent > 0 ? '+' : ''}{r.deltaPercent.toFixed(2)}%</span>;
         }
       },
     ];
 
     return (
-      <Space vertical align="start" style={{ width: '100%' }}>
-        <Card className="glass-card" title="变更场景模拟" style={{ width: '100%' }}>
+      <Space vertical align="start" style= width: '100%' >
+        <Card className="glass-card" title="变更场景模拟" style= width: '100%' >
           <Space vertical align="start">
             <RadioGroup value={changeMode} onChange={(e) => setChangeMode(e.target.value as any)} type="button">
               <Radio value="bom">BOM变更</Radio>
@@ -584,7 +470,7 @@ export default function QuotePage() {
                           [h.harnessId]: { ...modifiedHarnesses[h.harnessId], [field]: val }
                         });
                       }}
-                      style={{ width: 120 }}
+                      style= width: 120 
                       prefix={changeMode === 'bom' ? '¥' : ''}
                       suffix={changeMode === 'hours' ? 'h' : changeMode === 'config' ? '%' : ''}
                     />
@@ -595,23 +481,23 @@ export default function QuotePage() {
           </Space>
         </Card>
 
-        <Card className="glass-card" title="变更对比结果" style={{ width: '100%' }}>
-          <div style={{ display: 'flex', gap: 48, marginBottom: 24 }}>
+        <Card className="glass-card" title="变更对比结果" style= width: '100%' >
+          <div style= display: 'flex', justifyContent: 'space-between', marginBottom: 16 >
             <div>
-              <Text style={{ color: 'var(--semi-color-text-2)' }}>单车影响金额</Text>
-              <Title heading={3} style={{ margin: 0 }}>{formatDelta(changePricingResult.summary.totalDelta)}</Title>
+              <Text style= display: 'block' >单车影响金额</Text>
+              <Title heading={3} style= margin: 0 >{formatDelta(changePricingResult.summary.totalDelta)}</Title>
             </div>
             <div>
-              <Text style={{ color: 'var(--semi-color-text-2)' }}>单车变化率</Text>
-              <Title heading={3} style={{ margin: 0 }}>
+              <Text style= display: 'block' >单车变化率</Text>
+              <Title heading={3} style= margin: 0 >
                 {formatDelta(changePricingResult.summary.deltaPercent)}%
               </Title>
             </div>
             <div>
-              <Text style={{ color: 'var(--semi-color-text-2)' }}>变更线束数</Text>
-              <Title heading={3} style={{ margin: 0 }}>{changePricingResult.summary.affectedCount}</Title>
+              <Text style= display: 'block' >变更线束数</Text>
+              <Title heading={3} style= margin: 0 >{changePricingResult.summary.affectedCount}</Title>
             </div>
-            <div style={{ flex: 1, textAlign: 'right', alignSelf: 'flex-end' }}>
+            <div style= display: 'flex', alignItems: 'flex-end' >
               <Space>
                 <RoleGuard field="changeExport">
                 <Button
@@ -648,16 +534,16 @@ export default function QuotePage() {
   return (
     <div className="page-container">
       <ScenarioSelector />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, padding: '16px 0' }}>
+      <div style= display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 >
         <Button
           icon={<IconArrowLeft />}
           aria-label="返回"
           theme="borderless"
           onClick={() => navigate(`/project/${id}/s/${sid}`)}
         />
-        <div style={{ flex: 1 }}>
-          <Title heading={4} style={{ margin: 0 }}>报价工作台</Title>
-          <Text style={{ color: 'var(--semi-color-text-2)' }}>{project.meta.projectName} / {project.meta.customer}</Text>
+        <div style= flex: 1 >
+          <Title heading={4} style= margin: 0 >报价工作台</Title>
+          <Text style= display: 'block' >{project.meta.projectName} / {project.meta.customer}</Text>
         </div>
         <Space>
           <Tag color={selectedQuoteStatusMeta.color}>
@@ -669,14 +555,14 @@ export default function QuotePage() {
             <>
               <Button
                 theme="light"
-                disabled={!quoteSheet || isPublishedQuote}
+                disabled={isPublishedQuote || baselineResults.length === 0}
                 onClick={handleSaveQuote}
               >
                 保存报价草稿
               </Button>
               <Button
                 theme="solid"
-                disabled={!quoteSheet || isPublishedQuote}
+                disabled={isPublishedQuote || baselineResults.length === 0}
                 onClick={handleConfirmQuote}
               >
                 确认报价
@@ -698,13 +584,13 @@ export default function QuotePage() {
       </div>
 
       <Tabs type="line">
-        <TabPane tab={<span><IconList style={{ marginRight: 8 }} />报价模板</span>} itemKey="1">
-          <div style={{ padding: '16px 0' }}>
-            {renderQuoteTemplate()}
+        <TabPane tab={<span><IconList style= marginRight: 4  />建议售价</span>} itemKey="1">
+          <div style= padding: '16px 0' >
+            {renderSuggestedPrice()}
           </div>
         </TabPane>
-        <TabPane tab={<span><IconSimilarity style={{ marginRight: 8 }} />设变报价</span>} itemKey="2">
-          <div style={{ padding: '16px 0' }}>
+        <TabPane tab={<span><IconSimilarity style= marginRight: 4  />设变报价</span>} itemKey="2">
+          <div style= padding: '16px 0' >
             {renderChangePricing()}
           </div>
         </TabPane>
