@@ -193,6 +193,46 @@ export interface QuoteSnapshotRecord {
   createdAt: string;
 }
 
+/** C7: Gap 分析快照记录 */
+export interface GapSnapshotRecord {
+  /** 主键 (uuid) */
+  id: string;
+  /** 所属项目 */
+  projectId: string;
+  /** 所属场景 */
+  scenarioId: string;
+  /** 线束 ID（空表示整车级） */
+  harnessId: string;
+  /** 快照类型: quote=客户报价侧, internal=内部实绩侧 */
+  snapshotType: 'quote' | 'internal';
+  /** 金属价格来源 */
+  metalSource: 'benchmark' | 'shfe_spot' | 'smm_spot' | 'customer_agreed';
+  /** 快照时金属价格 */
+  metalPrices: { copper: number; aluminum: number };
+  /** Gap 分析结果数据 */
+  gapResult: Record<string, unknown>;
+  /** 可选标签 */
+  label?: string;
+  /** 创建时间 */
+  createdAt: string;
+}
+
+/** C7: 金属价格历史记录 */
+export interface MetalPriceHistoryRecord {
+  /** 主键 (uuid) */
+  id: string;
+  /** 价格来源 */
+  source: 'benchmark' | 'shfe_spot' | 'smm_spot' | 'manual';
+  /** 铜价 (元/吨) */
+  copper: number;
+  /** 铝价 (元/吨) */
+  aluminum: number;
+  /** 记录时间 */
+  recordedAt: string;
+  /** 备注 */
+  note?: string;
+}
+
 class CostWorkbenchDB extends Dexie {
   projects!: Table<ProjectRecord, string>;
   scenarios!: Table<ScenarioRecord, string>;
@@ -207,6 +247,8 @@ class CostWorkbenchDB extends Dexie {
   trackingItems!: Table<TrackingItemRecord, string>;
   settingsSnapshots!: Table<SettingsSnapshotRecord, string>;
   quoteSnapshots!: Table<QuoteSnapshotRecord, string>;
+  gapSnapshots!: Table<GapSnapshotRecord, string>;
+  metalPriceHistory!: Table<MetalPriceHistoryRecord, string>;
 
   constructor() {
     super('CostWorkbenchDB');
@@ -283,6 +325,11 @@ class CostWorkbenchDB extends Dexie {
     this.version(8).stores({
       settingsSnapshots: 'id, timestamp, reason',
       quoteSnapshots: 'id, quoteId, scenarioId, projectId, version, createdAt',
+    });
+    // v9: C7 Gap 分析快照 + 金属价格历史追踪
+    this.version(9).stores({
+      gapSnapshots: 'id, projectId, scenarioId, harnessId, snapshotType, metalSource, createdAt',
+      metalPriceHistory: 'id, source, recordedAt',
     });
   }
 }
