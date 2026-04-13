@@ -94,7 +94,7 @@ async function buildClonePayload(source: any) {
   return dehydrateJsonFields({
     projectId: scenario.projectId,
     type: scenario.type,
-    name: `${scenario.name}-\u590d\u5236`,
+    name: `${scenario.name}-复制`,
     status: 'draft',
     lifecycleYears: scenario.lifecycleYears,
     volume: scenario.volume,
@@ -196,6 +196,7 @@ async function buildScenarioVersionSnapshot(id: string) {
   };
 }
 
+// --- Delete helpers (from phase12 delta) ---
 function badRequest(message: string) {
   const err: any = new Error(message);
   err.status = 400;
@@ -289,7 +290,7 @@ export class ScenarioService {
     const hydrated = await enrichScenario(scenario);
     const snapshot = await buildVersionSnapshot(id);
     await VersionService.createAutoVersion(hydrated.projectId, {
-      label: `BOM\u51bb\u7ed3 - ${hydrated.name}`,
+      label: `BOM冻结 - ${hydrated.name}`,
       notes: `Auto snapshot created when scenario ${hydrated.id} was frozen.`,
       snapshot,
       createdBy,
@@ -308,7 +309,7 @@ export class ScenarioService {
     const hydrated = await enrichScenario(scenario);
     const snapshot = await buildVersionSnapshot(id);
     await VersionService.createAutoVersion(hydrated.projectId, {
-      label: `\u573a\u666f\u53d1\u5e03 - ${hydrated.name}`,
+      label: `场景发布 - ${hydrated.name}`,
       notes: `Auto snapshot created when scenario ${hydrated.id} was released.`,
       snapshot,
       createdBy,
@@ -316,6 +317,7 @@ export class ScenarioService {
     return hydrated;
   }
 
+  // Transactional clone with allocation data (from phase12 delta)
   static async clone(id: string) {
     return prisma.$transaction(async (tx) => {
       const source = await tx.scenario.findUnique({ where: { id } });
@@ -332,6 +334,7 @@ export class ScenarioService {
     });
   }
 
+  // Delete with cascade and validation (from phase12 delta)
   static async delete(id: string) {
     return prisma.$transaction(async (tx) => {
       const scenario = await tx.scenario.findUnique({ where: { id } });

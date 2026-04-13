@@ -142,6 +142,7 @@ async function syncLatestRecoverySnapshot(client: any, item: any, cumulativeVolu
   });
 }
 
+// --- Clone & Delete helpers (from phase12 delta) ---
 async function cloneScenarioAllocationsWithClient(client: any, sourceScenarioId: string, targetScenarioId: string) {
   const sourceItems = await client.allocationItem.findMany({
     where: { scenarioId: sourceScenarioId },
@@ -304,6 +305,7 @@ export class AllocationService {
     });
   }
 
+  // --- Clone & Delete (from phase12 delta) ---
   static async cloneScenarioAllocations(sourceScenarioId: string, targetScenarioId: string) {
     return cloneScenarioAllocationsWithClient(prisma, sourceScenarioId, targetScenarioId);
   }
