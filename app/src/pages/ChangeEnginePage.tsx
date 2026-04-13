@@ -31,6 +31,9 @@ import { VERSION_STATUS_LABELS, validateTransition } from '@/types/version';
 import type { BomItem, WireItem } from '@/types/harness';
 import ScenarioSelector from '@/components/ScenarioSelector';
 import { useCascadeImpact } from '@/hooks/useCascadeImpact';
+import { db } from '@/data/db';
+import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
+import { buildQuoteSheet } from '@/engine/quote_template';
 
 const { Title, Text } = Typography;
 
@@ -655,14 +658,140 @@ export default function ChangeEnginePage() {
         method: 'POST',
       });
       setSelectedChangeId(calculated.id);
+
+      await propagateChangeToScenario(
+        compareVersion,
+        uniqueStrings(bomDiffRows.map((r) => r.harnessId)),
+        projectId,
+        sid,
+        calculated.id,
+      );
+
       await loadChangeEvents();
-      Toast.success('设变事件已写入，并完成影响测算');
+      Toast.success('设变事件已写入，并完成影响测算、场景同步与报价草稿生成');
     } catch (err) {
       Toast.error(err instanceof Error ? err.message : '设变事件写入失败');
     } finally {
       setCreatingChangeEvent(false);
     }
   }, [baseVersionId, bomDiffRows, changePricingResult, changePricingResult?.summary, compareVersionId, loadChangeEvents, projectId, sid, versions]);
+
+  async function propagateChangeToScenario(
+    compareVersion: VersionRecord,
+    affectedHarnessIds: string[],
+    projectId: string,
+    scenarioId: string,
+    changeEventId?: string,
+  ) {
+    const [scenario, project] = await Promise.all([
+      db.scenarios.get(scenarioId),
+      db.projects.get(projectId),
+    ]);
+    if (!scenario) throw new Error('场景不存在');
+    if (!project) throw new Error('项目不存在');
+
+    const snapshotHarnesses = compareVersion.snapshot?.harnesses || [];
+    const costRates = scenario.config.costRates;
+    const metalPrices = scenario.config.metalPrices;
+
+    for (const hId of affectedHarnessIds) {
+      const snap = snapshotHarnesses.find((h: any) => h.harnessId === hId);
+      if (!snap) continue;
+
+      const existing = await db.harnesses
+        .where({ projectId, scenarioId, harnessId: hId })
+        .first();
+
+      const result = computeHarnessCost(snap.input, costRates, metalPrices);
+
+      if (existing) {
+        await db.harnesses.update(existing.id, {
+          input: snap.input,
+          harnessName: snap.harnessName,
+          result,
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        await db.harnesses.add({
+          id: crypto.randomUUID(),
+          projectId,
+          scenarioId,
+          harnessId: hId,
+          harnessName: snap.harnessName,
+          input: snap.input,
+          result,
+          eopYear: null,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    // Sync to backend
+    const updatedHarnesses = await db.harnesses
+      .where({ projectId, scenarioId })
+      .toArray();
+    await apiClient('/sync/push', {
+      method: 'POST',
+      body: {
+        changes: updatedHarnesses.map((h) => ({
+          id: h.id,
+          entity: 'harness',
+          operation: 'upsert',
+          entityId: h.id,
+          payload: h,
+        })),
+      },
+    });
+
+    // Auto-create quote draft
+    const baselineComputedResults = updatedHarnesses
+      .map((h) => h.result || computeHarnessCost(h.input, costRates, metalPrices))
+      .sort((a, b) => a.harnessId.localeCompare(b.harnessId));
+
+    const quoteSheet = buildQuoteSheet(
+      baselineComputedResults,
+      'internal',
+      {
+        projectName: project.meta.projectName,
+        customer: project.meta.customer,
+      },
+      scenario.config.nreData,
+      scenario.config.volumes,
+      scenario.config.customerQuoteSnapshots,
+    );
+
+    const baselineProject = computeProjectFromHarnesses(baselineComputedResults);
+    const quoteVersion = changeEventId
+      ? `${scenario.scenarioCode}-internal-change-${changeEventId.slice(0, 6)}`
+      : `${scenario.scenarioCode}-internal-auto`;
+
+    await apiClient(`/quotes/scenario/${scenarioId}`, {
+      method: 'POST',
+      body: {
+        projectId,
+        version: quoteVersion,
+        template: 'internal',
+        data: quoteSheet,
+        quoteParams: {
+          templateType: 'internal',
+          scenarioId,
+          scenarioCode: scenario.scenarioCode,
+          scenarioName: scenario.scenarioName,
+          scenarioType: scenario.scenarioType,
+        },
+        quoteResult: {
+          totals: quoteSheet.totals,
+          harnessCount: quoteSheet.harnessCount,
+          baselineVehicleCost: baselineProject.vehicleCost,
+        },
+        internalCostBaseline: baselineProject.vehicleCost,
+        exWorksPrice: Number(quoteSheet.totals.exFactoryPrice ?? 0),
+        arrivalPrice: Number(quoteSheet.totals.deliveredPrice ?? 0),
+        effectivePrice: Number(quoteSheet.totals.deliveredPrice ?? quoteSheet.totals.exFactoryPrice ?? 0),
+        effectivePriceMode: 'arrival',
+      },
+    });
+  }
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}><Spin size="large" /></div>;
