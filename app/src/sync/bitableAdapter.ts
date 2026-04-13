@@ -73,7 +73,7 @@ function fromFields(entity: BitableEntity, fields: Record<string, any>): Record<
   const jsonFields = JSON_FIELDS[entity];
   const data: Record<string, any> = {};
 
-  // Create reverse map: bitable field name → app field name
+  // Create reverse map: bitable field name -> app field name
   const reverseMap: Record<string, string> = {};
   for (const [appKey, bitableKey] of Object.entries(fieldMap)) {
     reverseMap[bitableKey] = appKey;
@@ -110,11 +110,11 @@ function basePath(entity: BitableEntity): string {
 export async function listRecords(
   entity: BitableEntity,
   options: {
-    filter?: string;       // Filter expression (Bitable formula syntax)
-    sort?: string[];       // Sort fields
-    pageSize?: number;     // Page size (max 500)
-    pageToken?: string;    // Pagination token
-    fieldNames?: string[]; // Specific fields to return
+    filter?: string;
+    sort?: string[];
+    pageSize?: number;
+    pageToken?: string;
+    fieldNames?: string[];
   } = {}
 ): Promise<{ records: Record<string, any>[]; hasMore: boolean; pageToken?: string; total: number }> {
   if (!isBitableConfigured()) {
@@ -284,7 +284,6 @@ export async function deleteRecord(
 
 /**
  * Search records by a field value
- * Convenience wrapper around listRecords with filter
  */
 export async function searchByField(
   entity: BitableEntity,
@@ -294,7 +293,6 @@ export async function searchByField(
   const fieldMap = getFieldMap(entity);
   const bitableFieldName = fieldMap[fieldName] || fieldName;
   
-  // Bitable filter formula syntax
   const filter = `CurrentValue.[${bitableFieldName}] = "${value}"`;
   
   return listAllRecords(entity, filter);
@@ -309,16 +307,13 @@ export async function upsertByAppId(
   idValue: string,
   data: Record<string, any>
 ): Promise<{ recordId: string; created: boolean }> {
-  // Search for existing record
   const existing = await searchByField(entity, idField, idValue);
 
   if (existing.length > 0) {
-    // Update existing
     const recordId = existing[0]!._recordId as string;
     await updateRecord(entity, recordId, data);
     return { recordId, created: false };
   } else {
-    // Create new
     const result = await createRecord(entity, { ...data, [idField]: idValue });
     return { recordId: result.recordId, created: true };
   }

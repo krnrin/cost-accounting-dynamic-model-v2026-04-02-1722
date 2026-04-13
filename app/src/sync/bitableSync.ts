@@ -46,13 +46,11 @@ export class BitableSync {
         const bitableEntity = entityMap[entity] as 'projects' | 'harnesses' | 'quotes' | 'versions';
 
         if (item.operation === 'delete') {
-          // Find the Bitable record by app ID and delete it
           const records = await searchByField(bitableEntity, 'id', item.entityId);
           if (records.length > 0) {
             await deleteRecord(bitableEntity, records[0]!._recordId as string);
           }
         } else {
-          // Create or update
           await upsertByAppId(bitableEntity, 'id', item.entityId, item.payload || {});
         }
 
@@ -67,7 +65,6 @@ export class BitableSync {
 
   /**
    * Pull all data from Bitable to local IndexedDB
-   * Used for initial sync or full refresh
    */
   async fullPull(): Promise<{
     projects: number;
