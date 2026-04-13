@@ -27,7 +27,7 @@ export const GEELY_RATES: GeelyRates = {
 export const BYD_RATES = {
   mgmtRate: 0.06,      // 管理费 6%
   profitRate: 0.05,    // 利润 5%
-  wasteRate: 0.01,     // 默认废品率 (仅用于占位，实际可从项目配置取)
+  wasteRate: 0.01,     // 默认废品率
 };
 
 /**
@@ -71,8 +71,47 @@ export function getTemplatePresets() {
   return TEMPLATE_PRESETS;
 }
 
+// ──────────────────────────────────────────────────────
+// 建议售价计算
+// ──────────────────────────────────────────────────────
+
+/**
+ * computeSuggestedPrice — 根据内部成本和目标毛利率计算建议售价
+ *
+ * 公式: 建议售价 = 内部成本 / (1 - 毛利率)
+ * 例如: 成本 100，毛利 15% → 售价 = 100 / 0.85 = 117.65
+ *
+ * 说明: 客户报价需要销售按商务策略去调整，程序只负责计算建议售价。
+ * 毛利率由销售手动输入（如 15%），程序算出建议价，销售可在此基础上调整。
+ *
+ * @param internalCost - 内部实际成本 (元)
+ * @param targetMarginPercent - 目标毛利率 (如 15 表示 15%)
+ * @returns 建议售价 (元)
+ */
+export function computeSuggestedPrice(
+  internalCost: number,
+  targetMarginPercent: number,
+): number {
+  const cost = numberOr(internalCost, 0);
+  const margin = numberOr(targetMarginPercent, 0) / 100;
+  if (margin <= 0 || margin >= 1) return cost; // 无效毛利率时返回成本价
+  return cost / (1 - margin);
+}
+
+// ──────────────────────────────────────────────────────
+// 吉利模板映射
+// ──────────────────────────────────────────────────────
+
 /**
  * mapToGeelyTemplate — 映射到吉利报价模板
+ *
+ * A1 = 原材料 (自制件原材料，如塑胶粒子、金属坯料等)
+ * A2 = 外购件 (直接外购的成品/半成品，如导线、连接器、端子、衢套等)
+ *
+ * 说明: A1/A2 的区分取决于供应商类型。
+ * - 线束供应商: 导线、连接器、端子全部是外购 → A1=0, A2=全部材料
+ * - 支架供应商: 塑胶自制 → A1=塑胶成本, A2=金属衢套(外购)
+ * - 通用逻辑: 从 materialBreakdown.selfManufactured 取 A1，其余归 A2
  *
  * @param harnessResult - computeHarnessCost() 的结果
  * @param nreData - NRE(一次性费用)数据
@@ -88,25 +127,34 @@ export function mapToGeelyTemplate(
   const nre = nreData || {};
   const rates = { ...GEELY_RATES, ...(overrideRates || {}) };
 
-  // A1 = 原材料 (导线类)
+  // A1 = 原材料 (自制件)
+  // A2 = 外购件
   let A1 = 0;
-  // A2 = 外购件 (连接器+端子+辅料)
   let A2 = 0;
 
   if (h.materialBreakdown) {
-    A1 = numberOr(h.materialBreakdown.byType && h.materialBreakdown.byType.wire, 0);
-    A2 = numberOr(h.materialCost, 0) - A1;
-  } else {
-    // 如果没有 byType 数据，使用金属/非金属拆分近似
     const mb = h.materialBreakdown as any;
-    const cuAlCost = numberOr(mb && mb.cuCost, 0)
-      + numberOr(mb && mb.alCost, 0)
-      + numberOr(mb && mb.nonMetalCost, 0);
-    A1 = cuAlCost;
-    A2 = numberOr(h.materialCost, 0) - A1;
+    // 优先从 selfManufactured 字段取自制件成本
+    if (mb.selfManufactured !== undefined && mb.selfManufactured !== null) {
+      A1 = numberOr(mb.selfManufactured, 0);
+      A2 = numberOr(h.materialCost, 0) - A1;
+    } else if (mb.byType && mb.byType.wire !== undefined) {
+      // 向后兼容: 旧版本用 byType.wire 区分导线/外购
+      // 注意: 导线也是外购件，这里仅为兼容旧数据保留
+      A1 = numberOr(mb.byType.wire, 0);
+      A2 = numberOr(h.materialCost, 0) - A1;
+    } else {
+      // 无拆分数据，全部归入外购件
+      A1 = 0;
+      A2 = numberOr(h.materialCost, 0);
+    }
+  } else {
+    // 无 materialBreakdown，全部归入外购件
+    A1 = 0;
+    A2 = numberOr(h.materialCost, 0);
   }
 
-  // B1 = 加工费 (这里用制造费，不是直接人工+制造费)
+  // B1 = 加工费
   const B1 = numberOr(h.manufacturing, 0);
 
   // B2 = 废品损失 = (A1+A2) × 废品率
@@ -181,6 +229,10 @@ export function mapToGeelyTemplate(
   };
 }
 
+// ──────────────────────────────────────────────────────
+// 比亚迪 / 通用 / 内部核算 模板
+// ──────────────────────────────────────────────────────
+
 /**
  * mapToBydTemplate — 映射到比亚迪报价模板
  * 结构: 直接材料 + 加工费 + 废品 + 管理费(6%) + 利润(5%)
@@ -231,7 +283,6 @@ export function mapToGenericTemplate(
   const mfgCost = numberOr(h.manufacturing, 0);
   const wasteCost = numberOr(h.wasteCost, 0);
   
-  // 使用项目自身的费率
   const mgmtFee = numberOr(h.mgmtFee, 0);
   const profit = numberOr(h.profit, 0);
   
@@ -291,12 +342,6 @@ export function mapToInternalTemplate(harnessResult: HarnessResult): InternalTem
 
 /**
  * mapToTemplate — 通用模板映射入口
- *
- * @param harnessResult - 核算结果
- * @param templateName - 模板名称 ('geely' | 'internal')
- * @param templateConfig - 模板配置 (覆盖预设)
- * @param nreData - NRE数据 (仅 geely 模板需要)
- * @returns 映射后的报价结构
  */
 export function mapToTemplate(
   harnessResult: HarnessResult, 
@@ -321,44 +366,75 @@ export function mapToTemplate(
   return mapToInternalTemplate(harnessResult);
 }
 
+// ──────────────────────────────────────────────────────
+// 内部实绩 → OEM 报价映射 (V3.1)
+// ──────────────────────────────────────────────────────
+
 /**
- * mapInternalToOem — 内部实绩映射至 OEM 报价格式 (Sales Hook)
- * 遵循 翁骏 (销售) 与 王强 (财务) 的联合定义:
- * 1. 吉利: 0.6% 损耗 -> B2 废品损失; Gap -> C1 管理费修正; 6D MOH -> B1 加工费
- * 2. 比亚迪: All-in 摊销, 0.6% 损耗埋入单价; 6D MOH -> 加工费
+ * mapInternalToOem — 内部实绩映射至 OEM 报价格式
+ *
+ * V3.1 重写说明:
+ *   - 移除了旧版 A1=materialCost*0.4 / A2=materialCost*0.6 的硬编码比例
+ *   - A1(原材料) = 自制件成本 (如塑胶粒子、金属坯料等供应商自己加工的原材料)
+ *   - A2(外购件) = 直接外购的成品/半成品 (导线、连接器、端子、衢套等)
+ *   - 对于全部外购的供应商 (如线束厂): A1=0, A2=全部材料成本
+ *   - 新增建议售价计算: suggestedPrice = internalCost / (1 - targetMargin%)
+ *   - 客户报价调整由销售按商务策略执行，程序只输出建议价
+ *
+ * @param internal - 内部核算结果
+ * @param oemType - OEM 类型
+ * @param options - 可选参数 { targetMarginPercent: 目标毛利率(%) }
  */
 export function mapInternalToOem(
   internal: InternalHarnessResult,
-  oemType: 'Geely' | 'BYD' | 'GreatWall'
+  oemType: 'Geely' | 'BYD' | 'GreatWall',
+  options?: { targetMarginPercent?: number }
 ): any {
   const h = internal;
-  
+  const opts = options || {};
+  const targetMargin = numberOr(opts.targetMarginPercent, 0);
+
   if (oemType === 'Geely') {
-    // A1 = 原材料 (导线), A2 = 外购件
-    // 简化处理: 假设导线占比 40%
-    const A1 = h.materialCost * 0.4;
-    const A2 = h.materialCost * 0.6;
+    // A1 = 原材料 (自制件)
+    // A2 = 外购件
+    // 从 materialBreakdown 取实际拆分，无拆分数据则全部归入 A2
+    let A1 = 0;
+    let A2 = numberOr(h.materialCost, 0);
+
+    const mb = (h as any).materialBreakdown;
+    if (mb) {
+      if (mb.selfManufactured !== undefined && mb.selfManufactured !== null) {
+        A1 = numberOr(mb.selfManufactured, 0);
+        A2 = numberOr(h.materialCost, 0) - A1;
+      }
+      // 无 selfManufactured 字段时全部归 A2 (外购)
+    }
+
+    // B1 = 加工费 = 6D MOH (除废品外) + 直接人工
+    const B1 = numberOr(h.mfgOverheadTotal, 0) - numberOr(h.materialWaste, 0) + numberOr(h.directLabor, 0);
     
-    // B1 = 加工费 = 6D MOH (除废品外)
-    const B1 = h.mfgOverheadTotal - h.materialWaste + h.directLabor;
+    // B2 = 废品损失 = 实绩损耗
+    const B2 = numberOr(h.materialWaste, 0);
     
-    // B2 = 废品损失 = 实绩损耗 (0.6%)
-    const B2 = h.materialWaste;
-    
-  // C1 = 管理费 (基准 4% + Gap 修正 + 商务策略调节)
-  // 简单逻辑: 如果有 GapStatus 异常，将偏差金额计入管理费
-  const gapAmount = (h as any).managementGapAmount || 0;
-  const salesAdjustmentBuffer = (h as any).salesAdjustmentBuffer || 0;
-  const C1 = (A1 + A2 + B1 + B2) * 0.04 + gapAmount + salesAdjustmentBuffer;
-    
-    const C2 = (A1 + A2 + B1 + B2) * 0.04; // 财务费
-    const C3 = (A1 + A2 + B1 + B2) * 0.04; // 销售费
-    const D = (A1 + A2 + B1 + B2) * 0.04;  // 利润
+    const base = A1 + A2 + B1 + B2;
+
+    // 期间费用 + 利润 (4% 标准费率)
+    const C1 = base * 0.04; // 管理费
+    const C2 = base * 0.04; // 财务费
+    const C3 = base * 0.04; // 销售费
+    const D  = base * 0.04; // 利润
     
     const exFactoryPrice = A1 + A2 + B1 + B2 + C1 + C2 + C3 + D;
+    const deliveredPrice = exFactoryPrice + numberOr(h.packTotal, 0);
+
+    // 建议售价 (基于内部成本 + 目标毛利)
+    const internalCost = numberOr(h.internalCost, deliveredPrice);
+    const suggestedPrice = targetMargin > 0
+      ? computeSuggestedPrice(internalCost, targetMargin)
+      : deliveredPrice;
     
     return {
-      templateName: '吉利 V3.0 (实绩映射)',
+      templateName: '吉利 V3.1 (实绩映射)',
       harnessId: h.harnessId,
       harnessName: h.harnessName,
       A1_rawMaterial: A1,
@@ -369,26 +445,35 @@ export function mapInternalToOem(
       C2_financeFee: C2,
       C3_salesFee: C3,
       D_profit: D,
-      exFactoryPrice: exFactoryPrice,
-      deliveredPrice: exFactoryPrice + h.packTotal,
-      auditTraceId: h.auditTraceId
+      exFactoryPrice,
+      deliveredPrice,
+      // 建议售价信息
+      internalCost,
+      suggestedPrice,
+      targetMarginPercent: targetMargin,
+      auditTraceId: h.auditTraceId,
     };
   }
   
   if (oemType === 'BYD') {
-    // BYD All-in 逻辑: 损耗埋入物料单价，商务调节也埋入
-    const salesAdjustmentBuffer = (h as any).salesAdjustmentBuffer || 0;
-    const directMaterial = h.materialCost + h.materialWaste + salesAdjustmentBuffer;
-    const processingFee = h.mfgOverheadTotal - h.materialWaste + h.directLabor;
+    // BYD All-in 逻辑: 全部材料归入直接材料 + 废品
+    const directMaterial = numberOr(h.materialCost, 0) + numberOr(h.materialWaste, 0);
+    const processingFee = numberOr(h.mfgOverheadTotal, 0) - numberOr(h.materialWaste, 0) + numberOr(h.directLabor, 0);
     
-    // 管理费 6%, 利润 5% (基准)
+    // 管理费 6%, 利润 5%
     const managementFee = (directMaterial + processingFee) * 0.06;
     const profit = (directMaterial + processingFee + managementFee) * 0.05;
     
     const exFactoryPrice = directMaterial + processingFee + managementFee + profit;
+    const deliveredPrice = exFactoryPrice + numberOr(h.packTotal, 0);
+
+    const internalCost = numberOr(h.internalCost, deliveredPrice);
+    const suggestedPrice = targetMargin > 0
+      ? computeSuggestedPrice(internalCost, targetMargin)
+      : deliveredPrice;
     
     return {
-      templateName: '比亚迪 V3.0 (实绩映射)',
+      templateName: '比亚迪 V3.1 (实绩映射)',
       harnessId: h.harnessId,
       harnessName: h.harnessName,
       directMaterial,
@@ -397,23 +482,39 @@ export function mapInternalToOem(
       managementFee,
       profit,
       exFactoryPrice,
-      deliveredPrice: exFactoryPrice + h.packTotal,
-      auditTraceId: h.auditTraceId
+      deliveredPrice,
+      internalCost,
+      suggestedPrice,
+      targetMarginPercent: targetMargin,
+      auditTraceId: h.auditTraceId,
     };
   }
 
-  return mapToInternalTemplate(h as any);
+  // GreatWall / 其他: 通用逻辑 — 内部成本 + 建议售价
+  const internalCost = numberOr(h.internalCost, 0);
+  const suggestedPrice = targetMargin > 0
+    ? computeSuggestedPrice(internalCost, targetMargin)
+    : internalCost;
+
+  return {
+    templateName: '通用 V3.1 (实绩映射)',
+    harnessId: h.harnessId,
+    harnessName: h.harnessName,
+    internalCost,
+    suggestedPrice,
+    targetMarginPercent: targetMargin,
+    deliveredPrice: suggestedPrice,
+    deviationAnalysis: (h as any).deviationAnalysis || '',
+    auditTraceId: h.auditTraceId,
+  };
 }
+
+// ──────────────────────────────────────────────────────
+// 报价单生成
+// ──────────────────────────────────────────────────────
 
 /**
  * buildQuoteSheet — 生成报价单数据 (多零件号)
- *
- * @param harnessResults - 多个零件号的核算结果
- * @param templateName - 模板名称
- * @param projectMeta - 项目元信息
- * @param nreData - NRE数据
- * @param volumes - 项目年度产量 (用于计算默认分摊数量)
- * @returns 完整的报价单数据
  */
 export function buildQuoteSheet(
   harnessResults: HarnessResult[],
@@ -425,7 +526,6 @@ export function buildQuoteSheet(
 ): QuoteSheet {
   const meta = projectMeta || {};
   
-  // 处理分摊数量默认逻辑: 如果未定义或为0，则取前3年产量之和
   let effectiveNre = nreData || {};
   if (!effectiveNre.amortizationVolume || effectiveNre.amortizationVolume === 0) {
     if (volumes && volumes.length > 0) {
@@ -449,11 +549,9 @@ export function buildQuoteSheet(
     };
   });
 
-  // 计算合计
   const totals: Record<string, number> = {};
   if (harnesses.length > 0) {
-    const firstHarness = harnesses[0]!;
-    const keys = Object.keys(firstHarness).filter((k) => {
+    const keys = Object.keys(harnesses[0]!).filter((k) => {
       return typeof (harnesses[0] as any)[k] === 'number' && k !== 'vehicleRatio';
     });
     keys.forEach((key) => {
