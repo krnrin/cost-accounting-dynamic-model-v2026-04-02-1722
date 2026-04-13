@@ -21,7 +21,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { RoleGuard } from '@/components/RoleGuard';
 
 import { db } from '@/data/db';
-import type { ScenarioRecord } from '@/data/db';
 import { computeHarnessCostDynamic, computeHarnessCost, getInternalFactoryRates, computeInternalHarnessCost } from '@/engine/harness_costing';
 import { detectPrecisionLevel } from '@/engine/precision';
 import type { HarnessInput, BomItem, WireItem, HarnessResult } from '@/types/harness';
@@ -149,7 +148,7 @@ export default function HarnessEditPage() {
     return computeInternalHarnessCost(formData, rates, pricingContext.metalPrices, null, pricingContext.benchmark.audit_trace_id);
   }, [data, formData, pricingContext]);
 
-  if (!data?.project || !formData) {
+  if (!data?.project || !formData || (sid && !data?.scenario)) {
     return (
       <div style={{ padding: 100, textAlign: 'center' }}>
         <Title heading={4}>正在加载数据...</Title>
@@ -177,15 +176,21 @@ export default function HarnessEditPage() {
           harnessId: formData.harnessId,
           harnessName: formData.harnessName || formData.harnessId,
           input: formData,
+          result: result ?? undefined,
           updatedAt: new Date().toISOString(),
         });
         Toast.success('线束创建成功');
-        navigate(`/project/${id}/harness/${formData.harnessId}`, { replace: true });
+        navigate(sid
+          ? `/project/${id}/s/${sid}/harness/${formData.harnessId}`
+          : `/project/${id}/harness/${formData.harnessId}`,
+          { replace: true }
+        );
       } else {
         if (!data.harness) return;
         await db.harnesses.update(data.harness.id, {
           input: formData,
           harnessName: formData.harnessName,
+          result: result ?? undefined,
           updatedAt: new Date().toISOString(),
         });
         Toast.success('保存成功');

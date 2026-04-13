@@ -122,21 +122,22 @@ export default function HarnessDetailPage() {
     if (!data?.harness) return;
     const original = data.harness;
     const newId = crypto.randomUUID();
+    const copiedHarnessId = original.harnessId + '-copy';
     const copied = {
       ...original,
       id: newId,
-      harnessId: newId,
+      harnessId: copiedHarnessId,
       harnessName: (original.harnessName || '') + ' (副本)',
       input: {
         ...original.input,
-        harnessId: newId,
+        harnessId: copiedHarnessId,
         harnessName: (original.input.harnessName || '') + ' (副本)',
       },
       updatedAt: new Date().toISOString()
     };
     await db.harnesses.add(copied);
     Toast.success('复制成功');
-    navigate(`/project/${id}/s/${sid}/harness/${newId}`);
+    navigate(`/project/${id}/s/${sid}/harness/${copiedHarnessId}`);
   };
 
 
@@ -234,14 +235,16 @@ export default function HarnessDetailPage() {
     { title: '占比 (%)', dataIndex: 'percent', key: 'percent', align: 'right' as const, render: (v: number) => `${(v * 100).toFixed(1)}%` },
   ];
 
+  const safePercent = (part: number, total: number) => total > 0 ? part / total : 0;
+
   const materialTableData = [
-    { type: '导线', value: res.materialBreakdown.byType.wire, percent: res.materialBreakdown.byType.wire / res.materialCost },
-    { type: '连接器', value: res.materialBreakdown.byType.connector, percent: res.materialBreakdown.byType.connector / res.materialCost },
-    { type: '端子', value: res.materialBreakdown.byType.terminal, percent: res.materialBreakdown.byType.terminal / res.materialCost },
-    { type: '高压端子 (IPT)', value: res.materialBreakdown.byType.ipt_terminal, percent: res.materialBreakdown.byType.ipt_terminal / res.materialCost },
-    { type: '支架/橡胶', value: res.materialBreakdown.byType.bracket_rubber, percent: res.materialBreakdown.byType.bracket_rubber / res.materialCost },
-    { type: '胶带/套管', value: res.materialBreakdown.byType.tape_tube, percent: res.materialBreakdown.byType.tape_tube / res.materialCost },
-    { type: '其他', value: res.materialBreakdown.byType.other, percent: res.materialBreakdown.byType.other / res.materialCost },
+    { type: '导线', value: res.materialBreakdown.byType.wire, percent: safePercent(res.materialBreakdown.byType.wire, res.materialCost) },
+    { type: '连接器', value: res.materialBreakdown.byType.connector, percent: safePercent(res.materialBreakdown.byType.connector, res.materialCost) },
+    { type: '端子', value: res.materialBreakdown.byType.terminal, percent: safePercent(res.materialBreakdown.byType.terminal, res.materialCost) },
+    { type: '高压端子 (IPT)', value: res.materialBreakdown.byType.ipt_terminal, percent: safePercent(res.materialBreakdown.byType.ipt_terminal, res.materialCost) },
+    { type: '支架/橡胶', value: res.materialBreakdown.byType.bracket_rubber, percent: safePercent(res.materialBreakdown.byType.bracket_rubber, res.materialCost) },
+    { type: '胶带/套管', value: res.materialBreakdown.byType.tape_tube, percent: safePercent(res.materialBreakdown.byType.tape_tube, res.materialCost) },
+    { type: '其他', value: res.materialBreakdown.byType.other, percent: safePercent(res.materialBreakdown.byType.other, res.materialCost) },
   ].filter(item => item.value > 0);
 
   const summaryCards = [

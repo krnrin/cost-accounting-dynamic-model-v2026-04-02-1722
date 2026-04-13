@@ -329,7 +329,7 @@ export default function BomWorkbookPage() {
     const scenario = sid ? await db.scenarios.get(sid) : null;
     const harnesses = await db.harnesses.where({ projectId: id }).toArray();
     const scopedHarnesses = sid
-      ? harnesses.filter((harness) => harness.scenarioId === sid)
+      ? harnesses.filter((harness) => harness.scenarioId === sid || !harness.scenarioId)
       : harnesses;
     scopedHarnesses.sort((a, b) => a.harnessId.localeCompare(b.harnessId));
     return { project, scenario: scenario ?? null, harnesses: scopedHarnesses };

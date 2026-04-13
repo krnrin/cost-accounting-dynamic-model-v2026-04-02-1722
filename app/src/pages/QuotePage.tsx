@@ -3,8 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Typography, Spin, Button, Card, Table, Tabs, TabPane, InputNumber, Toast, Tag, Space, Radio, RadioGroup, Select } from '@douyinfe/semi-ui';
 import { IconArrowLeft, IconDownload, IconSimilarity, IconList } from '@douyinfe/semi-icons';
 import { db } from '@/data/db';
-import { applyE281ScenarioFallback } from '@/data/e281Fallback';
 import type { HarnessRecord, ProjectRecord, ScenarioRecord } from '@/data/db';
+import { QuoteEmptyState } from '@/components/QuoteEmptyState';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
 import { computeChangePricing, buildChangeComparisonTable } from '@/engine/change_pricing';
 import { buildQuoteSheet } from '@/engine/quote_template';
@@ -78,16 +78,13 @@ export default function QuotePage() {
           return;
         }
         const s = await db.scenarios.get(sid);
-        if (!s) {
-          Toast.error('场景不存在');
-          return;
-        }
-        const scenarioWithFallback = applyE281ScenarioFallback(s);
+        if (!s) { Toast.error('场景不存在'); return; }
+        // db.scenarios.hook('reading') 已自动 apply fallback，无需手动调用
         const h = await db.harnesses.where('scenarioId').equals(sid).toArray();
         const quotes = await apiClient<ApiQuote[]>(`/quotes/scenario/${sid}`);
         const preferredQuote = quotes.find((quote) => quote.template === templateType) || quotes[0] || null;
         setProject(p);
-        setScenario(scenarioWithFallback);
+        setScenario(s);
         setHarnesses(h);
         setQuoteRecords(quotes);
         setSelectedQuoteId(preferredQuote?.id ?? null);
@@ -149,27 +146,6 @@ export default function QuotePage() {
   const baselineResultsById = useMemo(() => {
     return new Map(baselineResults.map(result => [result.harnessId, result]));
   }, [baselineResults]);
-
-  useEffect(() => {
-    if (!sid) return;
-    let active = true;
-    async function syncSelectedQuote() {
-      try {
-        const quotes = await apiClient<ApiQuote[]>(`/quotes/scenario/${sid}`);
-        setQuoteRecords(quotes);
-        if (!active) return;
-        const preferredQuote = quotes.find((quote) => quote.template === templateType) || quotes[0] || null;
-        setSelectedQuoteId(preferredQuote?.id ?? null);
-      } catch {
-        setQuoteRecords([]);
-        if (active) setSelectedQuoteId(null);
-      }
-    }
-    void syncSelectedQuote();
-    return () => {
-      active = false;
-    };
-  }, [sid, templateType]);
 
   const selectedQuote = useMemo(() => {
     return quoteRecords.find((quote) => quote.id === selectedQuoteId) || null;
@@ -313,6 +289,16 @@ export default function QuotePage() {
 
   if (loading) return <Spin size="large" style={{ display: 'block', margin: '100px auto' }} />;
   if (!project || !scenario) return <div>项目不存在</div>;
+
+  // 无线束数据时显示空状态引导
+  if (harnesses.length === 0) {
+    return (
+      <div className="page-container">
+        <ScenarioSelector />
+        <QuoteEmptyState projectId={id!} scenarioId={sid!} projectName={project.meta.projectName} />
+      </div>
+    );
+  }
 
   const geelyColumns = [
     { title: '零件号', render: (_: any, h: any) => h.harnessId, width: 120, fixed: 'left' as const },
@@ -568,20 +554,35 @@ export default function QuotePage() {
                 { title: '名称', render: (_: any, h: any) => h.harnessName },
                 { title: '当前值', render: (_: any, h: any) => {
                     const current = baselineResultsById.get(h.harnessId);
-                    if (changeMode === 'bom') return formatCurrency(current?.materialCost);
-                    if (changeMode === 'hours') return current ? `${(current.processHours ?? 0).toFixed(2)} h` : '-';
+                    if (changeMode === 'bom') return formatCurrency(current?.materialCost) + ' (只读)';
+                    if (changeMode === 'hours') return `${h.input.frontHours.toFixed(4)} + ${h.input.backHours.toFixed(4)} h`;
                     return `${((h.input.vehicleRatio ?? 0) * 100).toFixed(1)}%`;
                   }
                 },
                 { title: changeMode === 'bom' ? '新材料成本' : changeMode === 'hours' ? '新工时' : '新装车比',
                   render: (_: any, h: any) => (
                     <InputNumber
-                      value={(modifiedHarnesses[h.harnessId] as any)?.[changeMode === 'bom' ? 'materialCost' : changeMode === 'hours' ? 'processHours' : 'vehicleRatio']}
+                      value={changeMode === 'config'
+                        ? (modifiedHarnesses[h.harnessId] as any)?.vehicleRatio
+                        : changeMode === 'hours'
+                          ? (modifiedHarnesses[h.harnessId] as any)?.frontHours
+                          : undefined}
                       onChange={(val) => {
-                        const field = changeMode === 'bom' ? 'materialCost' : changeMode === 'hours' ? 'processHours' : 'vehicleRatio';
+                        // BOM变更: 暂不支持通过数字直接修改 (需要改 bom 数组)
+                        // 工时变更: 修改 frontHours (简化: 假设后道不变)
+                        // 配置变更: 修改 vehicleRatio
+                        let patch: Partial<HarnessInput> = {};
+                        if (changeMode === 'hours') {
+                          patch = { frontHours: Number(val) || 0 };
+                        } else if (changeMode === 'config') {
+                          patch = { vehicleRatio: Number(val) || 0 };
+                        } else {
+                          // BOM 模式: 不支持单数字修改, 需要用 BomWorkbook
+                          return;
+                        }
                         setModifiedHarnesses({
                           ...modifiedHarnesses,
-                          [h.harnessId]: { ...modifiedHarnesses[h.harnessId], [field]: val }
+                          [h.harnessId]: { ...modifiedHarnesses[h.harnessId], ...patch }
                         });
                       }}
                       style={{ width: 120 }}
