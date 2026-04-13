@@ -147,7 +147,7 @@ export class QuoteService {
     const quote = await prisma.quote.update({ where: { id }, data: dbData });
     const hydrated = hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
     await VersionService.createAutoVersion(hydrated.projectId, {
-      label: `报价确认 - ${hydrated.version}`,
+      label: `\u62a5\u4ef7\u786e\u8ba4 - ${hydrated.version}`,
       notes: `Auto snapshot created when quote ${hydrated.id} was confirmed.`,
       snapshot: {
         triggerSource: 'quote',
@@ -196,7 +196,7 @@ export class QuoteService {
     }
 
     await VersionService.createAutoVersion(hydrated.projectId, {
-      label: `报价发布 - ${hydrated.version}`,
+      label: `\u62a5\u4ef7\u53d1\u5e03 - ${hydrated.version}`,
       notes: `Auto snapshot created when quote ${hydrated.id} was published.`,
       snapshot: {
         triggerSource: 'quote',

@@ -5,18 +5,11 @@
  * - tenant_access_token 获取 (用于 Bitable API)
  * - user_access_token 获取 (用于用户信息)
  * - 用户信息获取
- * 
- * 注: 在企业自建应用中, app_id/app_secret 用于获取 tenant_access_token,
- *     这是标准做法。对于完全前端的部署, 可通过飞书云函数代理。
  */
 
 const FEISHU_APP_ID = import.meta.env.VITE_FEISHU_APP_ID || '';
 const FEISHU_APP_SECRET = import.meta.env.VITE_FEISHU_APP_SECRET || '';
 
-/**
- * In dev mode, route through Vite proxy to avoid CORS.
- * In production (Feishu webview), direct calls are allowed by same-origin policy.
- */
 const FEISHU_API_BASE = import.meta.env.DEV
   ? '/feishu-api'
   : 'https://open.feishu.cn/open-apis';
@@ -36,10 +29,8 @@ export interface FeishuUserInfo {
 
 /**
  * Get tenant_access_token (app-level token for API calls)
- * Cached until expiry
  */
 export async function getTenantAccessToken(): Promise<string> {
-  // Return cached if still valid (with 5 min buffer)
   if (cachedTenantToken && Date.now() < cachedTenantToken.expiresAt - 300000) {
     return cachedTenantToken.token;
   }
@@ -166,7 +157,6 @@ export async function refreshUserAccessToken(refreshToken: string): Promise<{
 
 /**
  * Make an authenticated API call to Feishu
- * Uses tenant_access_token by default
  */
 export async function feishuApiCall<T = any>(
   path: string,

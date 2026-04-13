@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding database...');
+  console.log('\u{1F331} Seeding database...');
 
   // 1. Create admin user
   const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -18,11 +18,11 @@ async function main() {
     create: {
       email: 'admin@harness.dev',
       password: hashedPassword,
-      name: '系统管理员',
+      name: '\u7cfb\u7edf\u7ba1\u7406\u5458',
       role: 'ADMIN',
     },
   });
-  console.log(`  ✅ Admin user: ${admin.email} (password: admin123)`);
+  console.log(`  \u2705 Admin user: ${admin.email} (password: admin123)`);
 
   // 2. Create engineer user
   const engPassword = await bcrypt.hash('eng123', 10);
@@ -32,11 +32,11 @@ async function main() {
     create: {
       email: 'engineer@harness.dev',
       password: engPassword,
-      name: '成本工程师',
+      name: '\u6210\u672c\u5de5\u7a0b\u5e08',
       role: 'ENGINEER',
     },
   });
-  console.log(`  ✅ Engineer user: ${engineer.email} (password: eng123)`);
+  console.log(`  \u2705 Engineer user: ${engineer.email} (password: eng123)`);
 
   // 3. Create G281 demo project
   const costRates = {
@@ -58,7 +58,7 @@ async function main() {
   const project = await prisma.project.upsert({
     where: { projectCode: 'G281' },
     update: {
-      customer: '吉利汽车',
+      customer: '\u5409\u5229\u6c7d\u8f66',
       platform: 'SEA',
       status: 'active',
       costRates: JSON.stringify(costRates),
@@ -68,8 +68,8 @@ async function main() {
     },
     create: {
       projectCode: 'G281',
-      projectName: 'G281高压线束项目',
-      customer: '吉利汽车',
+      projectName: 'G281\u9ad8\u538b\u7ebf\u675f\u9879\u76ee',
+      customer: '\u5409\u5229\u6c7d\u8f66',
       platform: 'SEA',
       status: 'active',
       costRates: JSON.stringify(costRates),
@@ -78,13 +78,13 @@ async function main() {
       createdBy: admin.id,
     },
   });
-  console.log(`  ✅ Project: ${project.projectCode} — ${project.projectName}`);
+  console.log(`  \u2705 Project: ${project.projectCode} \u2014 ${project.projectName}`);
 
   // 4. Create 2 sample harnesses
   const sampleHarnesses = [
     {
       harnessId: '6608442966',
-      harnessName: '电池包正极线束',
+      harnessName: '\u7535\u6c60\u5305\u6b63\u6781\u7ebf\u675f',
       input: {
         copperWeight: 0.842,
         aluminumWeight: 0,
@@ -98,7 +98,7 @@ async function main() {
     },
     {
       harnessId: '6608442967',
-      harnessName: '电池包负极线束',
+      harnessName: '\u7535\u6c60\u5305\u8d1f\u6781\u7ebf\u675f',
       input: {
         copperWeight: 0.756,
         aluminumWeight: 0,
@@ -128,14 +128,14 @@ async function main() {
         input: JSON.stringify(h.input),
       },
     });
-    console.log(`  ✅ Harness: ${h.harnessId} — ${h.harnessName}`);
+    console.log(`  \u2705 Harness: ${h.harnessId} \u2014 ${h.harnessName}`);
   }
 
   const scenario = await prisma.scenario.upsert({
     where: { id: 'seed-g281-scenario-initial' },
     update: {
       projectId: project.id,
-      name: 'G281 初始报价场景',
+      name: 'G281 \u521d\u59cb\u62a5\u4ef7\u573a\u666f',
       type: 'initial_quote',
       status: 'released',
       lifecycleYears: 7,
@@ -145,7 +145,7 @@ async function main() {
     create: {
       id: 'seed-g281-scenario-initial',
       projectId: project.id,
-      name: 'G281 初始报价场景',
+      name: 'G281 \u521d\u59cb\u62a5\u4ef7\u573a\u666f',
       type: 'initial_quote',
       status: 'released',
       lifecycleYears: 7,
@@ -156,40 +156,40 @@ async function main() {
       createdBy: admin.id,
     },
   });
-  console.log(`  ✅ Scenario: ${scenario.name}`);
+  console.log(`  \u2705 Scenario: ${scenario.name}`);
 
   const alertRule = await prisma.alertRule.upsert({
     where: { id: 'seed-alert-rule-metal' },
     update: {
-      name: '铜价波动预警',
+      name: '\u94dc\u4ef7\u6ce2\u52a8\u9884\u8b66',
       category: 'metal_price',
       severity: 'critical',
       enabled: true,
-      description: '铜价波动超过阈值时触发',
+      description: '\u94dc\u4ef7\u6ce2\u52a8\u8d85\u8fc7\u9608\u503c\u65f6\u89e6\u53d1',
       condition: JSON.stringify({ metric: 'copper_delta_pct', operator: 'gte', threshold: 5, unit: '%' }),
       createdBy: admin.id,
     },
     create: {
       id: 'seed-alert-rule-metal',
-      name: '铜价波动预警',
+      name: '\u94dc\u4ef7\u6ce2\u52a8\u9884\u8b66',
       category: 'metal_price',
       severity: 'critical',
       enabled: true,
-      description: '铜价波动超过阈值时触发',
+      description: '\u94dc\u4ef7\u6ce2\u52a8\u8d85\u8fc7\u9608\u503c\u65f6\u89e6\u53d1',
       condition: JSON.stringify({ metric: 'copper_delta_pct', operator: 'gte', threshold: 5, unit: '%' }),
       createdBy: admin.id,
     },
   });
-  console.log(`  ✅ Alert rule: ${alertRule.name}`);
+  console.log(`  \u2705 Alert rule: ${alertRule.name}`);
 
   const alertEvents = [
     {
       id: 'seed-alert-metal-price',
-      title: '铜价上涨超阈值',
+      title: '\u94dc\u4ef7\u4e0a\u6da8\u8d85\u9608\u503c',
       category: 'metal_price',
       severity: 'critical',
       status: 'active',
-      detail: '当前铜价较基准上涨 8.5%，建议复核报价与金属联动。',
+      detail: '\u5f53\u524d\u94dc\u4ef7\u8f83\u57fa\u51c6\u4e0a\u6da8 8.5%\uff0c\u5efa\u8bae\u590d\u6838\u62a5\u4ef7\u4e0e\u91d1\u5c5e\u8054\u52a8\u3002',
       impactAmount: 12800,
       sourceObjectType: 'project',
       sourceObjectId: project.id,
@@ -198,11 +198,11 @@ async function main() {
     },
     {
       id: 'seed-alert-recovery-delay',
-      title: '分摊回收滞后',
+      title: '\u5206\u644a\u56de\u6536\u6ede\u540e',
       category: 'allocation_recovery',
       severity: 'warning',
       status: 'acknowledged',
-      detail: '工装费回收进度低于计划 12%，需跟进装车量与单根回收。',
+      detail: '\u5de5\u88c5\u8d39\u56de\u6536\u8fdb\u5ea6\u4f4e\u4e8e\u8ba1\u5212 12%\uff0c\u9700\u8ddf\u8fdb\u88c5\u8f66\u91cf\u4e0e\u5355\u6839\u56de\u6536\u3002',
       impactAmount: 5600,
       sourceObjectType: 'scenario',
       sourceObjectId: scenario.id,
@@ -211,11 +211,11 @@ async function main() {
     },
     {
       id: 'seed-alert-cost-anomaly',
-      title: '线束成本异常偏高',
+      title: '\u7ebf\u675f\u6210\u672c\u5f02\u5e38\u504f\u9ad8',
       category: 'cost_anomaly',
       severity: 'warning',
       status: 'resolved',
-      detail: '连接器替换导致单车成本增加 15.2 元，已完成复核。',
+      detail: '\u8fde\u63a5\u5668\u66ff\u6362\u5bfc\u81f4\u5355\u8f66\u6210\u672c\u589e\u52a0 15.2 \u5143\uff0c\u5df2\u5b8c\u6210\u590d\u6838\u3002',
       impactAmount: 1520,
       sourceObjectType: 'harness',
       sourceObjectId: '6608442967',
@@ -257,10 +257,10 @@ async function main() {
         metadata: JSON.stringify(event.metadata),
       },
     });
-    console.log(`  ✅ Alert event: ${event.title}`);
+    console.log(`  \u2705 Alert event: ${event.title}`);
   }
 
-  console.log('\n🎉 Seed complete!\n');
+  console.log('\n\u{1F389} Seed complete!\n');
 }
 
 main()

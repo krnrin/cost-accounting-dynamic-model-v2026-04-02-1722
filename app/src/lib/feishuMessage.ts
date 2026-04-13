@@ -5,8 +5,6 @@
  * - 金属价格预警卡片
  * - 核算完成通知卡片
  * - 通用消息发送 (文本/卡片)
- * 
- * 使用飞书 im/v1/messages API
  */
 
 import { feishuApiCall } from './feishuApi';
@@ -65,19 +63,16 @@ export async function sendCardMessage(
   return result.message_id;
 }
 
-// ── Card Templates ──
-
 /**
  * Build a metal price alert card
- * Sent when copper or aluminum price changes exceed threshold
  */
 export function buildMetalPriceAlertCard(params: {
   projectName: string;
   copperPrice: number;
-  copperChange: number;    // percentage change
+  copperChange: number;
   aluminumPrice: number;
-  aluminumChange: number;  // percentage change
-  impactAmount: number;    // estimated cost impact in CNY
+  aluminumChange: number;
+  impactAmount: number;
   alertLevel: 'info' | 'warning' | 'danger';
   detailUrl?: string;
 }): Record<string, any> {
@@ -86,17 +81,8 @@ export function buildMetalPriceAlertCard(params: {
     impactAmount, alertLevel, detailUrl,
   } = params;
 
-  const colorMap = {
-    info: 'blue',
-    warning: 'orange',
-    danger: 'red',
-  };
-
-  const levelText = {
-    info: '信息',
-    warning: '预警',
-    danger: '警告',
-  };
+  const colorMap = { info: 'blue', warning: 'orange', danger: 'red' };
+  const levelText = { info: '信息', warning: '预警', danger: '警告' };
 
   return {
     config: { wide_screen_mode: true },
@@ -108,53 +94,30 @@ export function buildMetalPriceAlertCard(params: {
       {
         tag: 'div',
         fields: [
-          {
-            is_short: true,
-            text: { tag: 'lark_md', content: `**铜价**\n¥${copperPrice.toFixed(2)}/kg (${copperChange >= 0 ? '+' : ''}${copperChange.toFixed(1)}%)` },
-          },
-          {
-            is_short: true,
-            text: { tag: 'lark_md', content: `**铝价**\n¥${aluminumPrice.toFixed(2)}/kg (${aluminumChange >= 0 ? '+' : ''}${aluminumChange.toFixed(1)}%)` },
-          },
+          { is_short: true, text: { tag: 'lark_md', content: `**铜价**\n¥${copperPrice.toFixed(2)}/kg (${copperChange >= 0 ? '+' : ''}${copperChange.toFixed(1)}%)` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**铝价**\n¥${aluminumPrice.toFixed(2)}/kg (${aluminumChange >= 0 ? '+' : ''}${aluminumChange.toFixed(1)}%)` } },
         ],
       },
       { tag: 'hr' },
       {
         tag: 'div',
-        text: {
-          tag: 'lark_md',
-          content: `**预估成本影响**: ¥${Math.abs(impactAmount).toFixed(2)} (${impactAmount >= 0 ? '成本上升' : '成本下降'})`,
-        },
+        text: { tag: 'lark_md', content: `**预估成本影响**: ¥${Math.abs(impactAmount).toFixed(2)} (${impactAmount >= 0 ? '成本上升' : '成本下降'})` },
       },
-      ...(detailUrl ? [{
-        tag: 'action',
-        actions: [{
-          tag: 'button',
-          text: { tag: 'plain_text', content: '查看详情' },
-          url: detailUrl,
-          type: 'primary',
-        }],
-      }] : []),
-      {
-        tag: 'note',
-        elements: [
-          { tag: 'plain_text', content: `数据来源: SHFE参考价 | ${new Date().toLocaleString('zh-CN')}` },
-        ],
-      },
+      ...(detailUrl ? [{ tag: 'action', actions: [{ tag: 'button', text: { tag: 'plain_text', content: '查看详情' }, url: detailUrl, type: 'primary' }] }] : []),
+      { tag: 'note', elements: [{ tag: 'plain_text', content: `数据来源: SHFE参考价 | ${new Date().toLocaleString('zh-CN')}` }] },
     ],
   };
 }
 
 /**
  * Build a cost calculation completion card
- * Sent when batch cost calculation finishes
  */
 export function buildCalcCompleteCard(params: {
   projectName: string;
   harnessCount: number;
   totalMaterialCost: number;
   totalPrice: number;
-  profitRate: number;       // as percentage
+  profitRate: number;
   calculatedBy: string;
   detailUrl?: string;
 }): Record<string, any> {
@@ -170,52 +133,21 @@ export function buildCalcCompleteCard(params: {
       {
         tag: 'div',
         fields: [
-          {
-            is_short: true,
-            text: { tag: 'lark_md', content: `**线束数量**\n${harnessCount} 项` },
-          },
-          {
-            is_short: true,
-            text: { tag: 'lark_md', content: `**核算人员**\n${calculatedBy}` },
-          },
+          { is_short: true, text: { tag: 'lark_md', content: `**线束数量**\n${harnessCount} 项` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**核算人员**\n${calculatedBy}` } },
         ],
       },
       { tag: 'hr' },
       {
         tag: 'div',
         fields: [
-          {
-            is_short: true,
-            text: { tag: 'lark_md', content: `**材料总成本**\n¥${totalMaterialCost.toFixed(2)}` },
-          },
-          {
-            is_short: true,
-            text: { tag: 'lark_md', content: `**报价总额**\n¥${totalPrice.toFixed(2)}` },
-          },
+          { is_short: true, text: { tag: 'lark_md', content: `**材料总成本**\n¥${totalMaterialCost.toFixed(2)}` } },
+          { is_short: true, text: { tag: 'lark_md', content: `**报价总额**\n¥${totalPrice.toFixed(2)}` } },
         ],
       },
-      {
-        tag: 'div',
-        text: {
-          tag: 'lark_md',
-          content: `**利润率**: ${profitRate.toFixed(2)}%`,
-        },
-      },
-      ...(detailUrl ? [{
-        tag: 'action',
-        actions: [{
-          tag: 'button',
-          text: { tag: 'plain_text', content: '查看详情' },
-          url: detailUrl,
-          type: 'primary',
-        }],
-      }] : []),
-      {
-        tag: 'note',
-        elements: [
-          { tag: 'plain_text', content: `计算时间: ${new Date().toLocaleString('zh-CN')}` },
-        ],
-      },
+      { tag: 'div', text: { tag: 'lark_md', content: `**利润率**: ${profitRate.toFixed(2)}%` } },
+      ...(detailUrl ? [{ tag: 'action', actions: [{ tag: 'button', text: { tag: 'plain_text', content: '查看详情' }, url: detailUrl, type: 'primary' }] }] : []),
+      { tag: 'note', elements: [{ tag: 'plain_text', content: `计算时间: ${new Date().toLocaleString('zh-CN')}` }] },
     ],
   };
 }
@@ -230,8 +162,8 @@ export async function checkAndAlertMetalPrice(params: {
   currentCopperPrice: number;
   currentAluminumPrice: number;
   estimatedCostImpact: number;
-  alertThresholdPercent: number; // e.g. 5 for 5%
-  notifyTarget: string;         // open_id or chat_id
+  alertThresholdPercent: number;
+  notifyTarget: string;
   notifyType?: ReceiveIdType;
   detailUrl?: string;
 }): Promise<{ alerted: boolean; messageId?: string }> {
@@ -256,14 +188,9 @@ export async function checkAndAlertMetalPrice(params: {
   else if (maxChange >= alertThresholdPercent) alertLevel = 'warning';
 
   const card = buildMetalPriceAlertCard({
-    projectName,
-    copperPrice: currentCopperPrice,
-    copperChange,
-    aluminumPrice: currentAluminumPrice,
-    aluminumChange,
-    impactAmount: estimatedCostImpact,
-    alertLevel,
-    detailUrl,
+    projectName, copperPrice: currentCopperPrice, copperChange,
+    aluminumPrice: currentAluminumPrice, aluminumChange,
+    impactAmount: estimatedCostImpact, alertLevel, detailUrl,
   });
 
   const messageId = await sendCardMessage(notifyTarget, card, notifyType);
