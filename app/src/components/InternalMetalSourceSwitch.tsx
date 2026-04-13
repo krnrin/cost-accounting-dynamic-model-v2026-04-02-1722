@@ -1,220 +1,198 @@
 /**
- * app/src/components/InternalMetalSourceSwitch.tsx
- * 实绩侧金属价格源切换组件
+ * 内部金属价格来源切换组件
  *
- * 三选一 SegmentedControl:
- * - 财务基准 (benchmark)
- * - 现货 (spot_shfe / spot_smm / manual)
- * - 手动录入 (manual) — Phase 1 主要入口
+ * 用于 Gap 分析页面，切换内部实绩侧的金属基准：
+ *   1. 财务发布基准价 (benchmark)
+ *   2. 上海期货交易所现货价 (shfe_spot)
+ *   3. 上海有色金属网现货价 (smm_spot)
  *
- * 显示当前价格、价差、过期提醒
+ * Phase 1: 手动录入 + 过期检测
+ * Phase 2 (backlog): SMM API 自动拉取
  */
+import { useState } from 'react';
+import {
+  RadioGroup,
+  Radio,
+  InputNumber,
+  Button,
+  Tag,
+  Toast,
+  Typography,
+  Space,
+  Tooltip,
+} from '@douyinfe/semi-ui';
+import { IconAlertTriangle, IconTick, IconRefresh } from '@douyinfe/semi-icons';
+import {
+  useInternalMetalStore,
+  SOURCE_LABELS,
+  type InternalMetalSource,
+} from '@/store/internalMetalStore';
 
-import React, { useState, useCallback } from 'react';
-import type { InternalMetalSource, InternalMetalConfig, DualMetalPrices } from '@/types/gap_analysis';
-import type { StalenessCheck } from '@/engine/manual_price_provider';
-import { formatPriceDisplay, formatSpreadDisplay } from '@/engine/manual_price_provider';
+const { Text } = Typography;
 
-// ══════════════════════════════════════════════════
-// Props
-// ══════════════════════════════════════════════════
-
-export interface InternalMetalSourceSwitchProps {
-  /** 内部金属价格配置 */
-  config: InternalMetalConfig;
-  /** 当前选中源 */
-  activeSource: InternalMetalSource;
-  /** 客户口径铜价 (用于计算价差) */
-  customerCopperPrice: number;
-  /** 客户口径铝价 */
-  customerAluminumPrice: number;
-  /** 过期检测 */
-  stalenessCheck: StalenessCheck | null;
-  /** 切换事件 */
-  onSourceChange: (source: InternalMetalSource) => void;
-  /** 手动价格更新事件 */
-  onManualPriceUpdate: (copper: number, aluminum: number, note?: string) => void;
+interface InternalMetalSourceSwitchProps {
+  /** 紧凑模式（只显示切换器，不显示录入表单） */
+  compact?: boolean;
+  /** 切换回调 */
+  onSourceChange?: (source: InternalMetalSource) => void;
+  /** 价格更新回调 */
+  onPriceUpdate?: (source: InternalMetalSource, copper: number, aluminum: number) => void;
 }
 
-// ══════════════════════════════════════════════════
-// 源选项配置
-// ══════════════════════════════════════════════════
-
-interface SourceOption {
-  key: InternalMetalSource;
-  label: string;
-  description: string;
-}
-
-const SOURCE_OPTIONS: SourceOption[] = [
-  { key: 'benchmark', label: '财务基准', description: '财务发布的基准金属价' },
-  { key: 'manual',    label: '手动现货', description: '手动录入现铜/现铝价格' },
-];
-
-// ══════════════════════════════════════════════════
-// Component
-// ══════════════════════════════════════════════════
-
-export const InternalMetalSourceSwitch: React.FC<InternalMetalSourceSwitchProps> = ({
-  config,
-  activeSource,
-  customerCopperPrice,
-  customerAluminumPrice,
-  stalenessCheck,
+export function InternalMetalSourceSwitch({
+  compact = false,
   onSourceChange,
-  onManualPriceUpdate,
-}) => {
-  const [editMode, setEditMode] = useState(false);
-  const [editCopper, setEditCopper] = useState('');
-  const [editAluminum, setEditAluminum] = useState('');
+  onPriceUpdate,
+}: InternalMetalSourceSwitchProps) {
+  const {
+    activeSource,
+    setActiveSource,
+    updatePrice,
+    getActivePrice,
+    isStale,
+    getStalenessLabel,
+    getAllPriceSummary,
+  } = useInternalMetalStore();
+
+  const [editCopper, setEditCopper] = useState<number | undefined>(undefined);
+  const [editAluminum, setEditAluminum] = useState<number | undefined>(undefined);
   const [editNote, setEditNote] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  // 获取当前源的价格
-  const currentPrices = activeSource === 'benchmark'
-    ? { copper: config.sources.benchmark.copper, aluminum: config.sources.benchmark.aluminum }
-    : { copper: config.sources.spot.copper, aluminum: config.sources.spot.aluminum };
+  const activePrice = getActivePrice();
+  const stale = isStale();
+  const stalenessLabel = getStalenessLabel();
+  const summary = getAllPriceSummary();
 
-  // 计算价差
-  const copperSpread = customerCopperPrice - currentPrices.copper;
-  const aluminumSpread = customerAluminumPrice - currentPrices.aluminum;
+  const handleSwitch = (source: InternalMetalSource) => {
+    setActiveSource(source);
+    const price = useInternalMetalStore.getState().prices[source];
+    setEditCopper(price.copper);
+    setEditAluminum(price.aluminum);
+    onSourceChange?.(source);
+  };
 
-  // 处理手动价格提交
-  const handleManualSubmit = useCallback(() => {
-    const cu = parseFloat(editCopper);
-    const al = parseFloat(editAluminum);
-    if (!isNaN(cu) && !isNaN(al) && cu > 0 && al > 0) {
-      onManualPriceUpdate(cu, al, editNote || undefined);
-      setEditMode(false);
-      setEditCopper('');
-      setEditAluminum('');
-      setEditNote('');
+  const handleSave = async () => {
+    if (editCopper === undefined || editAluminum === undefined) {
+      Toast.warning('请输入铜价和铝价');
+      return;
     }
-  }, [editCopper, editAluminum, editNote, onManualPriceUpdate]);
+    setSaving(true);
+    try {
+      await updatePrice(activeSource, editCopper, editAluminum, editNote || undefined);
+      onPriceUpdate?.(activeSource, editCopper, editAluminum);
+      Toast.success(`${SOURCE_LABELS[activeSource]} 已更新`);
+    } catch (err) {
+      Toast.error('保存失败');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
-    <div className="internal-metal-source-switch">
-      {/* 标题 */}
-      <div className="section-header">
-        <h4>实绩金属价格源</h4>
-        {stalenessCheck?.isStale && (
-          <span className="stale-badge" title={stalenessCheck.message}>
-            ⚠️ 已过期
-          </span>
+    <div style= display: 'flex', flexDirection: 'column', gap: 12 >
+      {/* 来源切换 */}
+      <div style= display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' >
+        <Text strong style= fontSize: 13 >内部金属基准：</Text>
+        <RadioGroup
+          type="button"
+          value={activeSource}
+          onChange={(e) => handleSwitch(e.target.value as InternalMetalSource)}
+        >
+          <Radio value="benchmark">财务基准价</Radio>
+          <Radio value="shfe_spot">SHFE 现货</Radio>
+          <Radio value="smm_spot">SMM 现货</Radio>
+        </RadioGroup>
+
+        {stale ? (
+          <Tooltip content={`${SOURCE_LABELS[activeSource]} ${stalenessLabel}，建议更新`}>
+            <Tag color="orange" prefixIcon={<IconAlertTriangle />} size="small">
+              {stalenessLabel}
+            </Tag>
+          </Tooltip>
+        ) : (
+          <Tag color="green" prefixIcon={<IconTick />} size="small">
+            {stalenessLabel}
+          </Tag>
         )}
       </div>
 
-      {/* SegmentedControl */}
-      <div className="source-tabs">
-        {SOURCE_OPTIONS.map((opt) => (
-          <button
-            key={opt.key}
-            className={`source-tab ${activeSource === opt.key ? 'active' : ''}`}
-            onClick={() => onSourceChange(opt.key)}
-            title={opt.description}
+      {/* 当前价格展示 */}
+      <div style= display: 'flex', gap: 24, flexWrap: 'wrap' >
+        {summary.map((item) => (
+          <div
+            key={item.source}
+            style=
+              padding: '8px 14px',
+              borderRadius: 8,
+              background: item.source === activeSource ? 'rgba(37,99,235,0.06)' : 'rgba(0,0,0,0.02)',
+              border: item.source === activeSource ? '1px solid rgba(37,99,235,0.2)' : '1px solid transparent',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              minWidth: 160,
+            
+            onClick={() => handleSwitch(item.source)}
           >
-            {opt.label}
-          </button>
+            <div style= display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 >
+              <Text strong style= fontSize: 12 >{item.label}</Text>
+              {item.isStale && <Tag color="orange" size="small">过期</Tag>}
+            </div>
+            <div style= fontSize: 12, color: '#666' >
+              铜 ¥{item.copper.toLocaleString()}/吨 · 铝 ¥{item.aluminum.toLocaleString()}/吨
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* 价格展示卡片 */}
-      <div className="price-display">
-        <div className="price-row">
-          <span className="price-label">铜</span>
-          <span className="price-value">{formatPriceDisplay(currentPrices.copper)}</span>
-          <span className={`price-spread ${copperSpread >= 0 ? 'positive' : 'negative'}`}>
-            {formatSpreadDisplay(copperSpread)}
-          </span>
-        </div>
-        <div className="price-row">
-          <span className="price-label">铝</span>
-          <span className="price-value">{formatPriceDisplay(currentPrices.aluminum)}</span>
-          <span className={`price-spread ${aluminumSpread >= 0 ? 'positive' : 'negative'}`}>
-            {formatSpreadDisplay(aluminumSpread)}
-          </span>
-        </div>
-
-        {/* 来源信息 */}
-        <div className="price-meta">
-          {activeSource === 'benchmark' && (
-            <span>版本: {config.sources.benchmark.version} · 生效: {config.sources.benchmark.effectiveDate}</span>
-          )}
-          {activeSource !== 'benchmark' && (
-            <span>
-              取价: {config.sources.spot.fetchedAt
-                ? new Date(config.sources.spot.fetchedAt).toLocaleString('zh-CN')
-                : '未录入'}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* 手动录入区域 */}
-      {activeSource === 'manual' && (
-        <div className="manual-input-area">
-          {!editMode ? (
-            <button
-              className="edit-prices-btn"
-              onClick={() => {
-                setEditCopper(currentPrices.copper > 0 ? String(currentPrices.copper) : '');
-                setEditAluminum(currentPrices.aluminum > 0 ? String(currentPrices.aluminum) : '');
-                setEditMode(true);
-              }}
-            >
-              {currentPrices.copper > 0 ? '更新价格' : '录入价格'}
-            </button>
-          ) : (
-            <div className="manual-form">
-              <div className="form-row">
-                <label>现铜 (元/吨)</label>
-                <input
-                  type="number"
-                  value={editCopper}
-                  onChange={(e) => setEditCopper(e.target.value)}
-                  placeholder="如 72150"
-                  min={0}
-                />
-              </div>
-              <div className="form-row">
-                <label>现铝 (元/吨)</label>
-                <input
-                  type="number"
-                  value={editAluminum}
-                  onChange={(e) => setEditAluminum(e.target.value)}
-                  placeholder="如 19800"
-                  min={0}
-                />
-              </div>
-              <div className="form-row">
-                <label>备注</label>
-                <input
-                  type="text"
-                  value={editNote}
-                  onChange={(e) => setEditNote(e.target.value)}
-                  placeholder="如 SMM 04-13 上午报价"
-                />
-              </div>
-              <div className="form-actions">
-                <button className="btn-confirm" onClick={handleManualSubmit}>
-                  确认
-                </button>
-                <button className="btn-cancel" onClick={() => setEditMode(false)}>
-                  取消
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 过期提醒 */}
-      {stalenessCheck && activeSource !== 'benchmark' && (
-        <div className={`staleness-info ${stalenessCheck.isStale ? 'stale' : 'fresh'}`}>
-          {stalenessCheck.message}
+      {/* 录入表单（非紧凑模式） */}
+      {!compact && (
+        <div
+          style=
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: 12,
+            padding: '12px 0',
+            borderTop: '1px solid rgba(0,0,0,0.06)',
+            flexWrap: 'wrap',
+          
+        >
+          <div>
+            <Text style= fontSize: 12, color: '#999', display: 'block', marginBottom: 4 >
+              铜价 (元/吨)
+            </Text>
+            <InputNumber
+              value={editCopper ?? activePrice.copper}
+              onChange={(v) => setEditCopper(v as number)}
+              style= width: 140 
+              min={0}
+              step={100}
+              prefix="¥"
+            />
+          </div>
+          <div>
+            <Text style= fontSize: 12, color: '#999', display: 'block', marginBottom: 4 >
+              铝价 (元/吨)
+            </Text>
+            <InputNumber
+              value={editAluminum ?? activePrice.aluminum}
+              onChange={(v) => setEditAluminum(v as number)}
+              style= width: 140 
+              min={0}
+              step={100}
+              prefix="¥"
+            />
+          </div>
+          <Button
+            icon={<IconRefresh />}
+            theme="solid"
+            loading={saving}
+            onClick={handleSave}
+            style= height: 32 
+          >
+            更新 {SOURCE_LABELS[activeSource]}
+          </Button>
         </div>
       )}
     </div>
   );
-};
-
-export default InternalMetalSourceSwitch;
+}
