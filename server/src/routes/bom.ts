@@ -104,16 +104,6 @@ scenarioBomRouter.get('/diff', async (req: Request, res: Response, next: NextFun
   }
 });
 
-scenarioBomRouter.get('/diff', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const baseScenarioId = String(req.query.base || '');
-    const data = await BomService.diffScenarioBom(req.params.sid as string, baseScenarioId);
-    res.json({ data });
-  } catch (error) {
-    next(error);
-  }
-});
-
 bomRowRouter.put('/:rowId', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const projectId = String(req.body.projectId || req.query.projectId || '');

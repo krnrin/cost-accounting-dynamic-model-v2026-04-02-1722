@@ -34,11 +34,11 @@ export const FIELD_MAPS = {
     customer: '客户',
     platform: '平台',
     status: '状态',
-    costRates: '成本费率',        // JSON text field
-    internalCostRates: '内部成本费率', // JSON text field
-    metalPrices: '金属价格',      // JSON text field
-    volumes: '产量计划',          // JSON text field
-    config: '项目配置',           // JSON text field (full ProjectConfig)
+    costRates: '成本费率',
+    internalCostRates: '内部成本费率',
+    metalPrices: '金属价格',
+    volumes: '产量计划',
+    config: '项目配置',
     createdBy: '创建人',
     createdAt: '创建时间',
     updatedAt: '更新时间',
@@ -48,8 +48,8 @@ export const FIELD_MAPS = {
     projectId: '项目ID',
     harnessId: '线束编号',
     harnessName: '线束名称',
-    input: '输入数据',           // JSON text field (HarnessInput)
-    result: '计算结果',          // JSON text field (HarnessResult)
+    input: '输入数据',
+    result: '计算结果',
     updatedAt: '更新时间',
   },
   quotes: {
@@ -58,7 +58,7 @@ export const FIELD_MAPS = {
     version: '版本',
     status: '状态',
     template: '模板',
-    data: '报价数据',            // JSON text field
+    data: '报价数据',
     createdAt: '创建时间',
     updatedAt: '更新时间',
   },
@@ -68,7 +68,7 @@ export const FIELD_MAPS = {
     versionNumber: '版本号',
     label: '标签',
     status: '状态',
-    snapshot: '快照数据',        // JSON text field (VersionSnapshot)
+    snapshot: '快照数据',
     notes: '备注',
     createdBy: '创建人',
     createdAt: '创建时间',
@@ -81,7 +81,7 @@ export const FIELD_MAPS = {
     action: '操作',
     entity: '实体类型',
     entityId: '实体ID',
-    details: '详情',             // JSON text field
+    details: '详情',
     createdAt: '操作时间',
   },
 } as const;
