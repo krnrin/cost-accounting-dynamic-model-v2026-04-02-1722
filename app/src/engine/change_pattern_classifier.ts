@@ -327,7 +327,7 @@ function classifyModified(modified: BomRowChange[], results: SemanticChange[]): 
     }
     const before = Number(qtyChange.before ?? NaN);
     const after = Number(qtyChange.after ?? NaN);
-    if (!Number.isNaN(before) && !Number.isNaN(after) && before === 1 && after >= 5) {
+    if (!Number.isNaN(before) && !Number.isNaN(after) && before > 0 && after / before >= 4) {
       results.push({ pattern: 'qty_explode', description: `数量炸开：${mod.partNo} qty ${before} → ${after}`, relatedChanges: [mod], confidence: 0.6 });
       continue;
     }
@@ -463,11 +463,15 @@ function scoreReplace(rem: BomRowChange, add: BomRowChange, remHint?: ClassifyHi
 }
 
 function scoreWireReplace(rem: BomRowChange, add: BomRowChange, remHint?: ClassifyHint, addHint?: ClassifyHint): number {
-  if (!isWireLike(rem, remHint) || !isWireLike(add, addHint)) return 0;
   let score = 0;
-  if (isSameGroup(remHint, addHint)) score += 3;
-  if (isSameSupplier(remHint?.supplier, addHint?.supplier)) score += 2;
-  if (normalizeText(remHint?.unit) === normalizeText(addHint?.unit)) score += 1;
+  const wireLikePair = isWireLike(rem, remHint) && isWireLike(add, addHint);
+  const sameGroup = isSameGroup(remHint, addHint);
+  const sameSupplier = isSameSupplier(remHint?.supplier, addHint?.supplier);
+  const sameUnit = normalizeText(remHint?.unit) === normalizeText(addHint?.unit);
+  if (!wireLikePair && !(sameGroup && sameSupplier && sameUnit)) return 0;
+  if (sameGroup) score += 3;
+  if (sameSupplier) score += 2;
+  if (sameUnit) score += 1;
   const remPartBase = stripSpecToken(rem.partNo);
   const addPartBase = stripSpecToken(add.partNo);
   const remNameBase = stripSpecToken(rem.partName);
@@ -477,6 +481,7 @@ function scoreWireReplace(rem: BomRowChange, add: BomRowChange, remHint?: Classi
   const remSpec = extractSpecToken(rem.partNo) || extractSpecToken(rem.partName);
   const addSpec = extractSpecToken(add.partNo) || extractSpecToken(add.partName);
   if (remSpec && addSpec && remSpec !== addSpec) score += 1;
+  if (!wireLikePair && sameGroup && sameSupplier && sameUnit) score += 2;
   return score;
 }
 

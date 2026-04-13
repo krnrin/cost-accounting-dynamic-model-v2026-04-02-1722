@@ -525,6 +525,40 @@ function handleSemanticPatterns<T extends { rowKey: string; partNo: string; part
         break;
       }
 
+      case 'replace':
+      case 'wire_spec_replace': {
+        const removed = semantic.relatedChanges.find(c => c.changeType === 'removed');
+        const added = semantic.relatedChanges.find(c => c.changeType === 'added');
+        if (removed && added) {
+          const matched = rows.find(row => row.partNo === removed.partNo);
+          if (matched) {
+            actions.push({
+              targetSheet,
+              actionType: 'update',
+              rowKey: matched.rowKey,
+              data: {
+                partNo: added.partNo,
+                partName: added.partName,
+                qty: added.fieldChanges.find(f => f.field === 'qty')?.after ?? matched.qty,
+                supplier: added.fieldChanges.find(f => f.field === 'supplier')?.after ?? matched.supplier,
+                spec: added.fieldChanges.find(f => f.field === 'spec')?.after ?? matched.spec,
+                remark: semantic.pattern === 'wire_spec_replace'
+                  ? `导线规格替换: ${removed.partNo} -> ${added.partNo}`
+                  : `物料替换: ${removed.partNo} -> ${added.partNo}`,
+              },
+            });
+            preview.push({
+              rowKey: matched.rowKey,
+              cells: [`${removed.partNo} -> ${added.partNo}`, added.partName, matched.qty ?? '-', semantic.pattern === 'wire_spec_replace' ? '导线规格替换' : '物料替换', '物料替换'],
+              changeType: 'modified',
+            });
+          }
+          context.handledChanges.add(`${removed.changeType}::${removed.partNo}`);
+          context.handledChanges.add(`${added.changeType}::${added.partNo}`);
+        }
+        break;
+      }
+
       case 'qty_explode': {
         // 数量炸开：特殊标记
         const modified = semantic.relatedChanges.find(c => c.changeType === 'modified');
