@@ -48,9 +48,9 @@ export function useAlertWorkflow() {
    * @param customRules 自定义规则（可选，默认使用 DEFAULT_ALERT_RULES）
    */
   const runChecks = useCallback(
-    (data: Record<string, unknown>, customRules?: Parameters<typeof runAlertChecks>[1]) => {
+    (values: Record<string, number>, customRules?: Parameters<typeof runAlertChecks>[0]) => {
       const rules = customRules || DEFAULT_ALERT_RULES;
-      const alerts = runAlertChecks(data, rules);
+      const alerts = runAlertChecks(rules, values);
       const result: ClientAlertCheckResult = {
         alerts,
         checkedAt: new Date().toISOString(),

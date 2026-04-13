@@ -120,16 +120,62 @@ export default function ProjectDashboardOverviewPage() {
           setProject(localProject);
           setCurrentProject(localProject.id, localProject.meta.projectName);
         }
-        const [dashboardData, versionData, auditData] = await Promise.all([
-          apiClient<ProjectDashboardData>(`/projects/${id}/dashboard`),
-          apiClient<ProjectVersionSummary[]>(`/versions/project/${id}`),
-          apiClient<ProjectAuditLogSummary[]>(`/projects/${id}/audit-logs`),
-        ]);
-        setDashboard(dashboardData);
-        setVersions(versionData);
-        setAuditLogs(auditData);
-        if (!localProject) {
-          setCurrentProject(dashboardData.id, dashboardData.projectName);
+        try {
+          const [dashboardData, versionData, auditData] = await Promise.all([
+            apiClient<ProjectDashboardData>(`/projects/${id}/dashboard`),
+            apiClient<ProjectVersionSummary[]>(`/versions/project/${id}`),
+            apiClient<ProjectAuditLogSummary[]>(`/projects/${id}/audit-logs`),
+          ]);
+          setDashboard(dashboardData);
+          setVersions(versionData);
+          setAuditLogs(auditData);
+          if (!localProject) {
+            setCurrentProject(dashboardData.id, dashboardData.projectName);
+          }
+        } catch {
+          if (localProject) {
+            const [localScenarios, localQuotes, localVersions] = await Promise.all([
+              db.scenarios.where('projectId').equals(id).toArray(),
+              db.quotes.where('projectId').equals(id).toArray(),
+              db.versions.where('projectId').equals(id).toArray(),
+            ]);
+            setDashboard({
+              id: localProject.id,
+              projectCode: localProject.meta.projectCode,
+              projectName: localProject.meta.projectName,
+              customer: localProject.meta.customer,
+              platform: localProject.meta.platform,
+              status: localProject.meta.status,
+              harnessCount: 0,
+              scenarioCount: localScenarios.length,
+              quoteCount: localQuotes.length,
+              versionCount: localVersions.length,
+              latestQuoteTotal: null,
+              internalCostBaseline: null,
+              latestProfitGap: null,
+              totalAllocationAmount: 0,
+              totalRecoveredAmount: 0,
+              recoveryRate: 0,
+              updatedAt: localProject.meta.updatedAt,
+              scenarios: localScenarios.map((s) => ({
+                id: s.id,
+                name: s.scenarioName,
+                type: s.scenarioType,
+                status: s.status || 'draft',
+                lifecycleYears: s.lifecycleYears,
+                createdAt: s.createdAt,
+              })),
+              latestQuote: null,
+            });
+            setVersions(localVersions.map((v) => ({
+              id: v.id,
+              versionNumber: v.versionNumber,
+              label: v.label,
+              status: v.status,
+              createdAt: v.createdAt,
+            })));
+            setAuditLogs([]);
+          }
         }
       } finally {
         setLoading(false);

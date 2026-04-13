@@ -1117,8 +1117,6 @@ export function calculateCrossSheetConfidence(
   let score = 0.5; // 基础分
   const evidence: string[] = [];
 
-  const _kskItem = itemsInKsk.find(i => i.partNo === issue.partNo);
-  const _assemblyItem = itemsInAssembly.find(i => i.partNo === issue.partNo);
 
   // 1. 单位类型检查
   if (issue.unitType) {
@@ -1220,8 +1218,8 @@ function findPotentialReplace(
       }
     }
 
-    // 分类相同
-    if (candidate.itemCategory && candidate.itemCategory === issue.semanticInference?.likelyPattern) {
+    // 分类相同（仅作弱信号，不与语义模式直接比较）
+    if (candidate.itemCategory) {
       score += 1;
     }
 
@@ -1404,10 +1402,6 @@ export function generateSemanticChangeDescription(
 export function enrichValidationResult(
   result: CrossSheetValidationResult
 ): CrossSheetValidationResult & { semanticSummary: string } {
-  const _issueDescriptions = result.issues.map(i => {
-    const { title } = generateSemanticChangeDescription(i);
-    return title;
-  });
 
   const patterns = new Set(result.issues.map(i => i.semanticInference?.likelyPattern).filter(Boolean));
   const patternStr = patterns.size > 0

@@ -10,6 +10,6 @@
  */
 export { useScenarioLifecycle, getTransitionLabel, getTransitionConfirmText, getStatusLabel } from './useScenarioLifecycle';
 export { useAlertWorkflow, SEVERITY_DISPLAY } from './useAlertWorkflow';
-export { useBomNormalizer, enhancedBomCompare, BOM_TARGET_COLUMNS } from './useBomNormalizer';
-export { useSmartPaste } from './useSmartPaste';
+export { useBomNormalizer, enhancedBomCompare } from './useBomNormalizer';
+export { useSmartPaste, BOM_TARGET_COLUMNS } from './useSmartPaste';
 export { useCascadeImpact } from './useCascadeImpact';

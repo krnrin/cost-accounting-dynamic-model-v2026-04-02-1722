@@ -198,13 +198,14 @@ export function computeSecondaryMaterialImpact(
   for (const wireChange of wireChanges) {
     const modified = wireChange.relatedChanges.find(c => c.changeType === 'modified');
     if (modified) {
+      const modifiedRowKey = (modified as BomRowChange & { rowKey?: string }).rowKey;
       // Wire spec change may trigger secondary material recalculation
       // Find related secondary materials (tape, tube, etc.)
       const relatedRows = rows.filter(row =>
         row.partName?.includes('胶带') ||
         row.partName?.includes('波纹管') ||
         row.partName?.includes('热缩管') ||
-        row.sourceBomRowKey === modified.rowKey
+        row.sourceBomRowKey === modifiedRowKey
       );
 
       for (const relatedRow of relatedRows) {

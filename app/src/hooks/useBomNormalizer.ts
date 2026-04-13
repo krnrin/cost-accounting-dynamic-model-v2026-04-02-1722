@@ -38,10 +38,12 @@ import type { BomItem } from '@/types/harness';
 export function enhancedBomCompare(
   baseBom: BomItem[],
   currentBom: BomItem[],
-  config?: Parameters<typeof compareBomLists>[2],
+  config?: Parameters<typeof normalizeBomItem>[1],
 ) {
   const effectiveConfig = config || DEFAULT_NORMALIZATION_CONFIG;
-  return compareBomLists(baseBom, currentBom, effectiveConfig);
+  const normalizedBase = baseBom.map((item) => normalizeBomItem(item, effectiveConfig));
+  const normalizedCurrent = currentBom.map((item) => normalizeBomItem(item, effectiveConfig));
+  return compareBomLists(normalizedBase, normalizedCurrent, DEFAULT_SUBSTITUTE_RULES);
 }
 
 /**
@@ -60,9 +62,14 @@ export function normalizeSingleItem(
 export function compareTwo(
   a: BomItem,
   b: BomItem,
-  config?: Parameters<typeof compareItems>[2],
+  config?: Parameters<typeof normalizeBomItem>[1],
 ) {
-  return compareItems(a, b, config || DEFAULT_NORMALIZATION_CONFIG);
+  const effectiveConfig = config || DEFAULT_NORMALIZATION_CONFIG;
+  return compareItems(
+    normalizeBomItem(a, effectiveConfig),
+    normalizeBomItem(b, effectiveConfig),
+    DEFAULT_SUBSTITUTE_RULES,
+  );
 }
 
 /**

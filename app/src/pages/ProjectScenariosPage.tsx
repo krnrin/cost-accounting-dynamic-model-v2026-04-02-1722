@@ -424,20 +424,20 @@ export default function ProjectScenariosPage() {
             <Button size="small" onClick={() => navigate(`/project/${id}/compare?ids=${record.id}`)}>对比</Button>
             {lifecycle.availableTransitions.map((transition) => (
               <Button
-                key={transition}
+                key={transition.to}
                 size="small"
                 theme="light"
                 onClick={() => {
                   Modal.confirm({
-                    title: getTransitionLabel(transition),
-                    content: getTransitionConfirmText(record.name, transition),
+                    title: getTransitionLabel(transition.to),
+                    content: getTransitionConfirmText(record.name, transition.to),
                     onOk: async () => {
                       try {
                         await apiClient(`/projects/${id}/scenarios/${record.id}/transition`, {
                           method: 'POST',
-                          body: { targetStatus: transition },
+                          body: { targetStatus: transition.to },
                         });
-                        Toast.success(`场景已${getTransitionLabel(transition)}`);
+                        Toast.success(`场景已${getTransitionLabel(transition.to)}`);
                         await reload();
                       } catch (error) {
                         Toast.error(error instanceof Error ? error.message : '操作失败');
@@ -446,7 +446,7 @@ export default function ProjectScenariosPage() {
                   });
                 }}
               >
-                {getTransitionLabel(transition)}
+                {getTransitionLabel(transition.to)}
               </Button>
             ))}
             <Button size="small" theme="borderless" onClick={() => handleClone(record)}>克隆</Button>

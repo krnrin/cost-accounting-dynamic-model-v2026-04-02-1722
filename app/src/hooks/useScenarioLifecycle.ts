@@ -23,13 +23,14 @@ import {
   canTransition,
   getStatusColor,
   getStatusIcon,
+  type ScenarioStatus,
 } from '@/engine/scenario_lifecycle';
 
 export interface ScenarioLifecycleInfo {
   /** 当前状态下是否可编辑场景参数 */
   editable: boolean;
   /** 当前状态可转换的目标状态列表 */
-  availableTransitions: string[];
+  availableTransitions: ReturnType<typeof getAvailableTransitions>;
   /** 状态对应的显示颜色 */
   statusColor: string;
   /** 状态对应的图标 emoji */
@@ -43,29 +44,31 @@ export interface ScenarioLifecycleInfo {
  * @param currentStatus 当前场景状态 (draft | frozen | published | archived)
  */
 export function useScenarioLifecycle(currentStatus: string | undefined): ScenarioLifecycleInfo {
+  const status = currentStatus as ScenarioStatus | undefined;
+
   const editable = useMemo(
-    () => (currentStatus ? isEditable(currentStatus) : true),
-    [currentStatus],
+    () => (status ? isEditable(status) : true),
+    [status],
   );
 
   const availableTransitions = useMemo(
-    () => (currentStatus ? getAvailableTransitions(currentStatus) : []),
-    [currentStatus],
+    () => (status ? getAvailableTransitions(status) : []),
+    [status],
   );
 
   const statusColor = useMemo(
-    () => (currentStatus ? getStatusColor(currentStatus) : 'grey'),
-    [currentStatus],
+    () => (status ? getStatusColor(status) : 'grey'),
+    [status],
   );
 
   const statusIcon = useMemo(
-    () => (currentStatus ? getStatusIcon(currentStatus) : ''),
-    [currentStatus],
+    () => (status ? getStatusIcon(status) : ''),
+    [status],
   );
 
   const canTransitionTo = useCallback(
-    (target: string) => (currentStatus ? canTransition(currentStatus, target) : false),
-    [currentStatus],
+    (target: string) => (status ? canTransition(status, target as ScenarioStatus) : false),
+    [status],
   );
 
   return {
