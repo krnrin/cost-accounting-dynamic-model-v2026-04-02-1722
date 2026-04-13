@@ -331,6 +331,42 @@ class CostWorkbenchDB extends Dexie {
       gapSnapshots: 'id, projectId, scenarioId, harnessId, snapshotType, metalSource, createdAt',
       metalPriceHistory: 'id, source, recordedAt',
     });
+    // [FIX P1-2] v10: 回填 quotes/versions 的 scenarioId (v7 migration 遗漏)
+    // v7 只迁移了 harnesses/onetimeCosts/allocTrackers 的 scenarioId，
+    // 但 quotes 和 versions 表也在 v7 新增了 scenarioId 索引，
+    // 已存在的记录未被回填，导致按场景查询时丢失数据
+    this.version(10).stores({}).upgrade(async (tx) => {
+      // 构建 projectId → baselineScenarioId 映射
+      const scenarios = await tx.table('scenarios').toArray();
+      const baselineMap = new Map<string, string>();
+      for (const s of scenarios) {
+        if (s.isBaseline && !baselineMap.has(s.projectId)) {
+          baselineMap.set(s.projectId, s.id);
+        }
+      }
+
+      // 回填 quotes
+      const quotes = await tx.table('quotes').toArray();
+      for (const q of quotes) {
+        if (!q.scenarioId && q.projectId) {
+          const sid = baselineMap.get(q.projectId);
+          if (sid) {
+            await tx.table('quotes').update(q.id, { scenarioId: sid });
+          }
+        }
+      }
+
+      // 回填 versions
+      const versions = await tx.table('versions').toArray();
+      for (const v of versions) {
+        if (!v.scenarioId && v.projectId) {
+          const sid = baselineMap.get(v.projectId);
+          if (sid) {
+            await tx.table('versions').update(v.id, { scenarioId: sid });
+          }
+        }
+      }
+    });
   }
 }
 

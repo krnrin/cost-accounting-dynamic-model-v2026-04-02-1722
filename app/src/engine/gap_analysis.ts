@@ -48,10 +48,11 @@ export function computeGapAnalysis(
   const materialGap = quoteMaterial - internalMaterial;
 
   // 金属价格效应: weight(kg) × priceSpread(元/吨) / 1000
+  // [FIX P1-1] copperSpread / aluminumSpread 加 numberOr 防护，防止 NaN 传播
   const cuWeight = numberOr(quote.copperWeight, 0);
   const alWeight = numberOr(quote.aluminumWeight, 0);
-  const copperPriceEffect = cuWeight * metalPrices.copperSpread / 1000;
-  const aluminumPriceEffect = alWeight * metalPrices.aluminumSpread / 1000;
+  const copperPriceEffect = cuWeight * numberOr(metalPrices.copperSpread, 0) / 1000;
+  const aluminumPriceEffect = alWeight * numberOr(metalPrices.aluminumSpread, 0) / 1000;
   const metalPriceEffect = copperPriceEffect + aluminumPriceEffect;
 
   // 用量效应 = 材料Gap - 价格效应 (理论上趋近零)
