@@ -45,11 +45,17 @@ export async function apiClient<T = any>(
       if (res.status === 401) { handleUnauthorized(); throw new Error('登录已过期'); }
       if (res.status === 204) return undefined as T;
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || `Request failed: ${res.status}`);
+      if (!res.ok) {
+        const err = new Error(json.error || `Request failed: ${res.status}`);
+        (err as any).status = res.status;
+        throw err;
+      }
       return json.data !== undefined ? json.data : json;
     } catch (err: any) {
       lastError = err;
       if (err.message === '登录已过期') throw err;
+      // 4xx client errors should not be retried — only retry network errors and 5xx
+      if (err.status && err.status >= 400 && err.status < 500) throw err;
       if (attempt < retries) continue;
       throw err;
     }
