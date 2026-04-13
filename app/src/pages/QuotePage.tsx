@@ -569,8 +569,8 @@ export default function QuotePage() {
                 { title: '当前值', render: (_: any, h: any) => {
                     const current = baselineResultsById.get(h.harnessId);
                     if (changeMode === 'bom') return formatCurrency(current?.materialCost);
-                    if (changeMode === 'hours') return current ? `${current.processHours.toFixed(2)} h` : '-';
-                    return `${(h.input.vehicleRatio * 100).toFixed(1)}%`;
+                    if (changeMode === 'hours') return current ? `${(current.processHours ?? 0).toFixed(2)} h` : '-';
+                    return `${((h.input.vehicleRatio ?? 0) * 100).toFixed(1)}%`;
                   }
                 },
                 { title: changeMode === 'bom' ? '新材料成本' : changeMode === 'hours' ? '新工时' : '新装车比',
