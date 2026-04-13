@@ -542,7 +542,8 @@
     }, {});
   }
 
-  function buildConnectorScenario(base, versions, defaultKey, draftPricing, protocolStatus) {
+  // [DI] ctx parameter added — replaces global.G281ProgressPriceTracker
+  function buildConnectorScenario(base, versions, defaultKey, draftPricing, protocolStatus, ctx) {
     const portfolio = base && base.connectorPortfolio ? base.connectorPortfolio : {};
     const items = Array.isArray(portfolio.items) ? portfolio.items : [];
     const baseCostPerSet = Number(portfolio.baseCostPerSet) || connectorBaseCostDefault(base);
@@ -610,7 +611,8 @@
     // --- Issue #1: 进度价 = 协议价差距追踪 ---
     let progressPriceGap = 0;
     let progressPriceDetail = null;
-    const progressTracker = global.G281ProgressPriceTracker;
+    // [DI] ctx.progressTracker replaces global.G281ProgressPriceTracker
+    const progressTracker = ctx && ctx.progressTracker;
     if (progressTracker) {
       const progressItems = connectorItems.map(item => ({
         partNo: item.partNo,
@@ -1027,12 +1029,15 @@
     };
   }
 
-  function computeModel(runtime, draft, state) {
+  // [DI] ctx parameter added — auto-created from globals if omitted (backward compatible)
+  function computeModel(runtime, draft, state, ctx) {
+    var EC = global.G281EngineContext;
+    if (!ctx) ctx = EC ? EC.create() : {};
+
     const BASE = runtime.master;
     const bomChanges = runtime.bomChanges || [];
-    // Issue #4: 从 projectConfig 读取状态默认值
-    const sd = (global.ConfigBridge && global.ConfigBridge.stateDefaults)
-      ? global.ConfigBridge.stateDefaults()
+    // [DI] EC.stateDefaults(ctx) replaces global.ConfigBridge.stateDefaults()
+    const sd = EC ? EC.stateDefaults(ctx)
       : { bom: 'freeze', metal: 'quote', connector: 'quote', labor: 'base',
           equipment: 'base', packaging: 'base', sales: 'quote', mix: 'quote',
           annualDrop: 'quote', oneTimeCustomer: 'quote', rebate: 'quote', vave: 'none' };
@@ -1095,7 +1100,8 @@
     const annualDrop = normalizeAnnualDropVersion(annualDropOption, lifecycleYearSeries);
     const oneTimeCustomer = normalizeOneTimeCustomerVersion(oneTimeCustomerOption, lifecycleYearSeries, lifecycleVolumeSeries);
     const rebate = normalizeRebateVersion(rebateOption, lifecycleYearSeries, lifecycleVolumeSeries);
-    const connectorScenario = buildConnectorScenario(BASE, BASE.versions.connector, currentState.connector, d.connectorPricing, runtime.connectorProtocolStatus || null);
+    // [DI] pass ctx to buildConnectorScenario
+    const connectorScenario = buildConnectorScenario(BASE, BASE.versions.connector, currentState.connector, d.connectorPricing, runtime.connectorProtocolStatus || null, ctx);
     const lifecycleVolume = lifecycleVolumeSeries.reduce((sum, value) => sum + value, 0);
     const bomSnapshot = bomVersionSnapshot(runtime, BASE, currentState.bom);
     const quoteBase = quoteCompareBase(runtime, BASE);
@@ -1117,9 +1123,8 @@
 
     const mixPrice = weighted(BASE.baselineMix, BASE.priceMixIndexes) > 0 ? weighted(d.mix, BASE.priceMixIndexes) / weighted(BASE.baselineMix, BASE.priceMixIndexes) : 1;
     const mixCost = weighted(BASE.baselineMix, BASE.costMixIndexes) > 0 ? weighted(d.mix, BASE.costMixIndexes) / weighted(BASE.baselineMix, BASE.costMixIndexes) : 1;
-    // Issue #4: 从 projectConfig 读取金属价格敏感度
-    const ms = (global.ConfigBridge && global.ConfigBridge.metalSensitivity)
-      ? global.ConfigBridge.metalSensitivity()
+    // [DI] EC.metalSensitivity(ctx) replaces global.ConfigBridge.metalSensitivity()
+    const ms = EC ? EC.metalSensitivity(ctx)
       : { copper: 0.65, aluminum: 0.45 };
     const copperFactor = BASE.copperPrice > 0 ? 1 + ((d.copperPrice - BASE.copperPrice) / BASE.copperPrice) * ms.copper : 1;
     const aluminumFactor = BASE.aluminumPrice > 0 ? 1 + ((d.aluminumPrice - BASE.aluminumPrice) / BASE.aluminumPrice) * ms.aluminum : 1;
@@ -1201,11 +1206,10 @@
       });
     }
 
-    // Issue #4: 从 projectConfig 读取材料成本组成系数
+    // [DI] EC.materialComposition(ctx) replaces global.ConfigBridge.materialComposition()
     // ── 估算路径 (Fallback Path) ──
     // 当无种子数据 (seed data) 时，使用系数近似逻辑进行降级估算。
-    const mc = (global.ConfigBridge && global.ConfigBridge.materialComposition)
-      ? global.ConfigBridge.materialComposition()
+    const mc = EC ? EC.materialComposition(ctx)
       : { connector: 0.24, copper: 0.38, aluminum: 0.18, other: 0.20 };
     const matBase = quoteBase.materialPerSet * (
       mc.connector * connectorFactor +
@@ -1355,18 +1359,25 @@
     }));
   }
 
+  // [DI] ctx parameter added as first argument
   /** @deprecated Legacy breakdown - superseded by harness_costing.js (harnessDetail) */
-  function attachHarnessProfit(runtime, model, versionKey) {
-    if (!global.G281HarnessProfit || typeof global.G281HarnessProfit.buildHarnessProfitBreakdown !== 'function') {
+  function attachHarnessProfit(ctx, runtime, model, versionKey) {
+    var hp = ctx && ctx.harnessProfit;
+    if (!hp || typeof hp.buildHarnessProfitBreakdown !== 'function') {
       return null;
     }
-    return global.G281HarnessProfit.buildHarnessProfitBreakdown(runtime, model, {
+    return hp.buildHarnessProfitBreakdown(runtime, model, {
       versionKey: versionKey || stateFinancialVersionKey('bom', model && model.stateSnapshot && model.stateSnapshot.bom) || 'quote',
     });
   }
 
-  function computeModelV2(runtime, draft, state) {
-    const legacyModel = computeModel(runtime, draft, state);
+  // [DI] ctx parameter added — auto-created from globals if omitted (backward compatible)
+  function computeModelV2(runtime, draft, state, ctx) {
+    var EC = global.G281EngineContext;
+    if (!ctx) ctx = EC ? EC.create() : {};
+
+    // [DI] pass ctx to computeModel
+    const legacyModel = computeModel(runtime, draft, state, ctx);
     const currentState = legacyModel.stateSnapshot || {};
     const exactFinancialKey = resolvePureFinancialVersionKey(currentState, legacyModel.d || {});
     const exactFinancialVersion = hasLifecycleBusinessEffect(legacyModel) ? null : financialVersion(runtime, exactFinancialKey);
@@ -1487,13 +1498,13 @@
     // 用自底向上的逐零件号核算替代系数近似
     result.harnessDetail = null;
     try {
-      var HarnessCosting = global.G281HarnessCosting;
+      // [DI] ctx.harnessCosting replaces global.G281HarnessCosting
+      var HarnessCosting = ctx && ctx.harnessCosting;
       var harnessData = resolveHarnessData(runtime);
       if (HarnessCosting && harnessData && harnessData.length > 0) {
-        // 从项目配置读取费率
-        var costRates = (global.ConfigBridge && typeof global.ConfigBridge.raw === 'function'
-          ? global.ConfigBridge.raw()
-          : (runtime && runtime.projectConfig)) || {};
+        // [DI] EC.projectConfig(ctx, runtime) replaces global.ConfigBridge.raw()
+        var costRates = EC ? EC.projectConfig(ctx, runtime)
+          : ((runtime && runtime.projectConfig) || {});
         var customerRates = (costRates.costRates && costRates.costRates.customer) || {};
         var harnessParams = {
           laborRate: numberOr(customerRates.laborRate, 35),
@@ -1549,7 +1560,8 @@
     // Legacy: 仅在无 harnessDetail 时回退到旧模块
     try {
       if (!result.harnessDetail) {
-        result.harnessProfit = attachHarnessProfit(runtime, result, referenceFinancialKey || exactFinancialKey);
+        // [DI] pass ctx to attachHarnessProfit
+        result.harnessProfit = attachHarnessProfit(ctx, runtime, result, referenceFinancialKey || exactFinancialKey);
       } else {
         result.harnessProfit = null;
       }
@@ -1558,9 +1570,8 @@
       result.financialContext.warnings.push('线束利润拆解失败: ' + (error && error.message ? error.message : String(error)));
     }
 
-    // Issue #4: 计算路径标记
-    result.computationPath = global.ComputationPath
-      ? global.ComputationPath.detect(result)
+    // [DI] EC.detectPath(ctx, result) replaces global.ComputationPath.detect()
+    result.computationPath = EC ? EC.detectPath(ctx, result)
       : { path: 'unknown', label: '未知' };
 
     return result;
