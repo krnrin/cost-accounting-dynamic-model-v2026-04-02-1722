@@ -122,7 +122,6 @@ async function findActiveDiscrepancyForUpsert(
     return exact;
   }
 
-  // Backfill older active rows that were created before harnessId was attached.
   return store.priceDiscrepancy.findFirst({
     where: {
       ...baseWhere,
