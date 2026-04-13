@@ -88,7 +88,7 @@ export class TrackingService {
     });
 
     const currentStatus = mapDiscrepancyStatus(discrepancy.status);
-    const title = `价格差异跟踪 - ${discrepancy.partNo}${discrepancy.partName ? ` / ${discrepancy.partName}` : ''}`;
+    const title = `\u4ef7\u683c\u5dee\u5f02\u8ddf\u8e2a - ${discrepancy.partNo}${discrepancy.partName ? ` / ${discrepancy.partName}` : ''}`;
     const details = {
       trackingType: mapDiscrepancyTrackingType(discrepancy.partCategory),
       title,
@@ -97,13 +97,13 @@ export class TrackingService {
       severity: mapDiscrepancySeverity(discrepancy.discrepancyRate),
       owner: discrepancy.assignedTo ?? undefined,
       plannedAction: currentStatus === 'pending'
-        ? '核对参考价与实际价格，推进协议价/谈判处理'
+        ? '\u6838\u5bf9\u53c2\u8003\u4ef7\u4e0e\u5b9e\u9645\u4ef7\u683c\uff0c\u63a8\u8fdb\u534f\u8bae\u4ef7/\u8c08\u5224\u5904\u7406'
         : currentStatus === 'in_progress'
-          ? '已升级处理，需尽快完成价格谈判或报价决策'
+          ? '\u5df2\u5347\u7ea7\u5904\u7406\uff0c\u9700\u5c3d\u5feb\u5b8c\u6210\u4ef7\u683c\u8c08\u5224\u6216\u62a5\u4ef7\u51b3\u7b56'
           : undefined,
       actualResult: discrepancy.resolutionNote ?? undefined,
       warningRef: `price-discrepancy:${discrepancy.id}`,
-      closeReason: currentStatus === 'closed' ? (discrepancy.resolutionNote ?? '价格差异已接受/关闭') : undefined,
+      closeReason: currentStatus === 'closed' ? (discrepancy.resolutionNote ?? '\u4ef7\u683c\u5dee\u5f02\u5df2\u63a5\u53d7/\u5173\u95ed') : undefined,
       closedAt: currentStatus === 'closed' ? new Date() : null,
     };
 
