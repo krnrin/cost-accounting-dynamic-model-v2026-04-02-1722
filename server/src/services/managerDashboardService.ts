@@ -56,6 +56,24 @@ function getQuoteUnitPrice(quote: any) {
   );
 }
 
+/**
+ * groupByKey — 将数组按指定 key 分组到 Map
+ * 比重复 .filter() 从 O(P×N) 降为 O(P+N)
+ */
+function groupByKey<T>(items: T[], keyFn: (item: T) => string): Map<string, T[]> {
+  const map = new Map<string, T[]>();
+  for (const item of items) {
+    const key = keyFn(item);
+    let arr = map.get(key);
+    if (!arr) {
+      arr = [];
+      map.set(key, arr);
+    }
+    arr.push(item);
+  }
+  return map;
+}
+
 async function buildProjectSummaries(): Promise<ProjectSummary[]> {
   const [projects, harnesses, scenarios, quotes, allocations, alerts] = await Promise.all([
     prisma.project.findMany({ orderBy: { updatedAt: 'desc' } }),
@@ -66,12 +84,19 @@ async function buildProjectSummaries(): Promise<ProjectSummary[]> {
     prisma.alertEvent.findMany(),
   ]);
 
+  // Pre-group by projectId — O(N) instead of O(P×N) per-project .filter()
+  const harnessMap    = groupByKey(harnesses,   (i: any) => i.projectId);
+  const scenarioMap   = groupByKey(scenarios,    (i: any) => i.projectId);
+  const quoteMap      = groupByKey(quotes,       (i: any) => i.projectId);
+  const allocationMap = groupByKey(allocations,  (i: any) => i.projectId);
+  const alertMap      = groupByKey(alerts,       (i: any) => i.projectId);
+
   return projects.map((project: any) => {
-    const projectHarnesses = harnesses.filter((item) => item.projectId === project.id);
-    const projectScenarios = scenarios.filter((item) => item.projectId === project.id);
-    const projectQuotes = quotes.filter((item) => item.projectId === project.id);
-    const projectAllocations = allocations.filter((item) => item.projectId === project.id);
-    const projectAlerts = alerts.filter((item) => item.projectId === project.id);
+    const projectHarnesses   = harnessMap.get(project.id)    || [];
+    const projectScenarios   = scenarioMap.get(project.id)   || [];
+    const projectQuotes      = quoteMap.get(project.id)      || [];
+    const projectAllocations = allocationMap.get(project.id) || [];
+    const projectAlerts      = alertMap.get(project.id)      || [];
     const latestQuote = projectQuotes[0] ?? null;
 
     const scenarioVolumes = new Map<string, number>();
@@ -294,13 +319,17 @@ export class ManagerDashboardService {
       }
     }
 
+    // Pre-group by projectId
+    const annualDropMap = groupByKey(annualDrops, (r: any) => r.projectId);
+    const changeMap     = groupByKey(changes,     (c: any) => c.projectId);
+
     const rows: ProfitWaterfallProject[] = [];
     for (const project of projects) {
       const quote = latestQuoteByProject.get(project.id);
       if (!quote) continue;
 
-      const projectAnnualDrops = annualDrops.filter((record) => record.projectId === project.id);
-      const projectChanges = changes.filter((change) => change.projectId === project.id);
+      const projectAnnualDrops = annualDropMap.get(project.id) || [];
+      const projectChanges     = changeMap.get(project.id)     || [];
       const contributions = buildProfitWaterfallContributions(quote, projectAnnualDrops, projectChanges);
       const contributionMap = new Map(contributions.map((item) => [item.key, item.value]));
 
