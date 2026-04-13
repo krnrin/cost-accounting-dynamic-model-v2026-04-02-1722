@@ -142,6 +142,65 @@ async function syncLatestRecoverySnapshot(client: any, item: any, cumulativeVolu
   });
 }
 
+// --- Clone & Delete helpers (from phase12 delta) ---
+
+async function cloneScenarioAllocationsWithClient(client: any, sourceScenarioId: string, targetScenarioId: string) {
+  const sourceItems = await client.allocationItem.findMany({
+    where: { scenarioId: sourceScenarioId },
+    orderBy: [{ harnessId: 'asc' }, { expenseType: 'asc' }, { createdAt: 'asc' }],
+  });
+
+  if (sourceItems.length === 0) {
+    return [];
+  }
+
+  const recoveryRecords = await client.recoveryRecord.findMany({
+    where: {
+      allocationItemId: { in: sourceItems.map((item: any) => item.id) },
+    },
+    orderBy: [{ createdAt: 'asc' }],
+  });
+
+  const idMap = new Map<string, string>();
+  for (const sourceItem of sourceItems) {
+    const { id, createdAt, updatedAt, ...data } = sourceItem;
+    const created = await client.allocationItem.create({
+      data: {
+        ...data,
+        scenarioId: targetScenarioId,
+      },
+    });
+    idMap.set(id, created.id);
+  }
+
+  for (const record of recoveryRecords) {
+    const nextAllocationItemId = idMap.get(record.allocationItemId);
+    if (!nextAllocationItemId) {
+      continue;
+    }
+
+    const { id, createdAt, ...data } = record;
+    await client.recoveryRecord.create({
+      data: {
+        ...data,
+        scenarioId: targetScenarioId,
+        allocationItemId: nextAllocationItemId,
+      },
+    });
+  }
+
+  return listByScenarioWithClient(client, targetScenarioId);
+}
+
+async function deleteScenarioAllocationsWithClient(client: any, scenarioId: string) {
+  await client.recoveryRecord.deleteMany({
+    where: { scenarioId },
+  });
+  await client.allocationItem.deleteMany({
+    where: { scenarioId },
+  });
+}
+
 export class AllocationService {
   static async listByScenario(scenarioId: string, burdenSide?: string) {
     return listByScenarioWithClient(prisma, scenarioId, burdenSide);
@@ -245,5 +304,23 @@ export class AllocationService {
 
       return listByScenarioWithClient(tx, scenarioId);
     });
+  }
+
+  // --- Clone & Delete (from phase12 delta) ---
+
+  static async cloneScenarioAllocations(sourceScenarioId: string, targetScenarioId: string) {
+    return cloneScenarioAllocationsWithClient(prisma, sourceScenarioId, targetScenarioId);
+  }
+
+  static async cloneScenarioAllocationsWithClient(client: any, sourceScenarioId: string, targetScenarioId: string) {
+    return cloneScenarioAllocationsWithClient(client, sourceScenarioId, targetScenarioId);
+  }
+
+  static async deleteScenarioAllocations(scenarioId: string) {
+    return deleteScenarioAllocationsWithClient(prisma, scenarioId);
+  }
+
+  static async deleteScenarioAllocationsWithClient(client: any, scenarioId: string) {
+    return deleteScenarioAllocationsWithClient(client, scenarioId);
   }
 }

@@ -184,5 +184,26 @@ compareRouter.put('/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async 
   }
 });
 
+// Delete scenario with cascade (from phase12 delta)
+compareRouter.delete('/:sid', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await ScenarioService.delete(req.params.sid as string);
+    await AuditService.log({
+      userId: req.user!.id,
+      projectId: data.projectId,
+      action: 'DELETE',
+      entity: 'scenario',
+      entityId: data.id,
+      details: {
+        status: data.status,
+        sourceScenarioId: data.sourceScenarioId,
+      },
+    });
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export { compareRouter };
 export default router;
