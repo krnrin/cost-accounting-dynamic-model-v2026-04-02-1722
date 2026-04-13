@@ -1,0 +1,210 @@
+/**
+ * Quote Parameter Snapshot (C15 — Issue #69)
+ * 
+ * 报价参数快照 + 报价版本比较
+ * - 报价生成时关联当时的费率/金属价格/BOM版本
+ * - 支持两个报价版本并排对比差异
+ */
+
+// ─── Types ───
+
+export interface QuoteParamRef {
+  quoteId: string;
+  scenarioId: string;
+  createdAt: string;
+  /** Rate snapshot version at time of quote */
+  rateSnapshotVersion: string | null;
+  /** BOM version ref at time of quote */
+  bomVersionRef: string | null;
+  /** Metal prices at time of quote */
+  metalPrices: {
+    copper: number;
+    aluminum: number;
+    source: 'benchmark' | 'shfe' | 'smm' | 'manual';
+  };
+  /** Key rate values captured */
+  rates: {
+    managementFeeRate: number;
+    profitRate: number;
+    scrapRate: number;
+    packagingRate: number;
+    laborRate: number;
+  };
+  /** Quote output summary */
+  output: {
+    totalCostPerSet: number;
+    sellingPricePerSet: number;
+    marginRate: number;
+    lifecycleProfit: number;
+  };
+}
+
+export interface QuoteVersionDiff {
+  baseQuoteId: string;
+  compareQuoteId: string;
+  paramDiffs: ParamDiffItem[];
+  outputDiffs: OutputDiffItem[];
+  summary: {
+    totalParamChanges: number;
+    costImpact: number;
+    marginImpact: number;
+  };
+}
+
+export interface ParamDiffItem {
+  category: 'metal' | 'rate' | 'bom' | 'other';
+  field: string;
+  label: string;
+  baseValue: number | string | null;
+  compareValue: number | string | null;
+  delta: number | null;
+  deltaPercent: number | null;
+}
+
+export interface OutputDiffItem {
+  field: string;
+  label: string;
+  baseValue: number;
+  compareValue: number;
+  delta: number;
+  deltaPercent: number;
+  direction: 'up' | 'down' | 'unchanged';
+}
+
+// ─── Core Functions ───
+
+/** Create a parameter reference snapshot when generating a quote */
+export function captureQuoteParamRef(
+  quoteId: string,
+  scenarioId: string,
+  params: {
+    rateSnapshotVersion?: string;
+    bomVersionRef?: string;
+    metalPrices: QuoteParamRef['metalPrices'];
+    rates: QuoteParamRef['rates'];
+    output: QuoteParamRef['output'];
+  },
+): QuoteParamRef {
+  return {
+    quoteId,
+    scenarioId,
+    createdAt: new Date().toISOString(),
+    rateSnapshotVersion: params.rateSnapshotVersion || null,
+    bomVersionRef: params.bomVersionRef || null,
+    metalPrices: { ...params.metalPrices },
+    rates: { ...params.rates },
+    output: { ...params.output },
+  };
+}
+
+/** Compare two quote versions */
+export function compareQuoteVersions(
+  base: QuoteParamRef,
+  compare: QuoteParamRef,
+): QuoteVersionDiff {
+  const paramDiffs: ParamDiffItem[] = [];
+  const outputDiffs: OutputDiffItem[] = [];
+
+  // Compare metal prices
+  const metalFields: Array<{ key: keyof QuoteParamRef['metalPrices']; label: string }> = [
+    { key: 'copper', label: '铜价 (元/吨)' },
+    { key: 'aluminum', label: '铝价 (元/吨)' },
+  ];
+  for (const { key, label } of metalFields) {
+    if (key === 'source') continue;
+    const bv = base.metalPrices[key] as number;
+    const cv = compare.metalPrices[key] as number;
+    if (bv !== cv) {
+      paramDiffs.push({
+        category: 'metal',
+        field: `metalPrices.${key}`,
+        label,
+        baseValue: bv,
+        compareValue: cv,
+        delta: cv - bv,
+        deltaPercent: bv !== 0 ? ((cv - bv) / Math.abs(bv)) * 100 : null,
+      });
+    }
+  }
+
+  // Compare rates
+  const rateLabels: Record<string, string> = {
+    managementFeeRate: '管理费率',
+    profitRate: '利润率',
+    scrapRate: '废品率',
+    packagingRate: '包装费率',
+    laborRate: '工时费率',
+  };
+  for (const [key, label] of Object.entries(rateLabels)) {
+    const bv = (base.rates as any)[key] as number;
+    const cv = (compare.rates as any)[key] as number;
+    if (bv !== cv) {
+      paramDiffs.push({
+        category: 'rate',
+        field: `rates.${key}`,
+        label,
+        baseValue: bv,
+        compareValue: cv,
+        delta: cv - bv,
+        deltaPercent: bv !== 0 ? ((cv - bv) / Math.abs(bv)) * 100 : null,
+      });
+    }
+  }
+
+  // Compare BOM version
+  if (base.bomVersionRef !== compare.bomVersionRef) {
+    paramDiffs.push({
+      category: 'bom',
+      field: 'bomVersionRef',
+      label: 'BOM 版本',
+      baseValue: base.bomVersionRef,
+      compareValue: compare.bomVersionRef,
+      delta: null,
+      deltaPercent: null,
+    });
+  }
+
+  // Compare outputs
+  const outputFields: Array<{ key: keyof QuoteParamRef['output']; label: string }> = [
+    { key: 'totalCostPerSet', label: '单套成本' },
+    { key: 'sellingPricePerSet', label: '单套售价' },
+    { key: 'marginRate', label: '毛利率' },
+    { key: 'lifecycleProfit', label: '生命周期利润' },
+  ];
+  for (const { key, label } of outputFields) {
+    const bv = base.output[key];
+    const cv = compare.output[key];
+    const delta = cv - bv;
+    outputDiffs.push({
+      field: `output.${key}`,
+      label,
+      baseValue: bv,
+      compareValue: cv,
+      delta: Math.round(delta * 10000) / 10000,
+      deltaPercent: bv !== 0 ? Math.round(((cv - bv) / Math.abs(bv)) * 10000) / 100 : 0,
+      direction: delta > 0.0001 ? 'up' : delta < -0.0001 ? 'down' : 'unchanged',
+    });
+  }
+
+  // Summary
+  const costImpact = (compare.output.totalCostPerSet - base.output.totalCostPerSet);
+  const marginImpact = (compare.output.marginRate - base.output.marginRate);
+
+  return {
+    baseQuoteId: base.quoteId,
+    compareQuoteId: compare.quoteId,
+    paramDiffs,
+    outputDiffs,
+    summary: {
+      totalParamChanges: paramDiffs.length,
+      costImpact: Math.round(costImpact * 100) / 100,
+      marginImpact: Math.round(marginImpact * 10000) / 10000,
+    },
+  };
+}
+
+/** Quick check: has any parameter changed between two quotes? */
+export function hasParamChanged(base: QuoteParamRef, compare: QuoteParamRef): boolean {
+  const diff = compareQuoteVersions(base, compare);
+  return diff.summary.totalParamChanges > 0;
+}
