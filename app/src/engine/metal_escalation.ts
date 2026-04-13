@@ -81,9 +81,12 @@ export function computeMetalDelta(
   const wasteRate = (harness._params && harness._params.wasteRate) || 0.01;
   const deltaWaste = deltaMaterialCost * wasteRate;
 
-  // 联动: 管理费率 — 管理费基数不含废品!
+  // 联动: 管理费率
+  // 金属联动场景下，仅材料差额参与管理费计算 — 金属价格变动不影响工时，
+  // 因此管理费增量 = deltaMaterialCost × mgmtRate（与 harness_costing.ts 基数定义一致：
+  // 管理费基数 = 材料 + 人工 + 制造，不含废品；此处人工和制造增量为 0）
   const mgmtRate = (harness._params && harness._params.mgmtRate) || 0.06;
-  const deltaMgmt = deltaMaterialCost * mgmtRate;  // 只有材料变化影响管理费 (工时未变)
+  const deltaMgmt = deltaMaterialCost * mgmtRate;
 
   // 联动: 利润率 — 利润基数含废品
   const profitRate = (harness._params && harness._params.profitRate) || 0.056627;
