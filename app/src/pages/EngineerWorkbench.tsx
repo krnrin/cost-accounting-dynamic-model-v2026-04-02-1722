@@ -74,7 +74,7 @@ const navFooterConfig = { collapseButton: true };
 
 function formatCurrency(val: number | undefined): string {
   if (val === undefined || val === null) return '-';
-  return `\u00A5${val.toFixed(2)}`;
+  return `¥${val.toFixed(2)}`;
 }
 
 export default function EngineerWorkbench() {
@@ -159,13 +159,13 @@ export default function EngineerWorkbench() {
 
   const handleChangeOrderSubmit = useCallback((order: ChangeOrder) => {
     setChangeOrders(prev => [...prev, order]);
-    Toast.success(`\u8BBE\u53D8\u5355 ${order.changeNo} \u5DF2\u521B\u5EFA`);
+    Toast.success(`设变单 ${order.changeNo} 已创建`);
   }, []);
 
   if (!data) {
     return (
       <div style={S.loading}>
-        <Spin size="large" tip="\u6B63\u5728\u52A0\u8F7D\u5DE5\u4F5C\u53F0\u6570\u636E..." />
+        <Spin size="large" tip="正在加载工作台数据..." />
       </div>
     );
   }
@@ -174,26 +174,26 @@ export default function EngineerWorkbench() {
 
   // ── Customer cost table columns ──
   const customerCostColumns = [
-    { title: '\u96F6\u4EF6\u53F7', dataIndex: 'harnessId', width: 140 },
-    { title: '\u540D\u79F0', dataIndex: 'harnessName', width: 160 },
-    { title: '\u6750\u6599\u6210\u672C', render: (_: unknown, r: HarnessResult) => formatCurrency(r.materialCost), width: 100 },
-    { title: '\u4EBA\u5DE5', render: (_: unknown, r: HarnessResult) => formatCurrency(r.directLabor), width: 90 },
-    { title: '\u5236\u9020\u8D39', render: (_: unknown, r: HarnessResult) => formatCurrency(r.manufacturing), width: 90 },
-    { title: '\u51FA\u5382\u4EF7', render: (_: unknown, r: HarnessResult) => formatCurrency(r.exFactoryPrice), width: 100 },
-    { title: '\u5230\u5382\u4EF7', render: (_: unknown, r: HarnessResult) => formatCurrency(r.deliveredPrice), width: 100 },
+    { title: '零件号', dataIndex: 'harnessId', width: 140 },
+    { title: '名称', dataIndex: 'harnessName', width: 160 },
+    { title: '材料成本', render: (_: unknown, r: HarnessResult) => formatCurrency(r.materialCost), width: 100 },
+    { title: '人工', render: (_: unknown, r: HarnessResult) => formatCurrency(r.directLabor), width: 90 },
+    { title: '制造费', render: (_: unknown, r: HarnessResult) => formatCurrency(r.manufacturing), width: 90 },
+    { title: '出厂价', render: (_: unknown, r: HarnessResult) => formatCurrency(r.exFactoryPrice), width: 100 },
+    { title: '到厂价', render: (_: unknown, r: HarnessResult) => formatCurrency(r.deliveredPrice), width: 100 },
   ];
 
   // ── Internal cost table columns (6D MOH) ──
   const internalCostColumns = [
-    { title: '\u96F6\u4EF6\u53F7', dataIndex: 'harnessId', width: 130 },
-    { title: '\u540D\u79F0', dataIndex: 'harnessName', width: 140 },
-    { title: '\u6750\u6599', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.materialCost), width: 90 },
-    { title: '\u76F4\u63A5\u4EBA\u5DE5', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.directLabor), width: 90 },
-    { title: '\u95F4\u63A5\u4EBA\u5DE5', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.indirectLabor), width: 90 },
-    { title: '\u5382\u623F\u5206\u644A', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.factoryAmortization), width: 90 },
-    { title: '\u5236\u9020\u8D39\u5C0F\u8BA1', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.mfgOverheadTotal), width: 100 },
-    { title: '\u5B9E\u7EE9\u603B\u6210\u672C', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.internalCost), width: 110 },
-    { title: '\u72B6\u6001', dataIndex: 'gapStatus', width: 90 },
+    { title: '零件号', dataIndex: 'harnessId', width: 130 },
+    { title: '名称', dataIndex: 'harnessName', width: 140 },
+    { title: '材料', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.materialCost), width: 90 },
+    { title: '直接人工', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.directLabor), width: 90 },
+    { title: '间接人工', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.indirectLabor), width: 90 },
+    { title: '厂房分摊', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.factoryAmortization), width: 90 },
+    { title: '制造费小计', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.mfgOverheadTotal), width: 100 },
+    { title: '实绩总成本', render: (_: unknown, r: InternalHarnessResult) => formatCurrency(r.internalCost), width: 110 },
+    { title: '状态', dataIndex: 'gapStatus', width: 90 },
   ];
 
   return (
@@ -203,11 +203,11 @@ export default function EngineerWorkbench() {
         <Nav
           style={S.nav}
           items={[
-            { itemKey: 'bom', text: 'BOM\u7F16\u8F91', icon: <IconEdit /> },
-            { itemKey: 'calc', text: '\u6210\u672C\u8BA1\u7B97', icon: <IconCode /> },
-            { itemKey: 'sim', text: '\u4EFF\u771F\u5206\u5C42', icon: <IconLayers /> },
-            { itemKey: 'compare', text: '\u7EBF\u675F\u5BF9\u6BD4', icon: <IconSearch /> },
-            { itemKey: 'settings', text: '\u53C2\u6570\u8BBE\u7F6E', icon: <IconSetting /> },
+            { itemKey: 'bom', text: 'BOM编辑', icon: <IconEdit /> },
+            { itemKey: 'calc', text: '成本计算', icon: <IconCode /> },
+            { itemKey: 'sim', text: '仿真分层', icon: <IconLayers /> },
+            { itemKey: 'compare', text: '线束对比', icon: <IconSearch /> },
+            { itemKey: 'settings', text: '参数设置', icon: <IconSetting /> },
           ]}
           selectedKeys={[activeTab]}
           onSelect={({ itemKey }) => setActiveTab(itemKey as string)}
@@ -219,7 +219,7 @@ export default function EngineerWorkbench() {
         <div style={S.header}>
           <div>
             <Title heading={3}>
-              {String.fromCodePoint(0x1F527)} \u5DE5\u7A0B\u5E08\u5DE5\u4F5C\u53F0
+              {String.fromCodePoint(0x1F527)} 工程师工作台
             </Title>
             <Text type="tertiary">
               {project.meta.projectName || project.meta.projectCode}
@@ -229,18 +229,18 @@ export default function EngineerWorkbench() {
           <Space>
             <EngineSelector value={engine} onChange={setEngine} />
             <Tag color={isInternal ? 'blue' : 'green'} size="large">
-              {isInternal ? '\u5185\u90E8\u5B9E\u7EE9' : '\u5BA2\u6237\u62A5\u4EF7'}
+              {isInternal ? '内部实绩' : '客户报价'}
             </Tag>
           </Space>
         </div>
 
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
           {/* BOM Tab */}
-          <TabPane tab="BOM\u7F16\u8F91" itemKey="bom">
+          <TabPane tab="BOM编辑" itemKey="bom">
             <div style={S.tabContent}>
-              <Title heading={5}>BOM \u6570\u636E\u7F16\u8F91</Title>
+              <Title heading={5}>BOM 数据编辑</Title>
               <Text type="tertiary">
-                \u5F53\u524D\u573A\u666F\u5171 {harnesses.length} \u6761\u7EBF\u675F\uFF0C\u70B9\u51FB\u4E0B\u65B9\u6309\u94AE\u8FDB\u5165\u5168\u529F\u80FD BOM \u5DE5\u4F5C\u7C3F
+                当前场景共 {harnesses.length} 条线束，点击下方按钮进入全功能 BOM 工作簿
               </Text>
               <div style={S.toolbar}>
                 <Space>
@@ -250,30 +250,30 @@ export default function EngineerWorkbench() {
                     icon={<IconExternalOpen />}
                     onClick={() => navigate(sid ? `/project/${id}/s/${sid}/bom-workbook` : `/project/${id}/bom-workbook`)}
                   >
-                    \u6253\u5F00 BOM \u5DE5\u4F5C\u7C3F
+                    打开 BOM 工作簿
                   </Button>
                   <Button type="warning" onClick={() => setChangeOrderVisible(true)}>
-                    {String.fromCodePoint(0x1F527)} \u521B\u5EFA\u8BBE\u53D8\u5355
+                    {String.fromCodePoint(0x1F527)} 创建设变单
                   </Button>
                 </Space>
               </div>
               {harnesses.length === 0 ? (
                 <div style={S.placeholder}>
                   <Empty
-                    title="\u6682\u65E0\u7EBF\u675F\u6570\u636E"
-                    description="\u8BF7\u5148\u521B\u5EFA\u7EBF\u675F\u5E76\u586B\u5199 BOM"
+                    title="暂无线束数据"
+                    description="请先创建线束并填写 BOM"
                   />
                 </div>
               ) : (
                 <Table
                   dataSource={harnesses}
                   columns={[
-                    { title: '\u96F6\u4EF6\u53F7', dataIndex: 'harnessId', width: 140 },
-                    { title: '\u540D\u79F0', dataIndex: 'harnessName', width: 180 },
-                    { title: 'BOM\u9879\u6570', render: (_: unknown, h: { input: { bom: unknown[] } }) => h.input?.bom?.length || 0, width: 90 },
-                    { title: '\u88C5\u8F66\u6BD4', render: (_: unknown, h: { input: { vehicleRatio: number } }) => `${((h.input?.vehicleRatio || 0) * 100).toFixed(1)}%`, width: 80 },
+                    { title: '零件号', dataIndex: 'harnessId', width: 140 },
+                    { title: '名称', dataIndex: 'harnessName', width: 180 },
+                    { title: 'BOM项数', render: (_: unknown, h: { input: { bom: unknown[] } }) => h.input?.bom?.length || 0, width: 90 },
+                    { title: '装车比', render: (_: unknown, h: { input: { vehicleRatio: number } }) => `${((h.input?.vehicleRatio || 0) * 100).toFixed(1)}%`, width: 80 },
                     {
-                      title: '\u64CD\u4F5C',
+                      title: '操作',
                       width: 120,
                       render: (_: unknown, h: { harnessId: string }) => (
                         <Button
@@ -285,7 +285,7 @@ export default function EngineerWorkbench() {
                               : `/project/${id}/harness/${h.harnessId}/edit`
                           )}
                         >
-                          \u7F16\u8F91
+                          编辑
                         </Button>
                       ),
                     },
@@ -299,32 +299,32 @@ export default function EngineerWorkbench() {
           </TabPane>
 
           {/* Cost Calc Tab */}
-          <TabPane tab="\u6210\u672C\u8BA1\u7B97" itemKey="calc">
+          <TabPane tab="成本计算" itemKey="calc">
             <div style={S.tabContent}>
-              <Title heading={5}>\u6210\u672C\u8BA1\u7B97\u7ED3\u679C</Title>
+              <Title heading={5}>成本计算结果</Title>
               {!scenario ? (
-                <Text type="warning">\u672A\u9009\u62E9\u573A\u666F\uFF0C\u65E0\u6CD5\u8BA1\u7B97\u6210\u672C</Text>
+                <Text type="warning">未选择场景，无法计算成本</Text>
               ) : isInternal ? (
                 /* ── Internal engine view ── */
                 internalResults.length === 0 ? (
-                  <Empty title="\u65E0\u8BA1\u7B97\u7ED3\u679C" description="\u8BF7\u5148\u586B\u5199\u7EBF\u675F BOM \u6570\u636E" />
+                  <Empty title="无计算结果" description="请先填写线束 BOM 数据" />
                 ) : (
                   <>
                     {internalSummary && (
                       <div style={S.kpiRow}>
-                        <Card style={S.kpiCard} title="\u5355\u8F66\u5185\u90E8\u6210\u672C" headerLine={false}>
+                        <Card style={S.kpiCard} title="单车内部成本" headerLine={false}>
                           <Title heading={3}>{formatCurrency(internalSummary.vehicleCost)}</Title>
                         </Card>
-                        <Card style={S.kpiCard} title="\u5355\u8F66\u6750\u6599" headerLine={false}>
+                        <Card style={S.kpiCard} title="单车材料" headerLine={false}>
                           <Title heading={3}>{formatCurrency(internalSummary.weightedMaterial)}</Title>
                         </Card>
-                        <Card style={S.kpiCard} title="\u5355\u8F66\u76F4\u63A5\u4EBA\u5DE5" headerLine={false}>
+                        <Card style={S.kpiCard} title="单车直接人工" headerLine={false}>
                           <Title heading={3}>{formatCurrency(internalSummary.weightedDirectLabor)}</Title>
                         </Card>
-                        <Card style={S.kpiCard} title="\u5355\u8F66\u5236\u9020\u8D39" headerLine={false}>
+                        <Card style={S.kpiCard} title="单车制造费" headerLine={false}>
                           <Title heading={3}>{formatCurrency(internalSummary.weightedMfgOverheadTotal)}</Title>
                         </Card>
-                        <Card style={S.kpiCard} title="\u7EBF\u675F\u6570" headerLine={false}>
+                        <Card style={S.kpiCard} title="线束数" headerLine={false}>
                           <Title heading={3}>{internalResults.length}</Title>
                         </Card>
                       </div>
@@ -341,21 +341,21 @@ export default function EngineerWorkbench() {
               ) : (
                 /* ── Customer engine view ── */
                 customerResults.length === 0 ? (
-                  <Empty title="\u65E0\u8BA1\u7B97\u7ED3\u679C" description="\u8BF7\u5148\u586B\u5199\u7EBF\u675F BOM \u6570\u636E" />
+                  <Empty title="无计算结果" description="请先填写线束 BOM 数据" />
                 ) : (
                   <>
                     {customerSummary && (
                       <div style={S.kpiRow}>
-                        <Card style={S.kpiCard} title="\u5355\u8F66\u6210\u672C" headerLine={false}>
+                        <Card style={S.kpiCard} title="单车成本" headerLine={false}>
                           <Title heading={3}>{formatCurrency(customerSummary.vehicleCost)}</Title>
                         </Card>
-                        <Card style={S.kpiCard} title="\u5355\u8F66\u6750\u6599" headerLine={false}>
+                        <Card style={S.kpiCard} title="单车材料" headerLine={false}>
                           <Title heading={3}>{formatCurrency(customerSummary.weightedMaterial)}</Title>
                         </Card>
-                        <Card style={S.kpiCard} title="\u5355\u8F66\u4EBA\u5DE5" headerLine={false}>
+                        <Card style={S.kpiCard} title="单车人工" headerLine={false}>
                           <Title heading={3}>{formatCurrency(customerSummary.weightedLabor)}</Title>
                         </Card>
-                        <Card style={S.kpiCard} title="\u7EBF\u675F\u6570" headerLine={false}>
+                        <Card style={S.kpiCard} title="线束数" headerLine={false}>
                           <Title heading={3}>{customerResults.length}</Title>
                         </Card>
                       </div>
@@ -374,10 +374,10 @@ export default function EngineerWorkbench() {
           </TabPane>
 
           {/* Simulation Tab */}
-          <TabPane tab="\u4EFF\u771F\u5206\u5C42" itemKey="sim">
+          <TabPane tab="仿真分层" itemKey="sim">
             <div style={S.tabContent}>
-              <Title heading={5}>\u4EFF\u771F\u5206\u5C42</Title>
-              <Text type="tertiary">\u53E0\u52A0\u591A\u7EF4\u5EA6\u4EFF\u771F\u5C42\uFF0C\u5206\u6790\u6210\u672C\u654F\u611F\u6027</Text>
+              <Title heading={5}>仿真分层</Title>
+              <Text type="tertiary">叠加多维度仿真层，分析成本敏感性</Text>
               <div style={S.toolbar}>
                 <Button
                   type="primary"
@@ -386,47 +386,47 @@ export default function EngineerWorkbench() {
                   onClick={() => sid && navigate(`/project/${id}/s/${sid}/simulation`)}
                   disabled={!sid}
                 >
-                  \u6253\u5F00\u4EFF\u771F\u9875\u9762
+                  打开仿真页面
                 </Button>
               </div>
               {!sid && (
                 <div style={S.placeholder}>
-                  <Text type="tertiary">\u8BF7\u5148\u9009\u62E9\u573A\u666F</Text>
+                  <Text type="tertiary">请先选择场景</Text>
                 </div>
               )}
             </div>
           </TabPane>
 
           {/* Compare Tab */}
-          <TabPane tab="\u7EBF\u675F\u5BF9\u6BD4" itemKey="compare">
+          <TabPane tab="线束对比" itemKey="compare">
             {compareHarnesses.length > 0 ? (
               <HarnessCompareView harnesses={compareHarnesses} />
             ) : (
               <div style={S.tabContent}>
-                <Empty title="\u65E0\u53EF\u5BF9\u6BD4\u7684\u7EBF\u675F" description="\u8BF7\u5148\u586B\u5199 BOM \u5E76\u8BA1\u7B97\u6210\u672C" />
+                <Empty title="无可对比的线束" description="请先填写 BOM 并计算成本" />
               </div>
             )}
           </TabPane>
 
           {/* Settings Tab */}
-          <TabPane tab="\u53C2\u6570\u8BBE\u7F6E" itemKey="settings">
+          <TabPane tab="参数设置" itemKey="settings">
             <div style={S.tabContent}>
-              <Title heading={5}>\u53C2\u6570\u8BBE\u7F6E</Title>
-              <Text type="tertiary">\u8D39\u7387\u3001\u91D1\u5C5E\u4EF7\u683C\u3001\u5E74\u964D\u53C2\u6570\u914D\u7F6E</Text>
+              <Title heading={5}>参数设置</Title>
+              <Text type="tertiary">费率、金属价格、年降参数配置</Text>
               <div style={S.toolbar}>
                 <Button
                   theme="solid"
                   icon={<IconExternalOpen />}
                   onClick={() => navigate('/settings')}
                 >
-                  \u6253\u5F00\u8BBE\u7F6E\u9875
+                  打开设置页
                 </Button>
               </div>
               {scenario && (
-                <Card style={S.cardMarginTop} title="\u5F53\u524D\u573A\u666F\u914D\u7F6E\u6458\u8981" headerLine={false}>
-                  <Text>\u573A\u666F: {scenario.scenarioName}</Text>
+                <Card style={S.cardMarginTop} title="当前场景配置摘要" headerLine={false}>
+                  <Text>场景: {scenario.scenarioName}</Text>
                   <br />
-                  <Text type="tertiary">\u573A\u666F\u7C7B\u578B: {scenario.scenarioType}</Text>
+                  <Text type="tertiary">场景类型: {scenario.scenarioType}</Text>
                 </Card>
               )}
             </div>
@@ -443,7 +443,7 @@ export default function EngineerWorkbench() {
         {changeOrders.length > 0 && (
           <div style={S.sectionTitle}>
             <Title heading={5}>
-              {String.fromCodePoint(0x1F4CB)} \u8BBE\u53D8\u5355\u8BB0\u5F55 ({changeOrders.length})
+              {String.fromCodePoint(0x1F4CB)} 设变单记录 ({changeOrders.length})
             </Title>
             {changeOrders.map(co => (
               <Tag key={co.id} color="orange" style={S.tag}>

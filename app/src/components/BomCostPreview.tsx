@@ -27,7 +27,7 @@ const S: Record<string, CSSProperties> = {
 
 function formatCNY(value: number | undefined): string {
   if (value === undefined || value === null) return '-';
-  return `\u00a5${value.toFixed(2)}`;
+  return `¥${value.toFixed(2)}`;
 }
 
 export default function BomCostPreview({ harnessName, result, showDetail = true }: BomCostPreviewProps) {

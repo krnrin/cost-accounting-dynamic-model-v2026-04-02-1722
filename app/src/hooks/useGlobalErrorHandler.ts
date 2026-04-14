@@ -56,7 +56,7 @@ export function useGlobalErrorHandler() {
       // User-facing toast for API/network errors
       if (ctx.message.includes('fetch') || ctx.message.includes('API') || ctx.message.includes('network')) {
         Toast.error({
-          content: '\u7F51\u7EDC\u8BF7\u6C42\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC\u8FDE\u63A5',
+          content: '网络请求失败，请检查网络连接',
           duration: 5,
         });
       }

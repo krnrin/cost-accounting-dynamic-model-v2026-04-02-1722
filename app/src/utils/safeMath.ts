@@ -35,7 +35,7 @@ export function formatPercent(value: number | null | undefined, decimals = 1): s
 /**
  * Format currency, returns "-" for undefined/NaN.
  */
-export function formatCurrency(value: number | null | undefined, prefix = '\u00a5'): string {
+export function formatCurrency(value: number | null | undefined, prefix = '¥'): string {
   if (value == null || !Number.isFinite(value)) return '-';
   return `${prefix}${value.toFixed(2)}`;
 }

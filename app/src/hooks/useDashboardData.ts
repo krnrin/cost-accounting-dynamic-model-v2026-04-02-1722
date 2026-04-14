@@ -170,7 +170,7 @@ export function useDashboardData() {
     } catch (err) {
       console.error('Dashboard loadData error:', err);
       Toast.error(
-        '\u52A0\u8F7D\u9879\u76EE\u5931\u8D25: ' + (err instanceof Error ? err.message : String(err)),
+        '加载项目失败: ' + (err instanceof Error ? err.message : String(err)),
       );
     } finally {
       setLoading(false);
@@ -307,7 +307,7 @@ export function useDashboardData() {
         netProfit: totalNet,
         netMargin: totalMargin,
       },
-      rebateLabel: rebate?.label || '\u8FD4\u70B9',
+      rebateLabel: rebate?.label || '返点',
       hasRebate: (rebate?.totalAmount || 0) > 0,
     };
     // FIX #26: added recoverySummary, customerVehicleCost, allocPerVehicle to deps
@@ -340,10 +340,10 @@ export function useDashboardData() {
           : 0;
 
       const tags: string[] = [];
-      if (matR > 0.7) tags.push('\u6750\u6599\u654F\u611F');
-      if (labR > 0.2) tags.push('\u5DE5\u65F6\u504F\u9AD8');
-      if (fixR > 0.15) tags.push('\u56FA\u5B9A\u6210\u672C\u91CD');
-      if (np < 0) tags.push('\u4E8F\u635F');
+      if (matR > 0.7) tags.push('材料敏感');
+      if (labR > 0.2) tags.push('工时偏高');
+      if (fixR > 0.15) tags.push('固定成本重');
+      if (np < 0) tags.push('亏损');
 
       return {
         key: String(i),

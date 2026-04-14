@@ -36,7 +36,7 @@ export default function VersionManager() {
     { title: '时间', dataIndex: 'createdAt', render: (t: string) => new Date(t).toLocaleString('zh-CN') },
     { title: '版本号', dataIndex: 'version', render: (v: number) => `v${v}` },
     { title: '标签', dataIndex: 'label' },
-    { title: '到厂价汇总', dataIndex: 'results', render: (r: QuoteSnapshot['results']) => r ? `\u00a5${(r as any).totalDeliveredPrice?.toFixed(2) ?? '-'}` : '-' },
+    { title: '到厂价汇总', dataIndex: 'results', render: (r: QuoteSnapshot['results']) => r ? `¥${(r as any).totalDeliveredPrice?.toFixed(2) ?? '-'}` : '-' },
     {
       title: '操作',
       render: (_: unknown, record: QuoteSnapshot) => (
@@ -107,8 +107,8 @@ export default function VersionManager() {
                 columns={[
                   { title: '线束', dataIndex: 'harnessId' },
                   { title: '指标', dataIndex: 'label' },
-                  { title: `v${snapA.version}`, dataIndex: 'valueA', render: (v: number) => `\u00a5${v.toFixed(2)}` },
-                  { title: `v${snapB.version}`, dataIndex: 'valueB', render: (v: number) => `\u00a5${v.toFixed(2)}` },
+                  { title: `v${snapA.version}`, dataIndex: 'valueA', render: (v: number) => `¥${v.toFixed(2)}` },
+                  { title: `v${snapB.version}`, dataIndex: 'valueB', render: (v: number) => `¥${v.toFixed(2)}` },
                   { title: '变化', dataIndex: 'change', render: (v: number) => <Tag color={v > 0 ? 'red' : 'green'}>{v > 0 ? '+' : ''}{v.toFixed(2)}</Tag> },
                 ]}
                 rowKey={(r: any) => `${r.harnessId}-${r.field}`}

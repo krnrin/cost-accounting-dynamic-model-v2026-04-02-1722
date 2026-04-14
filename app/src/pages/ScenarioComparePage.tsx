@@ -44,7 +44,7 @@ function safeNum(v: unknown): number {
 }
 
 function fmtCny(v: number): string {
-  return '\u00a5' + v.toFixed(2);
+  return '¥' + v.toFixed(2);
 }
 
 function fmtPct(v: number): string {
@@ -243,7 +243,7 @@ export default function ScenarioComparePage() {
         const baseName =
           bundles[0]?.scenario.scenarioName || '基线';
         cols.push({
-          title: '\u0394 vs ' + baseName,
+          title: 'Δ vs ' + baseName,
           dataIndex: 'd' + i,
           width: 150,
           render: (v: string, row: any) => {
@@ -325,7 +325,7 @@ export default function ScenarioComparePage() {
       });
       if (i > 0) {
         cols.push({
-          title: '\u0394',
+          title: 'Δ',
           dataIndex: 'delta' + i,
           width: 110,
           render: (v: number | null) => {

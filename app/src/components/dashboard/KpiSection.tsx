@@ -62,7 +62,7 @@ export default function KpiSection(props: Props) {
             {project.meta?.projectName || project.id}
           </Title>
           <Text type="secondary" className="db-project-meta">
-            {project.meta?.customer} \u00B7 {project.meta?.platform} \u00B7 {harnessCount} 件
+            {project.meta?.customer} · {project.meta?.platform} · {harnessCount} 件
           </Text>
           <div className="db-tag-row">
             <Tag color="blue">
@@ -78,7 +78,7 @@ export default function KpiSection(props: Props) {
                 onClick={() => navigate(btn.path)}
                 className="db-quick-btn"
               >
-                {btn.label} \u2192
+                {btn.label} →
               </div>
             ))}
           </div>
@@ -103,11 +103,11 @@ export default function KpiSection(props: Props) {
             </RadioGroup>
           </div>
           <div className="ledger-number db-kpi-number">
-            \u00A5{fmtCurrency(vehicleCost)}
+            ¥{fmtCurrency(vehicleCost)}
           </div>
           {mode === 'customer' && (
             <Text className="db-kpi-sub">
-              定点快照 \u00A5{snapshotCustomerVehicleCost.toFixed(2)}
+              定点快照 ¥{snapshotCustomerVehicleCost.toFixed(2)}
             </Text>
           )}
         </div>
@@ -121,7 +121,7 @@ export default function KpiSection(props: Props) {
             {grossMargin.toFixed(1)}%
           </div>
           <Text className="db-kpi-sub">
-            差额 \u00A5{(customerVehicleCost - internalVehicleCost).toFixed(2)}/车
+            差额 ¥{(customerVehicleCost - internalVehicleCost).toFixed(2)}/车
           </Text>
           <Text className="db-kpi-hint">按当前有效客户价计算</Text>
         </div>
@@ -132,15 +132,15 @@ export default function KpiSection(props: Props) {
         <div className="glass-card db-kpi-card">
           <Text className="db-kpi-label">定点快照价</Text>
           <div className="ledger-number db-kpi-number-sm">
-            \u00A5{fmtCurrency(snapshotCustomerVehicleCost)}
+            ¥{fmtCurrency(snapshotCustomerVehicleCost)}
           </div>
           <Text className="db-kpi-sub">
             当前有效价较定点快照{' '}
             {customerVehicleCost >= snapshotCustomerVehicleCost ? '+' : ''}
-            \u00A5{(customerVehicleCost - snapshotCustomerVehicleCost).toFixed(2)}/车
+            ¥{(customerVehicleCost - snapshotCustomerVehicleCost).toFixed(2)}/车
           </Text>
           <Text className="db-kpi-hint">
-            当前生效分摊 \u00A5{allocPerVehicle.toFixed(2)}/车
+            当前生效分摊 ¥{allocPerVehicle.toFixed(2)}/车
           </Text>
         </div>
       </Col>
@@ -150,10 +150,10 @@ export default function KpiSection(props: Props) {
         <div className="glass-card db-kpi-card">
           <Text className="db-kpi-label">一次性费用</Text>
           <div className="ledger-number db-kpi-number">
-            \u00A5{(allocSummary?.grandTotal || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            ¥{(allocSummary?.grandTotal || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
           </div>
           <Text className="db-kpi-sub">
-            工装 {(allocSummary?.totalTooling || 0).toLocaleString()} \u00B7 试验{' '}
+            工装 {(allocSummary?.totalTooling || 0).toLocaleString()} · 试验{' '}
             {(allocSummary?.totalTesting || 0).toLocaleString()}
           </Text>
         </div>

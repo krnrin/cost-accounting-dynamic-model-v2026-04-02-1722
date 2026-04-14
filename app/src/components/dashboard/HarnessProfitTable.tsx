@@ -39,14 +39,14 @@ export default function HarnessProfitTable(props: Props) {
       <div className="glass-card db-chart-card">
         <div className="db-section-header">
           <Title heading={5} className="ink-heading">
-            \u7ebf\u675f\u5229\u6da6\u660e\u7ec6 (\u5185\u90e8\u5b9e\u7ee9)
+            线束利润明细 (内部实绩)
           </Title>
           <Space>
             <div className="db-action-btn" onClick={() => setShowMohDetail(!showMohDetail)}>
-              {showMohDetail ? '\u6536\u8d77\u5236\u9020\u8d39\u660e\u7ec6 \u2191' : '\u5c55\u5f00\u5236\u9020\u8d39\u660e\u7ec6 \u2193'}
+              {showMohDetail ? '收起制造费明细 ↑' : '展开制造费明细 ↓'}
             </div>
             <div className="db-action-btn" onClick={() => setShowMultiImport(true)}>
-              <IconUpload className="db-action-icon" />\u6279\u91cf\u5bfc\u5165
+              <IconUpload className="db-action-icon" />批量导入
             </div>
             <div
               className="db-action-btn"
@@ -60,7 +60,7 @@ export default function HarnessProfitTable(props: Props) {
                 )
               }
             >
-              <IconDownload className="db-action-icon" />\u5bfc\u51fa Excel
+              <IconDownload className="db-action-icon" />导出 Excel
             </div>
           </Space>
         </div>
@@ -68,33 +68,33 @@ export default function HarnessProfitTable(props: Props) {
           <table className="db-harness-table">
             <thead>
               <tr>
-                <th>\u96f6\u4ef6\u53f7</th>
-                <th>\u540d\u79f0</th>
-                <th>\u88c5\u8f66\u6bd4</th>
-                <th>\u5230\u5382\u4ef7</th>
-                <th>\u6750\u6599</th>
-                <th>\u76f4\u63a5\u4eba\u5de5</th>
+                <th>零件号</th>
+                <th>名称</th>
+                <th>装车比</th>
+                <th>到厂价</th>
+                <th>材料</th>
+                <th>直接人工</th>
                 <th onClick={() => setShowMohDetail(!showMohDetail)} style={cursorPointer}>
-                  \u5236\u9020\u8d39\u5408\u8ba1 {showMohDetail ? '\u2191' : '\u2193'}
+                  制造费合计 {showMohDetail ? '↑' : '↓'}
                 </th>
                 {showMohDetail && (
                   <>
-                    <th className="db-h-moh">\u95f4\u63a5\u4eba\u5de5</th>
-                    <th className="db-h-moh">\u4f4e\u503c\u6613\u8017</th>
-                    <th className="db-h-moh">\u673a\u7269\u6599</th>
-                    <th className="db-h-moh">\u5382\u623f\u5206\u644a</th>
-                    <th className="db-h-moh">\u81ea\u52a8\u5316\u5206\u644a</th>
-                    <th className="db-h-moh">\u5176\u4ed6\u5236\u8d39</th>
+                    <th className="db-h-moh">间接人工</th>
+                    <th className="db-h-moh">低值易耗</th>
+                    <th className="db-h-moh">机物料</th>
+                    <th className="db-h-moh">厂房分摊</th>
+                    <th className="db-h-moh">自动化分摊</th>
+                    <th className="db-h-moh">其他制费</th>
                   </>
                 )}
-                <th>\u635f\u8017</th>
-                <th>\u5305\u88c5\u8fd0\u8f93</th>
-                <th>\u5185\u90e8\u6210\u672c</th>
-                <th>\u5206\u644a</th>
-                <th>\u51c0\u5229\u6da6</th>
-                <th>\u5229\u6da6\u7387</th>
-                <th>\u5355\u8f66\u8d21\u732e</th>
-                <th>\u8bca\u65ad</th>
+                <th>损耗</th>
+                <th>包装运输</th>
+                <th>内部成本</th>
+                <th>分摊</th>
+                <th>净利润</th>
+                <th>利润率</th>
+                <th>单车贡献</th>
+                <th>诊断</th>
               </tr>
             </thead>
             <tbody>
@@ -120,24 +120,24 @@ export default function HarnessProfitTable(props: Props) {
                     </td>
                     <td className="db-h-name">{row.name}</td>
                     <td>{(row.ratio * 100).toFixed(1)}%</td>
-                    <td>\u00A5{row.delivered.toFixed(2)}</td>
-                    <td>\u00A5{row.material.toFixed(2)}</td>
-                    <td>\u00A5{row.directLabor.toFixed(2)}</td>
-                    <td>\u00A5{row.mfgTotal.toFixed(2)}</td>
+                    <td>¥{row.delivered.toFixed(2)}</td>
+                    <td>¥{row.material.toFixed(2)}</td>
+                    <td>¥{row.directLabor.toFixed(2)}</td>
+                    <td>¥{row.mfgTotal.toFixed(2)}</td>
                     {showMohDetail && (
                       <>
-                        <td className="db-h-moh">\u00A5{row.indirectLabor.toFixed(2)}</td>
-                        <td className="db-h-moh">\u00A5{row.lowValue.toFixed(2)}</td>
-                        <td className="db-h-moh">\u00A5{row.matConsumption.toFixed(2)}</td>
-                        <td className="db-h-moh">\u00A5{row.factoryAmort.toFixed(2)}</td>
-                        <td className="db-h-moh">\u00A5{row.autoAmort.toFixed(2)}</td>
-                        <td className="db-h-moh">\u00A5{row.otherOH.toFixed(2)}</td>
+                        <td className="db-h-moh">¥{row.indirectLabor.toFixed(2)}</td>
+                        <td className="db-h-moh">¥{row.lowValue.toFixed(2)}</td>
+                        <td className="db-h-moh">¥{row.matConsumption.toFixed(2)}</td>
+                        <td className="db-h-moh">¥{row.factoryAmort.toFixed(2)}</td>
+                        <td className="db-h-moh">¥{row.autoAmort.toFixed(2)}</td>
+                        <td className="db-h-moh">¥{row.otherOH.toFixed(2)}</td>
                       </>
                     )}
-                    <td>\u00A5{row.materialWaste.toFixed(2)}</td>
-                    <td>\u00A5{row.packTotal.toFixed(2)}</td>
+                    <td>¥{row.materialWaste.toFixed(2)}</td>
+                    <td>¥{row.packTotal.toFixed(2)}</td>
                     <td>
-                      <span className="db-cell-bold">\u00A5{row.internalCost.toFixed(2)}</span>
+                      <span className="db-cell-bold">¥{row.internalCost.toFixed(2)}</span>
                       <div className="db-cost-bar">
                         <div style={barSegment('#3b82f6', matPct)} />
                         <div style={barSegment('#f59e0b', labPct)} />
@@ -145,14 +145,14 @@ export default function HarnessProfitTable(props: Props) {
                         <div style={barSegment('#6b7280', packPct)} />
                       </div>
                     </td>
-                    <td>\u00A5{row.allocPerUnit.toFixed(2)}</td>
+                    <td>¥{row.allocPerUnit.toFixed(2)}</td>
                     <td className={row.netProfit >= 0 ? 'db-cell-positive' : 'db-cell-negative'}>
-                      \u00A5{row.netProfit.toFixed(2)}
+                      ¥{row.netProfit.toFixed(2)}
                     </td>
                     <td className={row.margin >= 0 ? 'db-cell-positive' : 'db-cell-negative'}>
                       {row.margin.toFixed(1)}%
                     </td>
-                    <td>\u00A5{row.vehicleContrib.toFixed(2)}</td>
+                    <td>¥{row.vehicleContrib.toFixed(2)}</td>
                     <td>
                       <div>
                         {row.tags.map((t) => (
@@ -165,17 +165,17 @@ export default function HarnessProfitTable(props: Props) {
               })}
               {/* Summary row */}
               <tr className="db-h-summary-row">
-                <td colSpan={3}>\u5355\u8f66\u5408\u8ba1</td>
-                <td>\u00A5{customerVehicleCost.toFixed(2)}</td>
-                <td>\u00A5{(internalProject?.weightedMaterial || 0).toFixed(2)}</td>
-                <td>\u00A5{(internalProject?.weightedDirectLabor || 0).toFixed(2)}</td>
+                <td colSpan={3}>单车合计</td>
+                <td>¥{customerVehicleCost.toFixed(2)}</td>
+                <td>¥{(internalProject?.weightedMaterial || 0).toFixed(2)}</td>
+                <td>¥{(internalProject?.weightedDirectLabor || 0).toFixed(2)}</td>
                 <td colSpan={showMohDetail ? 7 : 1} />
                 <td />
                 <td />
-                <td className="db-cell-bold">\u00A5{internalVehicleCost.toFixed(2)}</td>
-                <td>\u00A5{allocPerVehicle.toFixed(2)}</td>
+                <td className="db-cell-bold">¥{internalVehicleCost.toFixed(2)}</td>
+                <td>¥{allocPerVehicle.toFixed(2)}</td>
                 <td className={customerVehicleCost - internalVehicleCost - allocPerVehicle >= 0 ? 'db-cell-positive db-cell-bold' : 'db-cell-negative db-cell-bold'}>
-                  \u00A5{(customerVehicleCost - internalVehicleCost - allocPerVehicle).toFixed(2)}
+                  ¥{(customerVehicleCost - internalVehicleCost - allocPerVehicle).toFixed(2)}
                 </td>
                 <td className={customerVehicleCost > 0 && (customerVehicleCost - internalVehicleCost - allocPerVehicle) / customerVehicleCost >= 0 ? 'db-cell-positive' : 'db-cell-negative'}>
                   {(customerVehicleCost > 0

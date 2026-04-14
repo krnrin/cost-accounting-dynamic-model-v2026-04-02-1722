@@ -141,7 +141,7 @@ function applyNormalizeDict(text: string, dict: Record<string, string>): string 
   let result = text;
 
   // 先处理中文词（按长度降序，避免短词先替换）
-  const chineseKeys = Object.keys(dict).filter(k => /[\u4e00-\u9fa5]/.test(k));
+  const chineseKeys = Object.keys(dict).filter(k => /[一-龥]/.test(k));
   chineseKeys.sort((a, b) => b.length - a.length);
   for (const key of chineseKeys) {
     // 中文词不使用\b边界，直接全局替换
@@ -150,7 +150,7 @@ function applyNormalizeDict(text: string, dict: Record<string, string>): string 
   }
 
   // 再处理英文词（使用\b边界）
-  const englishKeys = Object.keys(dict).filter(k => !/[\u4e00-\u9fa5]/.test(k));
+  const englishKeys = Object.keys(dict).filter(k => !/[一-龥]/.test(k));
   englishKeys.sort((a, b) => b.length - a.length);
   for (const key of englishKeys) {
     const pattern = new RegExp(`\\b${escapeRegExp(key.toUpperCase())}\\b`, 'g');

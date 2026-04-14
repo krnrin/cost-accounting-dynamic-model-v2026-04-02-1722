@@ -302,8 +302,8 @@ const parseHarnessSheet = (sheet: SheetDataAccessor, context: { releaseId: strin
       continue;
     }
     const quantityValue = toNumber(quantityText, NaN);
-    const hasMeaningfulPartName = /[A-Za-z\u4e00-\u9fff]/.test(partName);
-    const hasMeaningfulUnit = /[A-Za-z\u4e00-\u9fff]/.test(unit);
+    const hasMeaningfulPartName = /[A-Za-z一-鿿]/.test(partName);
+    const hasMeaningfulUnit = /[A-Za-z一-鿿]/.test(unit);
     if (!partNo && !hasMeaningfulPartName && !(Number.isFinite(quantityValue) && quantityValue > 0) && !hasMeaningfulUnit) {
       continue;
     }

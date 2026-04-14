@@ -26,16 +26,16 @@ export interface ApiError {
 }
 
 const STATUS_MESSAGES: Record<number, string> = {
-  400: '\u8BF7\u6C42\u53C2\u6570\u6709\u8BEF\uFF0C\u8BF7\u68C0\u67E5\u8F93\u5165',
-  401: '\u767B\u5F55\u5DF2\u8FC7\u671F\uFF0C\u8BF7\u91CD\u65B0\u767B\u5F55',
-  403: '\u65E0\u6743\u9650\u6267\u884C\u6B64\u64CD\u4F5C',
-  404: '\u8BF7\u6C42\u7684\u8D44\u6E90\u4E0D\u5B58\u5728',
-  409: '\u6570\u636E\u51B2\u7A81\uFF0C\u8BF7\u5237\u65B0\u540E\u91CD\u8BD5',
-  422: '\u6570\u636E\u9A8C\u8BC1\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u586B\u5199\u5185\u5BB9',
-  429: '\u8BF7\u6C42\u8FC7\u4E8E\u9891\u7E41\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5',
-  500: '\u670D\u52A1\u5668\u5185\u90E8\u9519\u8BEF\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5',
-  502: '\u670D\u52A1\u6682\u65F6\u4E0D\u53EF\u7528\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5',
-  503: '\u670D\u52A1\u7EF4\u62A4\u4E2D\uFF0C\u8BF7\u7A0D\u540E\u91CD\u8BD5',
+  400: '请求参数有误，请检查输入',
+  401: '登录已过期，请重新登录',
+  403: '无权限执行此操作',
+  404: '请求的资源不存在',
+  409: '数据冲突，请刷新后重试',
+  422: '数据验证失败，请检查填写内容',
+  429: '请求过于频繁，请稍后重试',
+  500: '服务器内部错误，请稍后重试',
+  502: '服务暂时不可用，请稍后重试',
+  503: '服务维护中，请稍后重试',
 };
 
 export function handleApiError(error: unknown): ApiError {
@@ -44,7 +44,7 @@ export function handleApiError(error: unknown): ApiError {
     return {
       status: null,
       message: error.message,
-      userMessage: '\u7F51\u7EDC\u8FDE\u63A5\u5931\u8D25\uFF0C\u8BF7\u68C0\u67E5\u7F51\u7EDC',
+      userMessage: '网络连接失败，请检查网络',
       retryable: true,
       originalError: error,
     };
@@ -56,7 +56,7 @@ export function handleApiError(error: unknown): ApiError {
     const status = statusMatch ? parseInt(statusMatch[1], 10) : null;
     const userMessage = status && STATUS_MESSAGES[status]
       ? STATUS_MESSAGES[status]
-      : error.message || '\u64CD\u4F5C\u5931\u8D25\uFF0C\u8BF7\u91CD\u8BD5';
+      : error.message || '操作失败，请重试';
 
     return {
       status,
@@ -70,7 +70,7 @@ export function handleApiError(error: unknown): ApiError {
   return {
     status: null,
     message: String(error),
-    userMessage: '\u672A\u77E5\u9519\u8BEF\uFF0C\u8BF7\u91CD\u8BD5',
+    userMessage: '未知错误，请重试',
     retryable: false,
     originalError: error,
   };

@@ -52,7 +52,7 @@ export default function AllocationProgress(props: Props) {
             <div className="glass-card db-alloc-card">
               <Text className="db-kpi-label">已回收金额</Text>
               <div className="ledger-number db-kpi-number">
-                \u00A5{(recoverySummary?.totalRecovered ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                ¥{(recoverySummary?.totalRecovered ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
             </div>
           </Col>
@@ -60,7 +60,7 @@ export default function AllocationProgress(props: Props) {
             <div className="glass-card db-alloc-card">
               <Text className="db-kpi-label">待回收金额</Text>
               <div className="ledger-number db-kpi-number">
-                \u00A5{(recoverySummary?.totalRemaining ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                ¥{(recoverySummary?.totalRemaining ?? 0).toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </div>
             </div>
           </Col>
@@ -84,11 +84,11 @@ export default function AllocationProgress(props: Props) {
               className="db-section-link"
               onClick={() => navigate('/project/' + id + '/s/' + sid + '/alloc')}
             >
-              查看明细 \u2192
+              查看明细 →
             </Text>
           </div>
           {allocRecoveryItems.length === 0 ? (
-            <Empty description="\u6682\u65e0\u5206\u644a\u6570\u636e" />
+            <Empty description="暂无分摊数据" />
           ) : (
             <div className="db-alloc-items">
               {allocRecoveryItems.map((alloc: any) => {
@@ -105,7 +105,7 @@ export default function AllocationProgress(props: Props) {
                 return (
                   <div key={alloc.harnessId} className="db-alloc-bar-item">
                     <Text className="db-alloc-bar-label">
-                      \u2026{alloc.harnessId.slice(-4)}
+                      …{alloc.harnessId.slice(-4)}
                     </Text>
                     <div className="db-alloc-bar-progress">
                       <Progress percent={percent} size="small" stroke={strokeColor} />
@@ -114,7 +114,7 @@ export default function AllocationProgress(props: Props) {
                       <Tag color="red" size="small">超期</Tag>
                     )}
                     <Text className="ledger-number db-alloc-bar-value">
-                      \u00A5{alloc.totalPerUnit.toFixed(2)}
+                      ¥{alloc.totalPerUnit.toFixed(2)}
                     </Text>
                   </div>
                 );
@@ -123,7 +123,7 @@ export default function AllocationProgress(props: Props) {
                 <Text className="db-alloc-footer-text">
                   参与 {allocSummary?.participatingCount || 0} / 不参与{' '}
                   {allocSummary?.nonParticipatingCount || 0}
-                  \u3000\u00B7\u3000加权分摊 \u00A5{allocPerVehicle.toFixed(4)}/车
+                  　·　加权分摊 ¥{allocPerVehicle.toFixed(4)}/车
                 </Text>
               </div>
             </div>
