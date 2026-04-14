@@ -6,6 +6,8 @@ import { isFeishuEnv, isFeishuConfigured, redirectToFeishuOAuth } from '@/lib/fe
 
 const { Title, Text } = Typography;
 
+const IS_DEV = import.meta.env.DEV;
+
 export default function LoginPage() {
   const { login, register, feishuAutoLogin } = useAuthStore();
   const [loading, setLoading] = useState(false);
@@ -98,15 +100,14 @@ export default function LoginPage() {
   if (feishuLoading && inFeishu) {
     return (
       <div
-        style={{
-          height: '100vh',
+        style=
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'var(--semi-color-bg-0)',
+          height: '100vh',
           gap: 16,
-        }}
+        
       >
         <Spin size="large" />
         <Text type="tertiary">正在通过飞书免登...</Text>
@@ -121,34 +122,34 @@ export default function LoginPage() {
       <div className="login-container">
         <Card
           className="glass-panel"
-          style={{
+          style=
             width: 420,
-            padding: '16px 8px',
-            borderRadius: '16px',
-            background: 'rgba(255, 255, 255, 0.45)', // Lighter for light mode
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.6)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-          }}
+            padding: '40px 32px',
+            borderRadius: 20,
+          
         >
-          <div style={{ textAlign: 'center', marginBottom: 32 }}>
-            <div style={{ display: 'inline-flex', padding: 12, borderRadius: 16, background: 'rgba(59, 130, 246, 0.1)', marginBottom: 16 }}>
-              <IconGridView style={{ fontSize: 42, color: 'var(--semi-color-primary)', filter: 'drop-shadow(0 0 8px rgba(59, 130, 246, 0.5))' }} />
+          <div style= textAlign: 'center', marginBottom: 32 >
+            <div style= marginBottom: 12 >
+              <IconGridView style= fontSize: 40, color: 'var(--semi-color-primary)'  />
             </div>
-            <Title heading={3} style={{ margin: '0 0 8px', fontWeight: 700, letterSpacing: '-0.5px' }}>
-              COST ENGINE <span style={{ color: 'var(--semi-color-primary)' }}>PRO</span>
+            <Title heading={3} style= marginBottom: 4 >
+              COST ENGINE <span style= color: 'var(--semi-color-primary)' >PRO</span>
             </Title>
-            <Text type="tertiary" style={{ fontSize: 14 }}>高压线束精算与决策引擎</Text>
+            <Text type="tertiary" style= fontSize: 13 >高压线束精算与决策引擎</Text>
           </div>
 
           <Tabs activeKey={activeTab} onChange={setActiveTab} className="glass-tabs">
             <TabPane tab="系统登录" itemKey="login">
-              <Form onSubmit={handleLogin} style={{ marginTop: 24 }}>
+              <Form
+                onSubmit={handleLogin}
+                style= marginTop: 16 
+                {...(IS_DEV ? { initValues: { email: 'admin@harness.dev', password: 'admin123' } } : {})}
+              >
                 <Form.Input
                   field="email"
                   label="工作邮箱"
                   className="glass-input"
-                  placeholder="admin@harness.dev"
+                  placeholder="your@company.com"
                   rules={[{ required: true, message: '请输入邮箱' }]}
                 />
                 <Form.Input
@@ -166,16 +167,18 @@ export default function LoginPage() {
                   block
                   size="large"
                   loading={loading}
-                  style={{ marginTop: 24 }}
+                  style= marginTop: 16 
                 >
                   验证身份并进入
                 </Button>
               </Form>
-              <div style={{ marginTop: 24, textAlign: 'center' }}>
-                <Text type="tertiary" size="small" style={{ opacity: 0.8 }}>
-                  默认账号: admin@harness.dev / admin123
-                </Text>
-                <Divider style={{ margin: '24px 0 16px', opacity: 0.5 }}>
+              <div style= marginTop: 24 >
+                {IS_DEV && (
+                  <Text type="tertiary" size="small" style= display: 'block', textAlign: 'center', marginBottom: 8 >
+                    开发模式 — 无后端时自动离线登录
+                  </Text>
+                )}
+                <Divider style= margin: '12px 0' >
                   <Text type="tertiary" size="small">或使用企业网关</Text>
                 </Divider>
                 <Button
@@ -185,12 +188,12 @@ export default function LoginPage() {
                   loading={feishuLoading}
                   disabled={!feishuReady}
                   onClick={handleFeishuLogin}
-                  style={{ marginBottom: 8, borderRadius: 8, background: 'rgba(255, 255, 255, 0.5)', border: '1px solid rgba(255, 255, 255, 0.8)', color: '#1e293b' }}
+                  style= marginTop: 8 
                 >
                   {inFeishu ? '飞书环境免登' : '飞书 OAuth 授权登录'}
                 </Button>
                 {!feishuReady && (
-                  <Text type="tertiary" size="small" style={{ color: 'var(--semi-color-danger)' }}>
+                  <Text type="tertiary" size="small" style= display: 'block', textAlign: 'center', marginTop: 8 >
                     未检测到 VITE_FEISHU_APP_ID 环境变量
                   </Text>
                 )}
@@ -198,7 +201,7 @@ export default function LoginPage() {
             </TabPane>
 
             <TabPane tab="申请权限" itemKey="register">
-              <Form onSubmit={handleRegister} style={{ marginTop: 24 }}>
+              <Form onSubmit={handleRegister} style= marginTop: 16 >
                 <Form.Input
                   field="name"
                   label="真实姓名"
@@ -236,7 +239,7 @@ export default function LoginPage() {
                   block
                   size="large"
                   loading={loading}
-                  style={{ marginTop: 24 }}
+                  style= marginTop: 16 
                 >
                   提交开通申请
                 </Button>
