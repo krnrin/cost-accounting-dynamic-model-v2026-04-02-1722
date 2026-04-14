@@ -5,7 +5,7 @@
  * 适合嵌入 Dashboard 或 QuotePage 侧边栏。
  */
 import { useMemo } from 'react';
-import { Card, Table, Tag, Typography, Descriptions, Progress } from '@douyinfe/semi-ui';
+import { Card, Table, Tag, Typography, Descriptions } from '@douyinfe/semi-ui';
 import type { HarnessResult } from '@/types/harness';
 import type { MetalPrices } from '@/types/project';
 import { computeMetalDelta } from '@/engine/metal_escalation';

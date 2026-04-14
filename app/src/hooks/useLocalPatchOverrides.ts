@@ -5,7 +5,7 @@
  * 在现有页面中只需: const patches = useLocalPatchOverrides(scenarioId)
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import {
   handleScenarioFreeze,
   createDefaultMetalState,
@@ -15,7 +15,6 @@ import {
   checkScenarioIntegrity,
   detectDuplicateBomRows,
   checkRateBounds,
-  estimateChangeImpact,
   validateScenarioName,
   markCacheInvalid,
   checkEditConflict,

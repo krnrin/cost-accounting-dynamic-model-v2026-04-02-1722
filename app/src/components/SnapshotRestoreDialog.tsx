@@ -4,7 +4,7 @@
  * 允许用户选择一个历史参数快照，预览差异后确认恢复。
  */
 import { useState, useMemo } from 'react';
-import { Modal, Table, Tag, Typography, Select, Button, Banner } from '@douyinfe/semi-ui';
+import { Modal, Table, Typography, Select, Button, Banner } from '@douyinfe/semi-ui';
 import { useSnapshotIntegration } from '@/hooks/useSnapshotIntegration';
 import { useSettingsSnapshotStore, type SettingsSnapshot } from '@/store/settingsSnapshotStore';
 import type { CSSProperties } from 'react';

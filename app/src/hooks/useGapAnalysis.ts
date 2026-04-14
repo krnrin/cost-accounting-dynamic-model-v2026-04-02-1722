@@ -9,7 +9,7 @@
  */
 
 import { useMemo, useCallback, useState } from 'react';
-import { computeGapAnalysis, buildDualMetalPrices, computeProjectGapSummary, createGapAlignedSnapshot } from '@/engine/gap_analysis';
+import { computeGapAnalysis, buildDualMetalPrices, createGapAlignedSnapshot } from '@/engine/gap_analysis';
 import type { HarnessResult, InternalHarnessResult, BomItem, WireItem } from '@/types/harness';
 import type {
   GapAnalysis,
@@ -73,14 +73,20 @@ export interface UseGapAnalysisReturn {
 // Hook
 // ══════════════════════════════════════════════════
 
-export function useGapAnalysis(input: UseGapAnalysisInput): UseGapAnalysisReturn {
+export function useGapAnalysis(input?: UseGapAnalysisInput): UseGapAnalysisReturn {
   const {
-    customerCopperPrice,
-    customerAluminumPrice,
-    internalMetalConfig,
-    quoteResults,
-    internalResults,
-  } = input;
+    customerCopperPrice = 0,
+    customerAluminumPrice = 0,
+    internalMetalConfig = {
+      activeSource: 'benchmark' as const,
+      sources: {
+        benchmark: { copper: 70000, aluminum: 20000, label: '财务基准' },
+        spot: { copper: 70000, aluminum: 20000, label: '现货' },
+      },
+    },
+    quoteResults = [],
+    internalResults = [],
+  } = input || {};
 
   // 内部状态: 手动录入 Provider
   const [manualProvider] = useState(() => new ManualPriceProvider(48));

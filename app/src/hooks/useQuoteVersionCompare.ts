@@ -61,7 +61,7 @@ export function useQuoteVersionCompare(): UseQuoteVersionCompareReturn {
   }, [baseQuote, compareQuote]);
 
   const swapVersions = useCallback(() => {
-    setBaseQuote(prev => {
+    setBaseQuote(_prev => {
       setCompareQuote(baseQuote);
       return compareQuote;
     });

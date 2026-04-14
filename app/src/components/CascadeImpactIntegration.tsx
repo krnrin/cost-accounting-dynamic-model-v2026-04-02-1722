@@ -16,7 +16,7 @@
  * Issue: #96
  */
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Card, Collapsible, Descriptions, Empty, Space, Spin, Table, Tag, Toast, Typography } from '@douyinfe/semi-ui';
+import { Button, Card, Collapsible, Descriptions, Empty, Spin, Table, Tag, Toast, Typography } from '@douyinfe/semi-ui';
 import { IconRefresh, IconChevronDown, IconChevronRight } from '@douyinfe/semi-icons';
 import { useCascadeImpact, type CascadeImpactResult } from '@/hooks/useCascadeImpact';
 
@@ -62,7 +62,7 @@ function ActionTable({ actions, title }: { actions: any[] | null; title: string 
       title: '操作类型',
       dataIndex: 'type',
       width: 100,
-      render: (value: string) => <Tag color={actionTypeColor(value)}>{value}</Tag>,
+      render: (value: string) => <Tag color={actionTypeColor(value) as any}>{value}</Tag>,
     },
     {
       title: '目标行',
@@ -108,7 +108,7 @@ function ActionTable({ actions, title }: { actions: any[] | null; title: string 
         <Table
           columns={columns}
           dataSource={actions}
-          rowKey={(_, idx) => String(idx)}
+          rowKey={(record: any) => record?.id || String(Math.random())}
           pagination={false}
           size="small"
         />

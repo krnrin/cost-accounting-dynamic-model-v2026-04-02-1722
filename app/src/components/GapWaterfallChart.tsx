@@ -125,7 +125,7 @@ export const GapWaterfallChart: React.FC<GapWaterfallChartProps> = ({
   const scaleY = (val: number) => height - 60 - ((val - minVal) / range) * (height - 80);
 
   return (
-    <div className="gap-waterfall-chart" style= overflowX: 'auto' >
+    <div className="gap-waterfall-chart" style={{ overflowX: 'auto' }}>
       {/* 标题栏 */}
       <div className="waterfall-header">
         <h4>
@@ -133,10 +133,10 @@ export const GapWaterfallChart: React.FC<GapWaterfallChartProps> = ({
           报价 vs 实绩 Gap 分析
         </h4>
         <div className="waterfall-summary">
-          <span className="gap-total" style= color: RISK_COLORS[gap.riskLevel] >
+          <span className="gap-total" style={{ color: RISK_COLORS[gap.riskLevel] }}>
             Gap: ¥{gap.totalGap.toFixed(2)} ({(gap.totalGapRate * 100).toFixed(1)}%)
           </span>
-          <span className="gap-risk" style= color: RISK_COLORS[gap.riskLevel] >
+          <span className="gap-risk" style={{ color: RISK_COLORS[gap.riskLevel] }}>
             {RISK_LABELS[gap.riskLevel]}
           </span>
           {gap.riskReason && (
@@ -290,7 +290,7 @@ export const GapWaterfallChart: React.FC<GapWaterfallChartProps> = ({
       <div className="waterfall-legend">
         {Object.entries(CATEGORY_COLORS).map(([cat, color]) => (
           <span key={cat} className="legend-item">
-            <span className="legend-dot" style= backgroundColor: color  />
+            <span className="legend-dot" style={{ backgroundColor: color }} />
             {{
               metal_price: '金属价格',
               material: 'BOM差异',

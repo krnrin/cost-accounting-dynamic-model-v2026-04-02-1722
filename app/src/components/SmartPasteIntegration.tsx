@@ -16,9 +16,9 @@
 import { useCallback, useRef, useState } from 'react';
 import { Button, Modal, Table, Tag, Toast, Typography, Space, Empty } from '@douyinfe/semi-ui';
 import { IconCopy, IconTick, IconClose } from '@douyinfe/semi-icons';
-import { useSmartPaste, BOM_TARGET_COLUMNS, type SmartPastePreview } from '@/hooks/useSmartPaste';
+import { useSmartPaste, BOM_TARGET_COLUMNS } from '@/hooks/useSmartPaste';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 export interface SmartPasteIntegrationProps {
   /** 目标列名（用于自动映射），默认 BOM_TARGET_COLUMNS */
@@ -77,8 +77,8 @@ export default function SmartPasteIntegration({
             <div>
               <div>{header}</div>
               {mapping && (
-                <Tag size="small" color={confidenceColor(mapping.confidence ?? 0)}>
-                  → {mapping.targetColumn}
+                <Tag size="small" color={confidenceColor(mapping.confidence ?? 0) as any}>
+                  → {mapping.targetField}
                 </Tag>
               )}
             </div>
@@ -152,7 +152,7 @@ export default function SmartPasteIntegration({
             <Table
               columns={previewColumns}
               dataSource={paste.preview.rows.slice(0, 50)}
-              rowKey={(_, idx) => String(idx)}
+              rowKey={(record: any) => record?.id || String(Math.random())}
               pagination={false}
               size="small"
               scroll={{ x: previewColumns.length * 140}}/>

@@ -13,13 +13,12 @@ import { useState, useCallback } from 'react';
 import {
   Typography,
   Button,
-  Tag,
   Empty,
   Space,
   Card,
   Toast,
 } from '@douyinfe/semi-ui';
-import { IconCompare, IconRefresh } from '@douyinfe/semi-icons';
+import { IconSearch } from '@douyinfe/semi-icons';
 
 const { Title, Text } = Typography;
 
@@ -150,7 +149,7 @@ export function BomDiffIntegration({
             </Text>
           )}
           <Button
-            icon={<IconCompare />}
+            icon={<IconSearch />}
             theme="solid"
             size="small"
             disabled={!baselineBom || !compareBom}
@@ -162,7 +161,7 @@ export function BomDiffIntegration({
       </div>
 
       {!computed ? (
-        <Empty description="点击"执行 Diff"开始 BOM 对比" />
+        <Empty description="点击「执行 Diff」开始 BOM 对比" />
       ) : diffRows.length === 0 ? (
         <Empty description="两版 BOM 完全一致，无差异" />
       ) : (

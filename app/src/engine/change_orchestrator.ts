@@ -177,7 +177,7 @@ export function simulateCascade(
   // 实际应调用 cascade_impact.ts，这里提供估算逻辑
   const replaceChanges = bomChanges.filter(c => c.changeType === 'replace').length;
   const modifyChanges = bomChanges.filter(c => c.changeType === 'modify').length;
-  const addRemoveChanges = bomChanges.filter(c => c.changeType === 'add' || c.changeType === 'remove').length;
+  // const addRemoveChanges = bomChanges.filter(c => c.changeType === 'add' || c.changeType === 'remove').length;
 
   // 替换类变更级联影响最大
   const assemblyActions = Math.min(replaceChanges * 2 + modifyChanges, assemblyCount);

@@ -7,8 +7,7 @@
 import { useState, useMemo } from 'react';
 import { Table, Tag, Typography, Select, Tabs, TabPane, Empty } from '@douyinfe/semi-ui';
 import { useSnapshotIntegration } from '@/hooks/useSnapshotIntegration';
-import type { SettingsSnapshot, SnapshotDiff } from '@/store/settingsSnapshotStore';
-import type { QuoteSnapshot } from '@/engine/quote_snapshot';
+import type { SnapshotDiff } from '@/store/settingsSnapshotStore';
 import type { CSSProperties } from 'react';
 
 const { Title, Text } = Typography;
@@ -24,7 +23,7 @@ interface SnapshotComparePanelProps {
   scenarioId: string;
 }
 
-export default function SnapshotComparePanel({ scenarioId }: SnapshotComparePanelProps) {
+export default function SnapshotComparePanel({ scenarioId: _scenarioId }: SnapshotComparePanelProps) {
   const { settingsHistory, quoteHistory, compareSettings, compareQuotes } = useSnapshotIntegration();
   const [settingsA, setSettingsA] = useState<string>('');
   const [settingsB, setSettingsB] = useState<string>('');

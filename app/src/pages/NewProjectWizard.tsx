@@ -17,10 +17,9 @@ import {
   InputNumber,
   Space,
   Descriptions,
-  Popconfirm,
   Banner,
 } from '@douyinfe/semi-ui';
-import { IconArrowLeft, IconArrowRight, IconPlus, IconDelete, IconTick } from '@douyinfe/semi-icons';
+import { IconArrowLeft, IconArrowRight, IconTick } from '@douyinfe/semi-icons';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '@/lib/apiClient';
 import { db } from '@/data/db';
@@ -155,7 +154,7 @@ export default function NewProjectWizard() {
     (index: number, patch: Partial<VolumeSchedule>) => {
       setData((prev) => {
         const volumes = [...prev.volumes];
-        volumes[index] = { ...volumes[index], ...patch };
+        volumes[index] = { ...volumes[index], ...patch } as VolumeSchedule;
         return { ...prev, volumes };
       });
     },
@@ -368,7 +367,7 @@ export default function NewProjectWizard() {
                 min={0}
                 step={1000}
                 formatter={(v) => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                parser={(v) => Number(String(v).replace(/,/g, ''))}
+                parser={(v) => String(v).replace(/,/g, '')}
                 placeholder="年产量"
                 onChange={(v) => updateVolume(i, { volume: Number(v) || 0 })}
               />

@@ -9,7 +9,7 @@ import { Table, Tag, Typography, Card, Descriptions, Banner, Button } from '@dou
 import type { PropagationResult, PropagationImpact } from '@/engine/change_propagation';
 import type { CSSProperties } from 'react';
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const S: Record<string, CSSProperties> = {
   card: { marginBottom: 16 },
@@ -88,19 +88,22 @@ export default function CascadeImpactPreview({
     },
   ];
 
-  const expandedRowRender = (record: PropagationImpact) => (
-    <Descriptions
-      data={[
-        { key: '材料成本Δ', value: `¥${record.breakdown.deltaMaterialCost.toFixed(4)}` },
-        { key: '加工成本Δ', value: `¥${record.breakdown.deltaProcessCost.toFixed(4)}` },
-        { key: '废品成本Δ', value: `¥${record.breakdown.deltaWasteCost.toFixed(4)}` },
-        { key: '管理费Δ', value: `¥${record.breakdown.deltaMgmtFee.toFixed(4)}` },
-        { key: '利润Δ', value: `¥${record.breakdown.deltaProfit.toFixed(4)}` },
-      ]}
-      row
-      size="small"
-    />
-  );
+  const expandedRowRender = (record?: PropagationImpact) => {
+    if (!record) return null;
+    return (
+      <Descriptions
+        data={[
+          { key: '材料成本Δ', value: `¥${record.breakdown.deltaMaterialCost.toFixed(4)}` },
+          { key: '加工成本Δ', value: `¥${record.breakdown.deltaProcessCost.toFixed(4)}` },
+          { key: '废品成本Δ', value: `¥${record.breakdown.deltaWasteCost.toFixed(4)}` },
+          { key: '管理费Δ', value: `¥${record.breakdown.deltaMgmtFee.toFixed(4)}` },
+          { key: '利润Δ', value: `¥${record.breakdown.deltaProfit.toFixed(4)}` },
+        ]}
+        row
+        size="small"
+      />
+    );
+  };
 
   return (
     <Card style={S.card} title="级联影响预览">

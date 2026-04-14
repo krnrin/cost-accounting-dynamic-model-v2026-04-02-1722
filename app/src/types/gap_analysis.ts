@@ -8,8 +8,7 @@
  * - 材料 Gap 拆解为「价格效应」和「用量效应」
  */
 
-import type { BomItem, WireItem, HarnessResult, InternalHarnessResult, MaterialBreakdown } from './harness';
-import type { GapStatus } from './financial_schema';
+import type { BomItem, WireItem, HarnessResult, InternalHarnessResult } from './harness';
 
 // ════════════════════════════════════════════
 // 金属价格体系

@@ -4,7 +4,7 @@
  * React Hook for simulation snapshot management
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import {
   createSimulationSnapshot,
   compareSimulations,

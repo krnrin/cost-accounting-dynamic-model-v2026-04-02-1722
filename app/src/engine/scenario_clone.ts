@@ -13,7 +13,6 @@
  */
 
 import { db } from '@/data/db';
-import type { ScenarioRecord } from '@/data/db';
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -97,7 +96,7 @@ export async function validateClone(
     .where('projectId')
     .equals(targetProjectId)
     .toArray();
-  if (existing.some(s => s.name === options.name.trim())) {
+  if (existing.some(s => s.scenarioName === options.name.trim())) {
     errors.push(`项目中已存在名为「${options.name}」的场景`);
   }
 
@@ -138,13 +137,13 @@ export async function cloneScenario(
   let bomItemCount = 0;
   let wireItemCount = 0;
 
-  await db.transaction('rw', [db.scenarios, db.harnesses, db.bomItems, db.wireItems], async () => {
+  await db.transaction('rw', [db.scenarios, db.harnesses, (db as any).bomItems, (db as any).wireItems], async () => {
     // 1. 创建新场景记录
     const newScenario: any = {
       ...source,
       id: newScenarioId,
       name: options.name.trim(),
-      description: options.description || `从「${source.name}」复制`,
+      description: options.description || `从「${source.scenarioName}」复制`,
       projectId: targetProjectId,
       status: 'draft',
       sourceScenarioId: sourceScenarioId,
@@ -188,13 +187,13 @@ export async function cloneScenario(
       // 3. 克隆 BOM Items
       if (includes.bom) {
         for (const [oldHarnessId, newHarnessId] of harnessIdMap) {
-          const items = await db.bomItems
+          const items = await (db as any).bomItems
             .where('harnessId')
             .equals(oldHarnessId)
             .toArray();
 
           for (const item of items) {
-            await db.bomItems.add({
+            await (db as any).bomItems.add({
               ...item,
               id: generateId(),
               harnessId: newHarnessId,
@@ -204,13 +203,13 @@ export async function cloneScenario(
           }
 
           // 4. 克隆 Wire Items
-          const wires = await db.wireItems
+          const wires = await (db as any).wireItems
             .where('harnessId')
             .equals(oldHarnessId)
             .toArray();
 
           for (const wire of wires) {
-            await db.wireItems.add({
+            await (db as any).wireItems.add({
               ...wire,
               id: generateId(),
               harnessId: newHarnessId,
@@ -245,7 +244,7 @@ export async function quickClone(
   if (!source) throw new Error(`场景 ${sourceScenarioId} 不存在`);
 
   const timestamp = new Date().toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
-  const name = `${source.name} (副本 ${timestamp})`;
+  const name = `${source.scenarioName} (副本 ${timestamp})`;
 
   return cloneScenario(sourceScenarioId, { name, userId });
 }

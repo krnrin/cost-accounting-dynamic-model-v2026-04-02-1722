@@ -1,10 +1,9 @@
 /**
  * KpiSection — Project info card + 4 KPI cards.
  */
-import { Typography, Tag, RadioGroup, Radio, Row, Col } from '@douyinfe/semi-ui';
+import { Typography, Tag, RadioGroup, Radio, Col } from '@douyinfe/semi-ui';
 import { useNavigate } from 'react-router-dom';
 import type { ProjectRecord, ScenarioRecord } from '@/data/db';
-import type { ProjectHarnessResult } from '@/types/harness';
 
 const { Title, Text } = Typography;
 

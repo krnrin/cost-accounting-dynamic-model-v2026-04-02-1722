@@ -38,10 +38,9 @@ import type { BomItem } from '@/types/harness';
 export function enhancedBomCompare(
   baseBom: BomItem[],
   currentBom: BomItem[],
-  config?: Parameters<typeof compareBomLists>[2],
+  substituteRules?: Parameters<typeof compareBomLists>[2],
 ) {
-  const effectiveConfig = config || DEFAULT_NORMALIZATION_CONFIG;
-  return compareBomLists(baseBom, currentBom, effectiveConfig);
+  return compareBomLists(baseBom as any, currentBom as any, substituteRules || DEFAULT_SUBSTITUTE_RULES);
 }
 
 /**
@@ -60,9 +59,9 @@ export function normalizeSingleItem(
 export function compareTwo(
   a: BomItem,
   b: BomItem,
-  config?: Parameters<typeof compareItems>[2],
+  substituteRules?: Parameters<typeof compareItems>[2],
 ) {
-  return compareItems(a, b, config || DEFAULT_NORMALIZATION_CONFIG);
+  return compareItems(a as any, b as any, substituteRules || DEFAULT_SUBSTITUTE_RULES);
 }
 
 /**

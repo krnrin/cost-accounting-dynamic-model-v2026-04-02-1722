@@ -187,7 +187,7 @@ function AlertCenterPage() {
 
   const handleStatusChange = async (event: AlertEvent, status: AlertEventStatus) => {
     try {
-      const shouldEscalate = workflow.checkEscalation(event, new Date().toISOString());
+      const shouldEscalate = (workflow.checkEscalation as any)(event as any, new Date().toISOString());
       if (shouldEscalate && status !== 'resolved') {
         Toast.warning('此预警已超时，建议优先处理或升级。');
       }

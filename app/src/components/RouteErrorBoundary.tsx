@@ -20,7 +20,7 @@ import { Button, Typography, Empty, Space } from '@douyinfe/semi-ui';
 import { IconRefresh, IconHome } from '@douyinfe/semi-icons';
 import type { CSSProperties } from 'react';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const S: Record<string, CSSProperties> = {
   container: {

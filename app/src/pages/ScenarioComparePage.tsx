@@ -8,7 +8,6 @@ import {
   Typography,
   Spin,
   Button,
-  Card,
   Tag,
   Space,
   Table,
@@ -16,11 +15,11 @@ import {
   Checkbox,
   Select,
 } from '@douyinfe/semi-ui';
-import { IconArrowLeft, IconPlus } from '@douyinfe/semi-icons';
+import { IconArrowLeft } from '@douyinfe/semi-icons';
 import { db } from '@/data/db';
 import type { ScenarioRecord, HarnessRecord } from '@/data/db';
 import { computeHarnessCost } from '@/engine/harness_costing';
-import type { HarnessInput, HarnessResult } from '@/engine/harness_costing';
+import type { HarnessInput, HarnessResult } from '@/types/harness';
 import ScenarioSelector from '@/components/ScenarioSelector';
 
 const { Title, Text } = Typography;
@@ -99,15 +98,16 @@ function buildKpi(
   let totalProfit = 0;
 
   results.forEach((r) => {
-    totalVehicle += safeNum(r.vehicleCost);
+    const rr = r as any;
+    totalVehicle += safeNum(rr.vehicleCost ?? r.vehicleRatio);
     totalMaterial += safeNum(r.materialCost);
     totalLabor += safeNum(r.directLabor);
-    totalMfg += safeNum(r.manufacturingOverhead);
-    totalProc += safeNum(r.processingCost);
-    totalPkg += safeNum(r.packagingCost);
+    totalMfg += safeNum(rr.manufacturingOverhead ?? r.manufacturing);
+    totalProc += safeNum(rr.processingCost ?? r.laborPlusMfg);
+    totalPkg += safeNum(rr.packagingCost ?? r.packSubtotal);
     totalExFactory += safeNum(r.exFactoryPrice);
     totalDelivered += safeNum(r.deliveredPrice);
-    totalProfit += safeNum(r.profitAmount);
+    totalProfit += safeNum(rr.profitAmount ?? r.profit);
   });
 
   return {
@@ -158,7 +158,7 @@ export default function ScenarioComparePage() {
         const baseline = all.find((s) => s.isBaseline);
         const others = all.filter((s) => !s.isBaseline);
         if (baseline && others.length > 0) {
-          setSelectedIds([baseline.id!, others[0].id!]);
+          setSelectedIds([baseline.id!, others[0]!.id!]);
         } else {
           setSelectedIds(all.slice(0, 2).map((s) => s.id!));
         }
@@ -483,7 +483,7 @@ export default function ScenarioComparePage() {
             <Checkbox
               checked={showHarnessDetail}
               onChange={(e) =>
-                setShowHarnessDetail(e.target.checked)
+                setShowHarnessDetail(!!e.target.checked)
               }
             >
               显示线束级明细

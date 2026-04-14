@@ -75,7 +75,7 @@ export default function DevPartPricingPage() {
     void loadPricingData(projectId, scenarioId);
   }, [projectId, scenarioId, loadPricingData]);
 
-  const records = useMemo(() => Array.from(devPartPricing.values()), [devPartPricing]);
+  const records = useMemo(() => Object.values(devPartPricing ?? {}), [devPartPricing]);
   const openDiscrepancyCount = useMemo(
     () => priceDiscrepancies.filter((row) => row.partCategory === 'dev_part' && (row.status === 'open' || row.status === 'escalated')).length,
     [priceDiscrepancies]

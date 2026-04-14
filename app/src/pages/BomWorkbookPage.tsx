@@ -13,10 +13,9 @@ import {
   Tooltip,
 } from '@douyinfe/semi-ui';
 import { IconArrowLeft, IconSave, IconUpload, IconInfoCircle, IconEdit } from '@douyinfe/semi-icons';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { useStableLiveQuery } from '../hooks/useStableLiveQuery';
+import { useStableLiveQueryObject } from '../hooks/useStableLiveQuery';
 import { RoleGuard } from '@/components/RoleGuard';
-import { db, type HarnessRecord } from '@/data/db';
+import { db, type HarnessRecord, type ProjectRecord, type ScenarioRecord } from '@/data/db';
 import { settingsRepo } from '@/data/repositories';
 import { apiClient } from '@/lib/apiClient';
 import { computeHarnessCost } from '@/engine/harness_costing';
@@ -60,9 +59,6 @@ import {
   type SheetChangeEvent,
   type SheetType,
 } from '@/engine/change_bus';
-import { useSmartPaste, BOM_TARGET_COLUMNS } from '@/hooks/useSmartPaste';
-import SmartPasteIntegration from '@/components/SmartPasteIntegration';
-import BomDiffIntegration from '@/components/BomDiffIntegration';
 
 const { Text } = Typography;
 
@@ -323,12 +319,14 @@ function buildSummarySheet(
 export default function BomWorkbookPage() {
   const { id, sid } = useParams<{ id: string; sid: string }>();
   const navigate = useNavigate();
-  const smartPaste = useSmartPaste(BOM_TARGET_COLUMNS);
-
-  const data = useStableLiveQuery(async () => {
-    if (!id) return null;
+  const data = useStableLiveQueryObject<{
+    project: ProjectRecord;
+    scenario: ScenarioRecord | null;
+    harnesses: HarnessRecord[];
+  }>(async () => {
+    if (!id) return null as any;
     const project = await db.projects.get(id);
-    if (!project) return null;
+    if (!project) return null as any;
     const scenario = sid ? await db.scenarios.get(sid) : null;
     const harnesses = await db.harnesses.where({ projectId: id }).toArray();
     const scopedHarnesses = sid
@@ -365,11 +363,35 @@ export default function BomWorkbookPage() {
   const [hydratedStateKey, setHydratedStateKey] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!persistedStateKey || !data?.harnesses || data.harnesses.length === 0 || hydratedStateKey === persistedStateKey) return;
+    if (!persistedStateKey || !data?.harnesses || hydratedStateKey === persistedStateKey) return;
 
     let cancelled = false;
 
     void (async () => {
+      // Handle empty harness list (new project)
+      if (data.harnesses.length === 0) {
+        const persisted = (await settingsRepo.get(persistedStateKey)) as PersistedWorkbookState | undefined;
+        if (cancelled) return;
+
+        setModifiedInputs(new Map());
+        setAssemblyRowsByHarness(new Map());
+        setSecondaryRowsByHarness(new Map());
+        setKskRowsByHarness(new Map());
+        setHistoryRows(
+          persisted?.historyRows && persisted.historyRows.length > 0
+            ? persisted.historyRows
+            : [buildInitialHistoryRow(data.project?.meta.projectName || data.project?.meta.projectCode || '')]
+        );
+        setChangeDetection(null);
+        setSemanticChanges([]);
+        setPendingChangeSubmissions([]);
+        setIncomingEvents([]);
+        setInboundSyncState(null);
+        setShowCascadeWizard(false);
+        setHydratedStateKey(persistedStateKey);
+        return;
+      }
+
       const inputMap = buildInputMap(data.harnesses);
       const derived = rebuildDerivedRows(data.harnesses, inputMap);
       const persisted = (await settingsRepo.get(persistedStateKey)) as PersistedWorkbookState | undefined;
@@ -396,7 +418,7 @@ export default function BomWorkbookPage() {
     return () => {
       cancelled = true;
     };
-  }, [hydratedStateKey, persistedStateKey]);
+  }, [hydratedStateKey, persistedStateKey, data?.harnesses]);
 
   useEffect(() => {
     if (!persistedStateKey || hydratedStateKey !== persistedStateKey || historyRows.length === 0) return;
@@ -1051,7 +1073,7 @@ export default function BomWorkbookPage() {
           assemblyRows={flattenMapRows(assemblyRowsByHarness)}
           secondaryRows={flattenMapRows(secondaryRowsByHarness)}
           kskRows={flattenMapRows(kskRowsByHarness)}
-          existingHistoryRows={historyRows}
+          historyRowCount={historyRows.length}
           onConfirm={handleCascadeConfirm}
           onCancel={() => setShowCascadeWizard(false)}
         />

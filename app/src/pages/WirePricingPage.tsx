@@ -72,7 +72,7 @@ export default function WirePricingPage() {
     void loadPricingData(projectId, scenarioId);
   }, [projectId, scenarioId, loadPricingData]);
 
-  const records = useMemo(() => Array.from(wirePricing.values()), [wirePricing]);
+  const records = useMemo(() => Object.values(wirePricing ?? {}), [wirePricing]);
   const openDiscrepancyCount = useMemo(
     () => priceDiscrepancies.filter((row) => row.partCategory === 'wire' && (row.status === 'open' || row.status === 'escalated')).length,
     [priceDiscrepancies]

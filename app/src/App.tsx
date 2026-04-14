@@ -5,6 +5,7 @@ import MainLayout from '@/layouts/MainLayout';
 import LoginPage from '@/pages/LoginPage';
 import ProjectListPage from '@/pages/ProjectListPage';
 import WizardPage from '@/pages/WizardPage';
+import NewProjectWizard from '@/pages/NewProjectWizard';
 import DashboardPage from '@/pages/DashboardPage';
 import HarnessDetailPage from '@/pages/HarnessDetailPage';
 import HarnessEditPage from '@/pages/HarnessEditPage';
@@ -66,6 +67,8 @@ export default function App() {
           <Route path="/" element={<ProjectListPage />} />
           <Route path="/manager" element={<ManagerDashboardPage />} />
           <Route path="/wizard" element={<WizardPage />} />
+          {/* 新建项目向导 - 必须在 /project/:id 之前 */}
+          <Route path="/project/new" element={<NewProjectWizard />} />
           {/* 项目级页面 */}
           <Route path="/project/:id" element={<ProjectDashboardOverviewPage />} />
           <Route path="/project/:id/scenarios" element={<ProjectScenariosPage />} />

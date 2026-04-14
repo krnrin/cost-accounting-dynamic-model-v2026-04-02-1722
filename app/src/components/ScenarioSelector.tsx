@@ -24,7 +24,7 @@ export default function ScenarioSelector() {
 
   if (scenarios.length <= 1) return null;
 
-  const handleChange = (newSid: string | number | Record<string, any> | (string | number)[]) => {
+  const handleChange = (newSid: string | number | Record<string, any> | (string | number)[] | undefined) => {
     if (typeof newSid !== 'string') return;
     if (newSid === sid) return;
     // Replace sid in current path, keep the rest of the route

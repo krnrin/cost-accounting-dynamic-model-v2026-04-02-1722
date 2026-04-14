@@ -73,17 +73,17 @@ export function computeGapAnalysis(
   const logisticsGap = numberOr(quote.packTotal, 0) - numberOr(internal.packTotal, 0);
 
   // ── 瀑布图 ──
-  const waterfall: GapWaterfallItem[] = [
-    { key: 'cu_price',    label: '铜价效应',       value: copperPriceEffect,   category: 'metal_price' },
-    { key: 'al_price',    label: '铝价效应',       value: aluminumPriceEffect, category: 'metal_price' },
-    { key: 'volume',      label: 'BOM用量差异',    value: volumeEffect,        category: 'material' },
-    { key: 'waste',       label: '损耗差异',       value: wasteGap,            category: 'processing' },
-    { key: 'labor',       label: '人工差异',       value: laborGap,            category: 'processing' },
-    { key: 'mfg',         label: '制造费差异',     value: mfgGap,              category: 'processing' },
-    { key: 'mgmt_fee',    label: '管理费(报价)',   value: mgmtFee,             category: 'margin' },
-    { key: 'profit',      label: '利润(报价)',     value: profit,              category: 'margin' },
-    { key: 'logistics',   label: '包装运输差异',   value: logisticsGap,        category: 'logistics' },
-  ].filter(item => Math.abs(item.value) > 0.001);
+  const waterfall: GapWaterfallItem[] = ([
+    { key: 'cu_price',    label: '铜价效应',       value: copperPriceEffect,   category: 'metal_price' as const },
+    { key: 'al_price',    label: '铝价效应',       value: aluminumPriceEffect, category: 'metal_price' as const },
+    { key: 'volume',      label: 'BOM用量差异',    value: volumeEffect,        category: 'material' as const },
+    { key: 'waste',       label: '损耗差异',       value: wasteGap,            category: 'processing' as const },
+    { key: 'labor',       label: '人工差异',       value: laborGap,            category: 'processing' as const },
+    { key: 'mfg',         label: '制造费差异',     value: mfgGap,              category: 'processing' as const },
+    { key: 'mgmt_fee',    label: '管理费(报价)',   value: mgmtFee,             category: 'margin' as const },
+    { key: 'profit',      label: '利润(报价)',     value: profit,              category: 'margin' as const },
+    { key: 'logistics',   label: '包装运输差异',   value: logisticsGap,        category: 'logistics' as const },
+  ] as GapWaterfallItem[]).filter(item => Math.abs(item.value) > 0.001);
 
   // ── 校验: 瀑布图各项之和 === totalGap ──
   const waterfallSum = waterfall.reduce((s, item) => s + item.value, 0);
@@ -246,11 +246,16 @@ export function computeProjectGapSummary(
     weightedWaterfall,
     dangerHarnesses,
     projectRiskLevel,
-    metalPriceSource: {
+    metalPriceSource: firstSnap ? {
       customer: firstSnap.metalPrices.customer.label,
       internal: firstSnap.metalPrices.internal.label,
       copperSpread: firstSnap.metalPrices.copperSpread,
       aluminumSpread: firstSnap.metalPrices.aluminumSpread,
+    } : {
+      customer: '-',
+      internal: '-',
+      copperSpread: 0,
+      aluminumSpread: 0,
     },
   };
 }

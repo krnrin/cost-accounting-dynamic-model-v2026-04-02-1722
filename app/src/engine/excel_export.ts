@@ -13,7 +13,6 @@ import type {
   ChangePricingResult,
   AnnualDropResult,
 } from '@/types/quote';
-import { numberOr } from './shared_utils';
 
 // ── 通用工具 ──
 

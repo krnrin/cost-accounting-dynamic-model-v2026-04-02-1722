@@ -32,7 +32,7 @@ test.describe('\u767B\u5F55\u9875', () => {
     await pwdInput.clear();
     await pwdInput.fill('wrongpassword');
     await page.locator('button:has-text("\u9A8C\u8BC1\u8EAB\u4EFD\u5E76\u8FDB\u5165")').click();
-    await expect(page.locator('.semi-toast')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('.semi-toast-error').first()).toBeVisible({ timeout: 5000 });
   });
 
   test('\u5207\u6362\u5230\u6CE8\u518C tab', async ({ page }) => {

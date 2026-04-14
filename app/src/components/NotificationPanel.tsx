@@ -42,7 +42,7 @@ export default function NotificationPanel() {
                 <Text type="tertiary" style={{ fontSize: 12 }}>{item.message}</Text>
                 <br />
                 <Text type="quaternary" style={{ fontSize: 11 }}>
-                  {new Date(item.timestamp).toLocaleString('zh-CN')}
+                  {new Date(item.createdAt).toLocaleString('zh-CN')}
                 </Text>
               </div>
             </List.Item>

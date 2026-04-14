@@ -99,14 +99,14 @@ const TAG_COLOR: Record<ChangePattern | string, string> = {
   unknown: 'grey',
 };
 
-function tagColor(pattern: string): string {
+function tagColor(pattern: string): any {
   return TAG_COLOR[pattern] || 'grey';
 }
 
 /* ========== helpers ========== */
 
 function getBomItems(harness: HarnessRecord): BomItem[] {
-  const input = harness.input as Record<string, unknown> | null;
+  const input = harness.input as unknown as Record<string, unknown> | null;
   if (!input) return [];
   if (Array.isArray(input.bom)) return input.bom as BomItem[];
   if (Array.isArray(input.bomItems)) return input.bomItems as BomItem[];
@@ -165,8 +165,8 @@ function detectBomChanges(
     if (base && cur) {
       const fc: BomRowFieldChange[] = [];
       COMPARE_FIELDS.forEach((field) => {
-        const bv = (base as Record<string, unknown>)[field];
-        const cv = (cur as Record<string, unknown>)[field];
+        const bv = (base as unknown as Record<string, unknown>)[field];
+        const cv = (cur as unknown as Record<string, unknown>)[field];
         if (String(bv ?? '') !== String(cv ?? '')) {
           fc.push({ field, before: (bv as any) ?? null, after: (cv as any) ?? null });
         }
@@ -344,8 +344,8 @@ function SemanticChangeCard(props: { sc: SemanticChange }) {
         {sc.metadata && typeof sc.metadata === 'object' && 'type' in sc.metadata && (
           <Text type="tertiary" size="small" style={S.block}>
             {'类型: ' + String(sc.metadata.type)}
-            {sc.metadata.beforeLength && ' | 原: ' + String(sc.metadata.beforeLength)}
-            {sc.metadata.afterLength && ' → ' + String(sc.metadata.afterLength)}
+            {sc.metadata.beforeLength ? (' | 原: ' + String(sc.metadata.beforeLength)) : null}
+            {sc.metadata.afterLength ? (' → ' + String(sc.metadata.afterLength)) : null}
           </Text>
         )}
       </div>

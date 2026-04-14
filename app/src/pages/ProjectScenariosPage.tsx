@@ -7,7 +7,7 @@ import { db } from '@/data/db';
 import type { ProjectRecord, ScenarioType as LocalScenarioType } from '@/data/db';
 import { useProjectStore } from '@/store/projectStore';
 import { fetchSettingsHistory } from '@/lib/settingsApi';
-import { useScenarioLifecycle, getTransitionLabel, getTransitionConfirmText, getStatusLabel } from '@/hooks/useScenarioLifecycle';
+import { isEditable, getAvailableTransitions } from '@/engine/scenario_lifecycle';
 
 interface ScenarioItem {
   id: string;
@@ -248,21 +248,6 @@ export default function ProjectScenariosPage() {
     }
   };
 
-  const handleFreeze = (scenario: ScenarioItem) => {
-    Modal.confirm({
-      title: '冻结场景',
-      content: `冻结后会生成版本快照，确认冻结“${scenario.name}”吗？`,
-      onOk: () => executeScenarioAction(scenario, 'freeze', '场景已冻结'),
-    });
-  };
-
-  const handleRelease = (scenario: ScenarioItem) => {
-    Modal.confirm({
-      title: '发布场景',
-      content: `发布后会生成正式版本快照，确认发布“${scenario.name}”吗？`,
-      onOk: () => executeScenarioAction(scenario, 'release', '场景已发布'),
-    });
-  };
 
   const handleClone = (scenario: ScenarioItem) => {
     Modal.confirm({
@@ -416,28 +401,29 @@ export default function ProjectScenariosPage() {
     {
       title: '操作',
       render: (_: unknown, record: ScenarioItem) => {
-        const lifecycle = useScenarioLifecycle(record.status);
+        const editable = isEditable(record.status as any);
+        const availableTransitions = getAvailableTransitions(record.status as any);
         return (
           <Space>
             <Button size="small" theme="solid" onClick={() => navigate(`/project/${id}/s/${record.id}`)}>进入</Button>
-            <Button size="small" onClick={() => openEditModal(record)} disabled={!lifecycle.editable}>编辑</Button>
+            <Button size="small" onClick={() => openEditModal(record)} disabled={!editable}>编辑</Button>
             <Button size="small" onClick={() => navigate(`/project/${id}/compare?ids=${record.id}`)}>对比</Button>
-            {lifecycle.availableTransitions.map((transition) => (
+            {availableTransitions.map((transition) => (
               <Button
-                key={transition}
+                key={transition.to}
                 size="small"
                 theme="light"
                 onClick={() => {
                   Modal.confirm({
-                    title: getTransitionLabel(transition),
-                    content: getTransitionConfirmText(record.name, transition),
+                    title: transition.label,
+                    content: transition.confirmMessage || `确认执行${transition.label}吗？`,
                     onOk: async () => {
                       try {
                         await apiClient(`/projects/${id}/scenarios/${record.id}/transition`, {
                           method: 'POST',
-                          body: { targetStatus: transition },
+                          body: { targetStatus: transition.to },
                         });
-                        Toast.success(`场景已${getTransitionLabel(transition)}`);
+                        Toast.success(`场景已${transition.label}`);
                         await reload();
                       } catch (error) {
                         Toast.error(error instanceof Error ? error.message : '操作失败');
@@ -446,7 +432,7 @@ export default function ProjectScenariosPage() {
                   });
                 }}
               >
-                {getTransitionLabel(transition)}
+                {transition.label}
               </Button>
             ))}
             <Button size="small" theme="borderless" onClick={() => handleClone(record)}>克隆</Button>
