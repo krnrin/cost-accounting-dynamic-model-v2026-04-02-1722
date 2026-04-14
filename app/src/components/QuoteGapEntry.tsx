@@ -43,6 +43,17 @@ function gapColor(gapPercent: number | undefined | null): string {
   return 'red';
 }
 
+const rowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: 12,
+};
+
+const titleStyle: React.CSSProperties = { margin: 0 };
+
+const cardStyle: React.CSSProperties = { marginTop: 16 };
+
 export default function QuoteGapEntry({
   projectId,
   scenarioId,
@@ -72,9 +83,9 @@ export default function QuoteGapEntry({
 
   const content = (
     <div>
-      <div style= display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 >
+      <div style={rowStyle}>
         <Space>
-          <Title heading={6} style= margin: 0 >报价 vs 实绩 Gap</Title>
+          <Title heading={6} style={titleStyle}>报价 vs 实绩 Gap</Title>
           {quickResult && quickResult.overallGapPercent != null && (
             <Tag color={gapColor(quickResult.overallGapPercent)} size="large">
               {formatPercent(quickResult.overallGapPercent)}
@@ -132,7 +143,7 @@ export default function QuoteGapEntry({
   if (inline) return content;
 
   return (
-    <Card className="glass-card" style= marginTop: 16 >
+    <Card className="glass-card" style={cardStyle}>
       {content}
     </Card>
   );
