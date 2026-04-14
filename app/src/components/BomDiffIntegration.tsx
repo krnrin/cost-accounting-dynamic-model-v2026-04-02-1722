@@ -140,12 +140,12 @@ export function BomDiffIntegration({
   const totalDelta = diffRows.reduce((s, r) => s + r.deltaAmount, 0);
 
   return (
-    <Card className="glass-card" style= marginBottom: 16 >
-      <div style= display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 >
-        <Title heading={6} style= margin: 0 >{title}</Title>
+    <Card className="glass-card" style={{ marginBottom: 16}}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12}}>
+        <Title heading={6} style={{ margin: 0}}>{title}</Title>
         <Space>
           {computed && (
-            <Text type="tertiary" style= fontSize: 12 >
+            <Text type="tertiary" style={{ fontSize: 12}}>
               {diffRows.length} 项差异 · 总影响 {totalDelta >= 0 ? '+' : ''}¥{totalDelta.toFixed(2)}
             </Text>
           )}
@@ -166,27 +166,27 @@ export function BomDiffIntegration({
       ) : diffRows.length === 0 ? (
         <Empty description="两版 BOM 完全一致，无差异" />
       ) : (
-        <table style= width: '100%', borderCollapse: 'collapse', fontSize: 12 >
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12}}>
           <thead>
-            <tr style= borderBottom: '2px solid #e5e7eb', textAlign: 'left' >
-              <th style= padding: '6px 8px' >线束</th>
-              <th style= padding: '6px 8px' >零件号</th>
-              <th style= padding: '6px 8px' >名称</th>
-              <th style= padding: '6px 8px', textAlign: 'center' >类型</th>
-              <th style= padding: '6px 8px', textAlign: 'right' >原数量</th>
-              <th style= padding: '6px 8px', textAlign: 'right' >新数量</th>
-              <th style= padding: '6px 8px', textAlign: 'right' >原单价</th>
-              <th style= padding: '6px 8px', textAlign: 'right' >新单价</th>
-              <th style= padding: '6px 8px', textAlign: 'right' >成本影响</th>
+            <tr style={{ borderBottom: '2px solid #e5e7eb', textAlign: 'left'}}>
+              <th style={{ padding: '6px 8px'}}>线束</th>
+              <th style={{ padding: '6px 8px'}}>零件号</th>
+              <th style={{ padding: '6px 8px'}}>名称</th>
+              <th style={{ padding: '6px 8px', textAlign: 'center'}}>类型</th>
+              <th style={{ padding: '6px 8px', textAlign: 'right'}}>原数量</th>
+              <th style={{ padding: '6px 8px', textAlign: 'right'}}>新数量</th>
+              <th style={{ padding: '6px 8px', textAlign: 'right'}}>原单价</th>
+              <th style={{ padding: '6px 8px', textAlign: 'right'}}>新单价</th>
+              <th style={{ padding: '6px 8px', textAlign: 'right'}}>成本影响</th>
             </tr>
           </thead>
           <tbody>
             {diffRows.map((row, idx) => (
-              <tr key={idx} style= borderBottom: '1px solid #f0f0f0' >
-                <td style= padding: '4px 8px', fontFamily: 'monospace' >{row.harnessId}</td>
-                <td style= padding: '4px 8px', fontFamily: 'monospace' >{row.partNo}</td>
-                <td style= padding: '4px 8px' >{row.partName}</td>
-                <td style= padding: '4px 8px', textAlign: 'center' >
+              <tr key={idx} style={{ borderBottom: '1px solid #f0f0f0'}}>
+                <td style={{ padding: '4px 8px', fontFamily: 'monospace'}}>{row.harnessId}</td>
+                <td style={{ padding: '4px 8px', fontFamily: 'monospace'}}>{row.partNo}</td>
+                <td style={{ padding: '4px 8px'}}>{row.partName}</td>
+                <td style={{ padding: '4px 8px', textAlign: 'center'}}>
                   <span
                     style={{
                       fontSize: 10,
@@ -199,19 +199,17 @@ export function BomDiffIntegration({
                     {CHANGE_LABELS[row.changeType]}
                   </span>
                 </td>
-                <td style= padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' >{row.beforeQty}</td>
-                <td style= padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' >{row.afterQty}</td>
-                <td style= padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' >¥{row.beforePrice.toFixed(2)}</td>
-                <td style= padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace' >¥{row.afterPrice.toFixed(2)}</td>
+                <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace'}}>{row.beforeQty}</td>
+                <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace'}}>{row.afterQty}</td>
+                <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace'}}>¥{row.beforePrice.toFixed(2)}</td>
+                <td style={{ padding: '4px 8px', textAlign: 'right', fontFamily: 'monospace'}}>¥{row.afterPrice.toFixed(2)}</td>
                 <td
-                  style=
+                  style={{
                     padding: '4px 8px',
                     textAlign: 'right',
                     fontFamily: 'monospace',
                     fontWeight: 600,
-                    color: row.deltaAmount >= 0 ? '#dc2626' : '#16a34a',
-                  
-                >
+                    color: row.deltaAmount >= 0 ? '#dc2626' : '#16a34a',}}>
                   {row.deltaAmount >= 0 ? '+' : ''}¥{row.deltaAmount.toFixed(2)}
                 </td>
               </tr>

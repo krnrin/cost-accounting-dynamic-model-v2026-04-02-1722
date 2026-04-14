@@ -75,34 +75,34 @@ export const BomDiffPanel: React.FC<BomDiffPanelProps> = ({
   }, [diffResult]);
 
   if (loading) {
-    return <div style= padding: 40, textAlign: 'center', color: '#999' >正在计算 BOM 差异...</div>;
+    return <div style={{ padding: 40, textAlign: 'center', color: '#999'}}>正在计算 BOM 差异...</div>;
   }
 
   if (!diffResult) {
-    return <div style= padding: 40, textAlign: 'center', color: '#999' >请选择两个 BOM 版本进行对比</div>;
+    return <div style={{ padding: 40, textAlign: 'center', color: '#999'}}>请选择两个 BOM 版本进行对比</div>;
   }
 
   return (
-    <div style= display: 'flex', flexDirection: 'column', gap: 16 >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16}}>
       {/* Header */}
-      <div style= display: 'flex', justifyContent: 'space-between', alignItems: 'center' >
-        <div style= display: 'flex', gap: 8, alignItems: 'center' >
-          <span style= fontWeight: 600 >{leftLabel}</span>
-          <span style= color: '#999' >→</span>
-          <span style= fontWeight: 600 >{rightLabel}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center'}}>
+          <span style={{ fontWeight: 600}}>{leftLabel}</span>
+          <span style={{ color: '#999'}}>→</span>
+          <span style={{ fontWeight: 600}}>{rightLabel}</span>
         </div>
-        <button onClick={onExport} style= cursor: 'pointer', padding: '4px 12px', borderRadius: 4, border: '1px solid #d9d9d9', background: '#fff' >
+        <button onClick={onExport} style={{ cursor: 'pointer', padding: '4px 12px', borderRadius: 4, border: '1px solid #d9d9d9', background: '#fff'}}>
           📋 导出摘要
         </button>
       </div>
 
       {/* Summary Cards */}
       {summaryCards && (
-        <div style= display: 'flex', gap: 12, flexWrap: 'wrap' >
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap'}}>
           {summaryCards.map((card, i) => (
             <div key={i} style={{ flex: '1 1 120px', padding: '12px 16px', borderRadius: 8, border: `1px solid ${card.color}20`, background: `${card.color}08` }}>
-              <div style= fontSize: 12, color: '#666' >{card.label}</div>
-              <div style= fontSize: 20, fontWeight: 700, color: card.color >
+              <div style={{ fontSize: 12, color: '#666'}}>{card.label}</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: card.color}}>
                 {card.count !== null ? card.count : `${card.value! >= 0 ? '+' : ''}${card.value!.toFixed(2)}`}
               </div>
             </div>
@@ -111,7 +111,7 @@ export const BomDiffPanel: React.FC<BomDiffPanelProps> = ({
       )}
 
       {/* Filter Tabs */}
-      <div style= display: 'flex', gap: 4 >
+      <div style={{ display: 'flex', gap: 4}}>
         {FILTER_TABS.map(tab => {
           const isActive = filter === tab.key;
           const count = tab.key === 'all' ? diffResult.rows.length : diffResult.rows.filter(r => r.changeType === tab.key).length;
@@ -119,13 +119,11 @@ export const BomDiffPanel: React.FC<BomDiffPanelProps> = ({
             <button
               key={tab.key}
               onClick={() => onFilterChange(tab.key)}
-              style=
+              style={{
                 padding: '6px 12px', borderRadius: 4, cursor: 'pointer',
                 border: isActive ? '1px solid #1677ff' : '1px solid #d9d9d9',
                 background: isActive ? '#e6f4ff' : '#fff',
-                color: isActive ? '#1677ff' : '#333', fontWeight: isActive ? 600 : 400,
-              
-            >
+                color: isActive ? '#1677ff' : '#333', fontWeight: isActive ? 600 : 400,}}>
               {tab.icon} {tab.label} ({count})
             </button>
           );
@@ -133,50 +131,50 @@ export const BomDiffPanel: React.FC<BomDiffPanelProps> = ({
       </div>
 
       {/* Diff Table */}
-      <div style= overflowX: 'auto' >
-        <table style= width: '100%', borderCollapse: 'collapse', fontSize: 13 >
+      <div style={{ overflowX: 'auto'}}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13}}>
           <thead>
-            <tr style= borderBottom: '2px solid #f0f0f0' >
+            <tr style={{ borderBottom: '2px solid #f0f0f0'}}>
               <th style={thStyle}>状态</th>
               <th style={thStyle}>物料号</th>
               <th style={thStyle}>物料名称</th>
               <th style={thStyle}>变更字段</th>
-              <th style= ...thStyle, textAlign: 'right' >成本影响</th>
+              <th style={{ ...thStyle, textAlign: 'right'}}>成本影响</th>
             </tr>
           </thead>
           <tbody>
             {filteredRows.length === 0 ? (
-              <tr><td colSpan={5} style= padding: 24, textAlign: 'center', color: '#999' >无匹配记录</td></tr>
+              <tr><td colSpan={5} style={{ padding: 24, textAlign: 'center', color: '#999'}}>无匹配记录</td></tr>
             ) : (
               filteredRows.map((row, idx) => (
-                <tr key={`${row.partNo}-${idx}`} style= background: CHANGE_COLORS[row.changeType], borderBottom: '1px solid #f0f0f0' >
+                <tr key={`${row.partNo}-${idx}`} style={{ background: CHANGE_COLORS[row.changeType], borderBottom: '1px solid #f0f0f0'}}>
                   <td style={tdStyle}>
-                    <span style= padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 >
+                    <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600}}>
                       {CHANGE_LABELS[row.changeType]}
                     </span>
                   </td>
-                  <td style= ...tdStyle, fontFamily: 'monospace', fontSize: 12 >{row.partNo}</td>
+                  <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 12}}>{row.partNo}</td>
                   <td style={tdStyle}>{row.partName}</td>
                   <td style={tdStyle}>
                     {row.fieldChanges.length === 0
-                      ? <span style= color: '#999' >—</span>
+                      ? <span style={{ color: '#999'}}>—</span>
                       : row.fieldChanges.map((fc, fi) => (
-                          <div key={fi} style= fontSize: 12, lineHeight: 1.6 >
-                            <span style= color: '#999' >{fc.label}: </span>
-                            <span style= textDecoration: 'line-through', color: '#ff4d4f' >{String(fc.oldValue ?? '-')}</span>
-                            <span style= margin: '0 4px', color: '#999' >→</span>
-                            <span style= color: '#52c41a', fontWeight: 600 >{String(fc.newValue ?? '-')}</span>
+                          <div key={fi} style={{ fontSize: 12, lineHeight: 1.6}}>
+                            <span style={{ color: '#999'}}>{fc.label}: </span>
+                            <span style={{ textDecoration: 'line-through', color: '#ff4d4f'}}>{String(fc.oldValue ?? '-')}</span>
+                            <span style={{ margin: '0 4px', color: '#999'}}>→</span>
+                            <span style={{ color: '#52c41a', fontWeight: 600}}>{String(fc.newValue ?? '-')}</span>
                           </div>
                         ))
                     }
                   </td>
-                  <td style= ...tdStyle, textAlign: 'right', fontFamily: 'monospace' >
+                  <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace'}}>
                     {row.costImpact !== 0 ? (
-                      <span style= color: row.costImpact > 0 ? '#ff4d4f' : '#52c41a', fontWeight: 600 >
+                      <span style={{ color: row.costImpact > 0 ? '#ff4d4f' : '#52c41a', fontWeight: 600}}>
                         {row.costImpact > 0 ? '+' : ''}{row.costImpact.toFixed(2)}
                       </span>
                     ) : (
-                      <span style= color: '#999' >—</span>
+                      <span style={{ color: '#999'}}>—</span>
                     )}
                   </td>
                 </tr>

@@ -154,7 +154,7 @@ export default function SnapshotComparePanel({ scenarioId }: SnapshotComparePane
                 pagination={false}
                 size="small"
               />
-              <Title heading={6} style= marginTop: 12 >结果差异 ({quoteDiffs.resultDiffs.length}项)</Title>
+              <Title heading={6} style={{ marginTop: 12}}>结果差异 ({quoteDiffs.resultDiffs.length}项)</Title>
               <Table
                 dataSource={quoteDiffs.resultDiffs}
                 columns={[
