@@ -298,10 +298,10 @@ export default function QuotePage() {
     if (val === undefined) return '-';
     const color = val > 0 ? 'var(--semi-color-danger)' : val < 0 ? 'var(--semi-color-success)' : 'inherit';
     const prefix = val > 0 ? '+' : '';
-    return <span style= color >{prefix}{val.toFixed(2)}</span>;
+    return <span style={{ color }}>{prefix}{val.toFixed(2)}</span>;
   };
 
-  if (loading) return <Spin size="large" style= margin: '40px auto', display: 'block'  />;
+  if (loading) return <Spin size="large" style={{ margin: '40px auto', display: 'block' }} />;
   if (!project || !scenario) return <div>项目不存在</div>;
 
   // ── Tab 1: 建议售价 + 内部成本明细 ──
@@ -321,16 +321,15 @@ export default function QuotePage() {
     ];
 
     return (
-      <Space vertical align="start" style= width: '100%' >
-        {/* 建议售价计算器 */}
-        <Card className="glass-card" style= width: '100%' >
-          <div style= display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' >
+      <Space vertical align="start" style={{ width: '100%' }}>
+        <Card className="glass-card" style={{ width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 32, flexWrap: 'wrap' }}>
             <div>
-              <Text style= display: 'block', marginBottom: 4  type="tertiary">内部成本(单车)</Text>
-              <Title heading={4} style= margin: 0 >{formatCurrency(baselineProject.vehicleCost)}</Title>
+              <Text style={{ display: 'block', marginBottom: 4 }} type="tertiary">内部成本(单车)</Text>
+              <Title heading={4} style={{ margin: 0 }}>{formatCurrency(baselineProject.vehicleCost)}</Title>
             </div>
             <div>
-              <Text style= display: 'block', marginBottom: 4  type="tertiary">目标毛利率</Text>
+              <Text style={{ display: 'block', marginBottom: 4 }} type="tertiary">目标毛利率</Text>
               <InputNumber
                 value={targetMarginPercent}
                 onChange={(v) => setTargetMarginPercent(Number(v || 0))}
@@ -338,21 +337,21 @@ export default function QuotePage() {
                 max={99}
                 step={0.5}
                 suffix="%"
-                style= width: 120 
+                style={{ width: 120 }}
               />
             </div>
             <div>
-              <Text style= display: 'block', marginBottom: 4  type="tertiary">建议售价</Text>
-              <Title heading={3} style= margin: 0, color: 'var(--semi-color-primary)' >{formatCurrency(suggestedPrice)}</Title>
+              <Text style={{ display: 'block', marginBottom: 4 }} type="tertiary">建议售价</Text>
+              <Title heading={3} style={{ margin: 0, color: 'var(--semi-color-primary)' }}>{formatCurrency(suggestedPrice)}</Title>
             </div>
             <div>
-              <Text style= display: 'block', marginBottom: 4  type="tertiary">利润额</Text>
-              <Title heading={4} style= margin: 0, color: profitAmount > 0 ? 'var(--semi-color-success)' : 'var(--semi-color-danger)' >
+              <Text style={{ display: 'block', marginBottom: 4 }} type="tertiary">利润额</Text>
+              <Title heading={4} style={{ margin: 0, color: profitAmount > 0 ? 'var(--semi-color-success)' : 'var(--semi-color-danger)' }}>
                 {formatCurrency(profitAmount)}
               </Title>
             </div>
             <div>
-              <Text style= display: 'block', marginBottom: 4  type="tertiary">实际毛利率</Text>
+              <Text style={{ display: 'block', marginBottom: 4 }} type="tertiary">实际毛利率</Text>
               <Text strong>{actualMargin.toFixed(2)}%</Text>
             </div>
           </div>
@@ -405,8 +404,8 @@ export default function QuotePage() {
           columns={costColumns}
           dataSource={baselineResults}
           pagination={false}
-          scroll= x: 900 
-          style= width: '100%' 
+          scroll={{ x: 900 }}
+          style={{ width: '100%' }}
           rowKey="harnessId"
         />
       </Space>
@@ -430,14 +429,14 @@ export default function QuotePage() {
       { title: '差异', render: (_: any, r: any) => formatDelta(r.deltaPrice) },
       { title: '差异%', render: (_: any, r: any) => {
           const color = r.deltaPercent > 0 ? 'var(--semi-color-danger)' : r.deltaPercent < 0 ? 'var(--semi-color-success)' : 'inherit';
-          return <span style= color >{r.deltaPercent > 0 ? '+' : ''}{r.deltaPercent.toFixed(2)}%</span>;
+          return <span style={{ color }}>{r.deltaPercent > 0 ? '+' : ''}{r.deltaPercent.toFixed(2)}%</span>;
         }
       },
     ];
 
     return (
-      <Space vertical align="start" style= width: '100%' >
-        <Card className="glass-card" title="变更场景模拟" style= width: '100%' >
+      <Space vertical align="start" style={{ width: '100%' }}>
+        <Card className="glass-card" title="变更场景模拟" style={{ width: '100%' }}>
           <Space vertical align="start">
             <RadioGroup value={changeMode} onChange={(e) => setChangeMode(e.target.value as any)} type="button">
               <Radio value="bom">BOM变更</Radio>
@@ -470,7 +469,7 @@ export default function QuotePage() {
                           [h.harnessId]: { ...modifiedHarnesses[h.harnessId], [field]: val }
                         });
                       }}
-                      style= width: 120 
+                      style={{ width: 120 }}
                       prefix={changeMode === 'bom' ? '¥' : ''}
                       suffix={changeMode === 'hours' ? 'h' : changeMode === 'config' ? '%' : ''}
                     />
@@ -481,23 +480,23 @@ export default function QuotePage() {
           </Space>
         </Card>
 
-        <Card className="glass-card" title="变更对比结果" style= width: '100%' >
-          <div style= display: 'flex', justifyContent: 'space-between', marginBottom: 16 >
+        <Card className="glass-card" title="变更对比结果" style={{ width: '100%' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
             <div>
-              <Text style= display: 'block' >单车影响金额</Text>
-              <Title heading={3} style= margin: 0 >{formatDelta(changePricingResult.summary.totalDelta)}</Title>
+              <Text style={{ display: 'block' }}>单车影响金额</Text>
+              <Title heading={3} style={{ margin: 0 }}>{formatDelta(changePricingResult.summary.totalDelta)}</Title>
             </div>
             <div>
-              <Text style= display: 'block' >单车变化率</Text>
-              <Title heading={3} style= margin: 0 >
+              <Text style={{ display: 'block' }}>单车变化率</Text>
+              <Title heading={3} style={{ margin: 0 }}>
                 {formatDelta(changePricingResult.summary.deltaPercent)}%
               </Title>
             </div>
             <div>
-              <Text style= display: 'block' >变更线束数</Text>
-              <Title heading={3} style= margin: 0 >{changePricingResult.summary.affectedCount}</Title>
+              <Text style={{ display: 'block' }}>变更线束数</Text>
+              <Title heading={3} style={{ margin: 0 }}>{changePricingResult.summary.affectedCount}</Title>
             </div>
-            <div style= display: 'flex', alignItems: 'flex-end' >
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
               <Space>
                 <RoleGuard field="changeExport">
                 <Button
@@ -534,16 +533,16 @@ export default function QuotePage() {
   return (
     <div className="page-container">
       <ScenarioSelector />
-      <div style= display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <Button
           icon={<IconArrowLeft />}
           aria-label="返回"
           theme="borderless"
           onClick={() => navigate(`/project/${id}/s/${sid}`)}
         />
-        <div style= flex: 1 >
-          <Title heading={4} style= margin: 0 >报价工作台</Title>
-          <Text style= display: 'block' >{project.meta.projectName} / {project.meta.customer}</Text>
+        <div style={{ flex: 1 }}>
+          <Title heading={4} style={{ margin: 0 }}>报价工作台</Title>
+          <Text style={{ display: 'block' }}>{project.meta.projectName} / {project.meta.customer}</Text>
         </div>
         <Space>
           <Tag color={selectedQuoteStatusMeta.color}>
@@ -584,13 +583,13 @@ export default function QuotePage() {
       </div>
 
       <Tabs type="line">
-        <TabPane tab={<span><IconList style= marginRight: 4  />建议售价</span>} itemKey="1">
-          <div style= padding: '16px 0' >
+        <TabPane tab={<span><IconList style={{ marginRight: 4 }} />建议售价</span>} itemKey="1">
+          <div style={{ padding: '16px 0' }}>
             {renderSuggestedPrice()}
           </div>
         </TabPane>
-        <TabPane tab={<span><IconSimilarity style= marginRight: 4  />设变报价</span>} itemKey="2">
-          <div style= padding: '16px 0' >
+        <TabPane tab={<span><IconSimilarity style={{ marginRight: 4 }} />设变报价</span>} itemKey="2">
+          <div style={{ padding: '16px 0' }}>
             {renderChangePricing()}
           </div>
         </TabPane>

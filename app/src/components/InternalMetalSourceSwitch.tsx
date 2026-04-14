@@ -18,7 +18,6 @@ import {
   Tag,
   Toast,
   Typography,
-  Space,
   Tooltip,
 } from '@douyinfe/semi-ui';
 import { IconAlertTriangle, IconTick, IconRefresh } from '@douyinfe/semi-icons';
@@ -31,11 +30,8 @@ import {
 const { Text } = Typography;
 
 interface InternalMetalSourceSwitchProps {
-  /** 紧凑模式（只显示切换器，不显示录入表单） */
   compact?: boolean;
-  /** 切换回调 */
   onSourceChange?: (source: InternalMetalSource) => void;
-  /** 价格更新回调 */
   onPriceUpdate?: (source: InternalMetalSource, copper: number, aluminum: number) => void;
 }
 
@@ -56,7 +52,7 @@ export function InternalMetalSourceSwitch({
 
   const [editCopper, setEditCopper] = useState<number | undefined>(undefined);
   const [editAluminum, setEditAluminum] = useState<number | undefined>(undefined);
-  const [editNote, setEditNote] = useState('');
+  const [editNote] = useState('');
   const [saving, setSaving] = useState(false);
 
   const activePrice = getActivePrice();
@@ -82,7 +78,7 @@ export function InternalMetalSourceSwitch({
       await updatePrice(activeSource, editCopper, editAluminum, editNote || undefined);
       onPriceUpdate?.(activeSource, editCopper, editAluminum);
       Toast.success(`${SOURCE_LABELS[activeSource]} 已更新`);
-    } catch (err) {
+    } catch {
       Toast.error('保存失败');
     } finally {
       setSaving(false);
@@ -90,10 +86,9 @@ export function InternalMetalSourceSwitch({
   };
 
   return (
-    <div style= display: 'flex', flexDirection: 'column', gap: 12 >
-      {/* 来源切换 */}
-      <div style= display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' >
-        <Text strong style= fontSize: 13 >内部金属基准：</Text>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <Text strong style={{ fontSize: 13 }}>内部金属基准：</Text>
         <RadioGroup
           type="button"
           value={activeSource}
@@ -117,12 +112,11 @@ export function InternalMetalSourceSwitch({
         )}
       </div>
 
-      {/* 当前价格展示 */}
-      <div style= display: 'flex', gap: 24, flexWrap: 'wrap' >
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
         {summary.map((item) => (
           <div
             key={item.source}
-            style=
+            style={{
               padding: '8px 14px',
               borderRadius: 8,
               background: item.source === activeSource ? 'rgba(37,99,235,0.06)' : 'rgba(0,0,0,0.02)',
@@ -130,53 +124,52 @@ export function InternalMetalSourceSwitch({
               cursor: 'pointer',
               transition: 'all 0.2s',
               minWidth: 160,
-            
+            }}
             onClick={() => handleSwitch(item.source)}
           >
-            <div style= display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 >
-              <Text strong style= fontSize: 12 >{item.label}</Text>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+              <Text strong style={{ fontSize: 12 }}>{item.label}</Text>
               {item.isStale && <Tag color="orange" size="small">过期</Tag>}
             </div>
-            <div style= fontSize: 12, color: '#666' >
+            <div style={{ fontSize: 12, color: '#666' }}>
               铜 ¥{item.copper.toLocaleString()}/吨 · 铝 ¥{item.aluminum.toLocaleString()}/吨
             </div>
           </div>
         ))}
       </div>
 
-      {/* 录入表单（非紧凑模式） */}
       {!compact && (
         <div
-          style=
+          style={{
             display: 'flex',
             alignItems: 'flex-end',
             gap: 12,
             padding: '12px 0',
             borderTop: '1px solid rgba(0,0,0,0.06)',
             flexWrap: 'wrap',
-          
+          }}
         >
           <div>
-            <Text style= fontSize: 12, color: '#999', display: 'block', marginBottom: 4 >
+            <Text style={{ fontSize: 12, color: '#999', display: 'block', marginBottom: 4 }}>
               铜价 (元/吨)
             </Text>
             <InputNumber
               value={editCopper ?? activePrice.copper}
               onChange={(v) => setEditCopper(v as number)}
-              style= width: 140 
+              style={{ width: 140 }}
               min={0}
               step={100}
               prefix="¥"
             />
           </div>
           <div>
-            <Text style= fontSize: 12, color: '#999', display: 'block', marginBottom: 4 >
+            <Text style={{ fontSize: 12, color: '#999', display: 'block', marginBottom: 4 }}>
               铝价 (元/吨)
             </Text>
             <InputNumber
               value={editAluminum ?? activePrice.aluminum}
               onChange={(v) => setEditAluminum(v as number)}
-              style= width: 140 
+              style={{ width: 140 }}
               min={0}
               step={100}
               prefix="¥"
@@ -187,7 +180,7 @@ export function InternalMetalSourceSwitch({
             theme="solid"
             loading={saving}
             onClick={handleSave}
-            style= height: 32 
+            style={{ height: 32 }}
           >
             更新 {SOURCE_LABELS[activeSource]}
           </Button>
@@ -196,3 +189,5 @@ export function InternalMetalSourceSwitch({
     </div>
   );
 }
+
+export default InternalMetalSourceSwitch;

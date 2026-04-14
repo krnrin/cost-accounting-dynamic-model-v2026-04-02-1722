@@ -178,7 +178,7 @@ export default function GapAnalysisPage() {
 
   if (loading) {
     return (
-      <div style= display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 >
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
         <Spin size="large" tip="正在加载 Gap 分析数据..." />
       </div>
     );
@@ -193,8 +193,7 @@ export default function GapAnalysisPage() {
     <div className="page-container">
       <ScenarioSelector />
 
-      {/* 顶栏 */}
-      <div style= display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <Space>
           <Button
             icon={<IconArrowLeft />}
@@ -202,7 +201,7 @@ export default function GapAnalysisPage() {
             onClick={() => navigate(`/project/${projectId}/s/${sid}`)}
           />
           <div>
-            <Title heading={4} style= margin: 0 >报价 vs 实绩 Gap 分析</Title>
+            <Title heading={4} style={{ margin: 0 }}>报价 vs 实绩 Gap 分析</Title>
             <Text type="tertiary">{project.meta.projectName} / {project.meta.customer}</Text>
           </div>
         </Space>
@@ -220,111 +219,108 @@ export default function GapAnalysisPage() {
         </Space>
       </div>
 
-      {/* 金属价格切换 */}
-      <Card className="glass-card" style= marginBottom: 16 >
+      <Card className="glass-card" style={{ marginBottom: 16 }}>
         <InternalMetalSourceSwitch />
       </Card>
 
-      {/* KPI 卡片 */}
-      <Row gutter={[16, 16]} style= marginBottom: 16 >
+      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col span={6}>
           <Card className="glass-card">
-            <Text style= fontSize: 12, color: '#999' >报价侧到厂价</Text>
-            <div className="ledger-number" style= fontSize: 22, fontWeight: 700 >
+            <Text style={{ fontSize: 12, color: '#999' }}>报价侧到厂价</Text>
+            <div className="ledger-number" style={{ fontSize: 22, fontWeight: 700 }}>
               ¥{totalGap.quote.toFixed(2)}
             </div>
-            <Text type="tertiary" style= fontSize: 11 >客户协议金属价</Text>
+            <Text type="tertiary" style={{ fontSize: 11 }}>客户协议金属价</Text>
           </Card>
         </Col>
         <Col span={6}>
           <Card className="glass-card">
-            <Text style= fontSize: 12, color: '#999' >实绩侧到厂价</Text>
-            <div className="ledger-number" style= fontSize: 22, fontWeight: 700 >
+            <Text style={{ fontSize: 12, color: '#999' }}>实绩侧到厂价</Text>
+            <div className="ledger-number" style={{ fontSize: 22, fontWeight: 700 }}>
               ¥{totalGap.internal.toFixed(2)}
             </div>
-            <Text type="tertiary" style= fontSize: 11 >{SOURCE_LABELS[activeSource]}</Text>
+            <Text type="tertiary" style={{ fontSize: 11 }}>{SOURCE_LABELS[activeSource]}</Text>
           </Card>
         </Col>
         <Col span={6}>
           <Card className="glass-card">
-            <Text style= fontSize: 12, color: '#999' >Gap（报价 - 实绩）</Text>
+            <Text style={{ fontSize: 12, color: '#999' }}>Gap（报价 - 实绩）</Text>
             <div
               className="ledger-number"
-              style=
+              style={{
                 fontSize: 22,
                 fontWeight: 700,
                 color: totalGap.delta >= 0 ? '#16a34a' : '#dc2626',
-              
+              }}
             >
               {totalGap.delta >= 0 ? '+' : ''}¥{totalGap.delta.toFixed(2)}
             </div>
-            <Text type="tertiary" style= fontSize: 11 >
+            <Text type="tertiary" style={{ fontSize: 11 }}>
               {totalGap.delta >= 0 ? '报价充裕' : '报价不足'} ({totalGap.deltaPct >= 0 ? '+' : ''}{totalGap.deltaPct.toFixed(1)}%)
             </Text>
           </Card>
         </Col>
         <Col span={6}>
           <Card className="glass-card">
-            <Text style= fontSize: 12, color: '#999' >影响线束数</Text>
-            <div className="ledger-number" style= fontSize: 22, fontWeight: 700 >
+            <Text style={{ fontSize: 12, color: '#999' }}>影响线束数</Text>
+            <div className="ledger-number" style={{ fontSize: 22, fontWeight: 700 }}>
               {harnessGapRows.length}
             </div>
-            <Text type="tertiary" style= fontSize: 11 >
+            <Text type="tertiary" style={{ fontSize: 11 }}>
               正 Gap {harnessGapRows.filter((r) => r.delta > 0).length} · 负 Gap {harnessGapRows.filter((r) => r.delta < 0).length}
             </Text>
           </Card>
         </Col>
       </Row>
 
-      {/* 成本维度 Gap 表 */}
-      <Card className="glass-card" style= marginBottom: 16 >
-        <Title heading={6} style= marginBottom: 12 >成本维度 Gap 明细</Title>
-        <table style= width: '100%', borderCollapse: 'collapse', fontSize: 13 >
+      <Card className="glass-card" style={{ marginBottom: 16 }}>
+        <Title heading={6} style={{ marginBottom: 12 }}>成本维度 Gap 明细</Title>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
-            <tr style= borderBottom: '2px solid #e5e7eb', textAlign: 'left' >
-              <th style= padding: '8px 12px' >维度</th>
-              <th style= padding: '8px 12px', textAlign: 'right' >报价侧</th>
-              <th style= padding: '8px 12px', textAlign: 'right' >实绩侧</th>
-              <th style= padding: '8px 12px', textAlign: 'right' >Gap</th>
-              <th style= padding: '8px 12px', textAlign: 'right' >Gap %</th>
+            <tr style={{ borderBottom: '2px solid #e5e7eb', textAlign: 'left' }}>
+              <th style={{ padding: '8px 12px' }}>维度</th>
+              <th style={{ padding: '8px 12px', textAlign: 'right' }}>报价侧</th>
+              <th style={{ padding: '8px 12px', textAlign: 'right' }}>实绩侧</th>
+              <th style={{ padding: '8px 12px', textAlign: 'right' }}>Gap</th>
+              <th style={{ padding: '8px 12px', textAlign: 'right' }}>Gap %</th>
             </tr>
           </thead>
           <tbody>
             {gapDimensions.map((dim) => (
               <tr
                 key={dim.label}
-                style=
+                style={{
                   borderBottom: '1px solid #f0f0f0',
                   background: dim.label.includes('价') ? 'rgba(37,99,235,0.03)' : undefined,
-                
+                }}
               >
-                <td style= padding: '8px 12px', fontWeight: dim.label.includes('价') ? 600 : 400 >
+                <td style={{ padding: '8px 12px', fontWeight: dim.label.includes('价') ? 600 : 400 }}>
                   {dim.label}
                 </td>
-                <td style= padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' >
+                <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>
                   ¥{dim.quoteValue.toFixed(2)}
                 </td>
-                <td style= padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' >
+                <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: 'monospace' }}>
                   ¥{dim.internalValue.toFixed(2)}
                 </td>
                 <td
-                  style=
+                  style={{
                     padding: '8px 12px',
                     textAlign: 'right',
                     fontFamily: 'monospace',
                     fontWeight: 600,
                     color: dim.delta >= 0 ? '#16a34a' : '#dc2626',
-                  
+                  }}
                 >
                   {dim.delta >= 0 ? '+' : ''}¥{dim.delta.toFixed(2)}
                 </td>
                 <td
-                  style=
+                  style={{
                     padding: '8px 12px',
                     textAlign: 'right',
                     fontSize: 12,
                     color: dim.deltaPct >= 0 ? '#16a34a' : '#dc2626',
-                  
+                  }}
                 >
                   {dim.deltaPct >= 0 ? '+' : ''}{dim.deltaPct.toFixed(1)}%
                 </td>
@@ -334,56 +330,55 @@ export default function GapAnalysisPage() {
         </table>
       </Card>
 
-      {/* 线束级 Gap 明细 */}
-      <Card className="glass-card" style= marginBottom: 16 >
-        <div style= display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 >
-          <Title heading={6} style= margin: 0 >线束级 Gap 明细（按 |Gap| 降序）</Title>
-          <Text type="tertiary" style= fontSize: 12 >
+      <Card className="glass-card" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <Title heading={6} style={{ margin: 0 }}>线束级 Gap 明细（按 |Gap| 降序）</Title>
+          <Text type="tertiary" style={{ fontSize: 12 }}>
             共 {harnessGapRows.length} 条线束
           </Text>
         </div>
-        <table style= width: '100%', borderCollapse: 'collapse', fontSize: 13 >
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
-            <tr style= borderBottom: '2px solid #e5e7eb', textAlign: 'left' >
-              <th style= padding: '6px 12px', width: 120 >线束号</th>
-              <th style= padding: '6px 12px' >名称</th>
-              <th style= padding: '6px 12px', textAlign: 'right' >报价到厂价</th>
-              <th style= padding: '6px 12px', textAlign: 'right' >实绩到厂价</th>
-              <th style= padding: '6px 12px', textAlign: 'right' >Gap</th>
-              <th style= padding: '6px 12px', textAlign: 'right' >Gap %</th>
+            <tr style={{ borderBottom: '2px solid #e5e7eb', textAlign: 'left' }}>
+              <th style={{ padding: '6px 12px', width: 120 }}>线束号</th>
+              <th style={{ padding: '6px 12px' }}>名称</th>
+              <th style={{ padding: '6px 12px', textAlign: 'right' }}>报价到厂价</th>
+              <th style={{ padding: '6px 12px', textAlign: 'right' }}>实绩到厂价</th>
+              <th style={{ padding: '6px 12px', textAlign: 'right' }}>Gap</th>
+              <th style={{ padding: '6px 12px', textAlign: 'right' }}>Gap %</th>
             </tr>
           </thead>
           <tbody>
             {harnessGapRows.map((row) => (
-              <tr key={row.harnessId} style= borderBottom: '1px solid #f0f0f0' >
-                <td style= padding: '6px 12px', fontWeight: 600, fontFamily: 'monospace', fontSize: 12 >
+              <tr key={row.harnessId} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                <td style={{ padding: '6px 12px', fontWeight: 600, fontFamily: 'monospace', fontSize: 12 }}>
                   {row.harnessId}
                 </td>
-                <td style= padding: '6px 12px' >{row.harnessName}</td>
-                <td style= padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace' >
+                <td style={{ padding: '6px 12px' }}>{row.harnessName}</td>
+                <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace' }}>
                   ¥{row.quoteDelivered.toFixed(2)}
                 </td>
-                <td style= padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace' >
+                <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: 'monospace' }}>
                   ¥{row.internalDelivered.toFixed(2)}
                 </td>
                 <td
-                  style=
+                  style={{
                     padding: '6px 12px',
                     textAlign: 'right',
                     fontFamily: 'monospace',
                     fontWeight: 600,
                     color: row.delta >= 0 ? '#16a34a' : '#dc2626',
-                  
+                  }}
                 >
                   {row.delta >= 0 ? '+' : ''}¥{row.delta.toFixed(2)}
                 </td>
                 <td
-                  style=
+                  style={{
                     padding: '6px 12px',
                     textAlign: 'right',
                     fontSize: 12,
                     color: row.deltaPct >= 0 ? '#16a34a' : '#dc2626',
-                  
+                  }}
                 >
                   {row.deltaPct >= 0 ? '+' : ''}{row.deltaPct.toFixed(1)}%
                 </td>
@@ -393,7 +388,6 @@ export default function GapAnalysisPage() {
         </table>
       </Card>
 
-      {/* Gap 快照管理 */}
       <Card className="glass-card">
         <GapSnapshotManager
           projectId={projectId!}
@@ -405,3 +399,4 @@ export default function GapAnalysisPage() {
     </div>
   );
 }
+
