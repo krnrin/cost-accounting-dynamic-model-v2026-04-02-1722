@@ -1,6 +1,7 @@
 /**
  * Hooks barrel export — all custom hooks
  * [FIX P2-6] Updated to export all 33 hooks (was only 5)
+ * [FIX A2-10] Added useStableLiveQuery
  */
 
 // === Core data hooks ===
@@ -9,6 +10,7 @@ export { useDashboardAggregator } from './useDashboardAggregator';
 export { useScenarioData } from './useScenarioData';
 export { useHarnessSync } from './useHarnessSync';
 export { useBomNormalizer } from './useBomNormalizer';
+export { useStableLiveQuery } from './useStableLiveQuery';
 
 // === Scenario lifecycle ===
 export { useScenarioLifecycle } from './useScenarioLifecycle';
