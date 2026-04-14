@@ -77,7 +77,7 @@ export default function SnapshotRestoreDialog({
       width={700}
       footer={
         <div>
-          <Button onClick={onCancel} style= marginRight: 8 >取消</Button>
+          <Button onClick={onCancel} style={{ marginRight: 8}}>取消</Button>
           <Button
             type="warning"
             onClick={handleRestore}
@@ -92,8 +92,7 @@ export default function SnapshotRestoreDialog({
       <Banner
         type="warning"
         description="恢复操作将把全局参数回退到选中快照的状态，当前参数将被覆盖。建议先手动保存当前参数快照。"
-        style= marginBottom: 16 
-      />
+        style={{ marginBottom: 16}}/>
 
       <Select
         placeholder="选择要恢复的快照"

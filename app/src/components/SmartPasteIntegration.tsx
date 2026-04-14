@@ -112,13 +112,13 @@ export default function SmartPasteIntegration({
         cancelText="取消"
         width={600}
       >
-        <Text type="tertiary" style= marginBottom: 8, display: 'block' >
+        <Text type="tertiary" style={{ marginBottom: 8, display: 'block'}}>
           从 Excel / WPS 复制表格内容，粘贴到下方文本框。支持 TSV 格式，自动识别中/英/德表头。
         </Text>
         <textarea
           ref={textareaRef}
           placeholder="在此粘贴表格内容（Ctrl+V）..."
-          style=
+          style={{
             width: '100%',
             minHeight: 200,
             fontFamily: 'monospace',
@@ -126,9 +126,7 @@ export default function SmartPasteIntegration({
             padding: 12,
             border: '1px solid var(--semi-color-border)',
             borderRadius: 6,
-            resize: 'vertical',
-          
-        />
+            resize: 'vertical',}}/>
       </Modal>
 
       {/* Preview modal */}
@@ -148,7 +146,7 @@ export default function SmartPasteIntegration({
       >
         {paste.preview && paste.preview.rows.length > 0 ? (
           <>
-            <div style= marginBottom: 12 >
+            <div style={{ marginBottom: 12}}>
               <Text type="tertiary">列映射结果（绿色=高置信，橙色=中等，红色=低置信）</Text>
             </div>
             <Table
@@ -157,10 +155,9 @@ export default function SmartPasteIntegration({
               rowKey={(_, idx) => String(idx)}
               pagination={false}
               size="small"
-              scroll= x: previewColumns.length * 140 
-            />
+              scroll={{ x: previewColumns.length * 140}}/>
             {paste.preview.rows.length > 50 && (
-              <Text type="tertiary" style= marginTop: 8, display: 'block' >
+              <Text type="tertiary" style={{ marginTop: 8, display: 'block'}}>
                 仅显示前 50 行，共 {paste.preview.rowCount} 行
               </Text>
             )}

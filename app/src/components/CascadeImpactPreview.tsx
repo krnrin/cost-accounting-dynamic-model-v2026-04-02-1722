@@ -71,7 +71,7 @@ export default function CascadeImpactPreview({
       dataIndex: 'deltaDeliveredPrice',
       width: 100,
       render: (v: number) => (
-        <Tag color={v > 0 ? 'red' : v < 0 ? 'green' : 'grey'} style= fontFamily: 'monospace' >
+        <Tag color={v > 0 ? 'red' : v < 0 ? 'green' : 'grey'} style={{ fontFamily: 'monospace'}}>
           {v > 0 ? '+' : ''}¥{v.toFixed(2)}
         </Tag>
       ),
@@ -81,7 +81,7 @@ export default function CascadeImpactPreview({
       dataIndex: 'weightedDelta',
       width: 100,
       render: (v: number) => (
-        <Text strong style= color: v > 0 ? '#f5222d' : v < 0 ? '#52c41a' : undefined >
+        <Text strong style={{ color: v > 0 ? '#f5222d' : v < 0 ? '#52c41a' : undefined}}>
           {v > 0 ? '+' : ''}¥{v.toFixed(4)}
         </Text>
       ),
@@ -108,8 +108,7 @@ export default function CascadeImpactPreview({
         <Banner
           type="warning"
           description={result.confirmReason || '变更影响较大，需要人工确认'}
-          style= marginBottom: 16 
-        />
+          style={{ marginBottom: 16}}/>
       )}
 
       <Descriptions
@@ -119,7 +118,7 @@ export default function CascadeImpactPreview({
           {
             key: '单车加权总影响',
             value: (
-              <Text strong style= color: result.totalWeightedImpact > 0 ? '#f5222d' : '#52c41a' >
+              <Text strong style={{ color: result.totalWeightedImpact > 0 ? '#f5222d' : '#52c41a'}}>
                 {result.totalWeightedImpact > 0 ? '+' : ''}¥{result.totalWeightedImpact.toFixed(4)}
               </Text>
             ),

@@ -99,7 +99,7 @@ export const StagnantReportPanel: React.FC<StagnantReportPanelProps> = ({
           <div style={S.cardLabel}>呆滞候选总数</div>
         </div>
         <div style={S.card}>
-          <div style= ...S.cardValue, color: '#faad14' >{summary.pendingReportCount}</div>
+          <div style={{ ...S.cardValue, color: '#faad14'}}>{summary.pendingReportCount}</div>
           <div style={S.cardLabel}>待提报</div>
         </div>
         <div style={S.card}>
@@ -116,15 +116,15 @@ export const StagnantReportPanel: React.FC<StagnantReportPanelProps> = ({
 
       {/* Toolbar */}
       <div style={S.toolbar}>
-        <div style= fontSize: '14px', fontWeight: 500 >
+        <div style={{ fontSize: '14px', fontWeight: 500}}>
           呆滞物料明细 ({candidates.length})
         </div>
-        <div style= display: 'flex', gap: '8px' >
-          <button style= ...S.btn, background: '#f5f5f5', color: '#262626'  onClick={selectAllPending}>
+        <div style={{ display: 'flex', gap: '8px'}}>
+          <button style={{ ...S.btn, background: '#f5f5f5', color: '#262626'}}  onClick={selectAllPending}>
             全选待提报 ({pendingItems.length})
           </button>
           <button
-            style= ...S.btn, opacity: selectedIds.size > 0 ? 1 : 0.5 
+            style={{ ...S.btn, opacity: selectedIds.size > 0 ? 1 : 0.5}} 
             onClick={handleBatchReport}
             disabled={selectedIds.size === 0}
           >
@@ -159,7 +159,7 @@ export const StagnantReportPanel: React.FC<StagnantReportPanelProps> = ({
                   disabled={c.status !== 'pending_report'}
                 />
               </td>
-              <td style= ...S.td, fontFamily: 'monospace' >{c.partNo}</td>
+              <td style={{ ...S.td, fontFamily: 'monospace'}}>{c.partNo}</td>
               <td style={S.td}>{c.partName}</td>
               <td style={S.td}>
                 <span style={S.badge('#8c8c8c')}>
@@ -189,7 +189,7 @@ export const StagnantReportPanel: React.FC<StagnantReportPanelProps> = ({
                   })}
                 />
               </td>
-              <td style= ...S.td, color: c.daysSinceObsolete >= 90 ? '#ff4d4f' : undefined >
+              <td style={{ ...S.td, color: c.daysSinceObsolete >= 90 ? '#ff4d4f' : undefined}}>
                 {c.daysSinceObsolete}
               </td>
               <td style={S.td}>
@@ -201,7 +201,7 @@ export const StagnantReportPanel: React.FC<StagnantReportPanelProps> = ({
           ))}
           {candidates.length === 0 && (
             <tr>
-              <td colSpan={9} style= ...S.td, textAlign: 'center', color: '#bfbfbf', padding: '32px' >
+              <td colSpan={9} style={{ ...S.td, textAlign: 'center', color: '#bfbfbf', padding: '32px'}}>
                 暂无呆滞候选物料
               </td>
             </tr>

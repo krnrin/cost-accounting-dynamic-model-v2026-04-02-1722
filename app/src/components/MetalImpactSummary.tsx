@@ -96,7 +96,7 @@ export default function MetalImpactSummary({
       dataIndex: 'deltaDelivered',
       width: 100,
       render: (v: number) => (
-        <Tag color={v > 0 ? 'red' : v < 0 ? 'green' : 'grey'} style= fontFamily: 'monospace' >
+        <Tag color={v > 0 ? 'red' : v < 0 ? 'green' : 'grey'} style={{ fontFamily: 'monospace'}}>
           {v > 0 ? '+' : ''}¥{v.toFixed(2)}
         </Tag>
       ),
@@ -112,7 +112,7 @@ export default function MetalImpactSummary({
           {
             key: '单车加权影响',
             value: (
-              <Text strong style= color: totalWeightedImpact > 0 ? '#f5222d' : '#52c41a', fontSize: 16 >
+              <Text strong style={{ color: totalWeightedImpact > 0 ? '#f5222d' : '#52c41a', fontSize: 16}}>
                 {totalWeightedImpact > 0 ? '+' : ''}¥{totalWeightedImpact.toFixed(4)}
               </Text>
             ),
@@ -120,8 +120,7 @@ export default function MetalImpactSummary({
           { key: '涨价/降价', value: `${positiveCount} 涨 / ${negativeCount} 降` },
         ]}
         row
-        style= marginBottom: 12 
-      />
+        style={{ marginBottom: 12}}/>
 
       <Table
         dataSource={rows}
