@@ -8,7 +8,7 @@
  *
  * 数据持久化到 Dexie gapSnapshots 表 (db.ts v9)
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Button,
   Table,
@@ -19,7 +19,7 @@ import {
   Input,
   Empty,
 } from '@douyinfe/semi-ui';
-import { IconPlus, IconDelete, IconCopy } from '@douyinfe/semi-icons';
+import { IconPlus, IconDelete } from '@douyinfe/semi-icons';
 import { db, type GapSnapshotRecord } from '@/data/db';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useInternalMetalStore, SOURCE_LABELS, type InternalMetalSource } from '@/store/internalMetalStore';
@@ -29,9 +29,7 @@ const { Text, Title } = Typography;
 interface GapSnapshotManagerProps {
   projectId: string;
   scenarioId: string;
-  /** 当前 Gap 分析结果（用于创建快照） */
   currentGapResult?: Record<string, unknown>;
-  /** 当前报价侧金属价格 */
   quoteSideMetalPrices?: { copper: number; aluminum: number };
 }
 
@@ -51,7 +49,7 @@ export function GapSnapshotManager({
         .where({ projectId, scenarioId })
         .reverse()
         .sortBy('createdAt'),
-    [projectId, scenarioId]
+    [projectId, scenarioId],
   );
 
   const handleCreateSnapshot = useCallback(
@@ -76,7 +74,7 @@ export function GapSnapshotManager({
           id: crypto.randomUUID(),
           projectId,
           scenarioId,
-          harnessId: '', // 整车级
+          harnessId: '',
           snapshotType,
           metalSource,
           metalPrices,
@@ -88,13 +86,13 @@ export function GapSnapshotManager({
         await db.gapSnapshots.add(record);
         setLabel('');
         Toast.success(`${snapshotType === 'quote' ? '报价侧' : '实绩侧'}快照已保存`);
-      } catch (err) {
+      } catch {
         Toast.error('快照保存失败');
       } finally {
         setCreating(false);
       }
     },
-    [activeSource, currentGapResult, getActivePrice, label, projectId, quoteSideMetalPrices, scenarioId]
+    [activeSource, currentGapResult, getActivePrice, label, projectId, quoteSideMetalPrices, scenarioId],
   );
 
   const handleDelete = useCallback(async (id: string) => {
@@ -112,15 +110,15 @@ export function GapSnapshotManager({
   };
 
   return (
-    <div style= display: 'flex', flexDirection: 'column', gap: 12 >
-      <div style= display: 'flex', justifyContent: 'space-between', alignItems: 'center' >
-        <Title heading={6} style= margin: 0 >Gap 快照历史</Title>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Title heading={6} style={{ margin: 0 }}>Gap 快照历史</Title>
         <Space>
           <Input
             placeholder="快照标签（可选）"
             value={label}
             onChange={setLabel}
-            style= width: 180 
+            style={{ width: 180 }}
             size="small"
           />
           <Button
@@ -157,7 +155,7 @@ export function GapSnapshotManager({
               title: '标签',
               dataIndex: 'label',
               width: 200,
-              render: (v: string) => <Text strong style= fontSize: 12 >{v}</Text>,
+              render: (v: string) => <Text strong style={{ fontSize: 12 }}>{v}</Text>,
             },
             {
               title: '类型',
@@ -173,24 +171,22 @@ export function GapSnapshotManager({
               title: '金属基准',
               dataIndex: 'metalSource',
               width: 120,
-              render: (v: GapSnapshotRecord['metalSource']) => (
-                <Tag size="small">{sourceLabel(v)}</Tag>
-              ),
+              render: (v: GapSnapshotRecord['metalSource']) => <Tag size="small">{sourceLabel(v)}</Tag>,
             },
             {
               title: '铜价',
               width: 100,
               align: 'right' as const,
-              render: (_: any, record: GapSnapshotRecord) => (
-                <span style= fontSize: 12 >¥{record.metalPrices.copper.toLocaleString()}</span>
+              render: (_: unknown, record: GapSnapshotRecord) => (
+                <span style={{ fontSize: 12 }}>¥{record.metalPrices.copper.toLocaleString()}</span>
               ),
             },
             {
               title: '铝价',
               width: 100,
               align: 'right' as const,
-              render: (_: any, record: GapSnapshotRecord) => (
-                <span style= fontSize: 12 >¥{record.metalPrices.aluminum.toLocaleString()}</span>
+              render: (_: unknown, record: GapSnapshotRecord) => (
+                <span style={{ fontSize: 12 }}>¥{record.metalPrices.aluminum.toLocaleString()}</span>
               ),
             },
             {
@@ -202,7 +198,7 @@ export function GapSnapshotManager({
             {
               title: '操作',
               width: 80,
-              render: (_: any, record: GapSnapshotRecord) => (
+              render: (_: unknown, record: GapSnapshotRecord) => (
                 <Button
                   icon={<IconDelete />}
                   size="small"
@@ -218,3 +214,5 @@ export function GapSnapshotManager({
     </div>
   );
 }
+
+export default GapSnapshotManager;

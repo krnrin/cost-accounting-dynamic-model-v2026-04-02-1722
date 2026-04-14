@@ -95,9 +95,9 @@ function ActionTable({ actions, title }: { actions: any[] | null; title: string 
   ];
 
   return (
-    <div style= marginBottom: 16 >
+    <div style={{ marginBottom: 16 }}>
       <div
-        style= display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 8 
+        style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 8 }}
         onClick={() => setExpanded(!expanded)}
       >
         {expanded ? <IconChevronDown /> : <IconChevronRight />}
@@ -153,8 +153,8 @@ export default function CascadeImpactIntegration({
     <Card
       className="glass-card"
       title={
-        <div style= display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' >
-          <Title heading={6} style= margin: 0 >级联影响分析</Title>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <Title heading={6} style={{ margin: 0 }}>级联影响分析</Title>
           <Button
             icon={<IconRefresh />}
             loading={cascade.computing}
@@ -168,12 +168,11 @@ export default function CascadeImpactIntegration({
       }
     >
       {cascade.computing ? (
-        <div style= textAlign: 'center', padding: 40 >
+        <div style={{ textAlign: 'center', padding: 40 }}>
           <Spin tip="正在计算级联影响..." />
         </div>
       ) : result ? (
         <div>
-          {/* Summary */}
           <Descriptions
             data={[
               { key: '总操作数', value: <Tag color={result.hasImpact ? 'orange' : 'green'}>{result.totalActions}</Tag> },
@@ -182,10 +181,9 @@ export default function CascadeImpactIntegration({
               { key: 'KSK 表', value: result.ksk ? `${(result.ksk as any).actions?.length ?? 0} 条` : '未计算' },
               { key: '计算时间', value: new Date(result.computedAt).toLocaleString('zh-CN') },
             ]}
-            style= marginBottom: 16 
+            style={{ marginBottom: 16 }}
           />
 
-          {/* Detail tables */}
           {result.assembly && (result.assembly as any).actions?.length > 0 && (
             <ActionTable actions={(result.assembly as any).actions} title="装配件表级联影响" />
           )}
@@ -197,13 +195,13 @@ export default function CascadeImpactIntegration({
           )}
 
           {!result.hasImpact && (
-            <Empty description="未检测到级联影响" style= padding: 32  />
+            <Empty description="未检测到级联影响" style={{ padding: 32 }} />
           )}
         </div>
       ) : (
         <Empty
-          description="点击"计算影响"分析 BOM 变更的级联效应"
-          style= padding: 32 
+          description={'点击“计算影响”分析 BOM 变更的级联效应'}
+          style={{ padding: 32 }}
         />
       )}
     </Card>

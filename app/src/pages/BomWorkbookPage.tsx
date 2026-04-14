@@ -14,6 +14,7 @@ import {
 } from '@douyinfe/semi-ui';
 import { IconArrowLeft, IconSave, IconUpload, IconInfoCircle, IconEdit } from '@douyinfe/semi-icons';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { useStableLiveQuery } from '../hooks/useStableLiveQuery';
 import { RoleGuard } from '@/components/RoleGuard';
 import { db, type HarnessRecord } from '@/data/db';
 import { settingsRepo } from '@/data/repositories';
@@ -322,7 +323,7 @@ export default function BomWorkbookPage() {
   const navigate = useNavigate();
   const smartPaste = useSmartPaste(BOM_TARGET_COLUMNS);
 
-  const data = useLiveQuery(async () => {
+  const data = useStableLiveQuery(async () => {
     if (!id) return null;
     const project = await db.projects.get(id);
     if (!project) return null;
@@ -362,7 +363,7 @@ export default function BomWorkbookPage() {
   const [hydratedStateKey, setHydratedStateKey] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!persistedStateKey || !data?.harnesses || hydratedStateKey === persistedStateKey) return;
+    if (!persistedStateKey || !data?.harnesses || data.harnesses.length === 0 || hydratedStateKey === persistedStateKey) return;
 
     let cancelled = false;
 
@@ -393,7 +394,7 @@ export default function BomWorkbookPage() {
     return () => {
       cancelled = true;
     };
-  }, [data?.harnesses, data?.project, hydratedStateKey, persistedStateKey]);
+  }, [hydratedStateKey, persistedStateKey]);
 
   useEffect(() => {
     if (!persistedStateKey || hydratedStateKey !== persistedStateKey || historyRows.length === 0) return;
