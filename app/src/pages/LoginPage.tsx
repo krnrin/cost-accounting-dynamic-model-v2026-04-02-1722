@@ -51,12 +51,12 @@ export default function LoginPage() {
       feishuAutoLogin()
         .then((success) => {
           if (success) {
-            Toast.success('\飞\书\登\录\成\功');
+            Toast.success('飞书登录成功');
           }
         })
         .catch((err) => {
-          console.error('\飞\书\自\动\登\录\失\败:', err);
-          Toast.error(`\飞\书\登\录\失\败: ${err?.message || '\未\知\错\误'}`);
+          console.error('飞书自动登录失败:', err);
+          Toast.error(`飞书登录失败: ${err?.message || '未知错误'}`);
         })
         .finally(() => {
           setFeishuLoading(false);
@@ -68,9 +68,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(values.email, values.password);
-      Toast.success('\登\录\成\功');
+      Toast.success('登录成功');
     } catch (err: any) {
-      Toast.error(err.message || '\登\录\失\败');
+      Toast.error(err.message || '登录失败');
     } finally {
       setLoading(false);
     }
@@ -78,15 +78,15 @@ export default function LoginPage() {
 
   const handleRegister = async (values: any) => {
     if (values.password !== values.confirmPassword) {
-      Toast.error('\两\次\密\码\不\一\致');
+      Toast.error('两次密码不一致');
       return;
     }
     setLoading(true);
     try {
       await register(values.email, values.password, values.name, 'ENGINEER');
-      Toast.success('\注\册\成\功');
+      Toast.success('注册成功');
     } catch (err: any) {
-      Toast.error(err.message || '\注\册\失\败');
+      Toast.error(err.message || '注册失败');
     } finally {
       setLoading(false);
     }
@@ -94,7 +94,7 @@ export default function LoginPage() {
 
   const handleFeishuLogin = async () => {
     if (!feishuReady) {
-      Toast.warning('\飞\书\应\用\未\配\置\，\请\联\系\管\理\员');
+      Toast.warning('飞书应用未配置，请联系管理员');
       return;
     }
 
@@ -103,12 +103,12 @@ export default function LoginPage() {
       try {
         const success = await feishuAutoLogin();
         if (success) {
-          Toast.success('\飞\书\登\录\成\功');
+          Toast.success('飞书登录成功');
         } else {
-          Toast.error('\飞\书\登\录\失\败\，\请\重\试');
+          Toast.error('飞书登录失败，请重试');
         }
       } catch (err: any) {
-        Toast.error(err.message || '\飞\书\登\录\失\败');
+        Toast.error(err.message || '飞书登录失败');
       } finally {
         setFeishuLoading(false);
       }
@@ -121,7 +121,7 @@ export default function LoginPage() {
     return (
       <div style={loadingStyle}>
         <Spin size="large" />
-        <Text type="tertiary">\正\在\通\过\飞\书\免\登...</Text>
+        <Text type="tertiary">正在通过飞书免登...</Text>
       </div>
     );
   }
@@ -139,11 +139,11 @@ export default function LoginPage() {
             <Title heading={3} style={titleStyle}>
               COST ENGINE <span style={proStyle}>PRO</span>
             </Title>
-            <Text type="tertiary" style={subtitleStyle}>\高\压\线\束\精\算\与\决\策\引\擎</Text>
+            <Text type="tertiary" style={subtitleStyle}>高压线束精算与决策引擎</Text>
           </div>
 
           <Tabs activeKey={activeTab} onChange={setActiveTab} className="glass-tabs">
-            <TabPane tab="\系\统\登\录" itemKey="login">
+            <TabPane tab="系统登录" itemKey="login">
               <Form
                 onSubmit={handleLogin}
                 style={mt16Style}
@@ -151,18 +151,18 @@ export default function LoginPage() {
               >
                 <Form.Input
                   field="email"
-                  label="\工\作\邮\箱"
+                  label="工作邮箱"
                   className="glass-input"
                   placeholder="your@company.com"
-                  rules={[{ required: true, message: '\请\输\入\邮\箱' }]}
+                  rules={[{ required: true, message: '请输入邮箱' }]}
                 />
                 <Form.Input
                   field="password"
-                  label="\访\问\密\码"
+                  label="访问密码"
                   mode="password"
                   className="glass-input"
-                  placeholder="\•\•\•\•\•\•\•\•"
-                  rules={[{ required: true, message: '\请\输\入\密\码' }]}
+                  placeholder="••••••••"
+                  rules={[{ required: true, message: '请输入密码' }]}
                 />
                 <Button
                   htmlType="submit"
@@ -173,17 +173,17 @@ export default function LoginPage() {
                   loading={loading}
                   style={mt16Style}
                 >
-                  \验\证\身\份\并\进\入
+                  验证身份并进入
                 </Button>
               </Form>
               <div style={mt24Style}>
                 {IS_DEV && (
                   <Text type="tertiary" size="small" style={devHintStyle}>
-                    \开\发\模\式 \— \无\后\端\时\自\动\离\线\登\录
+                    开发模式 — 无后端时自动离线登录
                   </Text>
                 )}
                 <Divider style={dividerStyle}>
-                  <Text type="tertiary" size="small">\或\使\用\企\业\网\关</Text>
+                  <Text type="tertiary" size="small">或使用企业网关</Text>
                 </Divider>
                 <Button
                   icon={<IconLink />}
@@ -194,47 +194,47 @@ export default function LoginPage() {
                   onClick={handleFeishuLogin}
                   style={mt8Style}
                 >
-                  {inFeishu ? '\飞\书\环\境\免\登' : '\飞\书 OAuth \授\权\登\录'}
+                  {inFeishu ? '飞书环境免登' : '飞书 OAuth 授权登录'}
                 </Button>
                 {!feishuReady && (
                   <Text type="tertiary" size="small" style={feishuHintStyle}>
-                    \未\检\测\到 VITE_FEISHU_APP_ID \环\境\变\量
+                    未检测到 VITE_FEISHU_APP_ID 环境变量
                   </Text>
                 )}
               </div>
             </TabPane>
 
-            <TabPane tab="\申\请\权\限" itemKey="register">
+            <TabPane tab="申请权限" itemKey="register">
               <Form onSubmit={handleRegister} style={mt16Style}>
                 <Form.Input
                   field="name"
-                  label="\真\实\姓\名"
+                  label="真实姓名"
                   className="glass-input"
-                  placeholder="\如\：\张\三"
-                  rules={[{ required: true, message: '\请\输\入\姓\名' }]}
+                  placeholder="如：张三"
+                  rules={[{ required: true, message: '请输入姓名' }]}
                 />
                 <Form.Input
                   field="email"
-                  label="\企\业\邮\箱"
+                  label="企业邮箱"
                   className="glass-input"
                   placeholder="zhangsan@company.com"
-                  rules={[{ required: true, message: '\请\输\入\邮\箱' }]}
+                  rules={[{ required: true, message: '请输入邮箱' }]}
                 />
                 <Form.Input
                   field="password"
-                  label="\设\置\密\码"
+                  label="设置密码"
                   mode="password"
                   className="glass-input"
-                  placeholder="\至\少6\位\数\字\或\字\母"
-                  rules={[{ required: true, message: '\请\输\入\密\码' }]}
+                  placeholder="至少6位数字或字母"
+                  rules={[{ required: true, message: '请输入密码' }]}
                 />
                 <Form.Input
                   field="confirmPassword"
-                  label="\确\认\密\码"
+                  label="确认密码"
                   mode="password"
                   className="glass-input"
-                  placeholder="\再\次\输\入\密\码"
-                  rules={[{ required: true, message: '\请\确\认\密\码' }]}
+                  placeholder="再次输入密码"
+                  rules={[{ required: true, message: '请确认密码' }]}
                 />
                 <Button
                   htmlType="submit"
@@ -245,7 +245,7 @@ export default function LoginPage() {
                   loading={loading}
                   style={mt16Style}
                 >
-                  \提\交\开\通\申\请
+                  提交开通申请
                 </Button>
               </Form>
             </TabPane>
