@@ -29,6 +29,7 @@ import ConfigMatrixPage from '@/pages/ConfigMatrixPage';
 import ConnectorPricingPage from '@/pages/ConnectorPricingPage';
 import WirePricingPage from '@/pages/WirePricingPage';
 import DevPartPricingPage from '@/pages/DevPartPricingPage';
+import GapAnalysisPage from '@/pages/GapAnalysisPage';
 import SWUpdatePrompt from '@/components/SWUpdatePrompt';
 import { useAuthStore } from '@/store/authStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -76,6 +77,7 @@ export default function App() {
           <Route path="/project/:id/s/:sid" element={<DashboardPage />} />
           <Route path="/project/:id/s/:sid/harness/:harnessId" element={<HarnessDetailPage />} />
           <Route path="/project/:id/s/:sid/quote" element={<QuotePage />} />
+          <Route path="/project/:id/s/:sid/gap" element={<GapAnalysisPage />} />
           <Route path="/project/:id/s/:sid/simulation" element={<SimulationPage />} />
           <Route path="/project/:id/s/:sid/annual-drop" element={<AnnualDropPage />} />
           <Route path="/project/:id/s/:sid/alloc" element={<AllocManagerPage />} />
