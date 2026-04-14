@@ -92,13 +92,13 @@ export function getTransitionLabel(transition: string): string {
 /** 状态转换的确认提示文案 */
 export function getTransitionConfirmText(scenarioName: string, transition: string): string {
   if (transition === 'frozen') {
-    return '冻结后将生成版本快照且参数不可修改，确认冻结\u201c' + scenarioName + '\u201d吗？';
+    return '冻结后将生成版本快照且参数不可修改，确认冻结“' + scenarioName + '”吗？';
   }
   if (transition === 'published') {
-    return '发布后将生成正式版本，确认发布\u201c' + scenarioName + '\u201d吗？';
+    return '发布后将生成正式版本，确认发布“' + scenarioName + '”吗？';
   }
   if (transition === 'archived') {
-    return '归档后场景将不可操作，确认归档\u201c' + scenarioName + '\u201d吗？';
+    return '归档后场景将不可操作，确认归档“' + scenarioName + '”吗？';
   }
   return '确认执行此操作吗？';
 }

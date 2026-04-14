@@ -11,10 +11,10 @@ interface Props {
 }
 
 function fmtWan(v: number) {
-  return '\u00A5' + (v / 10000).toFixed(1) + '\u4e07';
+  return '¥' + (v / 10000).toFixed(1) + '万';
 }
 function fmtWanInt(v: number) {
-  return '\u00A5' + (v / 10000).toFixed(0) + '\u4e07';
+  return '¥' + (v / 10000).toFixed(0) + '万';
 }
 
 export default function LifecyclePnLTable({ lifecyclePnL }: Props) {
@@ -24,12 +24,12 @@ export default function LifecyclePnLTable({ lifecyclePnL }: Props) {
       <div className="glass-card db-chart-card">
         <div className="db-section-header">
           <Title heading={5} className="ink-heading">
-            \u9879\u76ee\u751f\u547d\u5468\u671f\u635f\u76ca
+            项目生命周期损益
           </Title>
           <div className="db-pnl-subheader">
             <Text className="db-alloc-footer-text">
-              \u5355\u8f66\u6536\u5165 \u00A5{pnl.unitRevenue.toFixed(2)} \u00B7 \u5355\u8f66\u6210\u672c \u00A5{pnl.unitCost.toFixed(2)}
-              \u00B7 \u5206\u644a \u00A5{pnl.allocUnit.toFixed(4)}/\u8f66
+              单车收入 ¥{pnl.unitRevenue.toFixed(2)} · 单车成本 ¥{pnl.unitCost.toFixed(2)}
+              · 分摊 ¥{pnl.allocUnit.toFixed(4)}/车
             </Text>
           </div>
         </div>
@@ -37,37 +37,37 @@ export default function LifecyclePnLTable({ lifecyclePnL }: Props) {
           <table className="db-table">
             <thead>
               <tr>
-                <th>\u9879\u76ee</th>
+                <th>项目</th>
                 {pnl.rows.map((r) => (
-                  <th key={r.year}>\u7b2c{r.year}\u5e74</th>
+                  <th key={r.year}>第{r.year}年</th>
                 ))}
-                <th>\u751f\u547d\u5468\u671f\u5408\u8ba1</th>
+                <th>生命周期合计</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>\u4ea7\u91cf (\u53f0)</td>
+                <td>产量 (台)</td>
                 {pnl.rows.map((r) => (
                   <td key={r.year}>{r.volume.toLocaleString()}</td>
                 ))}
                 <td>{pnl.total.volume.toLocaleString()}</td>
               </tr>
               <tr>
-                <td>\u603b\u6536\u5165</td>
+                <td>总收入</td>
                 {pnl.rows.map((r) => (
                   <td key={r.year}>{fmtWan(r.revenue)}</td>
                 ))}
                 <td>{fmtWan(pnl.total.revenue)}</td>
               </tr>
               <tr>
-                <td>\u603b\u6210\u672c (\u5185\u90e8\u5b9e\u7ee9)</td>
+                <td>总成本 (内部实绩)</td>
                 {pnl.rows.map((r) => (
                   <td key={r.year}>{fmtWan(r.cost)}</td>
                 ))}
                 <td>{fmtWan(pnl.total.cost)}</td>
               </tr>
               <tr>
-                <td>\u4e00\u6b21\u6027\u8d39\u7528\u5206\u644a</td>
+                <td>一次性费用分摊</td>
                 {pnl.rows.map((r) => (
                   <td key={r.year}>{fmtWan(r.allocRecovery)}</td>
                 ))}
@@ -78,14 +78,14 @@ export default function LifecyclePnLTable({ lifecyclePnL }: Props) {
                   <td className="db-cell-rebate">{pnl.rebateLabel}</td>
                   {pnl.rows.map((r) => (
                     <td key={r.year} className="db-cell-rebate">
-                      {r.rebateAmount > 0 ? fmtWanInt(r.rebateAmount) : '\u2014'}
+                      {r.rebateAmount > 0 ? fmtWanInt(r.rebateAmount) : '—'}
                     </td>
                   ))}
                   <td className="db-cell-rebate db-cell-bold">{fmtWanInt(pnl.total.rebateAmount)}</td>
                 </tr>
               )}
               <tr>
-                <td>\u6bdb\u5229 (\u6263\u8fd4\u70b9\u524d)</td>
+                <td>毛利 (扣返点前)</td>
                 {pnl.rows.map((r) => (
                   <td key={r.year} className={r.grossProfit >= 0 ? 'db-cell-positive' : 'db-cell-negative'}>
                     {fmtWan(r.grossProfit)}
@@ -96,7 +96,7 @@ export default function LifecyclePnLTable({ lifecyclePnL }: Props) {
                 </td>
               </tr>
               <tr className="db-row-total">
-                <td>\u51c0\u5229\u6da6</td>
+                <td>净利润</td>
                 {pnl.rows.map((r) => (
                   <td key={r.year} className={r.netProfit >= 0 ? 'db-cell-positive' : 'db-cell-negative'}>
                     {fmtWan(r.netProfit)}
@@ -107,7 +107,7 @@ export default function LifecyclePnLTable({ lifecyclePnL }: Props) {
                 </td>
               </tr>
               <tr>
-                <td>\u51c0\u5229\u6da6\u7387</td>
+                <td>净利润率</td>
                 {pnl.rows.map((r) => (
                   <td key={r.year} className={r.netMargin >= 0 ? 'db-cell-positive' : 'db-cell-negative'}>
                     {r.netMargin.toFixed(1)}%

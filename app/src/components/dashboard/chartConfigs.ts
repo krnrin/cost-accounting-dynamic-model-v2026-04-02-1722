@@ -51,11 +51,11 @@ export function buildWaterfallChart(summary: ProjectHarnessResult | null) {
         const idx: number =
           params[1]?.dataIndex ?? params[0]?.dataIndex ?? 0;
         const val = values[idx] ?? 0;
-        if (idx === items.length) return '单车成本: \u00A5' + val.toFixed(2);
+        if (idx === items.length) return '单车成本: ¥' + val.toFixed(2);
         const item = items[idx];
         return item
-          ? item.name + ': \u00A5' + val.toFixed(2)
-          : '\u00A5' + val.toFixed(2);
+          ? item.name + ': ¥' + val.toFixed(2)
+          : '¥' + val.toFixed(2);
       },
     },
     grid: { top: 20, bottom: 40, left: 60, right: 20 },
@@ -86,7 +86,7 @@ export function buildWaterfallChart(summary: ProjectHarnessResult | null) {
         label: {
           show: true,
           position: 'top' as const,
-          formatter: (p: any) => '\u00A5' + p.value.toFixed(1),
+          formatter: (p: any) => '¥' + p.value.toFixed(1),
           fontSize: 10,
           color: '#333',
         },
@@ -237,9 +237,9 @@ export function buildMetalSensitivityChart(
         return (
           '铜 ' +
           cuLabel +
-          ' \u00B7 铝 ' +
+          ' · 铝 ' +
           alLabel +
-          '<br/>单车变动: <b>\u00A5' +
+          '<br/>单车变动: <b>¥' +
           (val >= 0 ? '+' : '') +
           val.toFixed(2) +
           '</b>'
@@ -271,7 +271,7 @@ export function buildMetalSensitivityChart(
       right: 0,
       top: 'center',
       inRange: { color: ['#16a34a', '#fafafa', '#dc2626'] },
-      formatter: (v: number) => '\u00A5' + v.toFixed(1),
+      formatter: (v: number) => '¥' + v.toFixed(1),
     },
     series: [
       {

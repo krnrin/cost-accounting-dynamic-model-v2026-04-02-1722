@@ -22,14 +22,14 @@ interface HarnessCompareViewProps {
 }
 
 const COMPARE_METRICS: Array<{ key: keyof HarnessResult; label: string; format: (v: number) => string }> = [
-  { key: 'materialCost', label: '材料成本', format: v => `\u00a5${v.toFixed(2)}` },
-  { key: 'wasteCost', label: '废品成本', format: v => `\u00a5${v.toFixed(2)}` },
-  { key: 'laborPlusMfg', label: '人工+制造', format: v => `\u00a5${v.toFixed(2)}` },
-  { key: 'mgmtFee', label: '管理费', format: v => `\u00a5${v.toFixed(2)}` },
-  { key: 'profit', label: '利润', format: v => `\u00a5${v.toFixed(2)}` },
-  { key: 'exFactoryPrice', label: '出厂价', format: v => `\u00a5${v.toFixed(2)}` },
-  { key: 'packTotal', label: '包装运输', format: v => `\u00a5${v.toFixed(2)}` },
-  { key: 'deliveredPrice', label: '到厂价', format: v => `\u00a5${v.toFixed(2)}` },
+  { key: 'materialCost', label: '材料成本', format: v => `¥${v.toFixed(2)}` },
+  { key: 'wasteCost', label: '废品成本', format: v => `¥${v.toFixed(2)}` },
+  { key: 'laborPlusMfg', label: '人工+制造', format: v => `¥${v.toFixed(2)}` },
+  { key: 'mgmtFee', label: '管理费', format: v => `¥${v.toFixed(2)}` },
+  { key: 'profit', label: '利润', format: v => `¥${v.toFixed(2)}` },
+  { key: 'exFactoryPrice', label: '出厂价', format: v => `¥${v.toFixed(2)}` },
+  { key: 'packTotal', label: '包装运输', format: v => `¥${v.toFixed(2)}` },
+  { key: 'deliveredPrice', label: '到厂价', format: v => `¥${v.toFixed(2)}` },
   { key: 'copperWeight', label: '铜重', format: v => `${v.toFixed(3)} kg` },
   { key: 'aluminumWeight', label: '铝重', format: v => `${v.toFixed(3)} kg` },
   { key: 'processHours', label: '总工时', format: v => `${v.toFixed(2)} h` },

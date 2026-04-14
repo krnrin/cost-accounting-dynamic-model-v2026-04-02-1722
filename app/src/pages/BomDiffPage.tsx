@@ -199,7 +199,7 @@ function detectBomChanges(
     sheetName: 'BOM',
     hasChanges: changes.length > 0,
     changes,
-    summary: added + ' \u65b0\u589e, ' + removed + ' \u5220\u9664, ' + modified + ' \u4fee\u6539',
+    summary: added + ' 新增, ' + removed + ' 删除, ' + modified + ' 修改',
     affectedEndGroups: Array.from(groups),
     detectedAt: new Date().toISOString(),
   };
@@ -220,13 +220,13 @@ interface HarnessDiff {
 
 function exportCsv(results: HarnessDiff[], projectName: string) {
   const hdr = [
-    '\u7ebf\u675f\u53f7',
-    '\u7ebf\u675f\u540d',
-    '\u53d8\u66f4\u6a21\u5f0f',
-    '\u63cf\u8ff0',
-    '\u7f6e\u4fe1\u5ea6',
-    '\u6d89\u53ca\u96f6\u4ef6\u53f7',
-    '\u5b57\u6bb5\u53d8\u5316',
+    '线束号',
+    '线束名',
+    '变更模式',
+    '描述',
+    '置信度',
+    '涉及零件号',
+    '字段变化',
   ];
   const body: string[] = [];
 
@@ -237,7 +237,7 @@ function exportCsv(results: HarnessDiff[], projectName: string) {
       const fields = sc.relatedChanges
         .flatMap((c) =>
           c.fieldChanges.map(
-            (f) => f.field + ': ' + String(f.before ?? '') + ' \u2192 ' + String(f.after ?? ''),
+            (f) => f.field + ': ' + String(f.before ?? '') + ' → ' + String(f.after ?? ''),
           ),
         )
         .join('; ');
@@ -246,7 +246,7 @@ function exportCsv(results: HarnessDiff[], projectName: string) {
           r.harnessId,
           r.harnessName,
           d.label,
-          sc.description.replace(/,/g, '\uff0c'),
+          sc.description.replace(/,/g, '，'),
           (sc.confidence * 100).toFixed(0) + '%',
           parts,
           fields,
@@ -256,7 +256,7 @@ function exportCsv(results: HarnessDiff[], projectName: string) {
   });
 
   const csv = [hdr.join(','), ...body].join('\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -271,9 +271,9 @@ function exportCsv(results: HarnessDiff[], projectName: string) {
 function ConfBadge(props: { value: number }) {
   const v = props.value;
   const pct = (v * 100).toFixed(0) + '%';
-  if (v >= 0.9) return <Tag size="small" color="green">{pct} \u9ad8</Tag>;
-  if (v >= 0.7) return <Tag size="small" color="orange">{pct} \u4e2d</Tag>;
-  return <Tag size="small" color="grey">{pct} \u4f4e</Tag>;
+  if (v >= 0.9) return <Tag size="small" color="green">{pct} 高</Tag>;
+  if (v >= 0.7) return <Tag size="small" color="orange">{pct} 中</Tag>;
+  return <Tag size="small" color="grey">{pct} 低</Tag>;
 }
 
 function PatternDistribution(props: { changes: SemanticChange[] }) {
@@ -291,7 +291,7 @@ function PatternDistribution(props: { changes: SemanticChange[] }) {
         const d = PATTERN_DISPLAY[pattern] || PATTERN_DISPLAY.unknown;
         return (
           <Tag key={pattern} color={tagColor(pattern)} size="large">
-            {d.icon} {d.label} \u00d7{count}
+            {d.icon} {d.label} ×{count}
           </Tag>
         );
       })}
@@ -318,10 +318,10 @@ function SemanticChangeCard(props: { sc: SemanticChange }) {
         </Text>
         {sc.relatedChanges.length > 0 && (
           <Text type="tertiary" size="small" style={S.block}>
-            {'\u6d89\u53ca: '}
+            {'涉及: '}
             {sc.relatedChanges.map((c) => c.partNo).join(', ')}
             {sc.relatedChanges.some((c) => c.fieldChanges.length > 0) &&
-              ' \u00b7 ' +
+              ' · ' +
                 sc.relatedChanges
                   .flatMap((c) => c.fieldChanges)
                   .slice(0, 3)
@@ -329,23 +329,23 @@ function SemanticChangeCard(props: { sc: SemanticChange }) {
                     (f) =>
                       f.field +
                       ': ' +
-                      String(f.before ?? '\u2205') +
-                      ' \u2192 ' +
-                      String(f.after ?? '\u2205'),
+                      String(f.before ?? '∅') +
+                      ' → ' +
+                      String(f.after ?? '∅'),
                   )
                   .join('; ')}
           </Text>
         )}
         {sc.supplierCheck && !sc.supplierCheck.allInheritedOrUnknown && (
           <Tag size="small" color="red" style={S.block}>
-            \u26a0\ufe0f \u4f9b\u5e94\u5546\u4e0d\u4e00\u81f4
+            ⚠️ 供应商不一致
           </Tag>
         )}
         {sc.metadata && typeof sc.metadata === 'object' && 'type' in sc.metadata && (
           <Text type="tertiary" size="small" style={S.block}>
-            {'\u7c7b\u578b: ' + String(sc.metadata.type)}
-            {sc.metadata.beforeLength && ' | \u539f: ' + String(sc.metadata.beforeLength)}
-            {sc.metadata.afterLength && ' \u2192 ' + String(sc.metadata.afterLength)}
+            {'类型: ' + String(sc.metadata.type)}
+            {sc.metadata.beforeLength && ' | 原: ' + String(sc.metadata.beforeLength)}
+            {sc.metadata.afterLength && ' → ' + String(sc.metadata.afterLength)}
           </Text>
         )}
       </div>
@@ -465,7 +465,7 @@ export default function BomDiffPage() {
       setResults(diffs);
     } catch (err) {
       console.error('Semantic BOM diff failed:', err);
-      Toast.error('BOM \u8bed\u4e49\u5dee\u5f02\u5206\u6790\u5931\u8d25');
+      Toast.error('BOM 语义差异分析失败');
       setResults([]);
     } finally {
       setLoading(false);
@@ -521,21 +521,21 @@ export default function BomDiffPage() {
         />
         <div style={S.flex1}>
           <Title heading={4} style={S.title}>
-            BOM \u8bed\u4e49\u5dee\u5f02\u5206\u6790
+            BOM 语义差异分析
           </Title>
           <Text type="secondary">
-            {projectName} \u2014 \u57fa\u4e8e change_pattern_classifier \u5f15\u64ce
+            {projectName} — 基于 change_pattern_classifier 引擎
           </Text>
         </div>
         <Space>
           <Select
-            placeholder="\u9009\u62e9\u57fa\u7ebf\u573a\u666f"
+            placeholder="选择基线场景"
             value={baseId || undefined}
             onChange={(v) => setBaseId(v as string)}
             style={S.selectW}
             showClear
             optionList={scenarios.map((s) => ({
-              label: s.scenarioName + (s.isBaseline ? ' (\u57fa\u51c6)' : ''),
+              label: s.scenarioName + (s.isBaseline ? ' (基准)' : ''),
               value: s.id!,
             }))}
           />
@@ -545,10 +545,10 @@ export default function BomDiffPage() {
             disabled={results.length === 0}
             onClick={() => {
               exportCsv(results, projectName);
-              Toast.success('\u8bed\u4e49\u5dee\u5f02\u62a5\u544a\u5df2\u5bfc\u51fa');
+              Toast.success('语义差异报告已导出');
             }}
           >
-            \u5bfc\u51fa
+            导出
           </Button>
         </Space>
       </div>
@@ -556,20 +556,20 @@ export default function BomDiffPage() {
       {/* Content */}
       {!baseId ? (
         <Empty
-          title="\u8bf7\u9009\u62e9\u57fa\u7ebf\u573a\u666f"
-          description="\u9009\u62e9\u57fa\u7ebf\u540e\u81ea\u52a8\u6267\u884c\u8bed\u4e49\u5316 BOM \u5dee\u5f02\u5206\u6790"
+          title="请选择基线场景"
+          description="选择基线后自动执行语义化 BOM 差异分析"
         />
       ) : loading ? (
         <Spin size="large" style={S.spin} />
       ) : results.length === 0 ? (
-        <Empty description="\u4e24\u4e2a\u573a\u666f\u4e4b\u95f4\u65e0 BOM \u5dee\u5f02" />
+        <Empty description="两个场景之间无 BOM 差异" />
       ) : (
         <>
           {/* Summary Cards */}
           <div style={S.grid}>
             <Card bodyStyle={S.cardBody}>
               <Text type="secondary" size="small">
-                \u8bed\u4e49\u53d8\u66f4
+                语义变更
               </Text>
               <Title heading={3} style={S.title}>
                 {stats.total}
@@ -577,7 +577,7 @@ export default function BomDiffPage() {
             </Card>
             <Card bodyStyle={S.cardBody}>
               <Text type="secondary" size="small">
-                \u53d7\u5f71\u54cd\u7ebf\u675f
+                受影响线束
               </Text>
               <Title heading={3} style={S.title}>
                 {stats.harnesses}
@@ -585,7 +585,7 @@ export default function BomDiffPage() {
             </Card>
             <Card bodyStyle={S.cardBody}>
               <Text type="secondary" size="small">
-                \u5e73\u5747\u7f6e\u4fe1\u5ea6
+                平均置信度
               </Text>
               <Title heading={3} style={valStyle(confColor)}>
                 {(stats.avgConf * 100).toFixed(0)}%
@@ -621,14 +621,14 @@ export default function BomDiffPage() {
                     <Text strong>{r.harnessId}</Text>
                     <Text type="secondary">{r.harnessName}</Text>
                     <Tag size="small" color="blue">
-                      {r.semanticChanges.length} \u4e2a\u53d8\u66f4
+                      {r.semanticChanges.length} 个变更
                     </Tag>
                     <Text type="tertiary" size="small">
-                      BOM: {r.baseBomCount} \u2192 {r.currentBomCount}
+                      BOM: {r.baseBomCount} → {r.currentBomCount}
                     </Text>
                     {r.detection.affectedEndGroups.length > 0 && (
                       <Text type="tertiary" size="small">
-                        \u7aef\u7ec4: {r.detection.affectedEndGroups.join(', ')}
+                        端组: {r.detection.affectedEndGroups.join(', ')}
                       </Text>
                     )}
                   </Space>

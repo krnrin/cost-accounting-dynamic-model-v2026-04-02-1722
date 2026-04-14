@@ -33,7 +33,7 @@ export default function DashboardPage() {
   }
 
   if (!d.project) {
-    return <Empty description="\u672a\u627e\u5230\u9879\u76ee" />;
+    return <Empty description="未找到项目" />;
   }
 
   return (

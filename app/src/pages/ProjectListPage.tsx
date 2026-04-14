@@ -74,12 +74,12 @@ type ProjectRow = ProjectRecord & {
 };
 
 const statusMap: Record<ProjectFormValues['status'] | 'active', string> = {
-  active: '\u8FDB\u884C\u4E2D',
-  draft: '\u8349\u7A3F',
-  quoted: '\u5DF2\u62A5\u4EF7',
-  awarded: '\u5DF2\u5B9A\u70B9',
-  production: '\u91CF\u4EA7\u4E2D',
-  eol: '\u5DF2\u5F52\u6863',
+  active: '进行中',
+  draft: '草稿',
+  quoted: '已报价',
+  awarded: '已定点',
+  production: '量产中',
+  eol: '已归档',
 };
 
 const statusColorMap: Record<ProjectFormValues['status'] | 'active', TagColor> = {
@@ -184,7 +184,7 @@ export default function ProjectListPage() {
       await syncProjectsToDexie(mappedProjects);
     } catch (error) {
       console.error(error);
-      Toast.error('\u52A0\u8F7D\u9879\u76EE\u5217\u8868\u5931\u8D25');
+      Toast.error('加载项目列表失败');
     } finally {
       setLoading(false);
     }
@@ -260,7 +260,7 @@ export default function ProjectListPage() {
   const handleSubmitEdit = async () => {
     const values = projectFormValues;
     if (!values.projectCode.trim() || !values.projectName.trim() || !values.customer.trim()) {
-      Toast.error('\u8BF7\u5B8C\u6574\u586B\u5199\u9879\u76EE\u7F16\u53F7\u3001\u9879\u76EE\u540D\u79F0\u548C\u5BA2\u6237');
+      Toast.error('请完整填写项目编号、项目名称和客户');
       return;
     }
     if (!editingProject) return;
@@ -278,7 +278,7 @@ export default function ProjectListPage() {
         method: 'PUT',
         body: payload,
       });
-      Toast.success('\u9879\u76EE\u5DF2\u66F4\u65B0');
+      Toast.success('项目已更新');
       closeEditModal();
       await fetchProjects();
     } catch (error) {
@@ -294,11 +294,11 @@ export default function ProjectListPage() {
     event.stopPropagation();
     try {
       await apiClient(`/projects/${projectId}`, { method: 'DELETE' });
-      Toast.success('\u5220\u9664\u6210\u529F');
+      Toast.success('删除成功');
       await fetchProjects();
     } catch (error) {
       console.error(error);
-      Toast.error('\u5220\u9664\u5931\u8D25');
+      Toast.error('删除失败');
     }
   };
 
@@ -317,18 +317,18 @@ export default function ProjectListPage() {
         const data = JSON.parse(text);
         const validation = validateProjectPackage(data);
         if (!validation.valid) {
-          Toast.error(`\u5BFC\u5165\u5931\u8D25: ${validation.errors.join(', ')}`);
+          Toast.error(`导入失败: ${validation.errors.join(', ')}`);
           return;
         }
         await apiClient('/projects/import', {
           method: 'POST',
           body: data,
         });
-        Toast.success('\u5BFC\u5165\u6210\u529F');
+        Toast.success('导入成功');
         await fetchProjects();
       } catch (error) {
         console.error(error);
-        Toast.error(error instanceof Error ? `\u5BFC\u5165\u5931\u8D25: ${error.message}` : '\u5BFC\u5165\u5931\u8D25: \u6587\u4EF6\u683C\u5F0F\u9519\u8BEF');
+        Toast.error(error instanceof Error ? `导入失败: ${error.message}` : '导入失败: 文件格式错误');
       }
     };
     input.click();
@@ -336,13 +336,13 @@ export default function ProjectListPage() {
 
   const columns: ColumnProps<ProjectRow>[] = [
     {
-      title: '\u9879\u76EE\u7F16\u53F7',
+      title: '项目编号',
       dataIndex: 'projectCode',
       width: 140,
       render: (_text, record) => <Text strong>{record.projectCode}</Text>,
     },
     {
-      title: '\u9879\u76EE\u540D\u79F0',
+      title: '项目名称',
       dataIndex: 'projectName',
       render: (_text, record) => (
         <div>
@@ -352,34 +352,34 @@ export default function ProjectListPage() {
       ),
     },
     {
-      title: '\u5BA2\u6237',
+      title: '客户',
       dataIndex: 'customer',
       width: 180,
     },
     {
-      title: '\u72B6\u6001',
+      title: '状态',
       dataIndex: 'status',
       width: 120,
       render: (_text, record) => <Tag color={statusColorMap[record.status]}>{statusMap[record.status]}</Tag>,
     },
     {
-      title: '\u7EBF\u675F\u6570',
+      title: '线束数',
       dataIndex: 'harnessCount',
       width: 100,
     },
     {
-      title: '\u573A\u666F\u6570',
+      title: '场景数',
       dataIndex: 'scenarioCount',
       width: 100,
     },
     {
-      title: '\u66F4\u65B0\u65F6\u95F4',
+      title: '更新时间',
       dataIndex: 'updatedAt',
       width: 140,
       render: (_text, record) => new Date(record.updatedAt).toLocaleDateString('zh-CN'),
     },
     {
-      title: '\u64CD\u4F5C',
+      title: '操作',
       dataIndex: 'id',
       width: 260,
       render: (_text, record) => (
@@ -393,7 +393,7 @@ export default function ProjectListPage() {
               handleOpenProject(record);
             }}
           >
-            \u8FDB\u5165\u9879\u76EE
+            进入项目
           </Button>
           <Button icon={<IconEdit />} theme="borderless" size="small" onClick={(event) => openEditModal(record, event)} />
           <Button
@@ -404,9 +404,9 @@ export default function ProjectListPage() {
               event.stopPropagation();
               try {
                 await exportProjectExcel(record.id);
-                Toast.success('\u9879\u76EE Excel \u5DF2\u5BFC\u51FA');
+                Toast.success('项目 Excel 已导出');
               } catch (error) {
-                Toast.error(error instanceof Error ? error.message : '\u9879\u76EE Excel \u5BFC\u51FA\u5931\u8D25');
+                Toast.error(error instanceof Error ? error.message : '项目 Excel 导出失败');
               }
             }}
           />
@@ -418,16 +418,16 @@ export default function ProjectListPage() {
               event.stopPropagation();
               try {
                 await exportProjectPdf(record.id);
-                Toast.success('\u9879\u76EE PDF \u5DF2\u5BFC\u51FA');
+                Toast.success('项目 PDF 已导出');
               } catch (error) {
-                Toast.error(error instanceof Error ? error.message : '\u9879\u76EE PDF \u5BFC\u51FA\u5931\u8D25');
+                Toast.error(error instanceof Error ? error.message : '项目 PDF 导出失败');
               }
             }}
           />
           <RoleGuard field="deleteProject">
             <Popconfirm
-              title="\u786E\u5B9A\u5220\u9664\u6B64\u9879\u76EE\u5417\uFF1F"
-              content="\u5220\u9664\u540E\u6570\u636E\u5C06\u4E0D\u53EF\u6062\u590D"
+              title="确定删除此项目吗？"
+              content="删除后数据将不可恢复"
               position="bottomRight"
               onConfirm={(event) => handleDelete(record.id, event as unknown as React.MouseEvent)}
               onCancel={(event) => event?.stopPropagation()}
@@ -458,15 +458,15 @@ export default function ProjectListPage() {
     <div>
       <div style={S.header}>
         <div>
-          <Title heading={4} style={S.headerTitle}>\u9879\u76EE\u5217\u8868</Title>
-          <Text type="tertiary">\u652F\u6301\u641C\u7D22\u3001\u72B6\u6001\u7B5B\u9009\u3001\u65B0\u5EFA\u3001\u5220\u9664\u5E76\u8FDB\u5165\u9879\u76EE</Text>
+          <Title heading={4} style={S.headerTitle}>项目列表</Title>
+          <Text type="tertiary">支持搜索、状态筛选、新建、删除并进入项目</Text>
         </div>
         <Space>
           <Button theme="light" icon={<IconUpload />} onClick={handleImport}>
-            \u5BFC\u5165\u9879\u76EE
+            导入项目
           </Button>
           <Button theme="solid" type="primary" icon={<IconPlus />} onClick={() => navigate('/project/new')}>
-            \u65B0\u5EFA\u9879\u76EE
+            新建项目
           </Button>
         </Space>
       </div>
@@ -474,7 +474,7 @@ export default function ProjectListPage() {
       <div style={S.filterBar}>
         <Input
           prefix={<IconSearch />}
-          placeholder="\u641C\u7D22\u9879\u76EE\u540D\u79F0\u3001\u7F16\u53F7\u6216\u5BA2\u6237"
+          placeholder="搜索项目名称、编号或客户"
           value={searchTerm}
           onChange={setSearchTerm}
           style={S.searchInput}
@@ -484,15 +484,15 @@ export default function ProjectListPage() {
           }}
         />
         <RadioGroup type="button" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-          <Radio value="all">\u5168\u90E8</Radio>
-          <Radio value="ongoing">\u8FDB\u884C\u4E2D</Radio>
-          <Radio value="completed">\u5DF2\u5B8C\u6210</Radio>
-          <Radio value="archived">\u5DF2\u5F52\u6863</Radio>
+          <Radio value="all">全部</Radio>
+          <Radio value="ongoing">进行中</Radio>
+          <Radio value="completed">已完成</Radio>
+          <Radio value="archived">已归档</Radio>
         </RadioGroup>
       </div>
 
       {tableData.length === 0 ? (
-        <Empty title="\u6682\u65E0\u9879\u76EE" description="\u8BF7\u521B\u5EFA\u9879\u76EE\u6216\u8C03\u6574\u7B5B\u9009\u6761\u4EF6" />
+        <Empty title="暂无项目" description="请创建项目或调整筛选条件" />
       ) : (
         <Table
           columns={columns}
@@ -508,39 +508,39 @@ export default function ProjectListPage() {
 
       {/* Edit-only modal (create now uses /project/new wizard) */}
       <Modal
-        title="\u7F16\u8F91\u9879\u76EE"
+        title="编辑项目"
         visible={editModalVisible}
         onCancel={closeEditModal}
         onOk={handleSubmitEdit}
         confirmLoading={submitting}
-        okText="\u4FDD\u5B58"
-        cancelText="\u53D6\u6D88"
+        okText="保存"
+        cancelText="取消"
       >
         <div style={S.modalForm}>
           <div>
-            <Text style={S.formLabel}>\u9879\u76EE\u7F16\u53F7</Text>
-            <Input value={projectFormValues.projectCode} placeholder="\u5982 E281" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, projectCode: value }))} />
+            <Text style={S.formLabel}>项目编号</Text>
+            <Input value={projectFormValues.projectCode} placeholder="如 E281" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, projectCode: value }))} />
           </div>
           <div>
-            <Text style={S.formLabel}>\u9879\u76EE\u540D\u79F0</Text>
-            <Input value={projectFormValues.projectName} placeholder="\u8BF7\u8F93\u5165\u9879\u76EE\u540D\u79F0" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, projectName: value }))} />
+            <Text style={S.formLabel}>项目名称</Text>
+            <Input value={projectFormValues.projectName} placeholder="请输入项目名称" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, projectName: value }))} />
           </div>
           <div>
-            <Text style={S.formLabel}>\u5BA2\u6237</Text>
-            <Input value={projectFormValues.customer} placeholder="\u8BF7\u8F93\u5165\u5BA2\u6237\u540D\u79F0" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, customer: value }))} />
+            <Text style={S.formLabel}>客户</Text>
+            <Input value={projectFormValues.customer} placeholder="请输入客户名称" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, customer: value }))} />
           </div>
           <div>
-            <Text style={S.formLabel}>\u5E73\u53F0/\u8F66\u578B</Text>
-            <Input value={projectFormValues.platform || ''} placeholder="\u8BF7\u8F93\u5165\u5E73\u53F0\u6216\u8F66\u578B" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, platform: value }))} />
+            <Text style={S.formLabel}>平台/车型</Text>
+            <Input value={projectFormValues.platform || ''} placeholder="请输入平台或车型" onChange={(value) => setProjectFormValues((prev) => ({ ...prev, platform: value }))} />
           </div>
           <div>
-            <Text style={S.formLabel}>\u72B6\u6001</Text>
+            <Text style={S.formLabel}>状态</Text>
             <RadioGroup type="button" value={projectFormValues.status} onChange={(event) => setProjectFormValues((prev) => ({ ...prev, status: event.target.value }))}>
-              <Radio value="draft">\u8349\u7A3F</Radio>
-              <Radio value="quoted">\u5DF2\u62A5\u4EF7</Radio>
-              <Radio value="awarded">\u5DF2\u5B9A\u70B9</Radio>
-              <Radio value="production">\u91CF\u4EA7\u4E2D</Radio>
-              <Radio value="eol">\u5DF2\u5F52\u6863</Radio>
+              <Radio value="draft">草稿</Radio>
+              <Radio value="quoted">已报价</Radio>
+              <Radio value="awarded">已定点</Radio>
+              <Radio value="production">量产中</Radio>
+              <Radio value="eol">已归档</Radio>
             </RadioGroup>
           </div>
         </div>

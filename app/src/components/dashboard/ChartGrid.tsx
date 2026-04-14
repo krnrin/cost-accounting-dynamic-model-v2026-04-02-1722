@@ -1,5 +1,5 @@
 /**
- * ChartGrid — 4 ECharts panels arranged in a 2\u00d72 grid.
+ * ChartGrid — 4 ECharts panels arranged in a 2×2 grid.
  */
 import { useMemo } from 'react';
 import { Typography, Col } from '@douyinfe/semi-ui';

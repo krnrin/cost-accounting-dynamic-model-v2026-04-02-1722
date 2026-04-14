@@ -88,13 +88,13 @@ export default class RouteErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       const isDev = import.meta.env.DEV;
-      const pageName = this.props.pageName || '\u9875\u9762';
+      const pageName = this.props.pageName || '页面';
 
       return (
         <div style={S.container}>
           <Empty
-            title={`${pageName}\u52A0\u8F7D\u51FA\u9519`}
-            description="\u62B1\u6B49\uFF0C\u8BE5\u9875\u9762\u9047\u5230\u4E86\u95EE\u9898\u3002\u60A8\u53EF\u4EE5\u5C1D\u8BD5\u91CD\u8BD5\u6216\u8FD4\u56DE\u9996\u9875\u3002"
+            title={`${pageName}加载出错`}
+            description="抱歉，该页面遇到了问题。您可以尝试重试或返回首页。"
           />
 
           {isDev && this.state.error && (
@@ -113,14 +113,14 @@ export default class RouteErrorBoundary extends Component<Props, State> {
               type="primary"
               onClick={this.handleRetry}
             >
-              \u91CD\u8BD5
+              重试
             </Button>
             <Button
               icon={<IconHome />}
               theme="light"
               onClick={this.handleGoHome}
             >
-              \u8FD4\u56DE\u9996\u9875
+              返回首页
             </Button>
           </Space>
         </div>

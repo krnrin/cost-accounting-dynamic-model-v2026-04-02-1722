@@ -60,10 +60,10 @@ interface StepDef {
 /* ------------------------------------------------------------------ */
 
 const STEPS: StepDef[] = [
-  { title: '\u57FA\u672C\u4FE1\u606F', description: '\u9879\u76EE\u7F16\u53F7\u4E0E\u5BA2\u6237' },
-  { title: '\u4EA7\u91CF\u89C4\u5212', description: '\u5E74\u5EA6\u4EA7\u91CF\u8BA1\u5212' },
-  { title: '\u6210\u672C\u53C2\u6570', description: '\u8D39\u7387\u4E0E\u91D1\u5C5E\u4EF7\u683C' },
-  { title: '\u786E\u8BA4\u521B\u5EFA', description: '\u9884\u89C8\u5E76\u521B\u5EFA\u9879\u76EE' },
+  { title: '基本信息', description: '项目编号与客户' },
+  { title: '产量规划', description: '年度产量计划' },
+  { title: '成本参数', description: '费率与金属价格' },
+  { title: '确认创建', description: '预览并创建项目' },
 ];
 
 const DEFAULT_COST_RATES: CostRates = {
@@ -180,13 +180,13 @@ export default function NewProjectWizard() {
 
   const validateStep = (s: number): string | null => {
     if (s === 0) {
-      if (!data.basic.projectCode.trim()) return '\u8BF7\u586B\u5199\u9879\u76EE\u7F16\u53F7';
-      if (!data.basic.projectName.trim()) return '\u8BF7\u586B\u5199\u9879\u76EE\u540D\u79F0';
-      if (!data.basic.customer.trim()) return '\u8BF7\u586B\u5199\u5BA2\u6237\u540D\u79F0';
+      if (!data.basic.projectCode.trim()) return '请填写项目编号';
+      if (!data.basic.projectName.trim()) return '请填写项目名称';
+      if (!data.basic.customer.trim()) return '请填写客户名称';
     }
     if (s === 1) {
       const totalVol = data.volumes.reduce((s, v) => s + v.volume, 0);
-      if (totalVol <= 0) return '\u81F3\u5C11\u586B\u5199\u4E00\u5E74\u7684\u4EA7\u91CF';
+      if (totalVol <= 0) return '至少填写一年的产量';
     }
     return null;
   };
@@ -264,13 +264,13 @@ export default function NewProjectWizard() {
         id: scenarioId,
         projectId: created.id,
         scenarioCode: 'SCN-001',
-        scenarioName: '\u521D\u59CB\u62A5\u4EF7',
+        scenarioName: '初始报价',
         scenarioType: 'initial_quote',
         parentScenarioId: null,
         isBaseline: true,
         lifecycleYears: data.basic.lifecycleYears,
         config,
-        note: '\u9879\u76EE\u521B\u5EFA\u65F6\u81EA\u52A8\u751F\u6210\u7684\u57FA\u51C6\u573A\u666F',
+        note: '项目创建时自动生成的基准场景',
         status: 'draft',
         createdAt: now,
         updatedAt: now,
@@ -279,10 +279,10 @@ export default function NewProjectWizard() {
 
       // 4) Set project store & navigate
       setCurrentProject(created.id, created.projectName);
-      Toast.success('\u9879\u76EE\u521B\u5EFA\u6210\u529F');
+      Toast.success('项目创建成功');
       navigate('/project/' + created.id + '/s/' + scenarioId);
     } catch (e) {
-      Toast.error('\u521B\u5EFA\u5931\u8D25: ' + (e as Error).message);
+      Toast.error('创建失败: ' + (e as Error).message);
     } finally {
       setSubmitting(false);
     }
@@ -297,7 +297,7 @@ export default function NewProjectWizard() {
 
   return (
     <div style={S.root}>
-      <Title heading={3}>\uD83C\uDD95 \u65B0\u5EFA\u9879\u76EE</Title>
+      <Title heading={3}>🆕 新建项目</Title>
       <Steps current={step} style={S.steps}>
         {STEPS.map((s, i) => (
           <Steps.Step key={i} title={s.title} description={s.description} />
@@ -308,39 +308,39 @@ export default function NewProjectWizard() {
       {step === 0 && (
         <Card style={S.card}>
           <div style={S.field}>
-            <Text style={S.label}>\u9879\u76EE\u7F16\u53F7 *</Text>
+            <Text style={S.label}>项目编号 *</Text>
             <Input
               value={data.basic.projectCode}
-              placeholder="\u5982 E281"
+              placeholder="如 E281"
               onChange={(v) => updateBasic({ projectCode: v })}
             />
           </div>
           <div style={S.field}>
-            <Text style={S.label}>\u9879\u76EE\u540D\u79F0 *</Text>
+            <Text style={S.label}>项目名称 *</Text>
             <Input
               value={data.basic.projectName}
-              placeholder="\u5982 E281\u9AD8\u538B\u7EBF\u675F\u5305"
+              placeholder="如 E281高压线束包"
               onChange={(v) => updateBasic({ projectName: v })}
             />
           </div>
           <div style={S.field}>
-            <Text style={S.label}>\u5BA2\u6237\u540D\u79F0 *</Text>
+            <Text style={S.label}>客户名称 *</Text>
             <Input
               value={data.basic.customer}
-              placeholder="\u5982 \u5409\u5229\u6C7D\u8F66"
+              placeholder="如 吉利汽车"
               onChange={(v) => updateBasic({ customer: v })}
             />
           </div>
           <div style={S.field}>
-            <Text style={S.label}>\u5E73\u53F0/\u8F66\u578B</Text>
+            <Text style={S.label}>平台/车型</Text>
             <Input
               value={data.basic.platform}
-              placeholder="\u5982 SEA\u67B6\u6784"
+              placeholder="如 SEA架构"
               onChange={(v) => updateBasic({ platform: v })}
             />
           </div>
           <div style={S.field}>
-            <Text style={S.label}>\u751F\u547D\u5468\u671F (\u5E74)</Text>
+            <Text style={S.label}>生命周期 (年)</Text>
             <InputNumber
               value={data.basic.lifecycleYears}
               min={1}
@@ -353,15 +353,15 @@ export default function NewProjectWizard() {
 
       {/* ===== Step 1: Volume Plan ===== */}
       {step === 1 && (
-        <Card style={S.card} title="\u5E74\u5EA6\u4EA7\u91CF\u89C4\u5212">
+        <Card style={S.card} title="年度产量规划">
           <Banner
             type="info"
-            description="\u586B\u5199\u9879\u76EE\u751F\u547D\u5468\u671F\u5185\u6BCF\u5E74\u7684\u8BA1\u5212\u4EA7\u91CF\uFF08\u53F0\uFF09\uFF0C\u7528\u4E8E\u5206\u644A\u56DE\u6536\u8BA1\u7B97\u3002"
+            description="填写项目生命周期内每年的计划产量（台），用于分摊回收计算。"
             style={S.field}
           />
           {data.volumes.map((vol, i) => (
             <div key={i} style={S.row}>
-              <Text style={S.yearTag}>\u7B2C{vol.year}\u5E74</Text>
+              <Text style={S.yearTag}>第{vol.year}年</Text>
               <InputNumber
                 style={S.volInput}
                 value={vol.volume}
@@ -369,30 +369,30 @@ export default function NewProjectWizard() {
                 step={1000}
                 formatter={(v) => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                 parser={(v) => Number(String(v).replace(/,/g, ''))}
-                placeholder="\u5E74\u4EA7\u91CF"
+                placeholder="年产量"
                 onChange={(v) => updateVolume(i, { volume: Number(v) || 0 })}
               />
               <Input
                 style={S.remarkInput}
                 value={vol.remark || ''}
-                placeholder="\u5907\u6CE8"
+                placeholder="备注"
                 onChange={(v) => updateVolume(i, { remark: v })}
               />
             </div>
           ))}
           <Text type="tertiary">
-            \u751F\u547D\u5468\u671F\u603B\u4EA7\u91CF: {totalVolume.toLocaleString()} \u53F0
+            生命周期总产量: {totalVolume.toLocaleString()} 台
           </Text>
         </Card>
       )}
 
       {/* ===== Step 2: Cost Rates ===== */}
       {step === 2 && (
-        <Card style={S.card} title="\u6210\u672C\u53C2\u6570\u914D\u7F6E">
-          <Title heading={6}>\u8D39\u7387\u53C2\u6570</Title>
+        <Card style={S.card} title="成本参数配置">
+          <Title heading={6}>费率参数</Title>
           <div style={S.rateRow}>
             <div style={S.rateItem}>
-              <Text style={S.label}>\u4EBA\u5DE5\u8D39\u7387 (\u5143/h)</Text>
+              <Text style={S.label}>人工费率 (元/h)</Text>
               <InputNumber
                 value={data.costRates.laborRate}
                 min={0}
@@ -401,7 +401,7 @@ export default function NewProjectWizard() {
               />
             </div>
             <div style={S.rateItem}>
-              <Text style={S.label}>\u5236\u9020\u8D39\u7387 (\u5143/h)</Text>
+              <Text style={S.label}>制造费率 (元/h)</Text>
               <InputNumber
                 value={data.costRates.mfgRate}
                 min={0}
@@ -412,7 +412,7 @@ export default function NewProjectWizard() {
           </div>
           <div style={S.rateRow}>
             <div style={S.rateItem}>
-              <Text style={S.label}>\u5E9F\u54C1\u7387</Text>
+              <Text style={S.label}>废品率</Text>
               <InputNumber
                 value={data.costRates.wasteRate}
                 min={0}
@@ -422,7 +422,7 @@ export default function NewProjectWizard() {
               />
             </div>
             <div style={S.rateItem}>
-              <Text style={S.label}>\u7BA1\u7406\u8D39\u7387</Text>
+              <Text style={S.label}>管理费率</Text>
               <InputNumber
                 value={data.costRates.mgmtRate}
                 min={0}
@@ -432,7 +432,7 @@ export default function NewProjectWizard() {
               />
             </div>
             <div style={S.rateItem}>
-              <Text style={S.label}>\u5229\u6DA6\u7387</Text>
+              <Text style={S.label}>利润率</Text>
               <InputNumber
                 value={data.costRates.profitRate}
                 min={0}
@@ -443,10 +443,10 @@ export default function NewProjectWizard() {
             </div>
           </div>
 
-          <Title heading={6} style={S.field}>\u91D1\u5C5E\u57FA\u51C6\u4EF7 (\u5143/\u5343\u514B)</Title>
+          <Title heading={6} style={S.field}>金属基准价 (元/千克)</Title>
           <div style={S.rateRow}>
             <div style={S.rateItem}>
-              <Text style={S.label}>\u94DC\u4EF7</Text>
+              <Text style={S.label}>铜价</Text>
               <InputNumber
                 value={data.metalPrices.copper}
                 min={0}
@@ -455,7 +455,7 @@ export default function NewProjectWizard() {
               />
             </div>
             <div style={S.rateItem}>
-              <Text style={S.label}>\u94DD\u4EF7</Text>
+              <Text style={S.label}>铝价</Text>
               <InputNumber
                 value={data.metalPrices.aluminum}
                 min={0}
@@ -469,48 +469,48 @@ export default function NewProjectWizard() {
 
       {/* ===== Step 3: Confirm ===== */}
       {step === 3 && (
-        <Card style={S.card} title="\u786E\u8BA4\u9879\u76EE\u914D\u7F6E">
+        <Card style={S.card} title="确认项目配置">
           <div style={S.summarySection}>
-            <Title heading={6}>\u57FA\u672C\u4FE1\u606F</Title>
+            <Title heading={6}>基本信息</Title>
             <Descriptions
               data={[
-                { key: '\u9879\u76EE\u7F16\u53F7', value: data.basic.projectCode },
-                { key: '\u9879\u76EE\u540D\u79F0', value: data.basic.projectName },
-                { key: '\u5BA2\u6237', value: data.basic.customer },
-                { key: '\u5E73\u53F0', value: data.basic.platform || '-' },
-                { key: '\u751F\u547D\u5468\u671F', value: data.basic.lifecycleYears + ' \u5E74' },
+                { key: '项目编号', value: data.basic.projectCode },
+                { key: '项目名称', value: data.basic.projectName },
+                { key: '客户', value: data.basic.customer },
+                { key: '平台', value: data.basic.platform || '-' },
+                { key: '生命周期', value: data.basic.lifecycleYears + ' 年' },
               ]}
             />
           </div>
           <div style={S.summarySection}>
-            <Title heading={6}>\u4EA7\u91CF\u89C4\u5212</Title>
+            <Title heading={6}>产量规划</Title>
             <Descriptions
               data={data.volumes
                 .filter((v) => v.volume > 0)
                 .map((v) => ({
-                  key: '\u7B2C' + v.year + '\u5E74',
-                  value: v.volume.toLocaleString() + ' \u53F0' + (v.remark ? ' (' + v.remark + ')' : ''),
+                  key: '第' + v.year + '年',
+                  value: v.volume.toLocaleString() + ' 台' + (v.remark ? ' (' + v.remark + ')' : ''),
                 }))
-                .concat([{ key: '\u603B\u4EA7\u91CF', value: totalVolume.toLocaleString() + ' \u53F0' }])}
+                .concat([{ key: '总产量', value: totalVolume.toLocaleString() + ' 台' }])}
             />
           </div>
           <div style={S.summarySection}>
-            <Title heading={6}>\u6210\u672C\u53C2\u6570</Title>
+            <Title heading={6}>成本参数</Title>
             <Descriptions
               data={[
-                { key: '\u4EBA\u5DE5\u8D39\u7387', value: data.costRates.laborRate + ' \u5143/h' },
-                { key: '\u5236\u9020\u8D39\u7387', value: data.costRates.mfgRate + ' \u5143/h' },
-                { key: '\u5E9F\u54C1\u7387', value: (data.costRates.wasteRate * 100).toFixed(2) + '%' },
-                { key: '\u7BA1\u7406\u8D39\u7387', value: (data.costRates.mgmtRate * 100).toFixed(1) + '%' },
-                { key: '\u5229\u6DA6\u7387', value: (data.costRates.profitRate * 100).toFixed(4) + '%' },
-                { key: '\u94DC\u57FA\u51C6\u4EF7', value: data.metalPrices.copper + ' \u5143/\u5343\u514B' },
-                { key: '\u94DD\u57FA\u51C6\u4EF7', value: data.metalPrices.aluminum + ' \u5143/\u5343\u514B' },
+                { key: '人工费率', value: data.costRates.laborRate + ' 元/h' },
+                { key: '制造费率', value: data.costRates.mfgRate + ' 元/h' },
+                { key: '废品率', value: (data.costRates.wasteRate * 100).toFixed(2) + '%' },
+                { key: '管理费率', value: (data.costRates.mgmtRate * 100).toFixed(1) + '%' },
+                { key: '利润率', value: (data.costRates.profitRate * 100).toFixed(4) + '%' },
+                { key: '铜基准价', value: data.metalPrices.copper + ' 元/千克' },
+                { key: '铝基准价', value: data.metalPrices.aluminum + ' 元/千克' },
               ]}
             />
           </div>
           <Banner
             type="success"
-            description="\u521B\u5EFA\u540E\u5C06\u81EA\u52A8\u751F\u6210\u57FA\u51C6\u573A\u666F (SCN-001 \u521D\u59CB\u62A5\u4EF7)\uFF0C\u60A8\u53EF\u4EE5\u7ACB\u5373\u5F00\u59CB\u5BFC\u5165\u7EBF\u675F BOM \u5E76\u8FDB\u884C\u62A5\u4EF7\u8BA1\u7B97\u3002"
+            description="创建后将自动生成基准场景 (SCN-001 初始报价)，您可以立即开始导入线束 BOM 并进行报价计算。"
           />
         </Card>
       )}
@@ -523,11 +523,11 @@ export default function NewProjectWizard() {
             onClick={() => navigate('/')}
             theme="borderless"
           >
-            \u8FD4\u56DE\u5217\u8868
+            返回列表
           </Button>
           {step > 0 && (
             <Button icon={<IconArrowLeft />} onClick={handlePrev}>
-              \u4E0A\u4E00\u6B65
+              上一步
             </Button>
           )}
         </Space>
@@ -539,7 +539,7 @@ export default function NewProjectWizard() {
             iconPosition="right"
             onClick={handleNext}
           >
-            \u4E0B\u4E00\u6B65
+            下一步
           </Button>
         ) : (
           <Button
@@ -549,7 +549,7 @@ export default function NewProjectWizard() {
             loading={submitting}
             onClick={handleCreate}
           >
-            \u2705 \u786E\u8BA4\u521B\u5EFA\u9879\u76EE
+            ✅ 确认创建项目
           </Button>
         )}
       </div>
