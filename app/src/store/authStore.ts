@@ -54,6 +54,9 @@ interface AuthState {
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
+/** DEV mode login timeout (ms) — fail fast to offline fallback */
+const DEV_LOGIN_TIMEOUT_MS = 2000;
+
 async function syncProfileIntoState(
   set: (partial: Partial<AuthState>) => void,
   token: string,
@@ -98,12 +101,21 @@ export const useAuthStore = create<AuthState>()(
         authSource: null,
 
         login: async (email, password) => {
+          // In DEV mode, use AbortController to timeout quickly when backend is unreachable
+          const controller = import.meta.env.DEV ? new AbortController() : undefined;
+          const timer = controller
+            ? setTimeout(() => controller.abort(), DEV_LOGIN_TIMEOUT_MS)
+            : undefined;
+
           try {
             const res = await fetch(`${API_BASE}/auth/login`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ email, password }),
+              ...(controller ? { signal: controller.signal } : {}),
             });
+            if (timer) clearTimeout(timer);
+
             if (!res.ok) {
               const err = await res.json().catch(() => ({ error: 'Login failed' }));
               throw new Error(err.error || 'Login failed');
@@ -111,8 +123,10 @@ export const useAuthStore = create<AuthState>()(
             const { data } = await res.json();
             await syncProfileIntoState(set, data.token, 'local');
           } catch (e: any) {
+            if (timer) clearTimeout(timer);
+
             if (import.meta.env.DEV) {
-              console.warn('[DEV] Backend unreachable, using offline login');
+              console.warn('[DEV] Backend unreachable or timeout, using offline login');
               const devUser: AuthUser = {
                 id: 'dev-admin',
                 email: email || 'admin@harness.dev',
