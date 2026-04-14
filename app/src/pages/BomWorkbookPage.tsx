@@ -61,6 +61,8 @@ import {
   type SheetType,
 } from '@/engine/change_bus';
 import { useSmartPaste, BOM_TARGET_COLUMNS } from '@/hooks/useSmartPaste';
+import SmartPasteIntegration from '@/components/SmartPasteIntegration';
+import BomDiffIntegration from '@/components/BomDiffIntegration';
 
 const { Text } = Typography;
 

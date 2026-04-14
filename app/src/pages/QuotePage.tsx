@@ -15,6 +15,7 @@ import { applyCustomerQuoteSnapshot } from '@/utils/customerQuoteSnapshots';
 import type { HarnessInput } from '@/types/harness';
 import { RoleGuard } from '@/components/RoleGuard';
 import ScenarioSelector from '@/components/ScenarioSelector';
+import QuoteGapEntry from '@/components/QuoteGapEntry';
 
 const { Title, Text } = Typography;
 
@@ -594,6 +595,9 @@ export default function QuotePage() {
           </div>
         </TabPane>
       </Tabs>
+
+      {/* Gap 分析入口 */}
+      {id && sid && <QuoteGapEntry projectId={id} scenarioId={sid} />}
     </div>
   );
 }

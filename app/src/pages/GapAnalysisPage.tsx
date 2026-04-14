@@ -95,8 +95,8 @@ export default function GapAnalysisPage() {
     const activePrice = getActivePrice();
     const internalMetalPrices = {
       ...scenario.config.metalPrices,
-      copperPrice: activePrice.copper,
-      aluminumPrice: activePrice.aluminum,
+      copper: activePrice.copper,
+      aluminum: activePrice.aluminum,
     };
     return harnesses.map((h) =>
       computeHarnessCost(h.input, scenario.config.costRates, internalMetalPrices)
