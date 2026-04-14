@@ -31,6 +31,7 @@ import { VERSION_STATUS_LABELS, validateTransition } from '@/types/version';
 import type { BomItem, WireItem } from '@/types/harness';
 import ScenarioSelector from '@/components/ScenarioSelector';
 import { useCascadeImpact } from '@/hooks/useCascadeImpact';
+import CascadeImpactIntegration from '@/components/CascadeImpactIntegration';
 
 const { Title, Text } = Typography;
 
@@ -1290,7 +1291,19 @@ export default function ChangeEnginePage() {
         )}
       </Row>
 
-      {/* ──── 级联影响预览模态框 ──── */}
+      {/* ──── 级联影响集成面板 (CascadeImpactIntegration) ──── */}
+        {bomDiffRows.length > 0 && (
+          <Col span={24}>
+            <CascadeImpactIntegration
+              bomChanges={bomDiffRows}
+              semanticChanges={[]}
+              sheetData={{}}
+              autoCompute={false}
+            />
+          </Col>
+        )}
+
+        {/* ──── 级联影响预览模态框 ──── */}
       <Modal
         title="级联影响预览"
         visible={showCascadePreview}
