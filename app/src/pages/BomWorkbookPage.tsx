@@ -59,6 +59,7 @@ import {
   type SheetChangeEvent,
   type SheetType,
 } from '@/engine/change_bus';
+import { useSmartPaste, BOM_TARGET_COLUMNS } from '@/hooks/useSmartPaste';
 
 const { Text } = Typography;
 
@@ -319,6 +320,7 @@ function buildSummarySheet(
 export default function BomWorkbookPage() {
   const { id, sid } = useParams<{ id: string; sid: string }>();
   const navigate = useNavigate();
+  const smartPaste = useSmartPaste(BOM_TARGET_COLUMNS);
 
   const data = useLiveQuery(async () => {
     if (!id) return null;
@@ -814,6 +816,7 @@ export default function BomWorkbookPage() {
           db.harnesses.update(harness.id, {
             input: modified,
             harnessName: modified.harnessName,
+            result: resultsMap.get(harness.harnessId),
             updatedAt: new Date().toISOString(),
           })
         );

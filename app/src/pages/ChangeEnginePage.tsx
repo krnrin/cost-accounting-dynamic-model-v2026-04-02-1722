@@ -1,6 +1,6 @@
 /**
  * 变更引擎页面
- * 
+ *
  * 功能：
  * 1. 版本快照管理（创建/列表/状态流转/删除）
  * 2. 版本对比（选择基准版本 vs 变更版本）
@@ -30,6 +30,7 @@ import type { VersionDiff, VersionRecord, VersionStatus } from '@/types/version'
 import { VERSION_STATUS_LABELS, validateTransition } from '@/types/version';
 import type { BomItem, WireItem } from '@/types/harness';
 import ScenarioSelector from '@/components/ScenarioSelector';
+import { useCascadeImpact } from '@/hooks/useCascadeImpact';
 
 const { Title, Text } = Typography;
 
@@ -134,6 +135,7 @@ function buildChangeReason(
 
 export default function ChangeEnginePage() {
   const { id: projectId, sid } = useParams<{ id: string; sid: string }>();
+  const cascade = useCascadeImpact();
   const [versions, setVersions] = useState<VersionRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [baseVersionId, setBaseVersionId] = useState<string | null>(null);
@@ -151,6 +153,7 @@ export default function ChangeEnginePage() {
   const [changeEventsLoading, setChangeEventsLoading] = useState(false);
   const [selectedChangeId, setSelectedChangeId] = useState<string | null>(null);
   const [creatingChangeEvent, setCreatingChangeEvent] = useState(false);
+  const [showCascadePreview, setShowCascadePreview] = useState(false);
 
   const clearComparison = useCallback(() => {
     setChangePricingResult(null);
@@ -292,6 +295,10 @@ export default function ChangeEnginePage() {
     setChangePricingResult(changePricing);
     setVersionDiffResult(versionDiff);
     setComparisonTable(buildChangeComparisonTable(changePricing));
+
+    if (versionDiff.bomChanges && versionDiff.bomChanges.length > 0) {
+      setShowCascadePreview(true);
+    }
   }, [baseVersionId, compareVersionId, versions]);
 
   useEffect(() => {
@@ -1282,6 +1289,43 @@ export default function ChangeEnginePage() {
           </Col>
         )}
       </Row>
+
+      {/* ──── 级联影响预览模态框 ──── */}
+      <Modal
+        title="级联影响预览"
+        visible={showCascadePreview}
+        onOk={() => setShowCascadePreview(false)}
+        onCancel={() => setShowCascadePreview(false)}
+        okText="确认"
+        cancelText="取消"
+        width={800}
+      >
+        {cascade.result && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <Text>
+              检测到 <Text strong style={{ color: '#2563eb' }}>{cascade.result.totalActions}</Text> 项级联影响
+            </Text>
+            {cascade.result.assembly && (
+              <div>
+                <Text strong>装配件表影响：</Text>
+                <Text>{cascade.result.assembly.actions?.length || 0} 项</Text>
+              </div>
+            )}
+            {cascade.result.secondary && (
+              <div>
+                <Text strong>辅材表影响：</Text>
+                <Text>{cascade.result.secondary.actions?.length || 0} 项</Text>
+              </div>
+            )}
+            {cascade.result.ksk && (
+              <div>
+                <Text strong>KSK表影响：</Text>
+                <Text>{cascade.result.ksk.actions?.length || 0} 项</Text>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
 
       {/* ──── 创建快照模态框 ──── */}
       <Modal

@@ -3,9 +3,9 @@
  * 
  * 免登流程:
  * 1. 检测是否在飞书客户端内 (User-Agent 包含 Lark 或 Feishu)
- * 2. 在飞书内: 使用 window.h5sdk → tt.requestAccess 获取 code
+ * 2. 在飞书内: 使用 window.h5sdk -> tt.requestAccess 获取 code
  * 3. 在飞书外 (浏览器): 使用 OAuth 重定向方式获取 code
- * 4. 用 code 换取 user_access_token → 获取用户信息
+ * 4. 用 code 换取 user_access_token -> 获取用户信息
  */
 
 // Feishu H5 SDK types (loaded via script tag in index.html)
@@ -51,7 +51,6 @@ function waitForH5SDK(): Promise<void> {
       window.h5sdk.ready(() => resolve());
       window.h5sdk.error((err: any) => reject(new Error(`H5SDK error: ${JSON.stringify(err)}`)));
     } else {
-      // Retry a few times
       let attempts = 0;
       const timer = setInterval(() => {
         attempts++;
@@ -70,7 +69,6 @@ function waitForH5SDK(): Promise<void> {
 
 /**
  * Request auth code from Feishu client (in-app login-free)
- * Uses tt.requestAccess to get a temporary authorization code
  */
 export async function requestFeishuAuthCode(): Promise<string> {
   if (!isFeishuEnv()) {
@@ -82,7 +80,6 @@ export async function requestFeishuAuthCode(): Promise<string> {
 
   await waitForH5SDK();
 
-  // Try new API first (requestAccess), then fallback to old API (requestAuthCode)
   if (window.tt?.requestAccess) {
     const result = await window.tt.requestAccess({
       appID: FEISHU_APP_ID,
@@ -103,13 +100,11 @@ export async function requestFeishuAuthCode(): Promise<string> {
 
 /**
  * For browser-based OAuth flow (outside Feishu client)
- * Redirects to Feishu OAuth authorization page
  */
 export function redirectToFeishuOAuth(): void {
   if (!FEISHU_APP_ID) {
     throw new Error('飞书 App ID 未配置');
   }
-  // Use root path as callback — SPA will detect code in URL on any path
   const redirectUri = encodeURIComponent(window.location.origin + '/');
   const url = `https://open.feishu.cn/open-apis/authen/v1/authorize?app_id=${FEISHU_APP_ID}&redirect_uri=${redirectUri}&response_type=code&state=feishu_login`;
   window.location.href = url;
@@ -117,15 +112,12 @@ export function redirectToFeishuOAuth(): void {
 
 /**
  * Extract auth code from URL query params (for OAuth callback)
- * Checks both current search params and hash params.
- * Works whether the callback lands on /auth/callback or / (SPA redirect).
  */
 export function extractOAuthCode(): string | null {
   const params = new URLSearchParams(window.location.search);
   const code = params.get('code');
   const state = params.get('state');
   if (code && state?.startsWith('feishu')) {
-    // Clean up the URL — redirect to root
     window.history.replaceState({}, '', '/');
     return code;
   }
