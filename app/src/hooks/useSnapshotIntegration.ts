@@ -59,11 +59,12 @@ export function useSnapshotIntegration(): UseSnapshotIntegrationReturn {
       setIsLoading(true);
       setError(null);
       try {
-        // 从 settingsStore 获取当前参数
+        // [FIX A2-2] settingsStore 实际属性名是 defaultCostRates / defaultMetalPrices
+        // 原代码使用 state.costRates / state.metalPrices 导致始终为 undefined
         const state = settingsStore as any;
         const settingsData = {
-          costRates: (state.costRates ?? state.getCostRates?.() ?? {}) as CostRates,
-          metalPrices: (state.metalPrices ?? state.getMetalPrices?.() ?? {}) as MetalPrices,
+          costRates: (state.defaultCostRates ?? state.costRates ?? state.getCostRates?.() ?? {}) as CostRates,
+          metalPrices: (state.defaultMetalPrices ?? state.metalPrices ?? state.getMetalPrices?.() ?? {}) as MetalPrices,
           annualDropRate: state.annualDropRate ?? 0,
         };
 
@@ -118,13 +119,14 @@ export function useSnapshotIntegration(): UseSnapshotIntegrationReturn {
         setError('快照数据不存在');
         return false;
       }
-      // 通知 settingsStore 应用恢复的参数
+      // [FIX A2-5] settingsStore 实际方法名是 updateCostRates / updateMetalPrices
+      // 原代码使用 applyCostRates / applyMetalPrices — 方法不存在，恢复静默失败
       const store = settingsStore as any;
-      if (store.applyCostRates) {
-        store.applyCostRates(data.costRates);
+      if (store.updateCostRates) {
+        store.updateCostRates(data.costRates);
       }
-      if (store.applyMetalPrices) {
-        store.applyMetalPrices(data.metalPrices);
+      if (store.updateMetalPrices) {
+        store.updateMetalPrices(data.metalPrices);
       }
       return true;
     } catch (err) {
