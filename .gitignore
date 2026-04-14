@@ -13,6 +13,13 @@ __pycache__/
 *.tmp
 *.log
 
+# === Database files ===
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+dev.db
+
 # === Excel lock files ===
 ~$*.xlsx
 ~$*.xls

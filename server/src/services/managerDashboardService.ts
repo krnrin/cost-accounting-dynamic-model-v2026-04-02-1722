@@ -131,14 +131,14 @@ function buildProfitWaterfallContributions(project: any, annualDropRecords: any[
   const finalProfit = revenue - materialCost - processCost - remainingAllocation - annualDropImpact - changeImpact - metalImpact;
 
   return [
-    { key: 'revenue', label: '收入', value: revenue },
-    { key: 'material', label: 'BOM材料', value: -materialCost },
-    { key: 'process', label: '费率/人工制造', value: -processCost },
-    { key: 'allocation', label: '未回收分摊', value: -remainingAllocation },
-    { key: 'annual_drop', label: '年降影响', value: -annualDropImpact },
-    { key: 'change', label: '设变影响', value: -changeImpact },
-    { key: 'metal', label: '金属联动', value: -metalImpact },
-    { key: 'profit', label: '最终利润', value: finalProfit },
+    { key: 'revenue', label: '\u6536\u5165', value: revenue },
+    { key: 'material', label: 'BOM\u6750\u6599', value: -materialCost },
+    { key: 'process', label: '\u8d39\u7387/\u4eba\u5de5\u5236\u9020', value: -processCost },
+    { key: 'allocation', label: '\u672a\u56de\u6536\u5206\u644a', value: -remainingAllocation },
+    { key: 'annual_drop', label: '\u5e74\u964d\u5f71\u54cd', value: -annualDropImpact },
+    { key: 'change', label: '\u8bbe\u53d8\u5f71\u54cd', value: -changeImpact },
+    { key: 'metal', label: '\u91d1\u5c5e\u8054\u52a8', value: -metalImpact },
+    { key: 'profit', label: '\u6700\u7ec8\u5229\u6da6', value: finalProfit },
   ];
 }
 
@@ -346,14 +346,14 @@ export class ManagerDashboardService {
 
     return {
       dimensions: [
-        { key: 'revenue', label: '收入' },
-        { key: 'materialCost', label: 'BOM材料' },
-        { key: 'processCost', label: '费率/人工制造' },
-        { key: 'remainingAllocation', label: '未回收分摊' },
-        { key: 'annualDropImpact', label: '年降影响' },
-        { key: 'changeImpact', label: '设变影响' },
-        { key: 'metalImpact', label: '金属联动' },
-        { key: 'finalProfit', label: '最终利润' },
+        { key: 'revenue', label: '\u6536\u5165' },
+        { key: 'materialCost', label: 'BOM\u6750\u6599' },
+        { key: 'processCost', label: '\u8d39\u7387/\u4eba\u5de5\u5236\u9020' },
+        { key: 'remainingAllocation', label: '\u672a\u56de\u6536\u5206\u644a' },
+        { key: 'annualDropImpact', label: '\u5e74\u964d\u5f71\u54cd' },
+        { key: 'changeImpact', label: '\u8bbe\u53d8\u5f71\u54cd' },
+        { key: 'metalImpact', label: '\u91d1\u5c5e\u8054\u52a8' },
+        { key: 'finalProfit', label: '\u6700\u7ec8\u5229\u6da6' },
       ],
       totals: contributionTotals,
       projects: rows,

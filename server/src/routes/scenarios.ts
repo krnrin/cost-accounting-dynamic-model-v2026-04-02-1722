@@ -136,6 +136,26 @@ router.post('/:sid/clone', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async 
   }
 });
 
+compareRouter.delete('/:sid', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await ScenarioService.delete(req.params.sid as string);
+    await AuditService.log({
+      userId: req.user!.id,
+      projectId: data.projectId,
+      action: 'DELETE',
+      entity: 'scenario',
+      entityId: data.id,
+      details: {
+        status: data.status,
+        sourceScenarioId: data.sourceScenarioId,
+      },
+    });
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/:sid/summary', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const data = await ScenarioService.getSummary(req.params.sid as string);
@@ -177,6 +197,27 @@ compareRouter.put('/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async 
       entity: 'scenario',
       entityId: data.id,
       details: input,
+    });
+    res.json({ data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Delete scenario with cascade (from phase12 delta)
+compareRouter.delete('/:sid', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await ScenarioService.delete(req.params.sid as string);
+    await AuditService.log({
+      userId: req.user!.id,
+      projectId: data.projectId,
+      action: 'DELETE',
+      entity: 'scenario',
+      entityId: data.id,
+      details: {
+        status: data.status,
+        sourceScenarioId: data.sourceScenarioId,
+      },
     });
     res.json({ data });
   } catch (error) {

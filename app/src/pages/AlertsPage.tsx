@@ -39,6 +39,7 @@ import {
   type AlertRuleOperator,
   type AlertRuleSeverity,
 } from '@/lib/alertRuleApi';
+import { useAlertWorkflow } from '@/hooks/useAlertWorkflow';
 
 const { Title, Text } = Typography;
 
@@ -113,6 +114,7 @@ export default function AlertsPage({ mode = 'center' }: { mode?: 'center' | 'rul
 function AlertCenterPage() {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const workflow = useAlertWorkflow();
 
   const [loading, setLoading] = useState(true);
   const [detecting, setDetecting] = useState(false);
@@ -185,6 +187,10 @@ function AlertCenterPage() {
 
   const handleStatusChange = async (event: AlertEvent, status: AlertEventStatus) => {
     try {
+      const shouldEscalate = workflow.checkEscalation(event, new Date().toISOString());
+      if (shouldEscalate && status !== 'resolved') {
+        Toast.warning('此预警已超时，建议优先处理或升级。');
+      }
       await updateAlert(event.id, { status });
       Toast.success('预警状态已更新。');
       await reload();
@@ -206,6 +212,19 @@ function AlertCenterPage() {
       Toast.error(error instanceof Error ? error.message : '预警检测失败。');
     } finally {
       setDetecting(false);
+    }
+  };
+
+  const handleRunClientChecks = () => {
+    try {
+      const checkResult = workflow.runChecks({});
+      if (checkResult.alerts.length > 0) {
+        Toast.warning(`客户端预检发现 ${checkResult.alerts.length} 条潜在预警，建议运行完整检测。`);
+      } else {
+        Toast.info('客户端预检未发现异常。');
+      }
+    } catch (error) {
+      Toast.error(error instanceof Error ? error.message : '客户端预检失败。');
     }
   };
 
@@ -310,9 +329,14 @@ function AlertCenterPage() {
         <Title heading={2} className="ink-heading" style={{ margin: 0 }}>
           {projectId ? '项目预警中心' : '全局预警中心'}
         </Title>
-        <Button icon={<IconRefresh />} loading={detecting} onClick={() => void handleDetect()}>
-          刷新检测
-        </Button>
+        <Space>
+          <Button onClick={handleRunClientChecks}>
+            客户端预检
+          </Button>
+          <Button icon={<IconRefresh />} loading={detecting} onClick={() => void handleDetect()}>
+            刷新检测
+          </Button>
+        </Space>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>

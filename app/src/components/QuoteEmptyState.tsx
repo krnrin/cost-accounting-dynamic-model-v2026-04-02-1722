@@ -37,14 +37,14 @@ export function QuoteEmptyState({ projectId, scenarioId, projectName }: QuoteEmp
   return (
     <div style={S.wrapper}>
       <Empty
-        title="\u5F53\u524D\u573A\u666F\u6682\u65E0\u7EBF\u675F\u6570\u636E"
+        title="当前场景暂无线束数据"
         description={
           <Text type="tertiary">
-            \u62A5\u4EF7\u9700\u8981\u81F3\u5C11\u4E00\u6761\u7EBF\u675F\u7684 BOM \u6570\u636E\u3002\u8BF7\u5148\u521B\u5EFA\u7EBF\u675F\u5E76\u586B\u5199 BOM\uFF0C\u518D\u8FD4\u56DE\u6B64\u9875\u9762\u751F\u6210\u62A5\u4EF7\u3002
+            报价需要至少一条线束的 BOM 数据。请先创建线束并填写 BOM，再返回此页面生成报价。
             {projectName && (
               <>
                 <br />
-                \u9879\u76EE\uFF1A{projectName}
+                项目：{projectName}
               </>
             )}
           </Text>
@@ -57,13 +57,13 @@ export function QuoteEmptyState({ projectId, scenarioId, projectName }: QuoteEmp
           type="primary"
           onClick={() => navigate(`/project/${projectId}/s/${scenarioId}/bom-workbook`)}
         >
-          \u6253\u5F00 BOM \u5DE5\u4F5C\u7C3F
+          打开 BOM 工作簿
         </Button>
         <Button
           theme="light"
           onClick={() => navigate(`/project/${projectId}/s/${scenarioId}`)}
         >
-          \u8FD4\u56DE\u573A\u666F
+          返回场景
         </Button>
       </div>
     </div>
