@@ -193,6 +193,46 @@ export interface QuoteSnapshotRecord {
   createdAt: string;
 }
 
+/** C7: Gap 分析快照记录 */
+export interface GapSnapshotRecord {
+  /** 主键 (uuid) */
+  id: string;
+  /** 所属项目 */
+  projectId: string;
+  /** 所属场景 */
+  scenarioId: string;
+  /** 线束 ID（空表示整车级） */
+  harnessId: string;
+  /** 快照类型: quote=客户报价侧, internal=内部实绩侧 */
+  snapshotType: 'quote' | 'internal';
+  /** 金属价格来源 */
+  metalSource: 'benchmark' | 'shfe_spot' | 'smm_spot' | 'customer_agreed';
+  /** 快照时金属价格 */
+  metalPrices: { copper: number; aluminum: number };
+  /** Gap 分析结果数据 */
+  gapResult: Record<string, unknown>;
+  /** 可选标签 */
+  label?: string;
+  /** 创建时间 */
+  createdAt: string;
+}
+
+/** C7: 金属价格历史记录 */
+export interface MetalPriceHistoryRecord {
+  /** 主键 (uuid) */
+  id: string;
+  /** 价格来源 */
+  source: 'benchmark' | 'shfe_spot' | 'smm_spot' | 'manual';
+  /** 铜价 (元/吨) */
+  copper: number;
+  /** 铝价 (元/吨) */
+  aluminum: number;
+  /** 记录时间 */
+  recordedAt: string;
+  /** 备注 */
+  note?: string;
+}
+
 class CostWorkbenchDB extends Dexie {
   projects!: Table<ProjectRecord, string>;
   scenarios!: Table<ScenarioRecord, string>;
@@ -207,6 +247,8 @@ class CostWorkbenchDB extends Dexie {
   trackingItems!: Table<TrackingItemRecord, string>;
   settingsSnapshots!: Table<SettingsSnapshotRecord, string>;
   quoteSnapshots!: Table<QuoteSnapshotRecord, string>;
+  gapSnapshots!: Table<GapSnapshotRecord, string>;
+  metalPriceHistory!: Table<MetalPriceHistoryRecord, string>;
 
   constructor() {
     super('CostWorkbenchDB');
@@ -283,6 +325,47 @@ class CostWorkbenchDB extends Dexie {
     this.version(8).stores({
       settingsSnapshots: 'id, timestamp, reason',
       quoteSnapshots: 'id, quoteId, scenarioId, projectId, version, createdAt',
+    });
+    // v9: C7 Gap 分析快照 + 金属价格历史追踪
+    this.version(9).stores({
+      gapSnapshots: 'id, projectId, scenarioId, harnessId, snapshotType, metalSource, createdAt',
+      metalPriceHistory: 'id, source, recordedAt',
+    });
+    // [FIX P1-2] v10: 回填 quotes/versions 的 scenarioId (v7 migration 遗漏)
+    // v7 只迁移了 harnesses/onetimeCosts/allocTrackers 的 scenarioId，
+    // 但 quotes 和 versions 表也在 v7 新增了 scenarioId 索引，
+    // 已存在的记录未被回填，导致按场景查询时丢失数据
+    this.version(10).stores({}).upgrade(async (tx) => {
+      // 构建 projectId → baselineScenarioId 映射
+      const scenarios = await tx.table('scenarios').toArray();
+      const baselineMap = new Map<string, string>();
+      for (const s of scenarios) {
+        if (s.isBaseline && !baselineMap.has(s.projectId)) {
+          baselineMap.set(s.projectId, s.id);
+        }
+      }
+
+      // 回填 quotes
+      const quotes = await tx.table('quotes').toArray();
+      for (const q of quotes) {
+        if (!q.scenarioId && q.projectId) {
+          const sid = baselineMap.get(q.projectId);
+          if (sid) {
+            await tx.table('quotes').update(q.id, { scenarioId: sid });
+          }
+        }
+      }
+
+      // 回填 versions
+      const versions = await tx.table('versions').toArray();
+      for (const v of versions) {
+        if (!v.scenarioId && v.projectId) {
+          const sid = baselineMap.get(v.projectId);
+          if (sid) {
+            await tx.table('versions').update(v.id, { scenarioId: sid });
+          }
+        }
+      }
     });
   }
 }

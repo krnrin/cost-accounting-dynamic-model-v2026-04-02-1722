@@ -96,6 +96,23 @@ export async function transitionScenario(
     }
   }
 
+  // [FIX P0-2] 冻结时创建本地参数快照链 (C6 闭环)
+  // createFreezeSnapshot 保存当前 costRates/metalPrices 到 Dexie freezeSnapshots 表
+  if (targetStatus === 'frozen' && currentStatus === 'draft') {
+    try {
+      const { createFreezeSnapshot } = await import('./snapshot_integration');
+      const cfg = (scenario as any).config ?? {};
+      await createFreezeSnapshot(scenarioId, {
+        costRates: cfg.costRates ?? {},
+        metalPrices: cfg.metalPrices ?? { copper: 68400, aluminum: 18200 },
+        annualDropRate: cfg.annualDropRate,
+      }, { userId: options?.userId, note: options?.note });
+    } catch (snapErr) {
+      // 快照失败不应阻断冻结流程
+      console.warn('[P0-2] 快照创建失败（非阻断）:', snapErr);
+    }
+  }
+
   const now = new Date().toISOString();
   const updates: Record<string, unknown> = {
     status: targetStatus,

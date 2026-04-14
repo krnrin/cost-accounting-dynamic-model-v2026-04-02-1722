@@ -7,11 +7,16 @@ tmp/
 test-results/
 __pycache__/
 .playwright-cli/
+dist/
 
 *.pyc
 *.pyo
 *.tmp
 *.log
+
+# === TypeScript build cache ===
+*.tsbuildinfo
+tsconfig.tsbuildinfo
 
 # === Database files ===
 *.db
@@ -51,6 +56,9 @@ Thumbs.db
 .env.*.local
 !.env.example
 !.env.*.example
+
+# === Auth credentials ===
+playwright-auth.json
 
 # === Local worktrees ===
 .worktrees/

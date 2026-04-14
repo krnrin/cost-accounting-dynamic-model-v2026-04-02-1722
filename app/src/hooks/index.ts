@@ -1,15 +1,55 @@
 /**
- * 引擎集成 Hooks 统一入口
- *
- * 每个 hook 桥接一个 engine 模块到页面组件：
- *   useScenarioLifecycle → scenario_lifecycle  → ProjectScenariosPage
- *   useAlertWorkflow     → alert_workflow      → AlertsPage
- *   useBomNormalizer     → bom_normalizer      → BomDiffPage
- *   useSmartPaste        → smart_paste          → BomWorkbookPage / HarnessEditPage
- *   useCascadeImpact     → cascade_impact       → ChangeEnginePage
+ * Hooks barrel export — all custom hooks
+ * [FIX P2-6] Updated to export all 33 hooks (was only 5)
  */
-export { useScenarioLifecycle, getTransitionLabel, getTransitionConfirmText, getStatusLabel } from './useScenarioLifecycle';
-export { useAlertWorkflow, SEVERITY_DISPLAY } from './useAlertWorkflow';
-export { useBomNormalizer, enhancedBomCompare, BOM_TARGET_COLUMNS } from './useBomNormalizer';
-export { useSmartPaste } from './useSmartPaste';
+
+// === Core data hooks ===
+export { useDashboardData } from './useDashboardData';
+export { useDashboardAggregator } from './useDashboardAggregator';
+export { useScenarioData } from './useScenarioData';
+export { useHarnessSync } from './useHarnessSync';
+export { useBomNormalizer } from './useBomNormalizer';
+
+// === Scenario lifecycle ===
+export { useScenarioLifecycle } from './useScenarioLifecycle';
+export { useScenarioClone } from './useScenarioClone';
+export { useScenarioDeepCompare } from './useScenarioDeepCompare';
+
+// === Snapshot & version ===
+export { useSnapshotIntegration } from './useSnapshotIntegration';
+export { useBomSnapshot } from './useBomSnapshot';
+export { useQuoteVersionCompare } from './useQuoteVersionCompare';
+export { useVersionGovernance } from './useVersionGovernance';
+export { useSimulationSnapshot } from './useSimulationSnapshot';
+
+// === Gap analysis & pricing ===
+export { useGapAnalysis } from './useGapAnalysis';
+export { useMetalPriceReactor } from './useMetalPriceReactor';
+export { useProgressPriceTracker } from './useProgressPriceTracker';
+
+// === Change propagation ===
+export { useChangePropagation } from './useChangePropagation';
+export { useChangeOrchestrator } from './useChangeOrchestrator';
+export { useChangeTrail } from './useChangeTrail';
 export { useCascadeImpact } from './useCascadeImpact';
+export { useBomDiff } from './useBomDiff';
+
+// === Alerts & tracking ===
+export { useAlertWorkflow } from './useAlertWorkflow';
+export { useAlertTracking } from './useAlertTracking';
+export { useAuditTrace } from './useAuditTrace';
+export { useRecoveryLedger } from './useRecoveryLedger';
+
+// === Manager & insights ===
+export { useManagerInsights } from './useManagerInsights';
+
+// === Permissions & settings ===
+export { usePermission } from './usePermission';
+export { useParamPermission } from './useParamPermission';
+export { useSettingsPublishFlow } from './useSettingsPublishFlow';
+
+// === UI & utilities ===
+export { useTheme } from './useTheme';
+export { useSmartPaste } from './useSmartPaste';
+export { useGlobalErrorHandler } from './useGlobalErrorHandler';
+export { useLocalPatchOverrides } from './useLocalPatchOverrides';
