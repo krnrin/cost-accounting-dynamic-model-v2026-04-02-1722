@@ -552,6 +552,32 @@ function handleSemanticPatterns<T extends { rowKey: string; partNo: string; part
         }
         break;
       }
+
+      case 'replace':
+      case 'wire_spec_replace': {
+        const removed = semantic.relatedChanges.find(c => c.changeType === 'removed');
+        const added = semantic.relatedChanges.find(c => c.changeType === 'added');
+        if (removed && added) {
+          const matched = rows.find(row => row.partNo === removed.partNo);
+          if (matched) {
+            actions.push({
+              targetSheet,
+              actionType: 'update',
+              rowKey: matched.rowKey,
+              data: {
+                partNo: added.partNo,
+                partName: added.partName,
+              },
+            });
+            preview.push({
+              rowKey: matched.rowKey,
+              cells: [`${removed.partNo} -> ${added.partNo}`, added.partName, matched.qty ?? '', '物料替换', '物料替换'],
+              changeType: 'modified',
+            });
+          }
+        }
+        break;
+      }
     }
   }
 }

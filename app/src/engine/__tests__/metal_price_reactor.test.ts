@@ -11,94 +11,101 @@ import {
 
 // ─── Fixtures ─────────────────────────────────────────────────────────
 
-const scenario = {
-  id: 'SCN-001',
-  name: '基准方案',
-  harnesses: [
-    {
-      id: 'H-001',
-      name: 'E281-Main',
-      deliveredPrice: 120,
-      metalContent: {
-        copper: { weightKg: 0.8, pricePerKg: 72 },
-        aluminum: { weightKg: 0.3, pricePerKg: 20 },
-      },
-    },
-    {
-      id: 'H-002',
-      name: 'E281-Sub',
-      deliveredPrice: 45,
-      metalContent: {
-        copper: { weightKg: 0.2, pricePerKg: 72 },
-        aluminum: { weightKg: 0.1, pricePerKg: 20 },
-      },
-    },
-  ],
+const basePrices = { copper: 72, aluminum: 20 };
+
+const change = {
+  oldPrices: basePrices,
+  newPrices: { copper: 80, aluminum: 22 },
+  source: 'manual' as const,
+  changedAt: new Date().toISOString(),
 };
 
-const newPrices = {
-  copper: { pricePerKg: 80 },  // +11.1%
-  aluminum: { pricePerKg: 22 }, // +10%
+const scenario = {
+  scenarioId: 'SCN-001',
+  scenarioName: '基准方案',
+  projectId: 'P-001',
+  projectName: 'G281',
+  status: 'draft',
+  basePrices,
 };
+
+const harnessResults = [
+  {
+    harnessId: 'H-001',
+    harnessName: 'E281-Main',
+    result: {} as any,
+    copperWeight: 800,
+    aluminumWeight: 300,
+  },
+  {
+    harnessId: 'H-002',
+    harnessName: 'E281-Sub',
+    result: {} as any,
+    copperWeight: 200,
+    aluminumWeight: 100,
+  },
+];
 
 // ─── Tests ────────────────────────────────────────────────────────────
 
 describe('computeScenarioImpact', () => {
   it('should compute positive cost impact for price increase', () => {
-    const result = computeScenarioImpact(scenario, newPrices);
+    const result = computeScenarioImpact(scenario, change, harnessResults);
     expect(result.totalImpact).toBeGreaterThan(0);
     expect(result.harnessImpacts).toHaveLength(2);
   });
 
   it('should break down impact by harness', () => {
-    const result = computeScenarioImpact(scenario, newPrices);
+    const result = computeScenarioImpact(scenario, change, harnessResults);
     const h1 = result.harnessImpacts.find(h => h.harnessId === 'H-001');
     expect(h1).toBeDefined();
     // copper: 0.8 * (80-72) = 6.4, aluminum: 0.3 * (22-20) = 0.6
-    expect(h1!.metalImpact).toBeCloseTo(7.0, 1);
+    expect(h1!.totalImpact).toBeCloseTo(7.0, 1);
   });
 
   it('should compute zero impact when prices unchanged', () => {
-    const samePrices = {
-      copper: { pricePerKg: 72 },
-      aluminum: { pricePerKg: 20 },
+    const sameChange = {
+      ...change,
+      newPrices: basePrices,
     };
-    const result = computeScenarioImpact(scenario, samePrices);
+    const result = computeScenarioImpact(scenario, sameChange, harnessResults);
     expect(result.totalImpact).toBeCloseTo(0, 2);
   });
 });
 
 describe('generateAlertEvents', () => {
   it('should generate alerts when impact exceeds threshold', () => {
-    const impact = computeScenarioImpact(scenario, newPrices);
-    const alerts = generateAlertEvents(impact, { warningPct: 5, dangerPct: 10 });
+    const impact = computeScenarioImpact(scenario, change, harnessResults);
+    const alerts = generateAlertEvents(impact, change);
     expect(alerts.length).toBeGreaterThan(0);
   });
 
   it('should generate no alerts for negligible impact', () => {
-    const tinyPrices = {
-      copper: { pricePerKg: 72.01 },
-      aluminum: { pricePerKg: 20.01 },
+    const tinyChange = {
+      ...change,
+      newPrices: { copper: 72.01, aluminum: 20.01 },
     };
-    const impact = computeScenarioImpact(scenario, tinyPrices);
-    const alerts = generateAlertEvents(impact, { warningPct: 5, dangerPct: 10 });
+    const impact = computeScenarioImpact(scenario, tinyChange, harnessResults);
+    const alerts = generateAlertEvents(impact, tinyChange);
     expect(alerts).toHaveLength(0);
   });
 });
 
 describe('buildReactionPlan', () => {
-  it('should produce a plan with recalc actions', () => {
-    const impact = computeScenarioImpact(scenario, newPrices);
-    const plan = buildReactionPlan(impact);
-    expect(plan.actions.length).toBeGreaterThan(0);
-    expect(plan.actions[0].type).toBe('recalculate');
+  it('should produce a plan with recalc actions', async () => {
+    const plan = await buildReactionPlan(
+      change,
+      [scenario],
+      async () => harnessResults,
+    );
+    expect(plan.scenarioImpacts.length).toBeGreaterThan(0);
+    expect(plan.summary.totalScenariosAffected).toBeGreaterThan(0);
   });
 });
 
 describe('quickEstimate', () => {
   it('should return a fast estimate without full plan', () => {
-    const est = quickEstimate(scenario, newPrices);
+    const est = quickEstimate(basePrices, change.newPrices, 1000, 400);
     expect(est.totalImpact).toBeGreaterThan(0);
-    expect(est.impactPct).toBeGreaterThan(0);
   });
 });

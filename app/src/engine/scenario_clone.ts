@@ -142,8 +142,8 @@ export async function cloneScenario(
     const newScenario: any = {
       ...source,
       id: newScenarioId,
-      name: options.name.trim(),
-      description: options.description || `从「${source.scenarioName}」复制`,
+      scenarioName: options.name.trim(),
+      note: options.description || `从「${source.scenarioName}」复制`,
       projectId: targetProjectId,
       status: 'draft',
       sourceScenarioId: sourceScenarioId,

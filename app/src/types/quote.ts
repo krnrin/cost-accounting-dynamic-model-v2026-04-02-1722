@@ -4,10 +4,84 @@
 
 import type { HarnessResult } from './harness';
 
-/** 报价单结构（占位，供 db.ts 扩展使用） */
-export interface QuoteSheet {}
+// ── 吉利报价模板 ──
 
-// ── 内部核算模板 ──
+export type TemplateType = 'geely' | 'byd' | 'generic';
+
+/** 吉利标准费率 */
+export interface GeelyRates {
+  mgmtRate: number;      // 管理费 (4%)
+  financeRate: number;    // 财务费 (4%)
+  salesRate: number;      // 销售费 (4%)
+  profitRate: number;     // 利润 (4%)
+  wasteRate: number;      // 废品率 (1%)
+}
+
+/** 吉利模板映射结果 */
+export interface GeelyTemplateResult {
+  templateName: string;
+  harnessId: string;
+  harnessName: string;
+
+  A1_rawMaterial: number;
+  A2_purchasedParts: number;
+  B1_processingFee: number;
+  B2_wasteLoss: number;
+  C1_managementFee: number;
+  C2_financeFee: number;
+  C3_salesFee: number;
+  D_profit: number;
+  E1_borrowedTooling: number;
+  E2_newTooling: number;
+  F1_borrowedTesting: number;
+  F2_newTesting: number;
+  G1_borrowedRnd: number;
+  G2_newRnd: number;
+
+  directMaterial: number;
+  manufacturingCost: number;
+  periodExpense: number;
+  amortization: number;
+  exFactoryPrice: number;
+  deliveredPrice: number;
+
+  rates: GeelyRates;
+}
+
+/** 比亚迪模板映射结果 */
+export interface BydTemplateResult {
+  templateName: string;
+  harnessId: string;
+  harnessName: string;
+  directMaterial: number;      // 直接材料
+  processingFee: number;       // 加工费 (labor + mfg)
+  wasteLoss: number;           // 废品
+  managementFee: number;       // 管理费 6%
+  profit: number;              // 利润 5%
+  exFactoryPrice: number;      // 出厂价
+  packagingCost: number;       // 包装费
+  freightCost: number;         // 运输费
+  deliveredPrice: number;      // 到厂价
+  rates: { mgmtRate: number; profitRate: number; wasteRate: number };
+}
+
+/** 通用模板映射结果 */
+export interface GenericTemplateResult {
+  templateName: string;
+  harnessId: string;
+  harnessName: string;
+  materialCost: number;
+  laborCost: number;
+  mfgCost: number;
+  wasteCost: number;
+  mgmtFee: number;
+  profit: number;
+  exFactoryPrice: number;
+  packagingCost: number;
+  freightCost: number;
+  deliveredPrice: number;
+  rates: { mgmtRate: number; profitRate: number; wasteRate: number };
+}
 
 /** 内部核算模板结果 */
 export interface InternalTemplateResult {
@@ -40,6 +114,35 @@ export interface NreData {
   borrowedRnd?: number;
   newRnd?: number;
   amortizationVolume?: number;
+}
+
+/** 模板预设 */
+export interface TemplatePreset {
+  name: string;
+  structure: string;
+  rates: Record<string, number>;
+  amortizationFields: string[];
+}
+
+// ── 报价单 ──
+
+/** 报价单元信息 */
+export interface QuoteSheetMeta {
+  projectName: string;
+  customer: string;
+  quotePerson: string;
+  quoteDate: string;
+  templateName: string;
+  version: string;
+  status: string;
+}
+
+/** 完整报价单 */
+export interface QuoteSheet {
+  meta: QuoteSheetMeta;
+  harnesses: (GeelyTemplateResult | BydTemplateResult | GenericTemplateResult | InternalTemplateResult)[];
+  totals: Record<string, number>;
+  harnessCount: number;
 }
 
 // ── 变更报价 (设变) ──

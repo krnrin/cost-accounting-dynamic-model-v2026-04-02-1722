@@ -23,30 +23,30 @@ describe('change_pattern_classifier', () => {
     const removed: BomRowChange = {
       changeType: 'removed',
       partNo: 'OLD-1',
-      partName: 'Old Connector',
+      partName: '导线 0.5mm²',
       rowKey: 'H1::bom::1::OLD-1',
       rowIndex: 0,
       functionText: 'FG1',
-      unit: 'PCS',
+      unit: 'M',
       supplier: 'S1',
-      itemCategory: 'connector',
+      itemCategory: 'wire',
       fieldChanges: [],
     };
     const added: BomRowChange = {
       changeType: 'added',
       partNo: 'NEW-1',
-      partName: 'New Connector',
+      partName: '导线 0.75mm²',
       rowKey: 'H1::bom::1::NEW-1',
       rowIndex: 0,
       functionText: 'FG1',
-      unit: 'PCS',
+      unit: 'M',
       supplier: 'S1',
-      itemCategory: 'connector',
+      itemCategory: 'wire',
       fieldChanges: [],
     };
     const hints = new Map<string, ClassifyHint>([
-      ['OLD-1', { rowIndex: 0, endGroup: 'FG1', category: 'connector', unit: 'PCS', supplier: 'S1', functionText: 'FG1' }],
-      ['NEW-1', { rowIndex: 0, endGroup: 'FG1', category: 'connector', unit: 'PCS', supplier: 'S1', functionText: 'FG1' }],
+      ['OLD-1', { rowIndex: 0, endGroup: 'FG1', category: 'wire', unit: 'M', supplier: 'S1', functionText: 'FG1' }],
+      ['NEW-1', { rowIndex: 0, endGroup: 'FG1', category: 'wire', unit: 'M', supplier: 'S1', functionText: 'FG1' }],
     ]);
 
     const result = classifyChangePatterns(detection([removed, added]), hints);
@@ -61,7 +61,7 @@ describe('change_pattern_classifier', () => {
       rowKey: 'H1::bom::1::P1',
       rowIndex: 0,
       functionText: 'FG1',
-      fieldChanges: [{ field: 'qty', before: 1, after: 4 }],
+      fieldChanges: [{ field: 'qty', before: 1, after: 5 }],
     };
 
     const result = classifyChangePatterns(detection([qtyChange]), new Map());

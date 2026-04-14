@@ -7,7 +7,16 @@ dotenv.config({ path: resolve(__dirname, '..', '.env') });
 export const config = {
     PORT: process.env.PORT ? parseInt(process.env.PORT) : 3001,
     DATABASE_URL: process.env.DATABASE_URL || 'file:./data/harness_cost.db',
-    JWT_SECRET: process.env.JWT_SECRET || 'fallback-secret-change-me',
+    JWT_SECRET: (() => {
+        const secret = process.env.JWT_SECRET;
+        if (secret)
+            return secret;
+        if ((process.env.NODE_ENV || 'development') === 'production') {
+            throw new Error('[FATAL] JWT_SECRET environment variable MUST be set in production!');
+        }
+        console.warn('\n⚠️  JWT_SECRET not set — using insecure fallback.\n⚠️  Set JWT_SECRET env var before deploying to production.\n');
+        return 'fallback-secret-change-me';
+    })(),
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
     CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',
     NODE_ENV: process.env.NODE_ENV || 'development',

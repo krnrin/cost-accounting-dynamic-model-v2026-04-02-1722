@@ -6,7 +6,7 @@ function sanitizeFileName(value) {
     return value.replace(/[\\/:*?"<>|\s]+/g, '_');
 }
 function formatCurrency(value) {
-    return `¥${Number(value || 0).toFixed(2)}`;
+    return `\u00a5${Number(value || 0).toFixed(2)}`;
 }
 function formatDate(value) {
     if (!value)
@@ -150,7 +150,7 @@ async function loadQuoteBundle(quoteId) {
         effectivePrice: quote.effectivePrice,
         profitGap: quote.profitGap,
         effectivePriceMode: quote.effectivePriceMode,
-        customerAccepted: quote.customerAccepted ? '是' : '否',
+        customerAccepted: quote.customerAccepted ? '\u662f' : '\u5426',
         updatedAt: quote.updatedAt,
     };
     return {
@@ -172,7 +172,7 @@ async function loadQuoteBundle(quoteId) {
 function createProjectExcel(bundle) {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
-        ['项目编号', '项目名称', '客户', '平台', '状态', '线束数', '场景数', '报价数', '分摊项数', '版本数', 'BOM总成本', '最新有效执行价', '最新利润差', '更新时间'],
+        ['\u9879\u76ee\u7f16\u53f7', '\u9879\u76ee\u540d\u79f0', '\u5ba2\u6237', '\u5e73\u53f0', '\u72b6\u6001', '\u7ebf\u675f\u6570', '\u573a\u666f\u6570', '\u62a5\u4ef7\u6570', '\u5206\u644a\u9879\u6570', '\u7248\u672c\u6570', 'BOM\u603b\u6210\u672c', '\u6700\u65b0\u6709\u6548\u6267\u884c\u4ef7', '\u6700\u65b0\u5229\u6da6\u5dee', '\u66f4\u65b0\u65f6\u95f4'],
         [
             bundle.summary.projectCode,
             bundle.summary.projectName,
@@ -189,24 +189,24 @@ function createProjectExcel(bundle) {
             Number(bundle.summary.latestProfitGap.toFixed(2)),
             formatDate(bundle.summary.updatedAt),
         ],
-    ]), '项目总览');
+    ]), '\u9879\u76ee\u603b\u89c8');
     XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
-        ['线束号', '线束名称', '场景ID', 'BOM行数', 'BOM成本', '更新时间'],
+        ['\u7ebf\u675f\u53f7', '\u7ebf\u675f\u540d\u79f0', '\u573a\u666fID', 'BOM\u884c\u6570', 'BOM\u6210\u672c', '\u66f4\u65b0\u65f6\u95f4'],
         ...bundle.harnessRows.map((row) => [row.harnessId, row.harnessName, row.scenarioId, row.bomCount, Number(row.bomCost.toFixed(2)), formatDate(row.updatedAt)]),
-    ]), '线束清单');
+    ]), '\u7ebf\u675f\u6e05\u5355');
     XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
-        ['报价ID', '版本', '场景ID', '线束号', '状态', '模板', 'L1内部成本', '出厂价', '到厂价', 'L3有效价', '利润差', '更新时间'],
+        ['\u62a5\u4ef7ID', '\u7248\u672c', '\u573a\u666fID', '\u7ebf\u675f\u53f7', '\u72b6\u6001', '\u6a21\u677f', 'L1\u5185\u90e8\u6210\u672c', '\u51fa\u5382\u4ef7', '\u5230\u5382\u4ef7', 'L3\u6709\u6548\u4ef7', '\u5229\u6da6\u5dee', '\u66f4\u65b0\u65f6\u95f4'],
         ...bundle.quoteRows.map((row) => [row.id, row.version, row.scenarioId, row.harnessId, row.status, row.template, row.internalCostBaseline, row.exWorksPrice, row.arrivalPrice, row.effectivePrice, row.profitGap, formatDate(row.updatedAt)]),
-    ]), '报价清单');
+    ]), '\u62a5\u4ef7\u6e05\u5355');
     XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
-        ['分摊ID', '场景ID', '线束号', '费用名称', '承担方', '定价影响', '总金额', '单根分摊', '回收进度%', '状态'],
+        ['\u5206\u644aID', '\u573a\u666fID', '\u7ebf\u675f\u53f7', '\u8d39\u7528\u540d\u79f0', '\u627f\u62c5\u65b9', '\u5b9a\u4ef7\u5f71\u54cd', '\u603b\u91d1\u989d', '\u5355\u6839\u5206\u644a', '\u56de\u6536\u8fdb\u5ea6%', '\u72b6\u6001'],
         ...bundle.allocationRows.map((row) => [row.id, row.scenarioId, row.harnessId, row.expenseName, row.burdenSide, row.pricingEffect, row.totalAmount, row.unitAllocation, Number(row.recoveryProgress.toFixed(2)), row.status]),
-    ]), '分摊回收');
+    ]), '\u5206\u644a\u56de\u6536');
     XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
         ['costRates', jsonText(bundle.costRates)],
         ['metalPrices', jsonText(bundle.metalPrices)],
         ['volumes', jsonText(bundle.volumes)],
-    ]), '参数快照');
+    ]), '\u53c2\u6570\u5feb\u7167');
     const buffer = Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
     return {
         buffer,
@@ -217,7 +217,7 @@ function createProjectExcel(bundle) {
 function createQuoteExcel(bundle) {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
-        ['项目', '客户', '场景', '线束号', '线束名称', '版本', '状态', '模板', 'L1内部成本', '出厂价', '到厂价', 'L3有效价', '有效价模式', '利润差', '客户确认', '更新时间'],
+        ['\u9879\u76ee', '\u5ba2\u6237', '\u573a\u666f', '\u7ebf\u675f\u53f7', '\u7ebf\u675f\u540d\u79f0', '\u7248\u672c', '\u72b6\u6001', '\u6a21\u677f', 'L1\u5185\u90e8\u6210\u672c', '\u51fa\u5382\u4ef7', '\u5230\u5382\u4ef7', 'L3\u6709\u6548\u4ef7', '\u6709\u6548\u4ef7\u6a21\u5f0f', '\u5229\u6da6\u5dee', '\u5ba2\u6237\u786e\u8ba4', '\u66f4\u65b0\u65f6\u95f4'],
         [
             bundle.project.projectName,
             bundle.project.customer,
@@ -236,17 +236,17 @@ function createQuoteExcel(bundle) {
             bundle.summary.customerAccepted,
             formatDate(bundle.summary.updatedAt),
         ],
-    ]), '报价总览');
+    ]), '\u62a5\u4ef7\u603b\u89c8');
     XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
-        ['字段', '内容'],
+        ['\u5b57\u6bb5', '\u5185\u5bb9'],
         ['quoteParams', jsonText(bundle.quoteParams)],
         ['quoteResult', jsonText(bundle.quoteResult)],
         ['lockedFields', jsonText(bundle.lockedFields)],
         ['editableFields', jsonText(bundle.editableFields)],
         ['approvalFields', jsonText(bundle.approvalFields)],
-    ]), '报价参数');
+    ]), '\u62a5\u4ef7\u53c2\u6570');
     XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
-        ['序号', '分类', '数量', '单价', '金额'],
+        ['\u5e8f\u53f7', '\u5206\u7c7b', '\u6570\u91cf', '\u5355\u4ef7', '\u91d1\u989d'],
         ...bundle.bomRows.map((row, index) => [
             index + 1,
             row.itemCategory ?? '-',
@@ -254,11 +254,11 @@ function createQuoteExcel(bundle) {
             Number(row.unitPrice ?? 0),
             Number(Number(row.amount ?? 0).toFixed(2)),
         ]),
-    ]), 'BOM摘要');
+    ]), 'BOM\u6458\u8981');
     XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
-        ['分摊ID', '费用名称', '承担方', '定价影响', '总金额', '单根分摊', '回收进度%', '状态'],
+        ['\u5206\u644aID', '\u8d39\u7528\u540d\u79f0', '\u627f\u62c5\u65b9', '\u5b9a\u4ef7\u5f71\u54cd', '\u603b\u91d1\u989d', '\u5355\u6839\u5206\u644a', '\u56de\u6536\u8fdb\u5ea6%', '\u72b6\u6001'],
         ...bundle.allocations.map((allocation) => [allocation.id, allocation.expenseName, allocation.burdenSide, allocation.pricingEffect, allocation.totalAmount, allocation.unitAllocation, Number(allocation.recoveryProgress.toFixed(2)), allocation.status]),
-    ]), '分摊回收');
+    ]), '\u5206\u644a\u56de\u6536');
     const buffer = Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
     return {
         buffer,
@@ -279,27 +279,27 @@ async function pdfBuffer(render) {
 }
 async function createProjectPdf(bundle) {
     const buffer = await pdfBuffer((doc) => {
-        doc.fontSize(18).text(`项目导出报告 - ${bundle.project.projectCode}`);
+        doc.fontSize(18).text(`\u9879\u76ee\u5bfc\u51fa\u62a5\u544a - ${bundle.project.projectCode}`);
         doc.moveDown();
         doc.fontSize(11);
         [
-            `项目名称: ${bundle.project.projectName}`,
-            `客户: ${bundle.project.customer}`,
-            `平台: ${bundle.project.platform ?? '-'}`,
-            `状态: ${bundle.project.status}`,
-            `线束数: ${bundle.summary.harnessCount}`,
-            `场景数: ${bundle.summary.scenarioCount}`,
-            `报价数: ${bundle.summary.quoteCount}`,
-            `BOM总成本: ${formatCurrency(bundle.summary.totalBomCost)}`,
-            `最新有效执行价: ${formatCurrency(bundle.summary.latestEffectivePrice)}`,
-            `最新利润差: ${formatCurrency(bundle.summary.latestProfitGap)}`,
-            `更新时间: ${formatDate(bundle.project.updatedAt)}`,
+            `\u9879\u76ee\u540d\u79f0: ${bundle.project.projectName}`,
+            `\u5ba2\u6237: ${bundle.project.customer}`,
+            `\u5e73\u53f0: ${bundle.project.platform ?? '-'}`,
+            `\u72b6\u6001: ${bundle.project.status}`,
+            `\u7ebf\u675f\u6570: ${bundle.summary.harnessCount}`,
+            `\u573a\u666f\u6570: ${bundle.summary.scenarioCount}`,
+            `\u62a5\u4ef7\u6570: ${bundle.summary.quoteCount}`,
+            `BOM\u603b\u6210\u672c: ${formatCurrency(bundle.summary.totalBomCost)}`,
+            `\u6700\u65b0\u6709\u6548\u6267\u884c\u4ef7: ${formatCurrency(bundle.summary.latestEffectivePrice)}`,
+            `\u6700\u65b0\u5229\u6da6\u5dee: ${formatCurrency(bundle.summary.latestProfitGap)}`,
+            `\u66f4\u65b0\u65f6\u95f4: ${formatDate(bundle.project.updatedAt)}`,
         ].forEach((line) => doc.text(line));
-        doc.moveDown().fontSize(14).text('线束清单');
+        doc.moveDown().fontSize(14).text('\u7ebf\u675f\u6e05\u5355');
         bundle.harnessRows.slice(0, 20).forEach((row, index) => {
-            doc.fontSize(10).text(`${index + 1}. ${row.harnessId} ${row.harnessName} | BOM ${row.bomCount} 行 | 成本 ${formatCurrency(row.bomCost)}`);
+            doc.fontSize(10).text(`${index + 1}. ${row.harnessId} ${row.harnessName} | BOM ${row.bomCount} \u884c | \u6210\u672c ${formatCurrency(row.bomCost)}`);
         });
-        doc.moveDown().fontSize(14).text('最近报价');
+        doc.moveDown().fontSize(14).text('\u6700\u8fd1\u62a5\u4ef7');
         bundle.quoteRows.slice(0, 10).forEach((row, index) => {
             doc.fontSize(10).text(`${index + 1}. ${row.version} | ${row.harnessId} | ${row.status} | L3 ${formatCurrency(row.effectivePrice)} | Gap ${formatCurrency(row.profitGap)}`);
         });
@@ -312,34 +312,34 @@ async function createProjectPdf(bundle) {
 }
 async function createQuotePdf(bundle) {
     const buffer = await pdfBuffer((doc) => {
-        doc.fontSize(18).text(`报价导出报告 - ${bundle.summary.version}`);
+        doc.fontSize(18).text(`\u62a5\u4ef7\u5bfc\u51fa\u62a5\u544a - ${bundle.summary.version}`);
         doc.moveDown();
         doc.fontSize(11);
         [
-            `项目: ${bundle.project.projectName}`,
-            `客户: ${bundle.project.customer}`,
-            `场景: ${bundle.summary.scenarioName}`,
-            `线束: ${bundle.summary.harnessId} ${bundle.summary.harnessName}`,
-            `状态: ${bundle.summary.status}`,
-            `模板: ${bundle.summary.template}`,
-            `L1内部成本: ${formatCurrency(bundle.summary.internalCostBaseline)}`,
-            `出厂价: ${formatCurrency(bundle.summary.exWorksPrice)}`,
-            `到厂价: ${formatCurrency(bundle.summary.arrivalPrice)}`,
-            `L3有效执行价: ${formatCurrency(bundle.summary.effectivePrice)}`,
-            `利润差: ${formatCurrency(bundle.summary.profitGap)}`,
-            `有效价模式: ${bundle.summary.effectivePriceMode}`,
-            `客户确认: ${bundle.summary.customerAccepted}`,
-            `更新时间: ${formatDate(bundle.summary.updatedAt)}`,
+            `\u9879\u76ee: ${bundle.project.projectName}`,
+            `\u5ba2\u6237: ${bundle.project.customer}`,
+            `\u573a\u666f: ${bundle.summary.scenarioName}`,
+            `\u7ebf\u675f: ${bundle.summary.harnessId} ${bundle.summary.harnessName}`,
+            `\u72b6\u6001: ${bundle.summary.status}`,
+            `\u6a21\u677f: ${bundle.summary.template}`,
+            `L1\u5185\u90e8\u6210\u672c: ${formatCurrency(bundle.summary.internalCostBaseline)}`,
+            `\u51fa\u5382\u4ef7: ${formatCurrency(bundle.summary.exWorksPrice)}`,
+            `\u5230\u5382\u4ef7: ${formatCurrency(bundle.summary.arrivalPrice)}`,
+            `L3\u6709\u6548\u6267\u884c\u4ef7: ${formatCurrency(bundle.summary.effectivePrice)}`,
+            `\u5229\u6da6\u5dee: ${formatCurrency(bundle.summary.profitGap)}`,
+            `\u6709\u6548\u4ef7\u6a21\u5f0f: ${bundle.summary.effectivePriceMode}`,
+            `\u5ba2\u6237\u786e\u8ba4: ${bundle.summary.customerAccepted}`,
+            `\u66f4\u65b0\u65f6\u95f4: ${formatDate(bundle.summary.updatedAt)}`,
         ].forEach((line) => doc.text(line));
-        doc.moveDown().fontSize(14).text('BOM摘要');
-        doc.fontSize(10).text(`BOM行数: ${bundle.summary.bomCount}`);
+        doc.moveDown().fontSize(14).text('BOM\u6458\u8981');
+        doc.fontSize(10).text(`BOM\u884c\u6570: ${bundle.summary.bomCount}`);
         bundle.bomRows.slice(0, 20).forEach((row, index) => {
-            doc.text(`${index + 1}. ${row.itemCategory ?? '-'} | 数量 ${Number(row.qty ?? 0)} | 单价 ${formatCurrency(Number(row.unitPrice ?? 0))} | 金额 ${formatCurrency(Number(row.amount ?? 0))}`);
+            doc.text(`${index + 1}. ${row.itemCategory ?? '-'} | \u6570\u91cf ${Number(row.qty ?? 0)} | \u5355\u4ef7 ${formatCurrency(Number(row.unitPrice ?? 0))} | \u91d1\u989d ${formatCurrency(Number(row.amount ?? 0))}`);
         });
         if (bundle.allocations.length > 0) {
-            doc.moveDown().fontSize(14).text('分摊回收');
+            doc.moveDown().fontSize(14).text('\u5206\u644a\u56de\u6536');
             bundle.allocations.slice(0, 10).forEach((allocation, index) => {
-                doc.fontSize(10).text(`${index + 1}. ${allocation.expenseName} | ${allocation.burdenSide}/${allocation.pricingEffect} | 单根 ${formatCurrency(allocation.unitAllocation)} | 进度 ${allocation.recoveryProgress.toFixed(2)}%`);
+                doc.fontSize(10).text(`${index + 1}. ${allocation.expenseName} | ${allocation.burdenSide}/${allocation.pricingEffect} | \u5355\u6839 ${formatCurrency(allocation.unitAllocation)} | \u8fdb\u5ea6 ${allocation.recoveryProgress.toFixed(2)}%`);
             });
         }
     });

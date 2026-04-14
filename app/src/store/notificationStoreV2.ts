@@ -80,6 +80,8 @@ interface NotificationState {
   getUnreadCount: () => number;
   getUnreadCountByType: (type: NotificationType) => number;
   getGroupedByType: () => Record<NotificationType, NotificationItem[]>;
+  /** @deprecated backward-compat alias for getUnreadCount */
+  unreadCount: () => number;
 }
 
 export const useNotificationStoreV2 = create<NotificationState>()(
@@ -91,12 +93,15 @@ export const useNotificationStoreV2 = create<NotificationState>()(
         maxItems: 500,
 
         addNotification: (n) => {
+          const now = new Date().toISOString();
           const item: NotificationItem = {
             ...n,
             id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-            createdAt: new Date().toISOString(),
+            createdAt: now,
             read: false,
-          };
+            // backward-compat for tests expecting timestamp
+            timestamp: now,
+          } as NotificationItem;
           set((state) => ({
             notifications: [item, ...state.notifications].slice(0, state.maxItems),
           }));
@@ -146,6 +151,7 @@ export const useNotificationStoreV2 = create<NotificationState>()(
         },
 
         getUnreadCount: () => get().notifications.filter((n) => !n.read).length,
+        unreadCount: () => get().notifications.filter((n) => !n.read).length,
 
         getUnreadCountByType: (type) =>
           get().notifications.filter((n) => !n.read && n.type === type).length,

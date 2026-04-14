@@ -9,8 +9,8 @@ function normalizeImportedProject(pkg) {
     const projectConfig = pkg?.project?.config ?? {};
     return {
         projectCode: buildImportedProjectCode(String(projectMeta.projectCode || 'IMPORTED')),
-        projectName: `${String(projectMeta.projectName || '导入项目')} (导入)`,
-        customer: String(projectMeta.customer || '未知客户'),
+        projectName: `${String(projectMeta.projectName || '\u5bfc\u5165\u9879\u76ee')} (\u5bfc\u5165)`,
+        customer: String(projectMeta.customer || '\u672a\u77e5\u5ba2\u6237'),
         platform: projectMeta.platform ? String(projectMeta.platform) : undefined,
         status: String(projectMeta.status || 'draft'),
         costRates: projectConfig.costRates ?? {},
@@ -166,7 +166,7 @@ export class ProjectService {
                     data: {
                         projectId: project.id,
                         type: 'initial_quote',
-                        name: `导入场景 ${String(scenarioIndex).padStart(3, '0')}`,
+                        name: `\u5bfc\u5165\u573a\u666f ${String(scenarioIndex).padStart(3, '0')}`,
                         status: 'draft',
                         lifecycleYears: 5,
                         volume: 0,
@@ -185,7 +185,7 @@ export class ProjectService {
                         projectId: project.id,
                         scenarioId: typeof harness?.scenarioId === 'string' ? (scenarioIdMap.get(harness.scenarioId) ?? null) : null,
                         harnessId: String(harness?.harnessId || harness?.id || crypto.randomUUID()),
-                        harnessName: String(harness?.harnessName || '导入线束'),
+                        harnessName: String(harness?.harnessName || '\u5bfc\u5165\u7ebf\u675f'),
                         input: harness?.input ?? {},
                         result: harness?.result ?? undefined,
                     }, ['input', 'result']),

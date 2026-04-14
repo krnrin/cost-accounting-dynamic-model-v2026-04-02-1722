@@ -1,5 +1,6 @@
 import prisma from '../lib/prisma.js';
 import { toJson, hydrateJsonFields, dehydrateJsonFields } from '../lib/json.js';
+import { AuditService } from './auditService.js';
 const QUOTE_JSON_FIELDS = ['data', 'quoteParams', 'quoteResult', 'lockedFields', 'editableFields', 'approvalFields'];
 function computeProfitGap(quote) {
     const effectivePrice = Number(quote.effectivePrice ?? quote.arrivalPrice ?? 0);
@@ -68,17 +69,36 @@ export class QuoteService {
     static async createQuote(projectId, data) {
         const normalized = {
             ...data,
+            status: data.status ?? 'draft',
             scenarioId: data.scenarioId ?? null,
             harnessId: data.harnessId ?? null,
             effectivePrice: data.effectivePrice ?? data.arrivalPrice ?? 0,
             profitGap: computeProfitGap(data),
         };
+        const existingDraft = await prisma.quote.findFirst({
+            where: {
+                projectId,
+                scenarioId: normalized.scenarioId,
+                harnessId: normalized.harnessId,
+                template: normalized.template ?? 'geely',
+                status: 'draft',
+            },
+            orderBy: { updatedAt: 'desc' },
+        });
+        if (existingDraft) {
+            return this.updateQuote(existingDraft.id, normalized);
+        }
         const dbData = dehydrateJsonFields({ ...normalized, projectId }, [...QUOTE_JSON_FIELDS]);
         const quote = await prisma.quote.create({ data: dbData });
         return hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
     }
     static async updateQuote(id, data) {
         const current = await this.getQuoteById(id);
+        if (current.status === 'published') {
+            const err = new Error('Published quote cannot be edited');
+            err.status = 400;
+            throw err;
+        }
         const lockedFields = Array.isArray(current.lockedFields) ? current.lockedFields : [];
         const illegalField = Object.keys(data).find((field) => current.customerAccepted && lockedFields.includes(field));
         if (illegalField) {
@@ -98,6 +118,11 @@ export class QuoteService {
     }
     static async confirmQuote(id, createdBy) {
         const current = await this.getQuoteById(id);
+        if (current.status === 'published') {
+            const err = new Error('Published quote cannot be reconfirmed');
+            err.status = 400;
+            throw err;
+        }
         const merged = {
             ...current,
             customerAccepted: true,
@@ -107,11 +132,58 @@ export class QuoteService {
         const quote = await prisma.quote.update({ where: { id }, data: dbData });
         const hydrated = hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
         await VersionService.createAutoVersion(hydrated.projectId, {
-            label: `报价发布 - ${hydrated.version}`,
+            label: `\u62a5\u4ef7\u786e\u8ba4 - ${hydrated.version}`,
             notes: `Auto snapshot created when quote ${hydrated.id} was confirmed.`,
             snapshot: {
                 triggerSource: 'quote',
+                stage: 'confirmed',
                 quote: hydrated,
+            },
+            createdBy,
+        });
+        return hydrated;
+    }
+    static async publishQuote(id, createdBy) {
+        const current = await this.getQuoteById(id);
+        if (current.status !== 'confirmed') {
+            const err = new Error('Only confirmed quotes can be published');
+            err.status = 400;
+            throw err;
+        }
+        const publishedAt = new Date().toISOString();
+        const merged = {
+            ...current,
+            status: 'published',
+            customerAccepted: true,
+        };
+        const dbData = dehydrateJsonFields(merged, [...QUOTE_JSON_FIELDS]);
+        const quote = await prisma.quote.update({ where: { id }, data: dbData });
+        const hydrated = hydrateJsonFields(quote, [...QUOTE_JSON_FIELDS]);
+        if (hydrated.scenarioId) {
+            await prisma.scenario.update({
+                where: { id: hydrated.scenarioId },
+                data: {
+                    quoteParamSnapshot: toJson({
+                        quoteId: hydrated.id,
+                        version: hydrated.version,
+                        template: hydrated.template,
+                        effectivePrice: hydrated.effectivePrice,
+                        effectivePriceMode: hydrated.effectivePriceMode,
+                        publishedAt,
+                        quoteParams: hydrated.quoteParams ?? {},
+                        quoteResult: hydrated.quoteResult ?? {},
+                    }),
+                },
+            });
+        }
+        await VersionService.createAutoVersion(hydrated.projectId, {
+            label: `\u62a5\u4ef7\u53d1\u5e03 - ${hydrated.version}`,
+            notes: `Auto snapshot created when quote ${hydrated.id} was published.`,
+            snapshot: {
+                triggerSource: 'quote',
+                stage: 'published',
+                quote: hydrated,
+                publishedAt,
             },
             createdBy,
         });
@@ -202,7 +274,22 @@ export class VersionService {
                     createdBy: params.createdBy,
                 },
             });
-            return hydrateJsonFields(version, ['snapshot']);
+            const hydrated = hydrateJsonFields(version, ['snapshot']);
+            if (params.createdBy) {
+                await AuditService.log({
+                    userId: params.createdBy,
+                    projectId,
+                    action: 'CREATE',
+                    entity: 'version',
+                    entityId: hydrated.id,
+                    details: {
+                        label: hydrated.label,
+                        status: hydrated.status,
+                        triggerSource: params.snapshot?.triggerSource,
+                    },
+                });
+            }
+            return hydrated;
         });
     }
     static async updateVersion(id, data) {

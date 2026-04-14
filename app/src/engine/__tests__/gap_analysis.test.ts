@@ -32,11 +32,11 @@ function makeQuoteResult(overrides?: Partial<HarnessResult>): HarnessResult {
     laborPlusMfg: 98.03,
     mgmtFee: 19.2,        // (180+42+56.03) * 6%  ≈ 16.68 (简化)
     profit: 17.8,
-    exFactoryPrice: 358.83,
+    exFactoryPrice: 316.83,  // 180+1.8+42+56.03+19.2+17.8
     packSubtotal: 8,
     freightSubtotal: 5,
     packTotal: 13,
-    deliveredPrice: 371.83,
+    deliveredPrice: 329.83,   // 316.83+13
     materialBreakdown: {
       cuCost: 120, alCost: 14.4, nonMetalCost: 45.6,
       byType: { wire: 134.4, connector: 30, terminal: 10, ipt_terminal: 0, bracket_rubber: 3.6, tape_tube: 2, other: 0 },
@@ -158,7 +158,7 @@ describe('computeGapAnalysis', () => {
 
   it('当 totalGapRate < 3% 时风险为 watch', () => {
     // 内部成本接近报价，毛利窇薄
-    const thinMargin = makeInternalResult({ internalCost: 362 });
+    const thinMargin = makeInternalResult({ internalCost: 325 });
     const gap = computeGapAnalysis(quote, thinMargin, metalPrices);
     expect(gap.totalGapRate).toBeLessThan(0.03);
     expect(gap.riskLevel).toBe('watch');

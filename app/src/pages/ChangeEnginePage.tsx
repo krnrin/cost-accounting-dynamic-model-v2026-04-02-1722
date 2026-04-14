@@ -1289,9 +1289,7 @@ export default function ChangeEnginePage() {
             </div>
           </Col>
         )}
-      </Row>
-
-      {/* ──── 级联影响集成面板 (CascadeImpactIntegration) ──── */}
+        {/* ──── 级联影响集成面板 (CascadeImpactIntegration) ──── */}
         {bomDiffRows.length > 0 && (
           <Col span={24}>
             <CascadeImpactIntegration
@@ -1302,8 +1300,9 @@ export default function ChangeEnginePage() {
             />
           </Col>
         )}
+      </Row>
 
-        {/* ──── 级联影响预览模态框 ──── */}
+      {/* ──── 级联影响预览模态框 ──── */}
       <Modal
         title="级联影响预览"
         visible={showCascadePreview}

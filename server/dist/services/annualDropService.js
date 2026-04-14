@@ -33,7 +33,7 @@ function buildImpactPayload(record) {
             deltaPrice: round2(priceAfter - priceBefore),
             deltaProfit: round2(profitAfter - profitBefore),
             dropRate,
-            formula: 'cost_after = cost_before × (1 - drop_rate)',
+            formula: 'cost_after = cost_before \u00d7 (1 - drop_rate)',
         },
     };
 }

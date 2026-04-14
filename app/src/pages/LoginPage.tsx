@@ -147,7 +147,7 @@ export default function LoginPage() {
               <Form
                 onSubmit={handleLogin}
                 style={mt16Style}
-                {...(IS_DEV ? { initValues: { email: 'admin@harness.dev', password: 'admin123' } } : {})}
+                {...(IS_DEV ? { initValues: { email: 'admin@harness.dev' } } : {})}
               >
                 <Form.Input
                   field="email"

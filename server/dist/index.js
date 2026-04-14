@@ -78,10 +78,10 @@ app.get('/health', (_req, res) => {
 app.use(errorHandler);
 // Start server
 const server = app.listen(config.PORT, () => {
-    console.log(`\n  🚀 Server running on http://localhost:${config.PORT}`);
-    console.log(`  📦 Database: SQLite`);
-    console.log(`  🌐 CORS: ${config.CORS_ORIGIN}`);
-    console.log(`  🔧 Mode: ${config.NODE_ENV}\n`);
+    console.log(`\n  \u{1F680} Server running on http://localhost:${config.PORT}`);
+    console.log(`  \u{1F4E6} Database: SQLite`);
+    console.log(`  \u{1F310} CORS: ${config.CORS_ORIGIN}`);
+    console.log(`  \u{1F527} Mode: ${config.NODE_ENV}\n`);
 });
 process.on('unhandledRejection', (err) => {
     console.error('Unhandled Rejection:', err?.message || err);

@@ -8,6 +8,23 @@ function getQuoteUnitPrice(quote) {
     const quoteResult = fromJson(quote.quoteResult, {});
     return toNumber(quote.effectivePrice ?? quote.arrivalPrice ?? quoteResult.arrivalPrice ?? quoteResult.deliveredPrice, 0);
 }
+/**
+ * groupByKey — 将数组按指定 key 分组到 Map
+ * 比重复 .filter() 从 O(P×N) 降为 O(P+N)
+ */
+function groupByKey(items, keyFn) {
+    const map = new Map();
+    for (const item of items) {
+        const key = keyFn(item);
+        let arr = map.get(key);
+        if (!arr) {
+            arr = [];
+            map.set(key, arr);
+        }
+        arr.push(item);
+    }
+    return map;
+}
 async function buildProjectSummaries() {
     const [projects, harnesses, scenarios, quotes, allocations, alerts] = await Promise.all([
         prisma.project.findMany({ orderBy: { updatedAt: 'desc' } }),
@@ -17,12 +34,18 @@ async function buildProjectSummaries() {
         prisma.allocationItem.findMany(),
         prisma.alertEvent.findMany(),
     ]);
+    // Pre-group by projectId — O(N) instead of O(P×N) per-project .filter()
+    const harnessMap = groupByKey(harnesses, (i) => i.projectId);
+    const scenarioMap = groupByKey(scenarios, (i) => i.projectId);
+    const quoteMap = groupByKey(quotes, (i) => i.projectId);
+    const allocationMap = groupByKey(allocations, (i) => i.projectId);
+    const alertMap = groupByKey(alerts, (i) => i.projectId);
     return projects.map((project) => {
-        const projectHarnesses = harnesses.filter((item) => item.projectId === project.id);
-        const projectScenarios = scenarios.filter((item) => item.projectId === project.id);
-        const projectQuotes = quotes.filter((item) => item.projectId === project.id);
-        const projectAllocations = allocations.filter((item) => item.projectId === project.id);
-        const projectAlerts = alerts.filter((item) => item.projectId === project.id);
+        const projectHarnesses = harnessMap.get(project.id) || [];
+        const projectScenarios = scenarioMap.get(project.id) || [];
+        const projectQuotes = quoteMap.get(project.id) || [];
+        const projectAllocations = allocationMap.get(project.id) || [];
+        const projectAlerts = alertMap.get(project.id) || [];
         const latestQuote = projectQuotes[0] ?? null;
         const scenarioVolumes = new Map();
         for (const scenario of projectScenarios) {
@@ -72,14 +95,14 @@ function buildProfitWaterfallContributions(project, annualDropRecords, changeEve
     const metalImpact = toNumber(quoteResult.metalCostImpact ?? quoteResult.metalImpact ?? quoteResult.metalPriceImpact, 0);
     const finalProfit = revenue - materialCost - processCost - remainingAllocation - annualDropImpact - changeImpact - metalImpact;
     return [
-        { key: 'revenue', label: '收入', value: revenue },
-        { key: 'material', label: 'BOM材料', value: -materialCost },
-        { key: 'process', label: '费率/人工制造', value: -processCost },
-        { key: 'allocation', label: '未回收分摊', value: -remainingAllocation },
-        { key: 'annual_drop', label: '年降影响', value: -annualDropImpact },
-        { key: 'change', label: '设变影响', value: -changeImpact },
-        { key: 'metal', label: '金属联动', value: -metalImpact },
-        { key: 'profit', label: '最终利润', value: finalProfit },
+        { key: 'revenue', label: '\u6536\u5165', value: revenue },
+        { key: 'material', label: 'BOM\u6750\u6599', value: -materialCost },
+        { key: 'process', label: '\u8d39\u7387/\u4eba\u5de5\u5236\u9020', value: -processCost },
+        { key: 'allocation', label: '\u672a\u56de\u6536\u5206\u644a', value: -remainingAllocation },
+        { key: 'annual_drop', label: '\u5e74\u964d\u5f71\u54cd', value: -annualDropImpact },
+        { key: 'change', label: '\u8bbe\u53d8\u5f71\u54cd', value: -changeImpact },
+        { key: 'metal', label: '\u91d1\u5c5e\u8054\u52a8', value: -metalImpact },
+        { key: 'profit', label: '\u6700\u7ec8\u5229\u6da6', value: finalProfit },
     ];
 }
 export class ManagerDashboardService {
@@ -218,13 +241,16 @@ export class ManagerDashboardService {
                 latestQuoteByProject.set(quote.projectId, quote);
             }
         }
+        // Pre-group by projectId
+        const annualDropMap = groupByKey(annualDrops, (r) => r.projectId);
+        const changeMap = groupByKey(changes, (c) => c.projectId);
         const rows = [];
         for (const project of projects) {
             const quote = latestQuoteByProject.get(project.id);
             if (!quote)
                 continue;
-            const projectAnnualDrops = annualDrops.filter((record) => record.projectId === project.id);
-            const projectChanges = changes.filter((change) => change.projectId === project.id);
+            const projectAnnualDrops = annualDropMap.get(project.id) || [];
+            const projectChanges = changeMap.get(project.id) || [];
             const contributions = buildProfitWaterfallContributions(quote, projectAnnualDrops, projectChanges);
             const contributionMap = new Map(contributions.map((item) => [item.key, item.value]));
             rows.push({
@@ -264,14 +290,14 @@ export class ManagerDashboardService {
         });
         return {
             dimensions: [
-                { key: 'revenue', label: '收入' },
-                { key: 'materialCost', label: 'BOM材料' },
-                { key: 'processCost', label: '费率/人工制造' },
-                { key: 'remainingAllocation', label: '未回收分摊' },
-                { key: 'annualDropImpact', label: '年降影响' },
-                { key: 'changeImpact', label: '设变影响' },
-                { key: 'metalImpact', label: '金属联动' },
-                { key: 'finalProfit', label: '最终利润' },
+                { key: 'revenue', label: '\u6536\u5165' },
+                { key: 'materialCost', label: 'BOM\u6750\u6599' },
+                { key: 'processCost', label: '\u8d39\u7387/\u4eba\u5de5\u5236\u9020' },
+                { key: 'remainingAllocation', label: '\u672a\u56de\u6536\u5206\u644a' },
+                { key: 'annualDropImpact', label: '\u5e74\u964d\u5f71\u54cd' },
+                { key: 'changeImpact', label: '\u8bbe\u53d8\u5f71\u54cd' },
+                { key: 'metalImpact', label: '\u91d1\u5c5e\u8054\u52a8' },
+                { key: 'finalProfit', label: '\u6700\u7ec8\u5229\u6da6' },
             ],
             totals: contributionTotals,
             projects: rows,

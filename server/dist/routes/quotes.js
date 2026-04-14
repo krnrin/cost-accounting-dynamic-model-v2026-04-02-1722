@@ -91,6 +91,14 @@ router.post('/scenario/:sid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), asy
             throw Object.assign(new Error('projectId is required'), { status: 400 });
         const data = { ...validatedData, projectId: undefined };
         const quote = await QuoteService.createQuote(projectId, data);
+        await AuditService.log({
+            userId: req.user.id,
+            projectId,
+            action: 'CREATE',
+            entity: 'quote',
+            entityId: quote.id,
+            details: data,
+        });
         res.status(201).json({ data: quote });
     }
     catch (error) {
@@ -127,7 +135,24 @@ router.post('/:id/confirm', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async
             action: 'STATUS_CHANGE',
             entity: 'quote',
             entityId: quote.id,
-            details: { customerAccepted: true },
+            details: { customerAccepted: true, status: quote.status },
+        });
+        res.json({ data: quote });
+    }
+    catch (error) {
+        next(error);
+    }
+});
+router.post('/:id/publish', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, res, next) => {
+    try {
+        const quote = await QuoteService.publishQuote(req.params.id, req.user?.id);
+        await AuditService.log({
+            userId: req.user.id,
+            projectId: quote.projectId,
+            action: 'STATUS_CHANGE',
+            entity: 'quote',
+            entityId: quote.id,
+            details: { customerAccepted: true, status: quote.status, scenarioId: quote.scenarioId },
         });
         res.json({ data: quote });
     }

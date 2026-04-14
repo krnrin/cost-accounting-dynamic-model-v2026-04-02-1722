@@ -1,0 +1,378 @@
+
+> harness-cost-workbench@0.1.0 test:e2e
+> playwright test
+
+
+Running 27 tests using 6 workers
+
+  ok  5 e2e\login.spec.ts:4:3 › 登录页 › 页面加载并显示登录表单 (7.3s)
+=== PROJECT LINKS ===
+[]
+=== STORAGE ===
+{}
+✅ 登录成功，主页已加载
+当前 URL: http://localhost:5173/
+  ok  3 e2e\discover.spec.ts:11:1 › 抓取项目和线束 ID (8.5s)
+  ok  1 e2e\smoke.spec.ts:24:3 › 冒烟测试 › 登录并验证主页加载 (8.7s)
+  ok  7 e2e\login.spec.ts:13:3 › 登录页 › 默认账号登录成功 (3.9s)
+✅ 设置 (/settings) — 可访问
+  ok  9 e2e\login.spec.ts:26:3 › 登录页 › 错误密码显示错误提示 (4.1s)
+✅ 管理仪表盘 (/manager) — 可访问
+  ok  8 e2e\smoke.spec.ts:32:3 › 冒烟测试 › 路由可访问性检查 (7.7s)
+  ok 10 e2e\login.spec.ts:38:3 › 登录页 › 切换到注册 tab (2.7s)
+找到 0 个项目链接
+⚠️ 无项目数据，跳过项目路由检查
+  ok 11 e2e\smoke.spec.ts:53:3 › 冒烟测试 › 检查项目路由 (4.3s)
+  x   2 e2e\main-flow.spec.ts:23:3 › P0 主链路 - 项目到报价 › 1. 新建项目 (30.5s)
+  x   4 e2e\allocation-recovery.spec.ts:20:3 › P0 主链路 - 分摊与回收 › 1. 录入分摊计划 (30.5s)
+  x   6 e2e\bom-performance.spec.ts:10:3 › BOM Workbook Performance - Large Dataset › should load 1000+ row BOM within 3 seconds (30.5s)
+  x  12 e2e\main-flow.spec.ts:52:3 › P0 主链路 - 项目到报价 › 2. 创建场景 (30.5s)
+  x  13 e2e\allocation-recovery.spec.ts:47:3 › P0 主链路 - 分摊与回收 › 2. 查看单根线束分摊详情 (30.5s)
+  x  14 e2e\bom-performance.spec.ts:38:3 › BOM Workbook Performance - Large Dataset › should scroll smoothly through large dataset (30.7s)
+Generated 1000 test BOM rows
+  ok 17 e2e\bom-performance.spec.ts:90:3 › BOM Workbook Performance - Large Dataset › should handle 1000 row BOM data generation (5.0s)
+  x  15 e2e\main-flow.spec.ts:81:3 › P0 主链路 - 项目到报价 › 3. 导入 BOM (30.5s)
+  x  16 e2e\allocation-recovery.spec.ts:66:3 › P0 主链路 - 分摊与回收 › 3. 添加回收记录 (30.5s)
+  x  18 e2e\main-flow.spec.ts:114:3 › P0 主链路 - 项目到报价 › 4. 计算成本 (30.6s)
+  x  19 e2e\allocation-recovery.spec.ts:94:3 › P0 主链路 - 分摊与回收 › 4. 回收完成触发行为 (30.6s)
+  x  21 e2e\allocation-recovery.spec.ts:127:3 › P0 主链路 - 分摊与回收 › 5. 验证分摊回收统计 (10.2s)
+  x  20 e2e\main-flow.spec.ts:140:3 › P0 主链路 - 项目到报价 › 5. 创建报价 (30.4s)
+⚠ 场景数量不足，跳过对比测试
+  ok 22 e2e\main-flow.spec.ts:167:3 › P0 主链路 - 项目到报价 › 6. 场景对比 (5.9s)
+  x  23 e2e\main-flow.spec.ts:192:3 › P0 主链路 - 项目到报价 › 7. 确认并发布 (4.2s)
+  ok 24 e2e\main-flow.spec.ts:218:3 › P0 主链路 - 分摊回收 › 8. 录入分摊 (5.1s)
+  ok 25 e2e\main-flow.spec.ts:246:3 › P0 主链路 - 分摊回收 › 9. 查看单根分摊 (4.2s)
+  ok 26 e2e\main-flow.spec.ts:270:3 › P0 主链路 - 分摊回收 › 10. 添加回收记录 (4.3s)
+  ok 27 e2e\main-flow.spec.ts:298:3 › P0 主链路 - 分摊回收 › 11. 回收完成触发行为 (3.8s)
+
+
+  1) e2e\allocation-recovery.spec.ts:20:3 › P0 主链路 - 分摊与回收 › 1. 录入分摊计划 ─────────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button:has-text("新建分摊")')[22m
+
+
+      26 |
+      27 |     // 点击新建分摊
+    > 28 |     await page.locator('button:has-text("新建分摊")').click();
+         |                                                   ^
+      29 |
+      30 |     // 填写分摊信息
+      31 |     await page.getByLabel('分摊名称').fill('E2E测试分摊');
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\allocation-recovery.spec.ts:28:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\allocation-recovery-P0-主链路---分摊与回收-1-录入分摊计划\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\allocation-recovery-P0-主链路---分摊与回收-1-录入分摊计划\error-context.md
+
+  2) e2e\allocation-recovery.spec.ts:47:3 › P0 主链路 - 分摊与回收 › 2. 查看单根线束分摊详情 ─────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('text=E2E测试分摊')[22m
+
+
+      53 |
+      54 |     // 点击查看详情
+    > 55 |     await page.locator('text=E2E测试分摊').click();
+         |                                        ^
+      56 |
+      57 |     // 验证分摊详情显示
+      58 |     await expect(page.locator('text=分摊明细')).toBeVisible();
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\allocation-recovery.spec.ts:55:40
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\allocation-recovery-P0-主链路---分摊与回收-2-查看单根线束分摊详情\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\allocation-recovery-P0-主链路---分摊与回收-2-查看单根线束分摊详情\error-context.md
+
+  3) e2e\allocation-recovery.spec.ts:66:3 › P0 主链路 - 分摊与回收 › 3. 添加回收记录 ─────────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button:has-text("添加回收")')[22m
+
+
+      72 |
+      73 |     // 点击添加回收
+    > 74 |     await page.locator('button:has-text("添加回收")').click();
+         |                                                   ^
+      75 |
+      76 |     // 填写回收信息
+      77 |     await page.getByLabel('回收金额').fill('50000');
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\allocation-recovery.spec.ts:74:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\allocation-recovery-P0-主链路---分摊与回收-3-添加回收记录\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\allocation-recovery-P0-主链路---分摊与回收-3-添加回收记录\error-context.md
+
+  4) e2e\allocation-recovery.spec.ts:94:3 › P0 主链路 - 分摊与回收 › 4. 回收完成触发行为 ───────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button:has-text("添加回收")')[22m
+
+
+      102 |     const remainingAmount = 450000; // 500000 - 50000
+      103 |
+    > 104 |     await page.locator('button:has-text("添加回收")').click();
+          |                                                   ^
+      105 |     await page.getByLabel('回收金额').fill(remainingAmount.toString());
+      106 |     await page.getByLabel('回收日期').fill('2026-04-13');
+      107 |     await page.getByLabel('备注').fill('E2E测试完成回收');
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\allocation-recovery.spec.ts:104:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\allocation-recovery-P0-主链路---分摊与回收-4-回收完成触发行为\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\allocation-recovery-P0-主链路---分摊与回收-4-回收完成触发行为\error-context.md
+
+  5) e2e\allocation-recovery.spec.ts:127:3 › P0 主链路 - 分摊与回收 › 5. 验证分摊回收统计 ──────────────────────────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: locator('text=分摊总额')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for locator('text=分摊总额')[22m
+
+
+      133 |
+      134 |     // 验证统计卡片显示
+    > 135 |     await expect(page.locator('text=分摊总额')).toBeVisible();
+          |                                             ^
+      136 |     await expect(page.locator('text=已回收')).toBeVisible();
+      137 |     await expect(page.locator('text=回收率')).toBeVisible();
+      138 |
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\allocation-recovery.spec.ts:135:45
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\allocation-recovery-P0-主链路---分摊与回收-5-验证分摊回收统计\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\allocation-recovery-P0-主链路---分摊与回收-5-验证分摊回收统计\error-context.md
+
+  6) e2e\bom-performance.spec.ts:10:3 › BOM Workbook Performance - Large Dataset › should load 1000+ row BOM within 3 seconds 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('text=新建项目')[22m
+
+
+      10 |   test('should load 1000+ row BOM within 3 seconds', async ({ page }) => {
+      11 |     // 创建测试项目
+    > 12 |     await page.click('text=新建项目');
+         |                ^
+      13 |     await page.fill('input[placeholder*="项目名称"]', 'Performance Test Project');
+      14 |     await page.fill('input[placeholder*="客户"]', 'Test Customer');
+      15 |     await page.click('button:has-text("创建")');
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\bom-performance.spec.ts:12:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\bom-performance-BOM-Workbo-7c048-00-row-BOM-within-3-seconds\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\bom-performance-BOM-Workbo-7c048-00-row-BOM-within-3-seconds\error-context.md
+
+  7) e2e\bom-performance.spec.ts:38:3 › BOM Workbook Performance - Large Dataset › should scroll smoothly through large dataset 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.waitForSelector: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('.univer-sheet') to be visible[22m
+
+
+      40 |     await page.goto('http://localhost:5173/project/test-project-id/s/test-scenario-id/bom-workbook');
+      41 |
+    > 42 |     await page.waitForSelector('.univer-sheet');
+         |                ^
+      43 |
+      44 |     // 测量滚动性能
+      45 |     const scrollMetrics = await page.evaluate(() => {
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\bom-performance.spec.ts:42:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\bom-performance-BOM-Workbo-6dc69-othly-through-large-dataset\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\bom-performance-BOM-Workbo-6dc69-othly-through-large-dataset\error-context.md
+
+  8) e2e\main-flow.spec.ts:23:3 › P0 主链路 - 项目到报价 › 1. 新建项目 ─────────────────────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button:has-text("新建项目")')[22m
+
+
+      26 |
+      27 |     // 点击新建项目按钮
+    > 28 |     await page.locator('button:has-text("新建项目")').click();
+         |                                                   ^
+      29 |
+      30 |     // 填写项目信息
+      31 |     await page.getByLabel('项目代号').fill(TEST_PROJECT_CODE);
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\main-flow.spec.ts:28:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\main-flow-P0-主链路---项目到报价-1-新建项目\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\main-flow-P0-主链路---项目到报价-1-新建项目\error-context.md
+
+  9) e2e\main-flow.spec.ts:52:3 › P0 主链路 - 项目到报价 › 2. 创建场景 ─────────────────────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button:has-text("新建场景")')[22m
+
+
+      58 |
+      59 |     // 点击场景管理或新建场景
+    > 60 |     await page.locator('button:has-text("新建场景")').click();
+         |                                                   ^
+      61 |
+      62 |     // 填写场景信息
+      63 |     await page.getByLabel('场景名称').fill('初始报价场景');
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\main-flow.spec.ts:60:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\main-flow-P0-主链路---项目到报价-2-创建场景\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\main-flow-P0-主链路---项目到报价-2-创建场景\error-context.md
+
+  10) e2e\main-flow.spec.ts:81:3 › P0 主链路 - 项目到报价 › 3. 导入 BOM ──────────────────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button:has-text("导入 BOM")')[22m
+
+
+      87 |
+      88 |     // 点击导入 BOM 按钮
+    > 89 |     await page.locator('button:has-text("导入 BOM")').click();
+         |                                                     ^
+      90 |
+      91 |     // 等待导入对话框
+      92 |     await expect(page.locator('text=BOM 导入')).toBeVisible();
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\main-flow.spec.ts:89:53
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\main-flow-P0-主链路---项目到报价-3-导入-BOM\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\main-flow-P0-主链路---项目到报价-3-导入-BOM\error-context.md
+
+  11) e2e\main-flow.spec.ts:114:3 › P0 主链路 - 项目到报价 › 4. 计算成本 ───────────────────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.fill: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for getByLabel('零件号')[22m
+
+
+      120 |
+      121 |     // 填写线束基本信息
+    > 122 |     await page.getByLabel('零件号').fill('TEST-HARNESS-001');
+          |                                  ^
+      123 |     await page.getByLabel('零件名称').fill('测试线束');
+      124 |
+      125 |     // 添加 BOM 项（简化）
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\main-flow.spec.ts:122:34
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\main-flow-P0-主链路---项目到报价-4-计算成本\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\main-flow-P0-主链路---项目到报价-4-计算成本\error-context.md
+
+  12) e2e\main-flow.spec.ts:140:3 › P0 主链路 - 项目到报价 › 5. 创建报价 ───────────────────────────────────────
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('button:has-text("新建报价")')[22m
+
+
+      146 |
+      147 |     // 点击新建报价
+    > 148 |     await page.locator('button:has-text("新建报价")').click();
+          |                                                   ^
+      149 |
+      150 |     // 填写报价信息
+      151 |     await page.getByLabel('报价名称').fill('初始报价');
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\main-flow.spec.ts:148:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\main-flow-P0-主链路---项目到报价-5-创建报价\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\main-flow-P0-主链路---项目到报价-5-创建报价\error-context.md
+
+  13) e2e\main-flow.spec.ts:192:3 › P0 主链路 - 项目到报价 › 7. 确认并发布 ──────────────────────────────────────
+
+    Error: page.goto: Navigation to "http://localhost:5173/project/undefined/s/undefined" is interrupted by another navigation to "http://localhost:5173/"
+    Call log:
+    [2m  - navigating to "http://localhost:5173/project/undefined/s/undefined", waiting until "load"[22m
+
+
+      194 |
+      195 |     // 导航到场景详情
+    > 196 |     await page.goto(`/project/${projectId}/s/${scenarioId}`);
+          |                ^
+      197 |     await page.waitForLoadState('networkidle');
+      198 |
+      199 |     // 点击发布按钮
+        at C:\Users\lyvee\OneDrive\文档\GitHub\cost-accounting-dynamic-model-v2026-04-02-1722\app\e2e\main-flow.spec.ts:196:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results\main-flow-P0-主链路---项目到报价-7-确认并发布\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results\main-flow-P0-主链路---项目到报价-7-确认并发布\error-context.md
+
+  13 failed
+    e2e\allocation-recovery.spec.ts:20:3 › P0 主链路 - 分摊与回收 › 1. 录入分摊计划 ──────────────────────────────
+    e2e\allocation-recovery.spec.ts:47:3 › P0 主链路 - 分摊与回收 › 2. 查看单根线束分摊详情 ──────────────────────────
+    e2e\allocation-recovery.spec.ts:66:3 › P0 主链路 - 分摊与回收 › 3. 添加回收记录 ──────────────────────────────
+    e2e\allocation-recovery.spec.ts:94:3 › P0 主链路 - 分摊与回收 › 4. 回收完成触发行为 ────────────────────────────
+    e2e\allocation-recovery.spec.ts:127:3 › P0 主链路 - 分摊与回收 › 5. 验证分摊回收统计 ───────────────────────────
+    e2e\bom-performance.spec.ts:10:3 › BOM Workbook Performance - Large Dataset › should load 1000+ row BOM within 3 seconds 
+    e2e\bom-performance.spec.ts:38:3 › BOM Workbook Performance - Large Dataset › should scroll smoothly through large dataset 
+    e2e\main-flow.spec.ts:23:3 › P0 主链路 - 项目到报价 › 1. 新建项目 ──────────────────────────────────────────
+    e2e\main-flow.spec.ts:52:3 › P0 主链路 - 项目到报价 › 2. 创建场景 ──────────────────────────────────────────
+    e2e\main-flow.spec.ts:81:3 › P0 主链路 - 项目到报价 › 3. 导入 BOM ────────────────────────────────────────
+    e2e\main-flow.spec.ts:114:3 › P0 主链路 - 项目到报价 › 4. 计算成本 ─────────────────────────────────────────
+    e2e\main-flow.spec.ts:140:3 › P0 主链路 - 项目到报价 › 5. 创建报价 ─────────────────────────────────────────
+    e2e\main-flow.spec.ts:192:3 › P0 主链路 - 项目到报价 › 7. 确认并发布 ────────────────────────────────────────
+  14 passed (3.3m)

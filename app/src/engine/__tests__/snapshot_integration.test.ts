@@ -3,50 +3,54 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Mock db
-const mockScenario = {
-  scenarioId: 'sc-001',
-  scenarioName: '测试场景',
-  scenarioCode: 'E281-T01',
-  projectId: 'proj-001',
-  lifecycleYears: 7,
-  frozenAt: null,
-  updatedAt: '2026-04-01T00:00:00Z',
-};
+// vi.mock 的工厂函数会被提升到文件顶部，因此必须用 vi.hoisted 定义共享 mock 数据
+const { mockScenario, mockHarness, mockDb } = vi.hoisted(() => {
+  const mockScenario = {
+    scenarioId: 'sc-001',
+    scenarioName: '测试场景',
+    scenarioCode: 'E281-T01',
+    projectId: 'proj-001',
+    lifecycleYears: 7,
+    frozenAt: null as string | null,
+    updatedAt: '2026-04-01T00:00:00Z',
+  };
 
-const mockHarness = {
-  harnessId: 'h-001',
-  harnessName: 'Main Harness',
-  scenarioId: 'sc-001',
-  result: {
-    materialCost: 120.5,
-    processCost: 30.2,
-    exFactoryPrice: 180.3,
-    deliveredPrice: 195.8,
-    copperWeight: 2.5,
-    aluminumWeight: 0.3,
-  },
-  input: {},
-  eopYear: 2032,
-};
+  const mockHarness = {
+    harnessId: 'h-001',
+    harnessName: 'Main Harness',
+    scenarioId: 'sc-001',
+    result: {
+      materialCost: 120.5,
+      processCost: 30.2,
+      exFactoryPrice: 180.3,
+      deliveredPrice: 195.8,
+      copperWeight: 2.5,
+      aluminumWeight: 0.3,
+    },
+    input: {},
+    eopYear: 2032,
+  };
 
-const mockDb = {
-  scenarios: {
-    get: vi.fn().mockResolvedValue(mockScenario),
-    update: vi.fn().mockResolvedValue(1),
-  },
-  harnesses: {
-    where: vi.fn().mockReturnValue({
-      equals: vi.fn().mockReturnValue({
-        toArray: vi.fn().mockResolvedValue([mockHarness]),
+  const mockDb = {
+    scenarios: {
+      get: vi.fn().mockResolvedValue(mockScenario),
+      update: vi.fn().mockResolvedValue(1),
+    },
+    harnesses: {
+      where: vi.fn().mockReturnValue({
+        equals: vi.fn().mockReturnValue({
+          toArray: vi.fn().mockResolvedValue([mockHarness]),
+        }),
       }),
+    },
+    table: vi.fn().mockReturnValue({
+      add: vi.fn().mockResolvedValue(undefined),
+      get: vi.fn().mockResolvedValue(undefined),
     }),
-  },
-  table: vi.fn().mockReturnValue({
-    add: vi.fn().mockResolvedValue(undefined),
-    get: vi.fn().mockResolvedValue(undefined),
-  }),
-};
+  };
+
+  return { mockScenario, mockHarness, mockDb };
+});
 
 vi.mock('@/data/db', () => ({ db: mockDb }));
 vi.mock('../quote_snapshot', () => ({

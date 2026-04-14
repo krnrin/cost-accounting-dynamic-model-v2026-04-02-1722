@@ -14,8 +14,11 @@ export type {
   HarnessResult, MaterialBreakdown, ProjectHarnessResult,
 } from './harness';
 export type {
-  InternalTemplateResult,
-  NreData, ChangeCategory, ChangePricingResult, ChangeItem,
+  TemplateType,
+  GeelyRates, GeelyTemplateResult, BydTemplateResult, GenericTemplateResult,
+  InternalTemplateResult, NreData, TemplatePreset,
+  QuoteSheetMeta, QuoteSheet,
+  ChangeCategory, ChangePricingResult, ChangeItem,
   ChangeSummary, AnnualImpact, AnnualImpactYear,
   MetalContract, MetalDelta, MetalEscalationResult, MetalSensitivityMatrix,
   AnnualDropResult,

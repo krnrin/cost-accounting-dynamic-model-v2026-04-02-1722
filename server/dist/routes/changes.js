@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbac.js';
 import { ChangeService } from '../services/changeService.js';
+import { AuditService } from '../services/auditService.js';
 const scenarioChangeRouter = Router({ mergeParams: true });
 const changeRouter = Router();
 const changeSchema = z.object({
@@ -38,6 +39,18 @@ scenarioChangeRouter.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), as
             throw Object.assign(new Error('projectId is required'), { status: 400 });
         const data = { ...input, projectId: undefined };
         const created = await ChangeService.create(projectId, req.params.sid, data);
+        await AuditService.log({
+            userId: req.user.id,
+            projectId,
+            action: 'CREATE',
+            entity: 'change',
+            entityId: created.id,
+            details: {
+                scenarioId: req.params.sid,
+                changeType: created.changeType,
+                harnessCount: created.affectedHarnessIds.length,
+            },
+        });
         res.status(201).json({ data: created });
     }
     catch (error) {
@@ -57,6 +70,17 @@ changeRouter.put('/:cid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (
     try {
         const input = changeSchema.partial().parse(req.body);
         const data = await ChangeService.update(req.params.cid, input);
+        await AuditService.log({
+            userId: req.user.id,
+            projectId: data.projectId,
+            action: 'UPDATE',
+            entity: 'change',
+            entityId: data.id,
+            details: {
+                updatedFields: Object.keys(input),
+                status: data.status,
+            },
+        });
         res.json({ data });
     }
     catch (error) {
@@ -75,6 +99,19 @@ changeRouter.get('/:cid/impact', async (req, res, next) => {
 changeRouter.post('/:cid/calculate-impact', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, res, next) => {
     try {
         const data = await ChangeService.calculateImpact(req.params.cid);
+        await AuditService.log({
+            userId: req.user.id,
+            projectId: data.projectId,
+            action: 'STATUS_CHANGE',
+            entity: 'change',
+            entityId: data.id,
+            details: {
+                status: data.status,
+                costImpact: data.costImpact,
+                quoteImpact: data.quoteImpact,
+                residualImpact: data.residualImpact,
+            },
+        });
         res.json({ data });
     }
     catch (error) {
