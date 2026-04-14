@@ -9,13 +9,13 @@ async function doLogin(page: Page) {
   await page.waitForLoadState('domcontentloaded');
   await expect(page.locator('text=COST ENGINE')).toBeVisible({ timeout: 15000 });
 
-  const emailInput = page.getByPlaceholder('your@company.com');
-  await emailInput.clear();
-  await emailInput.fill('admin@harness.dev');
-  const pwdInput = page.getByPlaceholder('\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022');
-  await pwdInput.clear();
-  await pwdInput.fill('admin123');
-  await page.locator('button:has-text("\u9A8C\u8BC1\u8EAB\u4EFD\u5E76\u8FDB\u5165")').click();
+  // 使用 first() 选择第一个（登录 tab 的输入框）
+  await page.locator('input[type="text"]').first().fill('admin@harness.dev');
+  await page.locator('input[type="password"]').first().fill('admin123');
+
+  // 使用 CSS class 选择器定位提交按钮
+  await page.locator('button.btn-gradient[type="submit"]').first().click();
+
   await expect(page.locator('text=COST ENGINE')).toBeHidden({ timeout: 15000 });
   await page.waitForLoadState('networkidle');
 }
