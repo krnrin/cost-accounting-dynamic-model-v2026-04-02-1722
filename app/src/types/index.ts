@@ -14,8 +14,7 @@ export type {
   HarnessResult, MaterialBreakdown, ProjectHarnessResult,
 } from './harness';
 export type {
-  GeelyRates, GeelyTemplateResult, InternalTemplateResult,
-  QuoteSheetMeta, QuoteSheet, TemplatePreset,
+  InternalTemplateResult,
   NreData, ChangeCategory, ChangePricingResult, ChangeItem,
   ChangeSummary, AnnualImpact, AnnualImpactYear,
   MetalContract, MetalDelta, MetalEscalationResult, MetalSensitivityMatrix,
@@ -24,7 +23,7 @@ export type {
 export type { AuditLog } from './audit';
 export type {
   WorkbookSheetType, WorkbookRowBase, BomSheetRow, AssemblyPartRow,
-  SecondaryMaterialRow, KskBomRow, ChangeHistoryRow, WorkbookDataRow,
+  SecondaryMaterialRow, KskBomRow, ChangeHistoryRow,
 } from './bomWorkbook';
 // financial_schema.ts: FactoryConfig conflicts with project.ts, use selective re-export
 export type {

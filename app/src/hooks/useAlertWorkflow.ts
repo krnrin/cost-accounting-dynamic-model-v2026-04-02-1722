@@ -24,6 +24,7 @@ import {
   createAlertEvent,
   runAlertChecks,
   DEFAULT_ALERT_RULES,
+  type AlertRule,
 } from '@/engine/alert_workflow';
 
 export interface ClientAlertCheckResult {
@@ -48,9 +49,9 @@ export function useAlertWorkflow() {
    * @param customRules 自定义规则（可选，默认使用 DEFAULT_ALERT_RULES）
    */
   const runChecks = useCallback(
-    (data: Record<string, unknown>, customRules?: Parameters<typeof runAlertChecks>[1]) => {
+    (data: Record<string, unknown>, customRules?: AlertRule[]) => {
       const rules = customRules || DEFAULT_ALERT_RULES;
-      const alerts = runAlertChecks(data, rules);
+      const alerts = runAlertChecks(rules, data as Record<string, number>);
       const result: ClientAlertCheckResult = {
         alerts,
         checkedAt: new Date().toISOString(),

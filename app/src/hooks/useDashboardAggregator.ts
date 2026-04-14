@@ -7,7 +7,7 @@
  * - Project import validation
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import {
   aggregateAlerts,
   buildVersionSummary,

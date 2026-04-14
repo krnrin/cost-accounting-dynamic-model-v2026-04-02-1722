@@ -21,7 +21,6 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { RoleGuard } from '@/components/RoleGuard';
 
 import { db } from '@/data/db';
-import type { ScenarioRecord } from '@/data/db';
 import { computeHarnessCostDynamic, computeHarnessCost, getInternalFactoryRates, computeInternalHarnessCost } from '@/engine/harness_costing';
 import { detectPrecisionLevel } from '@/engine/precision';
 import type { HarnessInput, BomItem, WireItem, HarnessResult } from '@/types/harness';

@@ -270,12 +270,12 @@ export default function EngineerWorkbench() {
                   columns={[
                     { title: '零件号', dataIndex: 'harnessId', width: 140 },
                     { title: '名称', dataIndex: 'harnessName', width: 180 },
-                    { title: 'BOM项数', render: (_: unknown, h: { input: { bom: unknown[] } }) => h.input?.bom?.length || 0, width: 90 },
-                    { title: '装车比', render: (_: unknown, h: { input: { vehicleRatio: number } }) => `${((h.input?.vehicleRatio || 0) * 100).toFixed(1)}%`, width: 80 },
+                    { title: 'BOM项数', render: (_: any, h: any) => h.input?.bom?.length || 0, width: 90 },
+                    { title: '装车比', render: (_: any, h: any) => `${((h.input?.vehicleRatio || 0) * 100).toFixed(1)}%`, width: 80 },
                     {
                       title: '操作',
                       width: 120,
-                      render: (_: unknown, h: { harnessId: string }) => (
+                      render: (_: any, h: any) => (
                         <Button
                           size="small"
                           theme="light"

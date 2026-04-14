@@ -63,17 +63,17 @@ export function useSmartPaste(targetColumns?: string[]) {
           return empty;
         }
 
-        const parsed = parseClipboardTable(clipboardText);
-        const headers = parsed.headers || [];
+        const rows = parseClipboardTable(clipboardText);
+        const headers = rows.length > 0 ? Object.keys(rows[0]!) : [];
         const mappings = targetColumns
-          ? guessColumnMappings(headers, targetColumns)
+          ? guessColumnMappings(headers)
           : ([] as any);
 
         const result: SmartPastePreview = {
-          rows: parsed.rows || [],
+          rows,
           mappings,
           headers,
-          rowCount: parsed.rows ? parsed.rows.length : 0,
+          rowCount: rows.length,
           success: true,
         };
 

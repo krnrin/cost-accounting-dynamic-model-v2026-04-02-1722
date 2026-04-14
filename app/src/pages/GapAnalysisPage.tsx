@@ -12,7 +12,7 @@
  *
  * 对应 C7 Gap 分析 / Issue #77
  */
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Typography,
@@ -22,7 +22,6 @@ import {
   Toast,
   Row,
   Col,
-  Divider,
   Space,
   Card,
 } from '@douyinfe/semi-ui';
@@ -109,7 +108,7 @@ export default function GapAnalysisPage() {
   const gapDimensions = useMemo<DimensionGap[]>(() => {
     const q = quoteProject;
     const i = internalProject;
-    const dims: Array<{ label: string; qKey: keyof typeof q; iKey: keyof typeof i }> = [
+    const dims: Array<{ label: string; qKey: string; iKey: string }> = [
       { label: '材料成本', qKey: 'materialCost', iKey: 'materialCost' },
       { label: '废品损失', qKey: 'wasteCost', iKey: 'wasteCost' },
       { label: '直接人工', qKey: 'directLabor', iKey: 'directLabor' },
@@ -130,8 +129,8 @@ export default function GapAnalysisPage() {
   }, [quoteProject, internalProject]);
 
   const totalGap = useMemo(() => {
-    const qTotal = quoteProject.deliveredPrice || 0;
-    const iTotal = internalProject.deliveredPrice || 0;
+    const qTotal = (quoteProject as any).deliveredPrice || 0;
+    const iTotal = (internalProject as any).deliveredPrice || 0;
     return {
       quote: qTotal,
       internal: iTotal,

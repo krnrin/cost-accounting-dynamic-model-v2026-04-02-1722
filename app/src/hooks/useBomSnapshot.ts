@@ -8,7 +8,7 @@
  * - Validate BOM before operations
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import {
   createBomSnapshot,
   diffBomSnapshots,

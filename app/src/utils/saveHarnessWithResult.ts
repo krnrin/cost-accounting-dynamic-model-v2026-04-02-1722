@@ -10,7 +10,7 @@
  *   await saveHarnessWithResult({ projectId, scenarioId, input, isNew });
  */
 import { db } from '@/data/db';
-import type { HarnessRecord, ScenarioRecord } from '@/data/db';
+import type { HarnessRecord } from '@/data/db';
 import { computeHarnessCost } from '@/engine/harness_costing';
 import type { HarnessInput, HarnessResult } from '@/types/harness';
 

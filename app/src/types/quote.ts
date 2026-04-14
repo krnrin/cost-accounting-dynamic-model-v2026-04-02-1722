@@ -4,6 +4,9 @@
 
 import type { HarnessResult } from './harness';
 
+/** 报价单结构（占位，供 db.ts 扩展使用） */
+export interface QuoteSheet {}
+
 // ── 内部核算模板 ──
 
 /** 内部核算模板结果 */

@@ -217,7 +217,7 @@ export function checkRateBounds(
 // ─── 9. Change Impact Estimation ───
 
 export function estimateChangeImpact(
-  changedField: string,
+  _changedField: string,
   oldValue: number,
   newValue: number,
   totalCost: number,

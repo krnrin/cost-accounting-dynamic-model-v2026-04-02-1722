@@ -5,7 +5,6 @@
  * 支持快照间 diff 对比，用于版本追溯和变更审计。
  */
 import { db } from '@/data/db';
-import type { HarnessRecord } from '@/data/db';
 import type { HarnessInput, HarnessResult } from '@/types/harness';
 
 /** BOM 快照条目 */
@@ -179,10 +178,10 @@ function diffBomItems(
   }
 
   // 对比 BOM 行数
-  const aRows = a.input?.bomRows?.length ?? 0;
-  const bRows = b.input?.bomRows?.length ?? 0;
+  const aRows = a.input?.bom?.length ?? 0;
+  const bRows = b.input?.bom?.length ?? 0;
   if (aRows !== bRows) {
-    diffs.push({ field: 'input.bomRows.length', label: 'BOM行数', oldValue: aRows, newValue: bRows });
+    diffs.push({ field: 'input.bom.length', label: 'BOM行数', oldValue: aRows, newValue: bRows });
   }
 
   return diffs;

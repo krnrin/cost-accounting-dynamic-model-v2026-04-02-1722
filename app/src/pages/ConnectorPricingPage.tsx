@@ -86,7 +86,7 @@ export default function ConnectorPricingPage() {
     void loadPricingData(projectId, scenarioId);
   }, [projectId, scenarioId, loadPricingData]);
 
-  const records = useMemo(() => Array.from(connectorPricing.values()), [connectorPricing]);
+  const records = useMemo(() => Object.values(connectorPricing ?? {}), [connectorPricing]);
   const openDiscrepancyCount = useMemo(
     () => priceDiscrepancies.filter((row) => row.partCategory === 'connector' && (row.status === 'open' || row.status === 'escalated')).length,
     [priceDiscrepancies]

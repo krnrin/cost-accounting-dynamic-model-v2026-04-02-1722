@@ -7,7 +7,7 @@
  * - 对比快照差异
  * - 从快照恢复参数
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import {
   createFreezeSnapshot,
   getSnapshotChain,

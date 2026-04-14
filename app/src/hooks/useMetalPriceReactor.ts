@@ -10,7 +10,7 @@
  * 对应 Issue #61
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import {
   quickEstimate,
   buildReactionPlan,

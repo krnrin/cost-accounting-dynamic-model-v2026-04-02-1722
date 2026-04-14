@@ -297,7 +297,7 @@ export default function ChangeEnginePage() {
     setVersionDiffResult(versionDiff);
     setComparisonTable(buildChangeComparisonTable(changePricing));
 
-    if (versionDiff.bomChanges && versionDiff.bomChanges.length > 0) {
+    if (versionDiff.harnessLevel && versionDiff.harnessLevel.length > 0) {
       setShowCascadePreview(true);
     }
   }, [baseVersionId, compareVersionId, versions]);

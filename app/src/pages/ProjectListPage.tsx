@@ -152,7 +152,7 @@ const S: Record<string, CSSProperties> = {
   projectNameMain: { fontWeight: 500 },
   modalForm: { display: 'flex', flexDirection: 'column' as const, gap: 12 },
   formLabel: { display: 'block', marginBottom: 4, fontWeight: 500 },
-  pagination: { pageSize: 20 },
+  pagination: { pageSize: 20 } as any,
 };
 
 export default function ProjectListPage() {

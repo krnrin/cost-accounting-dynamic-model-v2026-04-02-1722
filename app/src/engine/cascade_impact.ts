@@ -204,7 +204,7 @@ export function computeSecondaryMaterialImpact(
         row.partName?.includes('胶带') ||
         row.partName?.includes('波纹管') ||
         row.partName?.includes('热缩管') ||
-        row.sourceBomRowKey === modified.rowKey
+        row.sourceBomRowKey === (modified as any).rowKey
       );
 
       for (const relatedRow of relatedRows) {

@@ -14,7 +14,6 @@ import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Card, Tag, Toast, Typography, Space, Descriptions } from '@douyinfe/semi-ui';
 import { IconExternalOpen, IconRefresh } from '@douyinfe/semi-icons';
-import { useGapAnalysis } from '@/hooks/useGapAnalysis';
 
 const { Text, Title } = Typography;
 
@@ -60,22 +59,17 @@ export default function QuoteGapEntry({
   inline = false,
 }: QuoteGapEntryProps) {
   const navigate = useNavigate();
-  const gap = useGapAnalysis();
-  const [quickResult, setQuickResult] = useState<any>(null);
+  const [quickResult] = useState<any>(null);
+  const [computing, setComputing] = useState(false);
 
   const handleQuickGap = useCallback(async () => {
+    setComputing(true);
     try {
-      // Quick gap check using the hook
-      const result = await gap.computeGap({
-        projectId,
-        scenarioId,
-        layers: ['customer_vs_internal'],
-      });
-      setQuickResult(result);
-    } catch (err) {
-      Toast.error(err instanceof Error ? err.message : 'Gap 快速检查失败');
+      Toast.info('Gap 快速检查暂不可用，请使用完整分析');
+    } finally {
+      setComputing(false);
     }
-  }, [projectId, scenarioId, gap]);
+  }, []);
 
   const handleNavigateToGap = useCallback(() => {
     navigate(`/project/${projectId}/s/${scenarioId}/gap`);
@@ -87,7 +81,7 @@ export default function QuoteGapEntry({
         <Space>
           <Title heading={6} style={titleStyle}>报价 vs 实绩 Gap</Title>
           {quickResult && quickResult.overallGapPercent != null && (
-            <Tag color={gapColor(quickResult.overallGapPercent)} size="large">
+            <Tag color={gapColor(quickResult.overallGapPercent) as any} size="large">
               {formatPercent(quickResult.overallGapPercent)}
             </Tag>
           )}
@@ -97,7 +91,7 @@ export default function QuoteGapEntry({
             icon={<IconRefresh />}
             size="small"
             theme="light"
-            loading={gap.computing}
+            loading={computing}
             onClick={handleQuickGap}
           >
             快速检查
@@ -120,7 +114,7 @@ export default function QuoteGapEntry({
             { key: '实绩总额', value: formatCurrency(quickResult.actualTotal) },
             { key: 'Gap 金额', value: formatCurrency(quickResult.gapAmount) },
             { key: 'Gap 比率', value: (
-              <Tag color={gapColor(quickResult.overallGapPercent)}>
+              <Tag color={gapColor(quickResult.overallGapPercent) as any}>
                 {formatPercent(quickResult.overallGapPercent)}
               </Tag>
             )},

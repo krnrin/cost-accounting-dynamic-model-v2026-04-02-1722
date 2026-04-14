@@ -120,7 +120,7 @@ export async function createFreezeSnapshot(
     // 获取最新版本号
     const existingSnapshots = await loadQuoteSnapshots({ scenarioId, limit: 1 });
     const nextVersion = existingSnapshots.length > 0
-      ? (existingSnapshots[0].version ?? 0) + 1
+      ? (existingSnapshots[0]!.version ?? 0) + 1
       : 1;
 
     quoteSnapshot = await createQuoteSnapshot({

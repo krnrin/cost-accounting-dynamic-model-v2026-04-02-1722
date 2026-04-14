@@ -14,7 +14,6 @@ import {
   rollbackPublish,
   diffEnvironments,
   type PublishVersion,
-  type PublishState,
   type EnvironmentDiff,
 } from '@/engine/settings_publish_flow';
 

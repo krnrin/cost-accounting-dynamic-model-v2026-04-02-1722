@@ -9,7 +9,7 @@ import type { ProjectHarnessResult, InternalProjectResult } from '@/types/harnes
 import type { ProjectRecord } from '@/data/db';
 import type { HarnessTableRow } from '@/hooks/useDashboardData';
 
-const { Title, Text } = Typography;
+const { Title } = Typography;
 
 interface Props {
   id: string | undefined;

@@ -53,7 +53,7 @@ export function handleApiError(error: unknown): ApiError {
   // Response with status code
   if (error instanceof Error) {
     const statusMatch = error.message.match(/(\d{3})/);
-    const status = statusMatch ? parseInt(statusMatch[1], 10) : null;
+    const status = statusMatch ? parseInt(statusMatch[1]!, 10) : null;
     const userMessage = status && STATUS_MESSAGES[status]
       ? STATUS_MESSAGES[status]
       : error.message || '操作失败，请重试';

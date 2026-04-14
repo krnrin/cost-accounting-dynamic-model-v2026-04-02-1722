@@ -175,7 +175,7 @@ function computeSingleImpact(
 
     case 'rate_change': {
       const materialCost = numberOr(result.materialCost, 0);
-      const processCost = numberOr(result.processCost, 0);
+      const processCost = numberOr((result as any).processCost, result.laborPlusMfg);
       const oldRates = event.before as Partial<CostRates>;
       const newRates = event.after as Partial<CostRates>;
 

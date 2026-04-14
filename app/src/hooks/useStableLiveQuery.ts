@@ -42,10 +42,10 @@ function stableKey(value: unknown): string {
 
 export function useStableLiveQuery<T>(
   querier: () => T | Promise<T>,
-  deps?: unknown[],
+  deps?: any[],
   defaultValue?: T,
 ): T | undefined {
-  const raw = useLiveQuery(querier, deps, defaultValue);
+  const raw = useLiveQuery(querier, deps ?? [], defaultValue);
 
   const prevKeyRef = useRef<string>('');
   const prevValueRef = useRef<T | undefined>(defaultValue);
@@ -70,10 +70,10 @@ export function useStableLiveQuery<T>(
  */
 export function useStableLiveQueryObject<T extends Record<string, unknown>>(
   querier: () => T | Promise<T>,
-  deps?: unknown[],
+  deps?: any[],
   defaultValue?: T,
 ): T | undefined {
-  const raw = useLiveQuery(querier, deps, defaultValue);
+  const raw = useLiveQuery(querier, deps ?? [], defaultValue);
 
   const prevKeysRef = useRef<Record<string, string>>({});
   const prevValuesRef = useRef<Record<string, unknown>>({});

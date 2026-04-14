@@ -29,7 +29,7 @@ export interface ScenarioLifecycleInfo {
   /** 当前状态下是否可编辑场景参数 */
   editable: boolean;
   /** 当前状态可转换的目标状态列表 */
-  availableTransitions: string[];
+  availableTransitions: any[];
   /** 状态对应的显示颜色 */
   statusColor: string;
   /** 状态对应的图标 emoji */
@@ -44,27 +44,27 @@ export interface ScenarioLifecycleInfo {
  */
 export function useScenarioLifecycle(currentStatus: string | undefined): ScenarioLifecycleInfo {
   const editable = useMemo(
-    () => (currentStatus ? isEditable(currentStatus) : true),
+    () => (currentStatus ? isEditable(currentStatus as any) : true),
     [currentStatus],
   );
 
   const availableTransitions = useMemo(
-    () => (currentStatus ? getAvailableTransitions(currentStatus) : []),
+    () => (currentStatus ? getAvailableTransitions(currentStatus as any) : []),
     [currentStatus],
   );
 
   const statusColor = useMemo(
-    () => (currentStatus ? getStatusColor(currentStatus) : 'grey'),
+    () => (currentStatus ? getStatusColor(currentStatus as any) : 'grey'),
     [currentStatus],
   );
 
   const statusIcon = useMemo(
-    () => (currentStatus ? getStatusIcon(currentStatus) : ''),
+    () => (currentStatus ? getStatusIcon(currentStatus as any) : ''),
     [currentStatus],
   );
 
   const canTransitionTo = useCallback(
-    (target: string) => (currentStatus ? canTransition(currentStatus, target) : false),
+    (target: string) => (currentStatus ? canTransition(currentStatus as any, target as any) : false),
     [currentStatus],
   );
 
