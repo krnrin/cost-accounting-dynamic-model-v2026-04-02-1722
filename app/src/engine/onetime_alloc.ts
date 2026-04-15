@@ -51,7 +51,7 @@ export interface OnetimeCostInput {
   /** 试验费用 (元) — 新制 */
   testingCost: number;
   /** 研发费用 (元) */
-  rndCost: number;
+  rndCost?: number;
   /** 分摊基数 (根)，默认 50,000 */
   allocBase: number;
   /** 支付模式：amortized=分摊, lumpsum=一次性付清, mixed=混合 */
@@ -88,7 +88,7 @@ export interface OnetimeCostAllocation {
   /** 单根试验分摊 = testingCost / allocBase */
   testingPerUnit: number;
   /** 单根研发分摊 = rndCost / allocBase */
-  rndPerUnit: number;
+  rndPerUnit?: number;
   /** 单根总分摊 = totalOnetimeCost / allocBase */
   totalPerUnit: number;
 
@@ -149,7 +149,7 @@ export interface ProjectAllocSummary {
   /** 试验费合计 */
   totalTesting: number;
   /** 研发费合计 */
-  totalRnd: number;
+  totalRnd?: number;
   /** 一次性费用总计 */
   grandTotal: number;
 
@@ -202,7 +202,6 @@ export function computeHarnessAllocationFromItems(
     if (item.feeCategory === 'tooling') toolingCost += amount;
     else if (item.feeCategory === 'testing') testingCost += amount;
     else if (item.feeCategory === 'rnd') rndCost += amount;
-    else if (item.feeCategory === 'rnd') rndCost += amount;
   }
 
   return computeOnetimeAlloc({
@@ -235,7 +234,7 @@ export function computeProjectAllocFromItems(items: OnetimeCostItem[]): ProjectA
   const participating = allocations.filter(a => a.participates);
   const totalTooling = allocations.reduce((sum, a) => sum + a.toolingCost, 0);
   const totalTesting = allocations.reduce((sum, a) => sum + a.testingCost, 0);
-  const totalRnd = allocations.reduce((sum, a) => sum + a.rndCost, 0);
+  const totalRnd = allocations.reduce((sum, a) => sum + (a.rndCost ?? 0), 0);
   const weightedAllocPerVehicle = allocations.reduce((sum, a) => sum + a.totalPerUnit * a.vehicleRatio, 0);
 
   return {
@@ -266,7 +265,8 @@ export function normalizeOnetimeInputs(inputs: OnetimeCostInput[]): ProjectAlloc
  * @returns 分摊计算结果
  */
 export function computeOnetimeAlloc(input: OnetimeCostInput): OnetimeCostAllocation {
-  const totalOnetimeCost = input.toolingCost + input.testingCost + input.rndCost;
+  const rndCost = input.rndCost ?? 0;
+  const totalOnetimeCost = input.toolingCost + input.testingCost + rndCost;
   const paymentMode = input.paymentMode ?? 'amortized';
   // lumpsum: 一次性付清，不参与分摊
   const participates = totalOnetimeCost > 0 && paymentMode !== 'lumpsum';
@@ -274,7 +274,7 @@ export function computeOnetimeAlloc(input: OnetimeCostInput): OnetimeCostAllocat
 
   const toolingPerUnit = allocBase > 0 ? input.toolingCost / allocBase : 0;
   const testingPerUnit = allocBase > 0 ? input.testingCost / allocBase : 0;
-  const rndPerUnit = allocBase > 0 ? input.rndCost / allocBase : 0;
+  const rndPerUnit = allocBase > 0 ? rndCost / allocBase : 0;
   const totalPerUnit = toolingPerUnit + testingPerUnit + rndPerUnit;
 
   return {
@@ -283,7 +283,7 @@ export function computeOnetimeAlloc(input: OnetimeCostInput): OnetimeCostAllocat
     vehicleRatio: input.vehicleRatio,
     toolingCost: input.toolingCost,
     testingCost: input.testingCost,
-    rndCost: input.rndCost,
+    rndCost,
     totalOnetimeCost,
     allocBase,
     participates,
@@ -389,7 +389,7 @@ export function computeProjectAlloc(inputs: OnetimeCostInput[]): ProjectAllocSum
 
   const totalTooling = allocations.reduce((sum, a) => sum + a.toolingCost, 0);
   const totalTesting = allocations.reduce((sum, a) => sum + a.testingCost, 0);
-  const totalRnd = allocations.reduce((sum, a) => sum + a.rndCost, 0);
+  const totalRnd = allocations.reduce((sum, a) => sum + (a.rndCost ?? 0), 0);
 
   // 加权分摊 = Σ(单根分摊 × 装车比)
   const weightedAllocPerVehicle = allocations.reduce(

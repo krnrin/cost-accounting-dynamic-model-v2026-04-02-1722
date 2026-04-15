@@ -17,7 +17,6 @@ const makeInput = (overrides: Partial<OnetimeCostInput> = {}): OnetimeCostInput 
   vehicleRatio: 1.0,
   toolingCost: 100000,
   testingCost: 50000,
-  rndCost: 0,
   allocBase: 50000,
   ...overrides,
 });
@@ -29,14 +28,13 @@ describe('computeOnetimeAlloc', () => {
     expect(r.participates).toBe(true);
     expect(r.toolingPerUnit).toBeCloseTo(2); // 100000/50000
     expect(r.testingPerUnit).toBeCloseTo(1); // 50000/50000
-    expect(r.rndPerUnit).toBe(0);
     expect(r.totalPerUnit).toBeCloseTo(3);
     expect(r.priceAddon).toBeCloseTo(3);
   });
 
   it('marks non-participating when all costs zero', () => {
     const r = computeOnetimeAlloc(makeInput({
-      toolingCost: 0, testingCost: 0, rndCost: 0,
+      toolingCost: 0, testingCost: 0,
     }));
     expect(r.participates).toBe(false);
     expect(r.totalPerUnit).toBe(0);
@@ -70,7 +68,7 @@ describe('computeAllocRecovery', () => {
 
   it('non-participating returns fully recovered', () => {
     const zeroAlloc = computeOnetimeAlloc(makeInput({
-      toolingCost: 0, testingCost: 0, rndCost: 0,
+      toolingCost: 0, testingCost: 0,
     }));
     const r = computeAllocRecovery(zeroAlloc, 0, 100000);
     expect(r.fullyRecovered).toBe(true);
@@ -82,7 +80,7 @@ describe('computeProjectAlloc', () => {
   it('summarizes multiple harnesses', () => {
     const inputs = [
       makeInput({ harnessId: 'A', toolingCost: 100000, testingCost: 50000, vehicleRatio: 1.0 }),
-      makeInput({ harnessId: 'B', toolingCost: 0, testingCost: 0, rndCost: 0, vehicleRatio: 0.5 }),
+      makeInput({ harnessId: 'B', toolingCost: 0, testingCost: 0, vehicleRatio: 0.5 }),
     ];
     const r = computeProjectAlloc(inputs);
     expect(r.participatingCount).toBe(1);
@@ -116,23 +114,37 @@ describe('computeProjectAlloc', () => {
           { harnessId: 'B', harnessName: 'B线束', vehicleRatio: 0.5, quantity: 0 },
         ],
       },
+      {
+        feeId: 'rnd-1',
+        feeName: '研发治具验证',
+        feeCategory: 'rnd' as const,
+        unitPrice: 6000,
+        allocBase: 50000,
+        participants: [
+          { harnessId: 'A', harnessName: 'A线束', vehicleRatio: 1, quantity: 1 },
+          { harnessId: 'B', harnessName: 'B线束', vehicleRatio: 0.5, quantity: 2 },
+        ],
+      },
     ];
 
     const single = computeHarnessAllocationFromItems('A', 'A线束', 1, items);
     expect(single.toolingCost).toBe(8400);
     expect(single.testingCost).toBe(10000);
-    expect(single.totalPerUnit).toBeCloseTo((8400 + 10000) / 50000);
+    expect(single.rndCost).toBe(6000);
+    expect(single.totalPerUnit).toBeCloseTo((8400 + 10000 + 6000) / 50000);
 
     const summary = computeProjectAllocFromItems(items);
     expect(summary.participatingCount).toBe(2);
     expect(summary.totalTooling).toBe(12600);
     expect(summary.totalTesting).toBe(10000);
-    expect(summary.grandTotal).toBe(22600);
+    expect(summary.totalRnd).toBe(18000);
+    expect(summary.grandTotal).toBe(40600);
 
     const normalized = normalizeOnetimeInputs([
       makeInput({ harnessId: 'A', harnessName: 'A线束', feeItems: items as any }),
     ]);
-    expect(normalized.grandTotal).toBe(22600);
+    expect(normalized.totalRnd).toBe(18000);
+    expect(normalized.grandTotal).toBe(40600);
   });
 });
 

@@ -16,6 +16,20 @@
 - `init.ps1` 在本仓库当前会话里仍有编码/解析问题，本次改为手动启动 app/server 完成验收
 - 页面数据请求依赖登录态，未登录时项目接口返回鉴权错误；本次主题任务主要验收视觉统一性，不影响样式修改结论
 
+## [2026-04-16 01:12] - Task: COSTING ENGINE REFACTOR - 一次性费用分摊矩阵研发费补齐
+
+### 完成的工作:
+- 修正 `app/src/engine/onetime_alloc.ts` 的 `computeHarnessAllocationFromItems()`，补齐矩阵行 `feeCategory === 'rnd'` 的聚合逻辑，避免矩阵模式下研发费被漏算
+- 让矩阵输入在引擎层完整产出 `rndCost`、`totalRnd`、`grandTotal`，使 engine/store/page 对一次性费用口径继续保持一致
+- 本次只完成一次性费用分摊矩阵的一处具体引擎重构，未扩展客户报价假逻辑
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts` 通过（9 passed）
+
+### 备注:
+- 发现 `computeProjectAllocFromItems()` 与页面/store 已声明支持 `rndCost` / `totalRnd`，但 `computeHarnessAllocationFromItems()` 之前只累计工装费与试验费，导致矩阵来源研发费在引擎入口被静默丢失
+- 下一步可继续把矩阵来源数据真正接入编辑页/接口，而不是只保留兼容入口
+
 ## [2026-04-16 01:07] - Task: COSTING ENGINE REFACTOR - 一次性费用分摊矩阵接线
 
 ### 完成的工作:
