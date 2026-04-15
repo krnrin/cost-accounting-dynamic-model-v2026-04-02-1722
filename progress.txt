@@ -1,3 +1,34 @@
+## [2026-04-16 03:06] - Task: COSTING ENGINE REFACTOR - ZIP 导出补齐使用说明文档
+
+### 完成的工作:
+- 更新 `app/src/engine/zip_export.ts`，在项目 ZIP 导出中固定追加 `usage/README.md`，把包内文件结构、建议使用顺序、当前项目摘要写成自说明文档
+- 在使用说明中显式指引 `project.json`、`bom_data.json`、`harness_results.json`、`quote_snapshots.json` 与 `verification/*` 的阅读顺序，补齐 Sprint 4 的 usage documentation 落地
+- 让使用说明直接读取最新报价快照里的 `factoryRateSource`，输出基准工厂、人工费率、制造费率、来源说明；若缺失则明确标记“未记录”
+- 扩展 `app/src/engine/zip_export.ui.test.ts`，校验 ZIP 包始终包含 `usage/README.md`，并在有快照时包含工厂费率来源章节
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 这一步完成的是 Sprint 4 “usage documentation” 的一个具体收口：导出的 ZIP 数据包现在自带阅读入口，不再要求使用者先翻代码判断各文件用途
+- 本轮未改 `task.json`，因为完成的是 Sprint 4 下的局部收口步骤，不足以将 T31/T33/T34/T36 等剩余任务整体标记 done
+
+
+### 完成的工作:
+- 更新 `app/src/engine/zip_export.ts`，在项目 ZIP 导出中固定追加 `usage/README.md`，把包内文件结构、建议使用顺序、当前项目摘要写成自说明文档
+- 在使用说明中显式指引 `project.json`、`bom_data.json`、`harness_results.json`、`quote_snapshots.json` 与 `verification/*` 的阅读顺序，补齐 Sprint 4 的 usage documentation 落地
+- 让使用说明直接读取最新报价快照里的 `factoryRateSource`，输出基准工厂、人工费率、制造费率、来源说明；若缺失则明确标记“未记录”
+- 扩展 `app/src/engine/zip_export.ui.test.ts`，校验 ZIP 包始终包含 `usage/README.md`，并在有快照时包含工厂费率来源章节
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 这一步完成的是 Sprint 4 “usage documentation” 的一个具体收口：导出的 ZIP 数据包现在自带阅读入口，不再要求使用者先翻代码判断各文件用途
+- 本轮未改 `task.json`，因为完成的是 Sprint 4 下的局部收口步骤，不足以将 T31/T33/T34/T36 等剩余任务整体标记 done
+
 ## [2026-04-16 03:00] - Task: COSTING ENGINE REFACTOR - ZIP 导出补齐报价快照验证报告
 
 ### 完成的工作:
