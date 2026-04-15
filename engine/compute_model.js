@@ -1505,13 +1505,37 @@
         // [DI] EC.projectConfig(ctx, runtime) replaces global.ConfigBridge.raw()
         var costRates = EC ? EC.projectConfig(ctx, runtime)
           : ((runtime && runtime.projectConfig) || {});
-        var customerRates = (costRates.costRates && costRates.costRates.customer) || {};
+        var customerRates = (costRates.costRates && costRates.costRates.customer) || costRates.costRates || {};
+        var internalRates = costRates.internalRates || {};
+        var baseFactory = resolveBaseFactory(runtime, costRates);
+        var factoryCostRates = baseFactory && baseFactory.costRates ? baseFactory.costRates : {};
+        var laborSnapshots = runtime && runtime.laborValidation && runtime.laborValidation.versionSnapshots
+          ? runtime.laborValidation.versionSnapshots
+          : null;
+        var runtimeLaborSnapshot = laborSnapshots && (laborSnapshots.quote || laborSnapshots.fixed || laborSnapshots.baseline)
+          ? (laborSnapshots.quote || laborSnapshots.fixed || laborSnapshots.baseline)
+          : null;
+        var fallbackLaborRate = Number(factoryCostRates.laborRate) > 0
+          ? numberOr(factoryCostRates.laborRate, 35)
+          : numberOr(customerRates.laborRate, numberOr(internalRates.laborRate, 35));
+        var fallbackMfgRate = Number(factoryCostRates.mfgRate) > 0
+          ? numberOr(factoryCostRates.mfgRate, 46.69)
+          : numberOr(
+            customerRates.mfgRate,
+            numberOr(customerRates.manufacturingRate, numberOr(internalRates.factoryRate, numberOr(internalRates.otherOverheadRate, 46.69)))
+          );
         var harnessParams = {
-          laborRate: numberOr(customerRates.laborRate, 35),
-          mfgRate: numberOr(customerRates.mfgRate, 46.69),
-          wasteRate: numberOr(customerRates.wasteRate, 0.01),
-          mgmtRate: numberOr(customerRates.mgmtRate, 0.06),
-          profitRate: numberOr(customerRates.profitRate, 0.056627),
+          laborRate: runtimeLaborSnapshot && runtimeLaborSnapshot.directRate != null
+            ? numberOr(runtimeLaborSnapshot.directRate, fallbackLaborRate)
+            : fallbackLaborRate,
+          mfgRate: runtimeLaborSnapshot && runtimeLaborSnapshot.manufacturingRate != null
+            ? numberOr(runtimeLaborSnapshot.manufacturingRate, fallbackMfgRate)
+            : fallbackMfgRate,
+          wasteRate: numberOr(factoryCostRates.wasteRate, numberOr(customerRates.wasteRate, numberOr(internalRates.materialWasteRate, 0.01))),
+          mgmtRate: numberOr(factoryCostRates.mgmtRate, numberOr(customerRates.mgmtRate, 0.06)),
+          profitRate: numberOr(factoryCostRates.profitRate, numberOr(customerRates.profitRate, 0.056627)),
+          factoryId: baseFactory && baseFactory.factoryId ? baseFactory.factoryId : '',
+          factoryName: baseFactory && baseFactory.factoryName ? baseFactory.factoryName : '',
         };
 
         // 金属价格: 优先用当前模型的金属价格(可能已被用户调整)
@@ -1593,6 +1617,18 @@
       return runtime.master.harnessSeedData;
     }
     return null;
+  }
+
+  function resolveBaseFactory(runtime, costRates) {
+    const projectFactories = runtime && runtime.projectConfig && Array.isArray(runtime.projectConfig.factories)
+      ? runtime.projectConfig.factories
+      : [];
+    const masterFactories = runtime && runtime.master && runtime.master.projectConfig && Array.isArray(runtime.master.projectConfig.factories)
+      ? runtime.master.projectConfig.factories
+      : [];
+    const factories = projectFactories.length ? projectFactories : masterFactories;
+    if (!factories.length) return null;
+    return factories.find((factory) => factory && factory.isBase) || factories[0] || null;
   }
 
   global.G281Engine = {

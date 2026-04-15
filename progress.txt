@@ -1,3 +1,35 @@
+## [2026-04-16 02:18] - Task: COSTING ENGINE REFACTOR - 工厂费率参数化基线收口
+
+### 完成的工作:
+- 修正 `engine/compute_model.js` 在线束级精算路径中的费率优先级：优先取 `laborValidation.versionSnapshots`，否则回退到 base factory `costRates`，再回退到 `projectConfig.costRates` / `internalRates`
+- 将 base factory 的 `factoryId` / `factoryName` 一并写入 `harnessDetail.params`，使工厂费率来源能随结果一起暴露
+- 删除 `resolveBaseFactory()` 的重复定义，并补充 `tests/engine/compute-model-harness-rates.test.js`，覆盖运营工时费报价基准对应的 base factory 费率场景
+- 修复空 labor snapshot 被 `numberOr()` 吃成 0 的问题，避免无快照时 labor/mfg 费率错误归零
+
+### 测试:
+- `node` 内联断言通过：覆盖 labor snapshot 优先、customer 回退、internalRates 回退、base factory 优先、运营工时费报价基准 base factory 场景，输出 `rate-priority-node-check: ok`
+- `npx vitest run tests/engine/compute-model-harness-rates.test.js` 未能执行，原因是仓库当前缺少 `happy-dom`，属于现有测试环境依赖缺口，不是本次改动引入
+
+### 备注:
+- 本次只完成 Sprint 2 “工厂费率参数化” 的一处具体引擎收口，直接对应 `app/src/data/seeds/e281.ts` 中“来自《运营工时费报价基准》”的昆山工厂报价版费率基线
+- 下一步可继续把该 factory-rate 来源显式映射进 store/page/api，或转入 Sprint 3 的连接器 / 同步开发件价格体系
+
+## [2026-04-16 02:18] - Task: COSTING ENGINE REFACTOR - 工厂费率参数化基线收口
+
+### 完成的工作:
+- 修正 `engine/compute_model.js` 在线束级精算路径中的费率优先级：优先取 `laborValidation.versionSnapshots`，否则回退到 base factory `costRates`，再回退到 `projectConfig.costRates` / `internalRates`
+- 将 base factory 的 `factoryId` / `factoryName` 一并写入 `harnessDetail.params`，使工厂费率来源能随结果一起暴露
+- 删除 `resolveBaseFactory()` 的重复定义，并补充 `tests/engine/compute-model-harness-rates.test.js`，覆盖运营工时费报价基准对应的 base factory 费率场景
+- 修复空 labor snapshot 被 `numberOr()` 吃成 0 的问题，避免无快照时 labor/mfg 费率错误归零
+
+### 测试:
+- `node` 内联断言通过：覆盖 labor snapshot 优先、customer 回退、internalRates 回退、base factory 优先、运营工时费报价基准 base factory 场景，输出 `rate-priority-node-check: ok`
+- `npx vitest run tests/engine/compute-model-harness-rates.test.js` 未能执行，原因是仓库当前缺少 `happy-dom`，属于现有测试环境依赖缺口，不是本次改动引入
+
+### 备注:
+- 本次只完成 Sprint 2 “工厂费率参数化” 的一处具体引擎收口，直接对应 `app/src/data/seeds/e281.ts` 中“来自《运营工时费报价基准》”的昆山工厂报价版费率基线
+- 下一步可继续把该 factory-rate 来源显式映射进 store/page/api，或转入 Sprint 3 的连接器 / 同步开发件价格体系
+
 🚫 任务阻塞 - 需要人工介入
 
 当前任务: [T30] 深色主题 + 工业蓝图风格
