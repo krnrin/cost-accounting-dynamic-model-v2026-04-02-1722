@@ -17,7 +17,7 @@
   {
     "id": "S2-02",
     "title": "allocStore 切换到矩阵优先状态管理",
-    "status": "pending",
+    "status": "done",
     "depends_on": ["S2-01"],
     "done_definition": [
       "allocStore 增加 feeItems 状态",
