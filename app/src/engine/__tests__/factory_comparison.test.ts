@@ -44,11 +44,12 @@ describe('factory_comparison', () => {
     expect(result.directLabor).toBeCloseTo(0.96 * INTERNAL_DEFAULTS.laborRate);
   });
 
-  it('efficiency=1.0 gives same result as computeHarnessCost directly', () => {
+  it('efficiency=1.0 with explicit internalRates matches direct internal computation', () => {
     const factory: FactoryConfig = {
       factoryId: 'BASE',
       factoryName: 'Base Factory',
       costRates: { laborRate: INTERNAL_DEFAULTS.laborRate, mfgRate: 0, wasteRate: INTERNAL_DEFAULTS.materialWasteRate, mgmtRate: 0, profitRate: 0 },
+      internalRates: { ...INTERNAL_DEFAULTS },
       efficiencyFactor: 1.0,
     };
 
@@ -60,6 +61,7 @@ describe('factory_comparison', () => {
 
     expect(resultFromFactory.deliveredPrice).toBe(directResult.deliveredPrice);
     expect(resultFromFactory.directLabor).toBe(directResult.directLabor);
+    expect(resultFromFactory.manufacturing).toBe(directResult.manufacturing);
   });
 
   it('efficiency=0.5 halves labor and manufacturing costs', () => {
@@ -136,6 +138,46 @@ describe('factory_comparison', () => {
     expect(res1.materialCost).toBeGreaterThanOrEqual(0);
     expect(res2.materialCost).toBeGreaterThanOrEqual(0);
     expect(res1.materialCost).toBe(res2.materialCost);
+  });
+
+  it('mfgRate changes manufacturing overhead even without explicit internalRates', () => {
+    const lowMfgFactory: FactoryConfig = {
+      factoryId: 'LOW-MFG',
+      factoryName: 'Low MFG',
+      costRates: { laborRate: INTERNAL_DEFAULTS.laborRate, mfgRate: 6, wasteRate: INTERNAL_DEFAULTS.materialWasteRate, mgmtRate: 0, profitRate: 0 },
+      efficiencyFactor: 1.0,
+    };
+    const highMfgFactory: FactoryConfig = {
+      factoryId: 'HIGH-MFG',
+      factoryName: 'High MFG',
+      costRates: { laborRate: INTERNAL_DEFAULTS.laborRate, mfgRate: 18, wasteRate: INTERNAL_DEFAULTS.materialWasteRate, mgmtRate: 0, profitRate: 0 },
+      efficiencyFactor: 1.0,
+    };
+
+    const input = { ...TEST_INPUT };
+    (input as any).materialCost = 100;
+
+    const lowResult = computeHarnessCostForFactory(input, lowMfgFactory, METAL_PRICES);
+    const highResult = computeHarnessCostForFactory(input, highMfgFactory, METAL_PRICES);
+
+    expect(highResult.manufacturing).toBeGreaterThan(lowResult.manufacturing);
+    expect(highResult.deliveredPrice).toBeGreaterThan(lowResult.deliveredPrice);
+  });
+
+  it('compareFactoryCosts sorts factories by parameterized mfgRate', () => {
+    const factories: FactoryConfig[] = [
+      { factoryId: 'BASE', factoryName: 'Base', costRates: { laborRate: INTERNAL_DEFAULTS.laborRate, mfgRate: 10, wasteRate: INTERNAL_DEFAULTS.materialWasteRate, mgmtRate: 0, profitRate: 0 }, efficiencyFactor: 1.0, isBase: true },
+      { factoryId: 'LOW', factoryName: 'Low', costRates: { laborRate: INTERNAL_DEFAULTS.laborRate, mfgRate: 6, wasteRate: INTERNAL_DEFAULTS.materialWasteRate, mgmtRate: 0, profitRate: 0 }, efficiencyFactor: 1.0 },
+      { factoryId: 'HIGH', factoryName: 'High', costRates: { laborRate: INTERNAL_DEFAULTS.laborRate, mfgRate: 18, wasteRate: INTERNAL_DEFAULTS.materialWasteRate, mgmtRate: 0, profitRate: 0 }, efficiencyFactor: 1.0 },
+    ];
+
+    const input = { ...TEST_INPUT };
+    (input as any).materialCost = 100;
+
+    const comparison = compareFactoryCosts(input, factories, METAL_PRICES);
+
+    expect(comparison.lowestCostFactory).toBe('LOW');
+    expect(comparison.highestCostFactory).toBe('HIGH');
   });
 
   it('works with realistic REFERENCE_FACTORIES data', () => {

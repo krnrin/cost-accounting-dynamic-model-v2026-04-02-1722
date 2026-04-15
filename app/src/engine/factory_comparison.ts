@@ -4,6 +4,36 @@ import { computeInternalHarnessCost, INTERNAL_DEFAULTS, mapInternalToHarnessResu
 import { numberOr } from './shared_utils';
 import { safeArray } from './shared_utils';
 
+const INTERNAL_MFG_COMPONENT_BASE =
+  INTERNAL_DEFAULTS.indirectLaborRate +
+  INTERNAL_DEFAULTS.lowValueConsumablesRate +
+  INTERNAL_DEFAULTS.materialConsumptionRate +
+  INTERNAL_DEFAULTS.factoryAmortizationRate +
+  INTERNAL_DEFAULTS.automationAmortizationRate +
+  INTERNAL_DEFAULTS.otherOverheadRate;
+
+function deriveInternalRates(factory: FactoryConfig): InternalCostRates {
+  if (factory.internalRates) {
+    return factory.internalRates;
+  }
+
+  const targetMfgRate = numberOr(factory.costRates?.mfgRate, INTERNAL_MFG_COMPONENT_BASE);
+  const targetLaborRate = numberOr(factory.costRates?.laborRate, INTERNAL_DEFAULTS.laborRate);
+  const targetWasteRate = numberOr(factory.costRates?.wasteRate, INTERNAL_DEFAULTS.materialWasteRate);
+  const mfgScale = INTERNAL_MFG_COMPONENT_BASE > 0 ? targetMfgRate / INTERNAL_MFG_COMPONENT_BASE : 1;
+
+  return {
+    laborRate: targetLaborRate,
+    indirectLaborRate: INTERNAL_DEFAULTS.indirectLaborRate * mfgScale,
+    lowValueConsumablesRate: INTERNAL_DEFAULTS.lowValueConsumablesRate * mfgScale,
+    materialConsumptionRate: INTERNAL_DEFAULTS.materialConsumptionRate * mfgScale,
+    factoryAmortizationRate: INTERNAL_DEFAULTS.factoryAmortizationRate * mfgScale,
+    automationAmortizationRate: INTERNAL_DEFAULTS.automationAmortizationRate * mfgScale,
+    otherOverheadRate: INTERNAL_DEFAULTS.otherOverheadRate * mfgScale,
+    materialWasteRate: targetWasteRate,
+  };
+}
+
 /** 单工厂单线束核算结果 */
 export interface FactoryHarnessResult {
   factoryId: string;
@@ -51,11 +81,7 @@ export function computeHarnessCostForFactory(
     (adjustedInput as any).processHours = (input as any).processHours * factory.efficiencyFactor;
   }
 
-  const internalRates: InternalCostRates = (factory as any).internalRates ?? {
-    ...INTERNAL_DEFAULTS,
-    laborRate: numberOr((factory as any).costRates?.laborRate, INTERNAL_DEFAULTS.laborRate),
-    materialWasteRate: numberOr((factory as any).costRates?.wasteRate, INTERNAL_DEFAULTS.materialWasteRate),
-  };
+  const internalRates = deriveInternalRates(factory);
 
   return mapInternalToHarnessResult(
     computeInternalHarnessCost(adjustedInput, internalRates, metalPrices, wireCatalog),

@@ -69,6 +69,21 @@
 2. 释放或重置 Playwright MCP 浏览器占用，使我能完成前端截图验收
 3. 允许我在恢复验收环境后继续清理 `AllocManagerPage.tsx` 的重复研发费卡片，再决定是否将 T30 标记 done
 
+## [2026-04-16 02:31] - Task: COSTING ENGINE REFACTOR - 工厂费率参数化接线
+
+### 完成的工作:
+- 更新 `app/src/engine/factory_comparison.ts`，新增从 `FactoryConfig.costRates` 推导内部核算费率的参数化映射；当未显式提供 `internalRates` 时，`laborRate`、`mfgRate`、`wasteRate` 不再只部分生效，而会共同驱动多工厂比价结果
+- 让 `mfgRate` 按 `INTERNAL_DEFAULTS` 的 6D MOH 基准结构做比例缩放，统一映射到 `indirectLabor/lowValueConsumables/materialConsumption/factoryAmortization/automationAmortization/otherOverhead` 六项制造开销，补上 Sprint 2 工厂费率参数化主链路的一处引擎收口
+- 扩展 `app/src/engine/__tests__/factory_comparison.test.ts`，新增制造费率差异会改变 `manufacturing`/`deliveredPrice` 与工厂高低成本排序的断言
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/factory_comparison.test.ts` 通过（9 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 本轮只完成 Sprint 2 中“工厂费率参数化”这一处具体引擎重构，未扩展页面编辑结构或后端快照绑定
+- 修复前多工厂比价实际主要只吃 `laborRate`/`wasteRate`，`SettingsPage` 可编辑的 `mfgRate` 对结果几乎不起作用，导致《运营工时费报价基准》无法完整传导到比价结果
+
 ## [2026-04-16 01:12] - Task: [T30] 深色主题 + 工业蓝图风格
 
 ### 完成的工作:
