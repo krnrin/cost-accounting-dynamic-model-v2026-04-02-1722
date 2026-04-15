@@ -1,3 +1,18 @@
+## [2026-04-16 06:24] - Task: S2-01 allocationApi 支持费用项矩阵结构
+
+### 完成的工作:
+- 更新 `app/src/lib/allocationApi.ts`，新增 `ScenarioAllocationFeeItem`、`ScenarioAllocationParticipant` 与相关输入/枚举类型，明确费用项矩阵的 fee item / participant 数据结构
+- 新增 `mapAllocationItemsToFeeItems()` 与 `fetchScenarioAllocationFeeItems()`，支持把现有 `/scenarios/:sid/allocations` 返回的旧分摊行聚合为矩阵费用项列表
+- 新增 `createScenarioAllocationFeeItem()` 与 `saveScenarioAllocationFeeItems()`，支持按费用项矩阵拆分回写到现有分摊接口，同时保留 `fetchScenarioAllocations()` 与 `bulkSyncScenarioAllocations()` 旧接口兼容
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts` 通过（9 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过（仅剩既有 chunk size warning）
+
+### 备注:
+- 这一步只完成 Sprint 2 的 API 适配层，矩阵状态管理与 UI 改造留给后续 S2-02 / S2-03
+- `mapAllocationItemsToFeeItems()` 当前按费用类型/名称/单价/基数等字段聚合旧接口返回值，供后续 store 先矩阵化消费
+
 ## [2026-04-16 03:50] - Task: COSTING ENGINE REFACTOR - Dashboard 接入金属价格联动预警
 
 ### 完成的工作:
@@ -42,4 +57,3 @@
 ### 备注:
 - 这一步属于 Sprint 3 `metal price system / alerts consumption` 的页面收口，先让预警中心能直接看到金属价偏离情况
 - 下一步若继续做 T31，可把当前客户端预检进一步下沉为持久化 AlertEvent 或接到 `detectAlerts()` 服务端链路
-

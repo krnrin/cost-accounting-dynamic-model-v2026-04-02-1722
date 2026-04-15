@@ -1,0 +1,114 @@
+[
+  {
+    "id": "S2-01",
+    "title": "allocationApi 支持费用项矩阵结构",
+    "status": "done",
+    "depends_on": [],
+    "done_definition": [
+      "allocationApi.ts 定义 fee item / participant 结构",
+      "支持读取矩阵费用项列表",
+      "支持保存矩阵费用项列表",
+      "保留旧接口兼容"
+    ],
+    "target_files": [
+      "app/src/lib/allocationApi.ts"
+    ]
+  },
+  {
+    "id": "S2-02",
+    "title": "allocStore 切换到矩阵优先状态管理",
+    "status": "pending",
+    "depends_on": ["S2-01"],
+    "done_definition": [
+      "allocStore 增加 feeItems 状态",
+      "loadScenarioAlloc 支持矩阵数据",
+      "save/update/delete fee item action 可用",
+      "recompute 基于矩阵重算"
+    ],
+    "target_files": [
+      "app/src/store/allocStore.ts"
+    ]
+  },
+  {
+    "id": "S2-03",
+    "title": "AllocManagerPage 重构为费用项矩阵 UI",
+    "status": "pending",
+    "depends_on": ["S2-02"],
+    "done_definition": [
+      "页面从每线束一行改为每费用项一行",
+      "动态生成参与线束列",
+      "单元格录入数量 quantity",
+      "支持新增/删除费用项",
+      "支持实时预览单根分摊额"
+    ],
+    "target_files": [
+      "app/src/pages/AllocManagerPage.tsx"
+    ]
+  },
+  {
+    "id": "S2-04",
+    "title": "回收进度与降价提醒接入矩阵模型",
+    "status": "pending",
+    "depends_on": ["S2-03"],
+    "done_definition": [
+      "矩阵模型下 recoverySummary 正常工作",
+      "达标线束出现降价提醒",
+      "回收时间轴图表正常",
+      "超期未回收状态正确"
+    ],
+    "target_files": [
+      "app/src/engine/onetime_alloc.ts",
+      "app/src/store/allocStore.ts",
+      "app/src/pages/AllocManagerPage.tsx"
+    ]
+  },
+  {
+    "id": "S2-05",
+    "title": "建立工厂费率数据模型并默认 K3",
+    "status": "pending",
+    "depends_on": [],
+    "done_definition": [
+      "定义 7 工厂费率结构",
+      "默认工厂为 K3",
+      "支持 selectedFactory",
+      "getInternalFactoryRates 正确读取"
+    ],
+    "target_files": [
+      "app/src/types/project.ts",
+      "app/src/engine/harness_costing.ts"
+    ]
+  },
+  {
+    "id": "S2-06",
+    "title": "SettingsPage 接入工厂费率切换",
+    "status": "pending",
+    "depends_on": ["S2-05"],
+    "done_definition": [
+      "页面显示当前工厂",
+      "支持切换工厂",
+      "切换后内部成本链重算",
+      "默认打开为 K3"
+    ],
+    "target_files": [
+      "app/src/pages/SettingsPage.tsx",
+      "app/src/store/settingsStore.ts"
+    ]
+  },
+  {
+    "id": "S2-07",
+    "title": "用项目工装投入和工时费基准做 Sprint 2 验证",
+    "status": "pending",
+    "depends_on": ["S2-04", "S2-06"],
+    "done_definition": [
+      "增加矩阵费用项测试",
+      "增加工厂费率切换测试",
+      "更新 progress.txt 记录 Sprint 2 完成项",
+      "相关测试通过"
+    ],
+    "target_files": [
+      "app/src/engine/__tests__/onetime_alloc.test.ts",
+      "app/src/pages/AllocManagerPage.tsx",
+      "progress.txt"
+    ]
+  }
+]
