@@ -30,6 +30,14 @@ export interface QuoteParamRef {
     packagingRate: number;
     laborRate: number;
   };
+  /** Factory-rate traceability captured for validation/reporting */
+  factoryRateSource: {
+    factoryId: string | null;
+    factoryName: string | null;
+    laborRate: number | null;
+    manufacturingRate: number | null;
+    sourceNote: string | null;
+  };
   /** Quote output summary */
   output: {
     totalCostPerSet: number;
@@ -82,6 +90,7 @@ export function captureQuoteParamRef(
     bomVersionRef?: string;
     metalPrices: QuoteParamRef['metalPrices'];
     rates: QuoteParamRef['rates'];
+    factoryRateSource?: Partial<QuoteParamRef['factoryRateSource']>;
     output: QuoteParamRef['output'];
   },
 ): QuoteParamRef {
@@ -93,6 +102,13 @@ export function captureQuoteParamRef(
     bomVersionRef: params.bomVersionRef || null,
     metalPrices: { ...params.metalPrices },
     rates: { ...params.rates },
+    factoryRateSource: {
+      factoryId: params.factoryRateSource?.factoryId || null,
+      factoryName: params.factoryRateSource?.factoryName || null,
+      laborRate: params.factoryRateSource?.laborRate ?? null,
+      manufacturingRate: params.factoryRateSource?.manufacturingRate ?? null,
+      sourceNote: params.factoryRateSource?.sourceNote || null,
+    },
     output: { ...params.output },
   };
 }
@@ -162,6 +178,39 @@ export function compareQuoteVersions(
       delta: null,
       deltaPercent: null,
     });
+  }
+
+  // Compare factory-rate traceability
+  const factoryRateFields: Array<{
+    key: keyof QuoteParamRef['factoryRateSource'];
+    label: string;
+    numeric?: boolean;
+  }> = [
+    { key: 'factoryId', label: '基准工厂ID' },
+    { key: 'factoryName', label: '基准工厂名称' },
+    { key: 'laborRate', label: '基准工厂人工费率', numeric: true },
+    { key: 'manufacturingRate', label: '基准工厂制造费率', numeric: true },
+    { key: 'sourceNote', label: '工厂费率来源说明' },
+  ];
+  for (const { key, label, numeric } of factoryRateFields) {
+    const bv = base.factoryRateSource[key];
+    const cv = compare.factoryRateSource[key];
+    if (bv !== cv) {
+      const baseNum = typeof bv === 'number' ? bv : null;
+      const compareNum = typeof cv === 'number' ? cv : null;
+      paramDiffs.push({
+        category: 'rate',
+        field: `factoryRateSource.${key}`,
+        label,
+        baseValue: bv,
+        compareValue: cv,
+        delta: numeric && baseNum !== null && compareNum !== null ? compareNum - baseNum : null,
+        deltaPercent:
+          numeric && baseNum !== null && compareNum !== null && baseNum !== 0
+            ? ((compareNum - baseNum) / Math.abs(baseNum)) * 100
+            : null,
+      });
+    }
   }
 
   // Compare outputs

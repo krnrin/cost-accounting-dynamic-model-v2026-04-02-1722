@@ -1,3 +1,33 @@
+## [2026-04-16 02:31] - Task: COSTING ENGINE REFACTOR - 报价参数快照补齐工厂费率来源追溯
+
+### 完成的工作:
+- 更新 `app/src/engine/quote_param_snapshot.ts`，为 `QuoteParamRef` 新增 `factoryRateSource` 字段，补齐基准工厂 ID/名称、人工费率、制造费率、来源说明，作为 Sprint 4 验证/报告链路的追溯锚点
+- 扩展 `captureQuoteParamRef()` 默认值与 `compareQuoteVersions()` 差异比较逻辑，使报价版本对比现在能显式识别工厂费率来源变化，而不只比较金属价与通用费率
+- 新增 `app/src/engine/__tests__/quote_param_snapshot.test.ts`，覆盖工厂费率来源默认快照与差异比较两条用例
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/quote_param_snapshot.test.ts` 通过（2 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 这一步完成的是 Sprint 4 “验证/报告生成” 的一个具体收口：后续 verification report / usage 文档若引用报价参数快照，可直接展示工厂费率基线来源，不必再回溯 settings seed
+- 下一步可继续把 `factoryRateSource` 接到实际 verification report / Excel 导出页，或继续 Sprint 3 材料价格体系剩余链路
+
+## [2026-04-16 02:24] - Task: COSTING ENGINE REFACTOR - 工厂费率来源在设置页显式化
+
+### 完成的工作:
+- 更新 `app/src/engine/quote_param_snapshot.ts`，为 `QuoteParamRef` 新增 `factoryRateSource` 字段，补齐基准工厂 ID/名称、人工费率、制造费率、来源说明，作为 Sprint 4 验证/报告链路的追溯锚点
+- 扩展 `captureQuoteParamRef()` 默认值与 `compareQuoteVersions()` 差异比较逻辑，使报价版本对比现在能显式识别工厂费率来源变化，而不只比较金属价与通用费率
+- 新增 `app/src/engine/__tests__/quote_param_snapshot.test.ts`，覆盖工厂费率来源默认快照与差异比较两条用例
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/quote_param_snapshot.test.ts` 通过（2 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 这一步完成的是 Sprint 4 “验证/报告生成” 的一个具体收口：后续 verification report / usage 文档若引用报价参数快照，可直接展示工厂费率基线来源，不必再回溯 settings seed
+- 下一步可继续把 `factoryRateSource` 接到实际 verification report / Excel 导出页，或继续 Sprint 3 材料价格体系剩余链路
+
 ## [2026-04-16 02:24] - Task: COSTING ENGINE REFACTOR - 工厂费率来源在设置页显式化
 
 ### 完成的工作:
