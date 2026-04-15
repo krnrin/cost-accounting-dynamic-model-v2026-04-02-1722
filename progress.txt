@@ -1,3 +1,18 @@
+## [2026-04-16 02:47] - Task: COSTING ENGINE REFACTOR - 验证报告补齐工厂费率来源展示
+
+### 完成的工作:
+- 更新 `app/src/engine/quote_param_snapshot.ts`，新增 `generateQuoteVerificationReport()`，把报价版本对比直接渲染为可落库/导出的验证报告文本
+- 在验证报告中显式输出 base/compare 两侧 `factoryRateSource` 的基准工厂、人工费率、制造费率、来源说明，完成 Sprint 4 对工厂费率追溯信息的报告落地
+- 扩展 `app/src/engine/__tests__/quote_param_snapshot.test.ts`，新增验证报告生成用例，校验工厂费率来源与成本影响摘要会进入报告内容
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/quote_param_snapshot.test.ts` 通过（3 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 这一步只完成 Sprint 4 “verification report generation” 的一个具体收口，暂未接入页面按钮或 Excel 导出器，但报告文本生成能力已可被后续 report/export 链路直接复用
+- 下一步可继续把 `generateQuoteVerificationReport()` 接到实际 verification/export 页面，或转入 Sprint 3 包装/物流系统剩余链路
+
 ## [2026-04-16 02:31] - Task: COSTING ENGINE REFACTOR - 报价参数快照补齐工厂费率来源追溯
 
 ### 完成的工作:

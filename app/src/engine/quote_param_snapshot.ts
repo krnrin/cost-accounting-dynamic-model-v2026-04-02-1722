@@ -1,12 +1,10 @@
 /**
  * Quote Parameter Snapshot (C15 — Issue #69)
- * 
+ *
  * 报价参数快照 + 报价版本比较
  * - 报价生成时关联当时的费率/金属价格/BOM版本
  * - 支持两个报价版本并排对比差异
  */
-
-// ─── Types ───
 
 export interface QuoteParamRef {
   quoteId: string;
@@ -79,7 +77,10 @@ export interface OutputDiffItem {
   direction: 'up' | 'down' | 'unchanged';
 }
 
-// ─── Core Functions ───
+export interface QuoteVerificationReportOptions {
+  title?: string;
+  generatedAt?: string;
+}
 
 /** Create a parameter reference snapshot when generating a quote */
 export function captureQuoteParamRef(
@@ -121,7 +122,6 @@ export function compareQuoteVersions(
   const paramDiffs: ParamDiffItem[] = [];
   const outputDiffs: OutputDiffItem[] = [];
 
-  // Compare metal prices
   const metalFields: Array<{ key: keyof QuoteParamRef['metalPrices']; label: string }> = [
     { key: 'copper', label: '铜价 (元/吨)' },
     { key: 'aluminum', label: '铝价 (元/吨)' },
@@ -143,7 +143,6 @@ export function compareQuoteVersions(
     }
   }
 
-  // Compare rates
   const rateLabels: Record<string, string> = {
     managementFeeRate: '管理费率',
     profitRate: '利润率',
@@ -167,7 +166,6 @@ export function compareQuoteVersions(
     }
   }
 
-  // Compare BOM version
   if (base.bomVersionRef !== compare.bomVersionRef) {
     paramDiffs.push({
       category: 'bom',
@@ -180,7 +178,6 @@ export function compareQuoteVersions(
     });
   }
 
-  // Compare factory-rate traceability
   const factoryRateFields: Array<{
     key: keyof QuoteParamRef['factoryRateSource'];
     label: string;
@@ -213,7 +210,6 @@ export function compareQuoteVersions(
     }
   }
 
-  // Compare outputs
   const outputFields: Array<{ key: keyof QuoteParamRef['output']; label: string }> = [
     { key: 'totalCostPerSet', label: '单套成本' },
     { key: 'sellingPricePerSet', label: '单套售价' },
@@ -235,9 +231,8 @@ export function compareQuoteVersions(
     });
   }
 
-  // Summary
-  const costImpact = (compare.output.totalCostPerSet - base.output.totalCostPerSet);
-  const marginImpact = (compare.output.marginRate - base.output.marginRate);
+  const costImpact = compare.output.totalCostPerSet - base.output.totalCostPerSet;
+  const marginImpact = compare.output.marginRate - base.output.marginRate;
 
   return {
     baseQuoteId: base.quoteId,
@@ -250,6 +245,93 @@ export function compareQuoteVersions(
       marginImpact: Math.round(marginImpact * 10000) / 10000,
     },
   };
+}
+
+function formatNumber(value: number | null | undefined, digits = 4): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return '-';
+  return `${value.toFixed(digits)}`;
+}
+
+function formatPercent(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return '-';
+  return `${(value * 100).toFixed(2)}%`;
+}
+
+function formatDelta(value: number | null): string {
+  if (value === null || Number.isNaN(value)) return '-';
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${value.toFixed(4)}`;
+}
+
+function formatDeltaPercent(value: number | null): string {
+  if (value === null || Number.isNaN(value)) return '-';
+  const sign = value > 0 ? '+' : '';
+  return `${sign}${value.toFixed(2)}%`;
+}
+
+function buildFactoryRateSourceLines(ref: QuoteParamRef): string[] {
+  return [
+    `- 基准工厂: ${ref.factoryRateSource.factoryName || '-'} (${ref.factoryRateSource.factoryId || '-'})`,
+    `- 人工费率: ${formatNumber(ref.factoryRateSource.laborRate, 4)}`,
+    `- 制造费率: ${formatNumber(ref.factoryRateSource.manufacturingRate, 4)}`,
+    `- 来源说明: ${ref.factoryRateSource.sourceNote || '-'}`,
+  ];
+}
+
+export function generateQuoteVerificationReport(
+  base: QuoteParamRef,
+  compare: QuoteParamRef,
+  options: QuoteVerificationReportOptions = {},
+): string {
+  const diff = compareQuoteVersions(base, compare);
+  const generatedAt = options.generatedAt || new Date().toISOString();
+  const title = options.title || 'Quote Parameter Verification Report';
+
+  const paramLines = diff.paramDiffs.length
+    ? diff.paramDiffs.map(item => {
+        const deltaText = item.delta !== null ? ` | Δ ${formatDelta(item.delta)}` : '';
+        const deltaPercentText = item.deltaPercent !== null ? ` | Δ% ${formatDeltaPercent(item.deltaPercent)}` : '';
+        return `- [${item.category}] ${item.label}: ${item.baseValue ?? '-'} -> ${item.compareValue ?? '-'}${deltaText}${deltaPercentText}`;
+      })
+    : ['- 无参数变化'];
+
+  const outputLines = diff.outputDiffs.map(
+    item => `- ${item.label}: ${item.baseValue.toFixed(4)} -> ${item.compareValue.toFixed(4)} | Δ ${formatDelta(item.delta)} | Δ% ${formatDeltaPercent(item.deltaPercent)}`,
+  );
+
+  return [
+    `# ${title}`,
+    '',
+    `- Generated At: ${generatedAt}`,
+    `- Base Quote: ${base.quoteId}`,
+    `- Compare Quote: ${compare.quoteId}`,
+    `- Scenario: ${compare.scenarioId}`,
+    `- Rate Snapshot: ${base.rateSnapshotVersion || '-'} -> ${compare.rateSnapshotVersion || '-'}`,
+    `- BOM Version: ${base.bomVersionRef || '-'} -> ${compare.bomVersionRef || '-'}`,
+    '',
+    '## Base Factory Rate Source',
+    '### Base Quote',
+    ...buildFactoryRateSourceLines(base),
+    '',
+    '### Compare Quote',
+    ...buildFactoryRateSourceLines(compare),
+    '',
+    '## Captured Parameter Baseline',
+    `- Base Metal Prices: 铜 ${formatNumber(base.metalPrices.copper, 2)}, 铝 ${formatNumber(base.metalPrices.aluminum, 2)}, 来源 ${base.metalPrices.source}`,
+    `- Compare Metal Prices: 铜 ${formatNumber(compare.metalPrices.copper, 2)}, 铝 ${formatNumber(compare.metalPrices.aluminum, 2)}, 来源 ${compare.metalPrices.source}`,
+    `- Base Labor/Packaging: 工时 ${formatNumber(base.rates.laborRate, 4)}, 包装费率 ${formatPercent(base.rates.packagingRate)}`,
+    `- Compare Labor/Packaging: 工时 ${formatNumber(compare.rates.laborRate, 4)}, 包装费率 ${formatPercent(compare.rates.packagingRate)}`,
+    '',
+    `## Parameter Diffs (${diff.summary.totalParamChanges})`,
+    ...paramLines,
+    '',
+    '## Output Diffs',
+    ...outputLines,
+    '',
+    '## Summary',
+    `- Cost Impact: ${formatDelta(diff.summary.costImpact)}`,
+    `- Margin Impact: ${formatDelta(diff.summary.marginImpact)}`,
+  ].join('\n');
 }
 
 /** Quick check: has any parameter changed between two quotes? */
