@@ -403,6 +403,33 @@ async function runTests() {
   const recoveryComplete = await api('POST', `/api/allocations/${allocId}/complete`, {}, token);
   assert('POST /api/allocations/:aid/complete', recoveryComplete.status === 200 && recoveryComplete.json.data?.status === 'completed');
 
+  const allocBulkSync = await api('POST', `/api/scenarios/${scenarioId}/allocations/bulk-sync`, {
+    projectId,
+    rows: [
+      {
+        harnessId: TEST_HARNESS.harnessId,
+        harnessName: '压缩机线束',
+        vehicleRatio: 1,
+        toolingCost: 12000,
+        testingCost: 3000,
+        rndCost: 7000,
+        allocBase: 50000,
+        paymentMode: 'amortized',
+        cumProduced: 15000,
+      },
+    ],
+  }, token);
+  assert('POST /api/scenarios/:sid/allocations/bulk-sync', allocBulkSync.status === 200 && Array.isArray(allocBulkSync.json.data));
+  const syncedRnd = allocBulkSync.json.data?.find(item => item.harnessId === TEST_HARNESS.harnessId && item.expenseType === 'rnd');
+  assert('  → bulk sync persists rnd allocation row', Number(syncedRnd?.totalAmount) === 7000);
+  assert('  → bulk sync refreshes latest recovery snapshot', Number(syncedRnd?.latestCumulativeVolume) === 15000 && Number(syncedRnd?.latestInstallRatioSnapshot) === 1);
+
+  const allocBulkClear = await api('POST', `/api/scenarios/${scenarioId}/allocations/bulk-sync`, {
+    projectId,
+    rows: [],
+  }, token);
+  assert('  → bulk sync clears stale allocation rows', allocBulkClear.status === 200 && allocBulkClear.json.data?.length === 0);
+
   // 10b. BOM row create/update/import/delete
   const bomCreate = await api('POST', `/api/scenarios/${scenarioId}/bom`, {
     harnessId: TEST_HARNESS.harnessId,

@@ -1,3 +1,43 @@
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: [T30] 深色主题 + 工业蓝图风格
+
+已完成的工作:
+- 更新 `app/src/layouts/MainLayout.tsx`，将侧边栏图标、胶囊用户区、顶部导航文字切到蓝图主题变量，去掉深色页里的浅色硬编码
+- 更新 `app/src/pages/ProfilePage.tsx`、`app/src/pages/AlertsPage.tsx`、`app/src/pages/AllocManagerPage.tsx`，让个人中心/预警卡片/分摊汇总 KPI 跟随工业蓝图配色
+- 补齐 `app/src/engine/onetime_alloc.ts`、`app/src/store/allocStore.ts`、`app/src/lib/allocationApi.ts` 的 `rndCost` / `totalRnd` 类型与汇总链路，恢复前端构建可通过
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 已通过
+
+阻塞原因:
+- `python -m pytest backend/tests -v` 无法执行，当前环境缺少 `pytest`（`No module named pytest`）
+- Playwright MCP 浏览器被现有实例占用，当前会话无法接管或关闭，因而不能完成 CLAUDE.md 要求的浏览器截图验收
+- `app/src/pages/AllocManagerPage.tsx` 当前存在我引入的重复“研发费合计”卡片，尚未做最终清理；在未完成浏览器验收前不应提交
+
+需要人工帮助:
+1. 安装/提供可用的后端 pytest 环境，或告知当前仓库后端测试应使用的正确命令
+2. 释放或重置 Playwright MCP 浏览器占用，使我能完成前端截图验收
+3. 允许我在恢复验收环境后继续清理 `AllocManagerPage.tsx` 的重复研发费卡片，再决定是否将 T30 标记 done
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: [T30] 深色主题 + 工业蓝图风格
+
+已完成的工作:
+- 更新 `app/src/layouts/MainLayout.tsx`，将侧边栏图标、胶囊用户区、顶部导航文字切到蓝图主题变量，去掉深色页里的浅色硬编码
+- 更新 `app/src/pages/ProfilePage.tsx`、`app/src/pages/AlertsPage.tsx`、`app/src/pages/AllocManagerPage.tsx`，让个人中心/预警卡片/分摊汇总 KPI 跟随工业蓝图配色
+- 补齐 `app/src/engine/onetime_alloc.ts`、`app/src/store/allocStore.ts`、`app/src/lib/allocationApi.ts` 的 `rndCost` / `totalRnd` 类型与汇总链路，恢复前端构建可通过
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 已通过
+
+阻塞原因:
+- `python -m pytest backend/tests -v` 无法执行，当前环境缺少 `pytest`（`No module named pytest`）
+- Playwright MCP 浏览器被现有实例占用，当前会话无法接管或关闭，因而不能完成 CLAUDE.md 要求的浏览器截图验收
+- `app/src/pages/AllocManagerPage.tsx` 当前存在我引入的重复“研发费合计”卡片，尚未做最终清理；在未完成浏览器验收前不应提交
+
+需要人工帮助:
+1. 安装/提供可用的后端 pytest 环境，或告知当前仓库后端测试应使用的正确命令
+2. 释放或重置 Playwright MCP 浏览器占用，使我能完成前端截图验收
+3. 允许我在恢复验收环境后继续清理 `AllocManagerPage.tsx` 的重复研发费卡片，再决定是否将 T30 标记 done
+
 ## [2026-04-16 01:12] - Task: [T30] 深色主题 + 工业蓝图风格
 
 ### 完成的工作:
@@ -29,6 +69,22 @@
 ### 备注:
 - 发现 `computeProjectAllocFromItems()` 与页面/store 已声明支持 `rndCost` / `totalRnd`，但 `computeHarnessAllocationFromItems()` 之前只累计工装费与试验费，导致矩阵来源研发费在引擎入口被静默丢失
 - 下一步可继续把矩阵来源数据真正接入编辑页/接口，而不是只保留兼容入口
+
+## [2026-04-16 02:05] - Task: COSTING ENGINE REFACTOR - 一次性费用分摊矩阵 API 清理与研发费校验
+
+### 完成的工作:
+- 更新 `server/src/services/allocationService.ts`，让 `bulkSyncHarnessRows()` 在整批保存时先清理本次未上送的旧线束分摊项，避免矩阵编辑删除线束后服务端残留陈旧 allocation/recovery 记录
+- 保持 `tooling/testing/rnd` 三类费用统一走批量同步链路，确保研发费矩阵行在 API 返回中继续完整暴露 `totalAmount` 与最新回收快照字段
+- 扩展 `server/test_api.js`，新增 `/api/scenarios/:sid/allocations/bulk-sync` 集成断言，覆盖研发费 `rnd` 持久化、latest recovery 快照刷新，以及空 rows 清空陈旧记录三条链路
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts` 通过（9 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/server run build` 通过
+- `PORT=3012 TEST_PORT=3012 TEST_BASE_URL=http://localhost:3012 node C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/server/test_api.js` 部分通过；本轮新增 bulk-sync/rnd 相关断言全部通过，现有失败仍是既有 Prisma transaction timeout / settings publish / quote confirm 问题，非本次改动引入
+
+### 备注:
+- 这一步完成的是 Sprint 2 一次性费用分摊矩阵在 API 侧的一处具体收口：删除矩阵行时服务端状态不再滞留，且研发费链路已有集成测试兜底
+- 下一步可继续补矩阵编辑页到后端 API 的更细粒度结构映射，或进入工厂费率参数化链路
 
 ## [2026-04-16 01:07] - Task: COSTING ENGINE REFACTOR - 一次性费用分摊矩阵接线
 
