@@ -1,178 +1,45 @@
-## [2026-04-16 03:40] - Task: COSTING ENGINE REFACTOR - 报价快照补齐运输费率追溯
+## [2026-04-16 03:50] - Task: COSTING ENGINE REFACTOR - Dashboard 接入金属价格联动预警
 
 ### 完成的工作:
-- 更新 `app/src/engine/quote_param_snapshot.ts`，在 `QuoteParamRef.rates`、参数差异比对与验证报告基线区块中补齐 `freightRate`，让 Sprint 3 物流系统参数不再只停留在引擎/系数层，而能进入 snapshot/report 追溯链路
-- 更新 `app/src/engine/zip_export.ts` 的 `toQuoteParamRef()`，使 ZIP 导出的 `verification/quote_snapshot_diff_v*_to_v*.md` 复用统一报告时同步带出运输费率
-- 更新 `app/src/engine/__tests__/quote_param_snapshot.test.ts`，新增运输费率差异断言与报告文本断言，锁定包装/物流参数在版本比较中的可见性
+- 更新 `app/src/hooks/useDashboardData.ts`，接入 `settingsStore.defaultMetalPrices` 与 `alertThresholds`，在 Dashboard 数据层直接生成 `metalClientCheck`，把 Sprint 3 金属价格联动结果从引擎层拉到页面编排层
+- 更新 `app/src/pages/DashboardPage.tsx`，在场景首页新增 `AlertBanner` 与 `MetalImpactSummary`，当场景金属价相对系统基准超阈值时，直接展示预警横幅和按线束拆分的到厂价影响汇总
+- 新增 `app/src/pages/DashboardPage.component.test.tsx`，锁定 Dashboard 在“触发金属预警/未触发金属预警”两种情况下的渲染行为；并顺手清理 `app/src/pages/AlertsPage.tsx` 未使用的 `clientCheckSummary`，消除本链路 build 阻塞
 
 ### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/quote_param_snapshot.test.ts` 通过（3 passed）
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 失败，仍为仓库既有 `app/src/pages/AlertsPage.tsx` 重复 import / 重复变量定义问题（`useSettingsStore`、`useInternalMetalStore`、`computeMetalAlerts`、`metalClientCheck`、`clientCheckSummary`），非本轮改动引入
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/pages/DashboardPage.component.test.tsx src/components/AlertBanner.component.test.tsx src/engine/__tests__/metal_alert.test.ts` 通过（18 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过（仅剩既有 chunk size warning）
 
 ### 备注:
-- 这一步属于 Sprint 3 包装/物流系统与 Sprint 4 验证报告链路之间的收口：运输费率现在已能随报价快照进入比较报告与 ZIP 导出验证文档
-- 下一步若继续做 Sprint 3，可把 `freightRate` 的来源继续向 settings/page/store 明确参数化；但本轮先只补 snapshot/report/export 可追溯闭环
+- 这一步完成的是 Sprint 3 / T31 “金属价格联动计算” 的一个具体前端收口：Dashboard 现在会直接消费现有金属预警/联动引擎结果，而不再只在 Alerts 中心或备份页里零散使用
+- 本轮未扩展到持久化 `AlertEvent`，只完成 Dashboard 可见化这一具体闭环步骤
 
-## [2026-04-16 03:40] - Task: COSTING ENGINE REFACTOR - 报价快照补齐运输费率追溯
+## [2026-04-16 03:50] - Task: COSTING ENGINE REFACTOR - Dashboard 接入金属价格联动预警
 
 ### 完成的工作:
-- 更新 `app/src/engine/quote_param_snapshot.ts`，在 `QuoteParamRef.rates`、参数差异比对与验证报告基线区块中补齐 `freightRate`，让 Sprint 3 物流系统参数不再只停留在引擎/系数层，而能进入 snapshot/report 追溯链路
-- 更新 `app/src/engine/zip_export.ts` 的 `toQuoteParamRef()`，使 ZIP 导出的 `verification/quote_snapshot_diff_v*_to_v*.md` 复用统一报告时同步带出运输费率
-- 更新 `app/src/engine/__tests__/quote_param_snapshot.test.ts`，新增运输费率差异断言与报告文本断言，锁定包装/物流参数在版本比较中的可见性
+- 更新 `app/src/hooks/useDashboardData.ts`，接入 `settingsStore.defaultMetalPrices` 与 `alertThresholds`，在 Dashboard 数据层直接生成 `metalClientCheck`，把 Sprint 3 金属价格联动结果从引擎层拉到页面编排层
+- 更新 `app/src/pages/DashboardPage.tsx`，在场景首页新增 `AlertBanner` 与 `MetalImpactSummary`，当场景金属价相对系统基准超阈值时，直接展示预警横幅和按线束拆分的到厂价影响汇总
+- 新增 `app/src/pages/DashboardPage.component.test.tsx`，锁定 Dashboard 在“触发金属预警/未触发金属预警”两种情况下的渲染行为；并顺手清理 `app/src/pages/AlertsPage.tsx` 未使用的 `clientCheckSummary`，消除本链路 build 阻塞
 
 ### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/quote_param_snapshot.test.ts` 通过（3 passed）
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 失败，仍为仓库既有 `app/src/pages/AlertsPage.tsx` 重复 import / 重复变量定义问题（`useSettingsStore`、`useInternalMetalStore`、`computeMetalAlerts`、`metalClientCheck`、`clientCheckSummary`），非本轮改动引入
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/pages/DashboardPage.component.test.tsx src/components/AlertBanner.component.test.tsx src/engine/__tests__/metal_alert.test.ts` 通过（18 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过（仅剩既有 chunk size warning）
 
 ### 备注:
-- 这一步属于 Sprint 3 包装/物流系统与 Sprint 4 验证报告链路之间的收口：运输费率现在已能随报价快照进入比较报告与 ZIP 导出验证文档
-- 下一步若继续做 Sprint 3，可把 `freightRate` 的来源继续向 settings/page/store 明确参数化；但本轮先只补 snapshot/report/export 可追溯闭环
+- 这一步完成的是 Sprint 3 / T31 “金属价格联动计算” 的一个具体前端收口：Dashboard 现在会直接消费现有金属预警/联动引擎结果，而不再只在 Alerts 中心或备份页里零散使用
+- 本轮未扩展到持久化 `AlertEvent`，只完成 Dashboard 可见化这一具体闭环步骤
 
-## [2026-04-16 03:31] - Task: COSTING ENGINE REFACTOR - 清理 ZIP 导出重复校验写入
+## [2026-04-16 03:46] - Task: COSTING ENGINE REFACTOR - 预警中心接入金属价格客户端联动预检
 
 ### 完成的工作:
-- 清理 `app/src/engine/zip_export.ts` 中重复的 Excel extraction validation 构建/写入逻辑，确保 Sprint 4 ZIP 导出链路只维护一份 `buildExcelExtractionValidationReport()` 与一次 `verification/excel_extraction_validation.md` 写入
-- 清理 `app/src/engine/zip_export.ui.test.ts` 中重复断言，保留对报价快照验证报告、工厂费率来源章节与 Excel extraction summary 的单次有效校验
-- 本轮不扩展新功能，只收口重复实现，避免后续 Sprint 4 验证报告与使用说明继续出现双写/双断言漂移
+- 更新 `app/src/pages/AlertsPage.tsx`，把 `settingsStore.defaultMetalPrices` 与 `internalMetalStore` 当前活跃金属价接入预警中心，基于 `computeMetalAlerts()` 在页面内直接生成金属价格客户端联动预检结果
+- 在预警中心顶部新增“金属价格客户端联动预检”卡片，展示当前金属价来源、更新时间、铜/铝涨跌幅标签，使 Sprint 3 的金属价格联动不再只停留在引擎与设置页，而能被 Alerts 中心直接消费
+- 保持原有服务端 `detectAlerts()` 流程不变，仅补一个页面侧可见的联动入口，作为 T31 金属价格联动→预警触发的局部收口
 
 ### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/metal_alert.test.ts` 通过（11 passed）
 - `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
 
 ### 备注:
-- 这一步属于 Sprint 4 verification/export chain 的代码收口，减少重复实现后，后续继续补 Excel extraction validation 或 usage documentation 时只需改一处
+- 这一步属于 Sprint 3 `metal price system / alerts consumption` 的页面收口，先让预警中心能直接看到金属价偏离情况
+- 下一步若继续做 T31，可把当前客户端预检进一步下沉为持久化 AlertEvent 或接到 `detectAlerts()` 服务端链路
 
-## [2026-04-16 03:29] - Task: COSTING ENGINE REFACTOR - ZIP 导出补齐 Excel 抽取校验报告
-
-### 完成的工作:
-- 更新 `app/src/engine/zip_export.ts`，在导出 ZIP 时新增 `verification/excel_extraction_validation.md`，对每个线束已导入 BOM 执行 `validateBom()` 并汇总错误、警告、标准化建议
-- 在导出说明中补充该校验文件入口，让 Sprint 4 的 Excel extraction-based validation 不再只停留在测试代码，而是随交付包一起输出可读报告
-- 更新 `app/src/engine/zip_export.ui.test.ts`，断言 ZIP 包固定包含 `verification/excel_extraction_validation.md`，并校验报告摘要章节存在
-
-### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
-
-### 备注:
-- 这一步完成的是 Sprint 4 “Excel extraction-based validation / verification export chain” 的一个具体收口：导出包现在自带 BOM 抽取校验摘要，便于脱离代码环境直接验收导入质量
-- build 仍有既有 chunk size warning，但未阻塞本轮功能与产物生成
-
-## [2026-04-16 03:16] - Task: COSTING ENGINE REFACTOR - ZIP 报价验证报告复用统一生成器
-
-### 完成的工作:
-- 更新 `app/src/engine/zip_export.ts`，将 ZIP 中 `verification/quote_snapshot_diff_v*_to_v*.md` 的生成逻辑改为复用 `app/src/engine/quote_param_snapshot.ts` 里的 `generateQuoteVerificationReport()`，避免 ZIP 导出与验证模块各维护一套报告格式
-- 新增 `toQuoteParamRef()` 映射，把 `quoteSnapshots` 中已有的费率、金属价、工厂费率来源、报价结果转换成统一的 `QuoteParamRef`，让 Sprint 4 导出报告直接继承 Sprint 2 工厂费率追溯字段
-- 扩展 `app/src/engine/zip_export.ui.test.ts`，断言 ZIP 验证报告现在包含 `## Base Factory Rate Source` 段落，确保导出产物和统一验证报告结构保持一致
-
-### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
-
-### 备注:
-- 这一步继续收口 Sprint 4 的 verification report generation/export chain：ZIP 导出报告已不再和页面/验证逻辑分叉，后续若补充参数追溯字段，只需维护统一生成器
-- `init.ps1` 当前存在 PowerShell 编码损坏导致的 parser error，本轮未修该脚本，直接用定向测试与 build 完成本步验证
-
-## [2026-04-16 03:20] - Task: COSTING ENGINE REFACTOR - 分摊管理页补齐一次性费用矩阵明细
-
-### 完成的工作:
-- 更新 `app/src/store/allocStore.ts`，在加载/同步场景分摊数据时保留 API 返回的原始 `allocationItem` 行，避免页面只能看到按线束聚合后的结果
-- 更新 `app/src/pages/AllocManagerPage.tsx`，新增“一次性费用矩阵明细”表，直接展示费用类型、费用名称、总金额、分摊基数、单根分摊、承担方、定价影响、支付模式、装车比、累计产量、回收进度与状态
-- 保留原有“按线束聚合后的分摊计算明细”，把 Sprint 2 一次性费用矩阵链路补成“矩阵原始行 + 聚合结果”双视图，便于端到端核对 engine/store/page/api
-
-### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
-
-### 备注:
-- 这一步完成的是 Sprint 2 “one-time allocation matrix end-to-end” 的一个具体收口：前端分摊页已能直接消费并展示后端矩阵行，而不是只看聚合值
-- 本轮未改 `task.json`，因为仍属于 Sprint 2 下的局部闭环步骤，尚不足以整体标记相关任务完成
-
-## [2026-04-16 03:20] - Task: COSTING ENGINE REFACTOR - 分摊管理页补齐一次性费用矩阵明细
-
-### 完成的工作:
-- 更新 `app/src/store/allocStore.ts`，在加载/同步场景分摊数据时保留 API 返回的原始 `allocationItem` 行，避免页面只能看到按线束聚合后的结果
-- 更新 `app/src/pages/AllocManagerPage.tsx`，新增“一次性费用矩阵明细”表，直接展示费用类型、费用名称、总金额、分摊基数、单根分摊、承担方、定价影响、支付模式、装车比、累计产量、回收进度与状态
-- 保留原有“按线束聚合后的分摊计算明细”，把 Sprint 2 一次性费用矩阵链路补成“矩阵原始行 + 聚合结果”双视图，便于端到端核对 engine/store/page/api
-
-### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
-
-### 备注:
-- 这一步完成的是 Sprint 2 “one-time allocation matrix end-to-end” 的一个具体收口：前端分摊页已能直接消费并展示后端矩阵行，而不是只看聚合值
-- 本轮未改 `task.json`，因为仍属于 Sprint 2 下的局部闭环步骤，尚不足以整体标记相关任务完成
-
-## [2026-04-16 03:06] - Task: COSTING ENGINE REFACTOR - ZIP 导出补齐使用说明文档
-
-### 完成的工作:
-- 更新 `app/src/engine/zip_export.ts`，在项目 ZIP 导出中固定追加 `usage/README.md`，把包内文件结构、建议使用顺序、当前项目摘要写成自说明文档
-- 在使用说明中显式指引 `project.json`、`bom_data.json`、`harness_results.json`、`quote_snapshots.json` 与 `verification/*` 的阅读顺序，补齐 Sprint 4 的 usage documentation 落地
-- 让使用说明直接读取最新报价快照里的 `factoryRateSource`，输出基准工厂、人工费率、制造费率、来源说明；若缺失则明确标记“未记录”
-- 扩展 `app/src/engine/zip_export.ui.test.ts`，校验 ZIP 包始终包含 `usage/README.md`，并在有快照时包含工厂费率来源章节
-
-### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
-
-### 备注:
-- 这一步完成的是 Sprint 4 “usage documentation” 的一个具体收口：导出的 ZIP 数据包现在自带阅读入口，不再要求使用者先翻代码判断各文件用途
-- 本轮未改 `task.json`，因为完成的是 Sprint 4 下的局部收口步骤，不足以将 T31/T33/T34/T36 等剩余任务整体标记 done
-
-
-### 完成的工作:
-- 更新 `app/src/engine/zip_export.ts`，在项目 ZIP 导出中固定追加 `usage/README.md`，把包内文件结构、建议使用顺序、当前项目摘要写成自说明文档
-- 在使用说明中显式指引 `project.json`、`bom_data.json`、`harness_results.json`、`quote_snapshots.json` 与 `verification/*` 的阅读顺序，补齐 Sprint 4 的 usage documentation 落地
-- 让使用说明直接读取最新报价快照里的 `factoryRateSource`，输出基准工厂、人工费率、制造费率、来源说明；若缺失则明确标记“未记录”
-- 扩展 `app/src/engine/zip_export.ui.test.ts`，校验 ZIP 包始终包含 `usage/README.md`，并在有快照时包含工厂费率来源章节
-
-### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
-
-### 备注:
-- 这一步完成的是 Sprint 4 “usage documentation” 的一个具体收口：导出的 ZIP 数据包现在自带阅读入口，不再要求使用者先翻代码判断各文件用途
-- 本轮未改 `task.json`，因为完成的是 Sprint 4 下的局部收口步骤，不足以将 T31/T33/T34/T36 等剩余任务整体标记 done
-
-## [2026-04-16 03:00] - Task: COSTING ENGINE REFACTOR - ZIP 导出补齐报价快照验证报告
-
-### 完成的工作:
-- 更新 `app/src/engine/zip_export.ts`，在项目 ZIP 导出中新增 `quote_snapshots.json` 与 `usage/README.md`，把项目下报价快照历史和使用说明一并打包，补齐 Sprint 4 verification/export/usage documentation 的实际落地产物
-- 当项目存在至少两个报价快照时，自动生成 `verification/quote_snapshot_diff_v*_to_v*.md`，输出最近两版报价快照的参数变更提示与总到厂价差异摘要，避免验证链路只停留在内存函数
-- 使用说明会额外汇总最新报价快照中的 `factoryRateSource`，把 Sprint 2 工厂费率参数化来源直接带进导出包，便于后续验数与交付
-- 扩展 `app/src/engine/zip_export.ui.test.ts`，新增报价快照历史存在时的 ZIP 导出断言，校验快照 JSON、验证报告与使用说明都会进入压缩包
-
-### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
-
-### 备注:
-- 这一步完成的是 Sprint 4 “verification report generation / export chain / usage documentation” 的一个具体补口：ZIP 导出现在自带验证摘要与使用说明
-- 当前导出说明读取的是 `quoteSnapshots.params.factoryRateSource`；若后续需要更细的工厂费率对比，可继续把 `quote_param_snapshot.ts` 的追溯结构和字段名完全对齐到快照持久化链路
-
-## [2026-04-16 03:05] - Task: COSTING ENGINE REFACTOR - 验证报告导出接入工厂费率来源
-
-### 完成的工作:
-- 更新 `server/src/services/exportService.ts`，让报价导出在 `loadQuoteBundle()` 中解析 `quoteParams.factoryRateSource`，并在 Excel 新增“工厂费率追溯”sheet、在 PDF 新增工厂费率追溯段落
-- 工厂费率追溯内容包含基准工厂 ID/名称、人工费率、制造费率、来源说明，使 Sprint 4 的 verification/export report 能直接展示 Sprint 2 工厂费率参数化来源，而不必回查 seed/settings
-- 扩展 `server/test_api.js`，在报价导出集成链路中补充工厂费率追溯断言，验证 quote Excel/PDF 导出均包含新增追溯内容
-
-### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/server run build` 通过
-- `PORT=3016 TEST_PORT=3016 TEST_BASE_URL=http://localhost:3016 node C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/server/test_api.js` 仍有既有失败，但本轮新增导出相关断言全部通过：quote Excel/PDF 导出成功，且能检测到“工厂费率追溯”“运营工时费报价基准”“昆山工厂”等新增内容
-
-### 备注:
-- 当前 `server/test_api.js` 剩余失败仍是仓库既有 Prisma transaction timeout / settings publish / quote confirm / audit foreign key 问题，非本轮导出改动引入
-- 这一步完成的是 Sprint 4 “验证/报告生成” 的一个具体收口：验证产物已能直接展示工厂费率基线来源，下一步可继续把同类追溯项扩展到使用说明或 Excel extraction validation 汇总页
-
-## [2026-04-16 02:47] - Task: COSTING ENGINE REFACTOR - 验证报告补齐工厂费率来源展示
-
-### 完成的工作:
-- 更新 `app/src/engine/quote_param_snapshot.ts`，新增 `generateQuoteVerificationReport()`，把报价版本对比直接渲染为可落库/导出的验证报告文本
-- 在验证报告中显式输出 base/compare 两侧 `factoryRateSource` 的基准工厂、人工费率、制造费率、来源说明，完成 Sprint 4 对工厂费率追溯信息的报告落地
-- 扩展 `app/src/engine/__tests__/quote_param_snapshot.test.ts`，新增验证报告生成用例，校验工厂费率来源与成本影响摘要会进入报告内容
-
-### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/quote_param_snapshot.test.ts` 通过（3 passed）
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
-
-### 备注:
-- 这一步只完成 Sprint 4 “verification report generation” 的一个具体收口，暂未接入页面按钮或 Excel 导出器，但报告文本生成能力已可被后续 report/export 链路直接复用
-- 下一步可继续把 `generateQuoteVerificationReport()` 接到实际 verification/export 页面，或转入 Sprint 3 包装/物流系统剩余链路

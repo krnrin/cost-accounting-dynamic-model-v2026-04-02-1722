@@ -19,6 +19,8 @@ import {
 } from '@/components/dashboard';
 import { MultiImportDialog } from '@/components/MultiImportDialog';
 import ScenarioSelector from '@/components/ScenarioSelector';
+import AlertBanner from '@/components/AlertBanner';
+import MetalImpactSummary from '@/components/MetalImpactSummary';
 import '@/components/dashboard/dashboard.css';
 
 export default function DashboardPage() {
@@ -40,6 +42,26 @@ export default function DashboardPage() {
     <div className="db-root">
       <ScenarioSelector />
       <Row gutter={[16, 16]}>
+        <AlertBanner
+          projectId={d.id!}
+          currentPrices={d.scenario?.config?.metalPrices ?? d.defaultMetalPrices}
+          basePrices={d.defaultMetalPrices}
+          thresholds={d.alertThresholds}
+        />
+
+        {d.summary && d.metalClientCheck.hasAlert && (
+          <MetalImpactSummary
+            harnesses={d.summary.harnesses.map((result) => ({
+              harnessId: result.harnessId,
+              harnessName: result.harnessName,
+              result,
+            }))}
+            basePrices={d.defaultMetalPrices}
+            newPrices={d.scenario?.config?.metalPrices ?? d.defaultMetalPrices}
+            title="金属价格联动影响"
+          />
+        )}
+
         {/* Row 1: Project info + KPI cards */}
         <KpiSection
           id={d.id}

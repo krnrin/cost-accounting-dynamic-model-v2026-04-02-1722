@@ -22,6 +22,8 @@ import type {
 } from '@/types/harness';
 import { useProjectStore } from '@/store/projectStore';
 import { useAllocStore } from '@/store/allocStore';
+import { useSettingsStore } from '@/store/settingsStore';
+import { computeMetalAlerts } from '@/engine/metal_alert';
 
 /* ------------------------------------------------------------------ */
 /*  Exported helper types                                              */
@@ -117,6 +119,25 @@ export function useDashboardData() {
     loadProjectAlloc,
     loadScenarioAlloc,
   } = useAllocStore();
+  const defaultMetalPrices = useSettingsStore((state) => state.defaultMetalPrices);
+  const alertThresholds = useSettingsStore((state) => state.alertThresholds);
+  const metalClientCheck = useMemo(() => {
+    const scenarioMetalPrices = scenario?.config?.metalPrices ?? defaultMetalPrices;
+    return computeMetalAlerts(
+      defaultMetalPrices,
+      scenarioMetalPrices,
+      {
+        copper: {
+          warnPct: alertThresholds.copperPercent,
+          dangerPct: alertThresholds.copperPercent * 2,
+        },
+        aluminum: {
+          warnPct: alertThresholds.aluminumPercent,
+          dangerPct: alertThresholds.aluminumPercent * 2,
+        },
+      }
+    );
+  }, [alertThresholds.aluminumPercent, alertThresholds.copperPercent, defaultMetalPrices, scenario]);
 
   // ---- data loading ------------------------------------------------
   const loadData = useCallback(async () => {
@@ -403,6 +424,9 @@ export function useDashboardData() {
     lifecyclePnL,
     harnessTableData,
     allocRecoveryItems,
+    metalClientCheck,
+    defaultMetalPrices,
+    alertThresholds,
     // actions
     loadData,
   };

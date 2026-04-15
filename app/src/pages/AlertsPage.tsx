@@ -40,6 +40,9 @@ import {
   type AlertRuleSeverity,
 } from '@/lib/alertRuleApi';
 import { useAlertWorkflow } from '@/hooks/useAlertWorkflow';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useInternalMetalStore } from '@/store/internalMetalStore';
+import { computeMetalAlerts } from '@/engine/metal_alert';
 
 const { Title, Text } = Typography;
 
@@ -115,6 +118,10 @@ function AlertCenterPage() {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const workflow = useAlertWorkflow();
+  const defaultMetalPrices = useSettingsStore((state) => state.defaultMetalPrices);
+  const alertThresholds = useSettingsStore((state) => state.alertThresholds);
+  const activeSource = useInternalMetalStore((state) => state.activeSource);
+  const activeMetalPrice = useInternalMetalStore((state) => state.getActivePrice());
 
   const [loading, setLoading] = useState(true);
   const [detecting, setDetecting] = useState(false);
@@ -156,6 +163,31 @@ function AlertCenterPage() {
     void reload();
   }, [projectId]);
 
+  const metalClientCheck = useMemo(() => {
+    const result = computeMetalAlerts(
+      defaultMetalPrices,
+      {
+        copper: activeMetalPrice.copper,
+        aluminum: activeMetalPrice.aluminum,
+      },
+      {
+        copper: {
+          warnPct: alertThresholds.copperPercent,
+          dangerPct: alertThresholds.copperPercent * 2,
+        },
+        aluminum: {
+          warnPct: alertThresholds.aluminumPercent,
+          dangerPct: alertThresholds.aluminumPercent * 2,
+        },
+      }
+    );
+    return {
+      ...result,
+      activeSource,
+      activeTimestamp: activeMetalPrice.timestamp,
+    };
+  }, [activeMetalPrice.aluminum, activeMetalPrice.copper, activeMetalPrice.timestamp, activeSource, alertThresholds.aluminumPercent, alertThresholds.copperPercent, defaultMetalPrices]);
+
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
       if (activeTab !== 'all' && event.category !== activeTab) {
@@ -170,6 +202,14 @@ function AlertCenterPage() {
       return true;
     });
   }, [activeTab, events, severityFilter, statusFilter]);
+
+  const clientCheckSummary = useMemo(() => {
+    const alertCount = metalClientCheck.items.filter((item) => item.level !== 'normal').length;
+    if (!alertCount) {
+      return `当前金属价格来源 ${metalClientCheck.activeSource} 未触发阈值预警。`;
+    }
+    return `当前金属价格来源 ${metalClientCheck.activeSource} 检出 ${alertCount} 条金属价格预警。`;
+  }, [metalClientCheck.activeSource, metalClientCheck.items]);
 
   const openDetail = async (event: AlertEvent) => {
     setDetailVisible(true);
@@ -218,8 +258,9 @@ function AlertCenterPage() {
   const handleRunClientChecks = () => {
     try {
       const checkResult = workflow.runChecks({});
-      if (checkResult.alerts.length > 0) {
-        Toast.warning(`客户端预检发现 ${checkResult.alerts.length} 条潜在预警，建议运行完整检测。`);
+      const metalAlertCount = metalClientCheck.items.filter((item) => item.level !== 'normal').length;
+      if (checkResult.alerts.length > 0 || metalAlertCount > 0) {
+        Toast.warning(`客户端预检发现 ${checkResult.alerts.length + metalAlertCount} 条潜在预警，建议运行完整检测。`);
       } else {
         Toast.info('客户端预检未发现异常。');
       }
@@ -355,6 +396,26 @@ function AlertCenterPage() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="glass-card animate-fade-up" style={{ padding: 20, marginBottom: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ display: 'grid', gap: 8 }}>
+            <Text strong>金属价格客户端联动预检</Text>
+            <Text type="tertiary">{clientCheckSummary}</Text>
+            <Text type="tertiary">基准价：铜 ¥{defaultMetalPrices.copper}/吨，铝 ¥{defaultMetalPrices.aluminum}/吨；当前来源：{metalClientCheck.activeSource}（{formatDateTime(metalClientCheck.activeTimestamp)}）</Text>
+          </div>
+          <Space wrap>
+            {metalClientCheck.items.map((item) => {
+              const color = item.level === 'danger' ? 'red' : item.level === 'warn' ? 'orange' : 'grey';
+              return (
+                <Tag key={item.metal} color={color} size="large">
+                  {item.label} {item.deltaPct >= 0 ? '+' : ''}{item.deltaPct.toFixed(1)}%
+                </Tag>
+              );
+            })}
+          </Space>
+        </div>
       </div>
 
       <div className="glass-card animate-fade-up" style={{ padding: 28 }}>
