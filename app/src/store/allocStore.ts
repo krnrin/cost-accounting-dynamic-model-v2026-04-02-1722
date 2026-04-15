@@ -78,7 +78,6 @@ function aggregateScenarioRows(items: ScenarioAllocationItem[]): ScenarioAllocRo
       vehicleRatio: Number(item.latestInstallRatioSnapshot || 1) || 1,
       toolingCost: 0,
       testingCost: 0,
-      rndCost: 0,
       allocBase: Math.max(1, Number(item.baselineVolume || 50000)),
       paymentMode: normalizePaymentMode(item.allocationBasis),
       cumProduced: Math.max(0, Number(item.latestCumulativeVolume || 0)),
@@ -93,8 +92,6 @@ function aggregateScenarioRows(items: ScenarioAllocationItem[]): ScenarioAllocRo
       current.toolingCost += Number(item.totalAmount || 0);
     } else if (item.expenseType === 'testing') {
       current.testingCost += Number(item.totalAmount || 0);
-    } else if (item.expenseType === 'rnd') {
-      current.rndCost += Number(item.totalAmount || 0);
     }
 
     rowMap.set(item.harnessId, current);
@@ -110,7 +107,6 @@ function toOnetimeCostInputs(rows: ScenarioAllocRow[]): OnetimeCostInput[] {
     vehicleRatio: row.vehicleRatio,
     toolingCost: Number(row.toolingCost || 0),
     testingCost: Number(row.testingCost || 0),
-    rndCost: Number(row.rndCost || 0),
     allocBase: Math.max(1, Number(row.allocBase || 1)),
     paymentMode: row.paymentMode,
   }));
@@ -131,7 +127,6 @@ function toCostRecords(projectId: string, scenarioId: string, rows: ScenarioAllo
       vehicleRatio: row.vehicleRatio,
       toolingCost: row.toolingCost,
       testingCost: row.testingCost,
-      rndCost: row.rndCost,
       allocBase: row.allocBase,
       paymentMode: row.paymentMode,
     },
@@ -217,7 +212,6 @@ export const useAllocStore = create<AllocState>()(
           vehicleRatio: Number(row.vehicleRatio || 0),
           toolingCost: Number(row.toolingCost || 0),
           testingCost: Number(row.testingCost || 0),
-          rndCost: Number(row.rndCost || 0),
           allocBase: Math.max(1, Number(row.allocBase || 1)),
           paymentMode: row.paymentMode ?? 'amortized',
           cumProduced: Math.max(0, Number(row.cumProduced || 0)),
@@ -242,7 +236,6 @@ export const useAllocStore = create<AllocState>()(
           vehicleRatio: input.vehicleRatio,
           toolingCost: input.toolingCost,
           testingCost: input.testingCost,
-          rndCost: input.rndCost,
           allocBase: input.allocBase,
           paymentMode: input.paymentMode ?? current?.paymentMode ?? 'amortized',
           cumProduced: current?.cumProduced ?? 0,
@@ -267,7 +260,6 @@ export const useAllocStore = create<AllocState>()(
             vehicleRatio: input.vehicleRatio,
             toolingCost: input.toolingCost,
             testingCost: input.testingCost,
-            rndCost: input.rndCost,
             allocBase: input.allocBase,
             paymentMode: input.paymentMode ?? current?.paymentMode ?? 'amortized',
             cumProduced: current?.cumProduced ?? 0,

@@ -24,15 +24,6 @@ import {
 import { numberOr, safeArray } from './shared_utils';
 import { detectPrecisionLevel, estimateByCoefficients, LEVEL1_COEFFICIENTS } from './precision';
 
-// ── 默认参数 (从 定点核算.xlsx 验证) ──
-export const DEFAULTS: CostRates = {
-  laborRate: 35, // 客户报价: 直接人工费率 (元/h)
-  mfgRate: 46.69, // 客户报价: 制造费率 (元/h)  — Excel精确值
-  wasteRate: 0.01, // 废品率 1% — Excel验证: wasteCost/materialCost = 0.01
-  mgmtRate: 0.06, // 管理费率 6%  — 注意: 基数不含废品
-  profitRate: 0.056627, // 利润率 ~5.6627% (从Excel11个零件号倒推, 一致±0.0001%)
-};
-
 /** 内部实绩核算默认费率 (基准) */
 export const INTERNAL_DEFAULTS: InternalCostRates = {
   laborRate: 28.58, // 以 Assembly 基准
@@ -95,50 +86,6 @@ export function getInternalFactoryRates(
 
   return baseRates;
 }
-
-/**
- * 核心核算引擎 - 动态模拟版 (用于报价预演)
- * 使用 PricingContext 中的仿真参数动态调整费率
- */
-export function computeHarnessCostDynamic(
-  input: HarnessInput,
-  context: PricingContext,
-  factoryId: string
-): HarnessResult {
-  const { benchmark, simulation } = context;
-  const factory = benchmark.factories[factoryId];
-  
-  // 模拟对客户报价费率的影响 (如果适用)
-  // 此处逻辑可根据商务部需求定制，默认直接透传 simulation 效率因子
-  const efficiencyBase = factory?.efficiency_base || 0.9;
-  const efficiencyFactor = simulation.efficiency / efficiencyBase;
-  
-  const baseRates = DEFAULTS; // 使用全局报价默认值或从项目配置加载
-  
-  const dynamicRates: CostRates = {
-    ...baseRates,
-    // 效率提升意味着人工成本下降
-    laborRate: baseRates.laborRate / efficiencyFactor,
-    mfgRate: baseRates.mfgRate / efficiencyFactor,
-  };
-
-  return computeHarnessCost(input, dynamicRates, context.metalPrices);
-}
-
-export const DEFAULT_COST_STRUCTURE: CostStructureSchema = {
-  name: '默认成本结构',
-  version: '1.0',
-  items: [
-    { key: 'material',    label: '材料成本', calcMethod: 'bom_sum',       order: 10, inExFactory: true },
-    { key: 'waste',       label: '废品',     calcMethod: 'rate_x_base',   rate: 0.01, baseRef: ['material'], order: 20, inExFactory: true },
-    { key: 'directLabor', label: '直接人工', calcMethod: 'rate_x_hours',  rate: 35,   order: 30, inExFactory: true },
-    { key: 'manufacturing', label: '制造费', calcMethod: 'rate_x_hours',  rate: 46.69, order: 40, inExFactory: true },
-    { key: 'mgmtFee',     label: '管理费',   calcMethod: 'rate_x_base',   rate: 0.06, baseRef: ['material', 'directLabor', 'manufacturing'], order: 50, inExFactory: true },
-    { key: 'profit',      label: '利润',     calcMethod: 'rate_x_base',   rate: 0.056627, baseRef: ['material', 'waste', 'directLabor', 'manufacturing', 'mgmtFee'], order: 60, inExFactory: true },
-    { key: 'packaging',   label: '包装费',   calcMethod: 'direct',        order: 70, isAddon: true },
-    { key: 'freight',     label: '运输费',   calcMethod: 'direct',        order: 80, isAddon: true },
-  ],
-};
 
 // ── 材料分类关键字 ──
 export const DEFAULT_CLASSIFICATION_RULES: BomClassificationRule[] = [
@@ -415,7 +362,8 @@ export function computeHarnessCostBySchema(
   } = input;
 
   const processHours = frontHours + backHours || (input as any).processHours || 0;
-  const currentRates = rates || DEFAULTS;
+  if (!rates) throw new Error('computeHarnessCostBySchema: rates required');
+  const currentRates = rates;
 
   // 1. 计算基础材料成本 (bom_sum 项的基础)
   const { materialCost, totalCuWeight, totalAlWeight, breakdown } = computeMaterialCost(
@@ -714,8 +662,76 @@ export function computeInternalProjectFromHarnesses(results: InternalHarnessResu
   return summary;
 }
 
+export function mapInternalToHarnessResult(result: InternalHarnessResult): HarnessResult {
+  return {
+    harnessId: result.harnessId,
+    harnessName: result.harnessName,
+    vehicleRatio: result.vehicleRatio,
+    copperWeight: result.copperWeight,
+    aluminumWeight: result.aluminumWeight,
+    processHours: result.processHours,
+    materialCost: result.materialCost,
+    wasteCost: result.materialWaste,
+    directLabor: result.directLabor,
+    manufacturing: result.mfgOverheadTotal,
+    laborPlusMfg: result.directLabor + result.mfgOverheadTotal,
+    mgmtFee: 0,
+    profit: 0,
+    exFactoryPrice: result.internalCost - result.packTotal,
+    packSubtotal: result.packTotal,
+    freightSubtotal: 0,
+    packTotal: result.packTotal,
+    deliveredPrice: result.internalCost,
+    materialBreakdown: {
+      cuCost: 0,
+      alCost: 0,
+      nonMetalCost: 0,
+      byType: { wire: 0, connector: 0, terminal: 0, ipt_terminal: 0, bracket_rubber: 0, tape_tube: 0, other: result.materialCost },
+      totalMetalCost: 0,
+      totalNonWireCost: result.materialCost,
+    },
+    packagingDetail: { innerBoxCost: 0, outerBoxCost: 0, palletCost: 0, trayDividerCost: 0, bubbleWrapCost: 0, labelCost: 0, subtotal: result.packTotal },
+    freightDetail: { freight: 0, excessFreight: 0, shortHaul: 0, thirdPartyWarehouse: 0, storage: 0, subtotal: 0 },
+    precisionLevel: 2,
+    _params: {
+      wasteRate: result.materialWaste && result.materialCost ? result.materialWaste / result.materialCost : 0,
+      mgmtRate: 0,
+      profitRate: 0,
+      laborRate: 0,
+      mfgRate: 0,
+    },
+  };
+}
+
+export function mapInternalProjectToProjectHarnessResult(results: InternalHarnessResult[]): ProjectHarnessResult {
+  const internal = computeInternalProjectFromHarnesses(results);
+  const harnesses = results.map(mapInternalToHarnessResult);
+  return {
+    harnesses,
+    vehicleCost: internal.vehicleCost,
+    harnessCount: harnesses.length,
+    totalCopperWeight: harnesses.reduce((s, h) => s + h.copperWeight, 0),
+    totalAluminumWeight: harnesses.reduce((s, h) => s + h.aluminumWeight, 0),
+    totalProcessHours: harnesses.reduce((s, h) => s + h.processHours, 0),
+    weightedMaterial: internal.weightedMaterial,
+    weightedWaste: internal.weightedMaterialWaste,
+    weightedLabor: internal.weightedDirectLabor,
+    weightedMfg: internal.weightedMfgOverheadTotal,
+    weightedLaborPlusMfg: internal.weightedDirectLabor + internal.weightedMfgOverheadTotal,
+    weightedMgmtFee: 0,
+    weightedProfit: 0,
+    weightedExFactory: internal.vehicleCost - internal.weightedPack,
+    weightedPack: internal.weightedPack,
+    weightedFreight: 0,
+    weightedCopperWeight: harnesses.reduce((s, h) => s + h.copperWeight * h.vehicleRatio, 0),
+    weightedAluminumWeight: harnesses.reduce((s, h) => s + h.aluminumWeight * h.vehicleRatio, 0),
+    weightedProcessHours: harnesses.reduce((s, h) => s + h.processHours * h.vehicleRatio, 0),
+  };
+}
+
 /**
- * computeHarnessCost — 单线束号完整成本核算
+ * computeHarnessCost — 单线束号完整成本核算 (向后兼容包装器)
+ * 内部委托给 computeHarnessCostBySchema
  */
 export function computeHarnessCost(
   input: HarnessInput,
@@ -723,159 +739,34 @@ export function computeHarnessCost(
   metalPrices: MetalPrices,
   wireCatalog: Map<string, any> | null = null
 ): HarnessResult {
-  const {
-    harnessId = '',
-    harnessName = '',
-    vehicleRatio = 0,
-    bom = [],
-    frontHours = 0,
-    backHours = 0,
-    packaging: pack = { 
-      innerBoxCost: 0, outerBoxCost: 0, palletCost: 0, 
-      trayDividerCost: 0, bubbleWrapCost: 0, labelCost: 0, 
-      subtotal: 0 
-    },
-    freight = { freight: 0, excessFreight: 0, shortHaul: 0, thirdPartyWarehouse: 0, storage: 0, subtotal: 0 },
-  } = input;
-
-  const laborRate = numberOr(rates.laborRate, DEFAULTS.laborRate);
-  const mfgRate = numberOr(rates.mfgRate, DEFAULTS.mfgRate);
-  const wasteRate = numberOr(rates.wasteRate, DEFAULTS.wasteRate);
-  const mgmtRate = numberOr(rates.mgmtRate, DEFAULTS.mgmtRate);
-  const profitRate = numberOr(rates.profitRate, DEFAULTS.profitRate);
-
-  // 总工时
-  const processHours = frontHours + backHours || (input as any).processHours || 0;
-
-  // ── 1. 材料成本 ──
-  let materialCost = 0;
-  let totalCuWeight = 0,
-    totalAlWeight = 0;
-  let totalCuCost = 0,
-    totalAlCost = 0,
-    totalNonMetalCost = 0;
-  const materialByType: MaterialBreakdown['byType'] = {
-    wire: 0,
-    connector: 0,
-    terminal: 0,
-    ipt_terminal: 0,
-    bracket_rubber: 0,
-    tape_tube: 0,
-    other: 0,
-  };
-
-  const bomItems = safeArray(bom);
-  if (bomItems.length > 0) {
-    for (const item of bomItems) {
-      const result = computeBomLineCost(item, wireCatalog, metalPrices);
-      materialCost += result.lineCost;
-      totalCuWeight += result.cuWeight;
-      totalAlWeight += result.alWeight;
-      totalCuCost += result.cuCost;
-      totalAlCost += result.alCost;
-      totalNonMetalCost += result.nonMetalCost;
-      
-      const type = result.type as keyof MaterialBreakdown['byType'];
-      if (materialByType[type] !== undefined) {
-        materialByType[type] += result.lineCost;
-      } else {
-        materialByType.other += result.lineCost;
-      }
-    }
-  } else if ((input as any).materialCost !== undefined) {
-    materialCost = numberOr((input as any).materialCost, 0);
-    totalCuWeight = numberOr((input as any).copperWeight, 0);
-    totalAlWeight = numberOr((input as any).aluminumWeight, 0);
-  }
-
-  // ── 2. 废品 ──
-  const wasteCost = materialCost * wasteRate;
-
-  // ── 3. 直接人工 ──
-  const directLabor = processHours * laborRate;
-
-  // ── 4. 制造费 ──
-  const manufacturing = processHours * mfgRate;
-
-  // ── 5. 管理费 ──
-  // 注意: 管理费基数 = 材料+人工+制造 (不含废品!)
-  const mgmtBase = materialCost + directLabor + manufacturing;
-  const mgmtFee = mgmtBase * mgmtRate;
-
-  // ── 6. 利润 ──
-  // 利润基数 = 材料+废品+人工+制造+管理费 (含废品!)
-  const subtotalBeforeProfit = materialCost + wasteCost + directLabor + manufacturing + mgmtFee;
-  const profit = subtotalBeforeProfit * profitRate;
-
-  // ── 7. 出厂价 ──
-  const exFactoryPrice = subtotalBeforeProfit + profit;
-
-  // ── 8. 包装 + 运输 ──
-  const packSubtotal = numberOr(pack.subtotal, 0) || (
-    numberOr(pack.innerBoxCost, 0) + numberOr(pack.outerBoxCost, 0) + 
-    numberOr(pack.palletCost, 0) + numberOr(pack.trayDividerCost, 0) + 
-    numberOr(pack.bubbleWrapCost, 0) + numberOr(pack.labelCost, 0)
-  );
-
-  const f = freight;
-  const freightSubtotal =
-    numberOr(f.freight, 0) +
-    numberOr(f.excessFreight, 0) +
-    numberOr(f.shortHaul, 0) +
-    numberOr(f.thirdPartyWarehouse, 0) +
-    numberOr(f.storage, 0);
-
-  const packTotal = packSubtotal + freightSubtotal;
-
-  // ── 9. 到厂价 ──
-  const deliveredPrice = exFactoryPrice + packTotal;
-
-  return {
-    harnessId,
-    harnessName,
-    vehicleRatio,
-    copperWeight: totalCuWeight,
-    aluminumWeight: totalAlWeight,
-    processHours,
-    materialCost,
-    wasteCost,
-    directLabor,
-    manufacturing,
-    laborPlusMfg: directLabor + manufacturing,
-    mgmtFee,
-    profit,
-    exFactoryPrice,
-    packSubtotal,
-    freightSubtotal,
-    packTotal,
-    deliveredPrice,
-    materialBreakdown: {
-      cuCost: totalCuCost,
-      alCost: totalAlCost,
-      nonMetalCost: totalNonMetalCost,
-      byType: materialByType,
-      totalMetalCost: totalCuCost + totalAlCost,
-      totalNonWireCost: materialCost - materialByType.wire,
-    },
-    packagingDetail: { ...pack, subtotal: packSubtotal },
-    freightDetail: {
-      freight: numberOr(f.freight, 0),
-      excessFreight: numberOr(f.excessFreight, 0),
-      shortHaul: numberOr(f.shortHaul, 0),
-      thirdPartyWarehouse: numberOr(f.thirdPartyWarehouse, 0),
-      storage: numberOr(f.storage, 0),
-      subtotal: freightSubtotal,
-    },
-    precisionLevel: detectPrecisionLevel(input),
-    _params: {
-      laborRate,
-      mfgRate,
-      wasteRate,
-      mgmtRate,
-      profitRate,
-    },
-  };
+  const sr = computeHarnessCostBySchema(input, { name: 'default', version: '1.0', items: [] }, metalPrices, wireCatalog, rates);
+  return schemaResultToHarnessResult(sr, input, rates, detectPrecisionLevel(input));
 }
+
+/** 默认成本结构 Schema (客户报价口径，仅用于向后兼容) */
+export const DEFAULT_COST_STRUCTURE: CostStructureSchema = {
+  name: '默认成本结构',
+  version: '1.0',
+  items: [
+    { key: 'material',    label: '材料成本', calcMethod: 'bom_sum',       order: 10, inExFactory: true },
+    { key: 'waste',       label: '废品',     calcMethod: 'rate_x_base',   rate: 0.01, baseRef: ['material'], order: 20, inExFactory: true },
+    { key: 'directLabor', label: '直接人工', calcMethod: 'rate_x_hours',  rate: 35,   order: 30, inExFactory: true },
+    { key: 'manufacturing', label: '制造费', calcMethod: 'rate_x_hours',  rate: 46.69, order: 40, inExFactory: true },
+    { key: 'mgmtFee',     label: '管理费',   calcMethod: 'rate_x_base',   rate: 0.06, baseRef: ['material', 'directLabor', 'manufacturing'], order: 50, inExFactory: true },
+    { key: 'profit',      label: '利润',     calcMethod: 'rate_x_base',   rate: 0.056627, baseRef: ['material', 'waste', 'directLabor', 'manufacturing', 'mgmtFee'], order: 60, inExFactory: true },
+    { key: 'packaging',   label: '包装费',   calcMethod: 'direct',        order: 70, isAddon: true },
+    { key: 'freight',     label: '运输费',   calcMethod: 'direct',        order: 80, isAddon: true },
+  ],
+};
+
+/** 默认客户报价费率 (仅用于向后兼容 DEFAULTS 引用) */
+export const DEFAULTS: CostRates = {
+  laborRate: 35,
+  mfgRate: 46.69,
+  wasteRate: 0.01,
+  mgmtRate: 0.06,
+  profitRate: 0.056627,
+};
 
 /** 自适应核算选项 */
 export interface AdaptiveComputeOptions {
@@ -914,8 +805,13 @@ export function computeHarnessCostAdaptive(
   if (level === 1) {
     const refPrice = options?.referenceTotalPrice ?? numberOr((input as any).referenceTotalPrice, 0);
     if (refPrice <= 0) {
-      // 无参考价也无任何数据 — 返回零值结果
-      return computeHarnessCost(input, rates, metalPrices, wireCatalog);
+      // 无参考价也无任何数据 — 使用 Schema 引擎返回零值结果
+      return schemaResultToHarnessResult(
+        computeHarnessCostBySchema(input, { name: 'fallback', version: '1.0', items: [] }, metalPrices, wireCatalog, rates),
+        input,
+        rates,
+        level,
+      );
     }
     const coefficients = options?.level1Coefficients ?? LEVEL1_COEFFICIENTS;
     const est = estimateByCoefficients(refPrice, rates, coefficients);
@@ -965,8 +861,13 @@ export function computeHarnessCostAdaptive(
     return schemaResultToHarnessResult(schemaResult, input, rates, level);
   }
 
-  // 标准硬编码模式 (Level 2/3 共用同一代码, Level 2 走 materialCost fallback)
-  return computeHarnessCost(input, rates, metalPrices, wireCatalog);
+  // 标准硬编码模式 → 使用 Schema 引擎 (Level 2/3 共用同一代码, Level 2 走 materialCost fallback)
+  return schemaResultToHarnessResult(
+    computeHarnessCostBySchema(input, { name: 'default', version: '1.0', items: [] }, metalPrices, wireCatalog, rates),
+    input,
+    rates,
+    level,
+  );
 }
 
 /**
@@ -1077,154 +978,6 @@ export function computeProjectFromHarnesses(harnessResults: HarnessResult[]): Pr
   }
 
   return summary;
-}
-
-/**
- * computeHarnessesFromSeedData — 从种子数据批量核算
- *
- * @param seedData - 种子数据数组
- * @param rates - 客户报价费率
- * @param metalPrices - 金属价格
- * @param adaptiveOptions - 自适应选项 (可选, 支持 Schema/精度递进)
- */
-export function computeHarnessesFromSeedData(
-  seedData: any[],
-  rates: CostRates,
-  metalPrices: MetalPrices,
-  adaptiveOptions?: AdaptiveComputeOptions
-): ProjectHarnessResult {
-  const seeds = safeArray(seedData);
-  const results: HarnessResult[] = [];
-
-  for (const seed of seeds) {
-    const input: HarnessInput = {
-      harnessId: seed.harnessId,
-      harnessName: seed.name || seed.harnessName || '',
-      vehicleRatio: numberOr(seed.vehicleRatio, 0),
-      bom: seed.bomItems || [],
-      frontHours: seed.frontHours || seed.processHours || 0,
-      backHours: seed.backHours || 0,
-      packaging: seed.packaging || { 
-        innerBoxCost: 0, outerBoxCost: 0, palletCost: 0, 
-        trayDividerCost: 0, bubbleWrapCost: 0, labelCost: 0, 
-        subtotal: 0 
-      },
-      freight: seed.freight || {
-        freight: 0,
-        excessFreight: 0,
-        shortHaul: 0,
-        thirdPartyWarehouse: 0,
-        storage: 0,
-        subtotal: 0,
-      },
-    };
-
-    // 兼容种子数据中的扁平化包装/运输结构
-    if (seed.packaging && !seed.packaging.subtotal) {
-      input.packaging = {
-        innerBoxCost: numberOr(seed.packaging.innerPack || seed.packaging.innerBoxCost, 0),
-        outerBoxCost: numberOr(seed.packaging.outerPack || seed.packaging.outerBoxCost, 0),
-        palletCost: numberOr(seed.packaging.palletCost, 0),
-        trayDividerCost: numberOr(seed.packaging.trayDividerCost, 0),
-        bubbleWrapCost: numberOr(seed.packaging.bubbleWrapCost, 0),
-        labelCost: numberOr(seed.packaging.labelCost, 0),
-        subtotal: 0,
-      };
-      input.freight = {
-        freight: numberOr(seed.packaging.freight, 0),
-        excessFreight: numberOr(seed.packaging.excessFreight, 0),
-        shortHaul: numberOr(seed.packaging.shortHaul, 0),
-        thirdPartyWarehouse: numberOr(seed.packaging.thirdPartyWarehouse, numberOr(seed.packaging.thirdParty, 0)),
-        storage: numberOr(seed.packaging.storage, 0),
-        subtotal: 0,
-      };
-    }
-
-    // 兼容直接提供的材料成本
-    if (seed.materialCost !== undefined) {
-      (input as any).materialCost = seed.materialCost;
-      (input as any).copperWeight = seed.copperWeight;
-      (input as any).aluminumWeight = seed.aluminumWeight;
-    }
-
-    // 兼容参考总价 (Level 1 估算)
-    if (seed.referenceTotalPrice !== undefined) {
-      (input as any).referenceTotalPrice = seed.referenceTotalPrice;
-    }
-
-    // 使用自适应入口或标准入口
-    let result: HarnessResult;
-    if (adaptiveOptions) {
-      result = computeHarnessCostAdaptive(input, rates, metalPrices, null, {
-        ...adaptiveOptions,
-        referenceTotalPrice: adaptiveOptions.referenceTotalPrice ?? seed.referenceTotalPrice,
-      });
-    } else {
-      result = computeHarnessCost(input, rates, metalPrices);
-    }
-    (result as any).family = seed.family;
-    results.push(result);
-  }
-
-  const project = computeProjectFromHarnesses(results);
-  return project;
-}
-
-/**
- * buildHarnessCostTable — 生成线束号级成本分解表 (用于UI展示)
- */
-export function buildHarnessCostTable(harnessResults: HarnessResult[]) {
-  const columns = [
-    { key: 'harnessId', label: '零件号' },
-    { key: 'harnessName', label: '名称' },
-    { key: 'vehicleRatio', label: '装车比' },
-    { key: 'materialCost', label: '材料成本', unit: '元' },
-    { key: 'wasteCost', label: '废品', unit: '元' },
-    { key: 'directLabor', label: '直接人工', unit: '元' },
-    { key: 'manufacturing', label: '制造费', unit: '元' },
-    { key: 'mgmtFee', label: '管理费', unit: '元' },
-    { key: 'profit', label: '利润', unit: '元' },
-    { key: 'exFactoryPrice', label: '出厂价', unit: '元' },
-    { key: 'packSubtotal', label: '包装费', unit: '元' },
-    { key: 'freightSubtotal', label: '运输费', unit: '元' },
-    { key: 'deliveredPrice', label: '到厂价', unit: '元' },
-  ];
-
-  const results = safeArray(harnessResults);
-  const rows = results.map((h) => ({
-    harnessId: h.harnessId,
-    harnessName: h.harnessName,
-    vehicleRatio: h.vehicleRatio,
-    materialCost: h.materialCost,
-    wasteCost: h.wasteCost,
-    directLabor: h.directLabor,
-    manufacturing: h.manufacturing,
-    mgmtFee: h.mgmtFee,
-    profit: h.profit,
-    exFactoryPrice: h.exFactoryPrice,
-    packSubtotal: h.packSubtotal,
-    freightSubtotal: h.freightSubtotal,
-    deliveredPrice: h.deliveredPrice,
-  }));
-
-  const project = computeProjectFromHarnesses(results) as any;
-  const totals = {
-    harnessId: '加权合计',
-    harnessName: '',
-    vehicleRatio: '',
-    materialCost: project.weightedMaterial,
-    wasteCost: project.weightedWaste,
-    directLabor: project.weightedLabor,
-    manufacturing: project.weightedMfg,
-    mgmtFee: project.weightedMgmtFee,
-    profit: project.weightedProfit,
-    exFactoryPrice: project.weightedExFactory,
-    packSubtotal: project.weightedPack,
-    freightSubtotal: project.weightedFreight,
-    deliveredPrice: project.vehicleCost,
-  };
-
-  return { columns, rows, totals };
 }
 
 /**

@@ -21,7 +21,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { RoleGuard } from '@/components/RoleGuard';
 
 import { db } from '@/data/db';
-import { computeHarnessCostDynamic, computeHarnessCost, getInternalFactoryRates, computeInternalHarnessCost } from '@/engine/harness_costing';
+import { computeHarnessCost, getInternalFactoryRates, computeInternalHarnessCost } from '@/engine/harness_costing';
 import { detectPrecisionLevel } from '@/engine/precision';
 import type { HarnessInput, BomItem, WireItem, HarnessResult } from '@/types/harness';
 import { BomImportDialog } from '@/components/BomImportDialog';
@@ -128,8 +128,13 @@ export default function HarnessEditPage() {
     const cfg = data.scenario.config;
 
     if (pricingContext) {
-      // 注入动态工厂费率 (Issue #45)
-      return computeHarnessCostDynamic(formData, pricingContext, cfg.factories?.[0]?.factoryId || 'K1K2_Factory');
+      // 注入动态工厂费率 (Issue #45) — 使用内部实绩费率覆盖成本费率
+      const factoryRates = getInternalFactoryRates(cfg.factories?.[0]?.factoryId || 'K1K2_Factory', pricingContext.benchmark, pricingContext.simulation);
+      return computeHarnessCost(
+        formData,
+        { ...cfg.costRates, laborRate: factoryRates.laborRate },
+        pricingContext.metalPrices
+      );
     }
 
     return computeHarnessCost(

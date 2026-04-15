@@ -14,12 +14,9 @@ export type {
   HarnessResult, MaterialBreakdown, ProjectHarnessResult,
 } from './harness';
 export type {
-  TemplateType,
-  GeelyRates, GeelyTemplateResult, BydTemplateResult, GenericTemplateResult,
-  InternalTemplateResult, NreData, TemplatePreset,
-  QuoteSheetMeta, QuoteSheet,
+  NreData,
   ChangeCategory, ChangePricingResult, ChangeItem,
-  ChangeSummary, AnnualImpact, AnnualImpactYear,
+  CostDelta, ChangeSummary, AnnualImpact, AnnualImpactYear,
   MetalContract, MetalDelta, MetalEscalationResult, MetalSensitivityMatrix,
   AnnualDropResult,
 } from './quote';

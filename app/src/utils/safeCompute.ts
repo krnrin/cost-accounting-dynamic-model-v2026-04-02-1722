@@ -9,21 +9,21 @@
  *   const result = safeComputeHarnessCost(input, costRates, metalPrices);
  *   if (!result) { /* handle gracefully * / }
  */
-import { computeHarnessCost, computeProjectFromHarnesses, computeInternalHarnessCost, computeInternalProjectFromHarnesses } from '@/engine/harness_costing';
-import type { HarnessInput, HarnessResult, InternalHarnessResult } from '@/types/harness';
-import type { CostRates, MetalPrices, InternalCostRates } from '@/types/project';
+import { computeInternalHarnessCost, computeInternalProjectFromHarnesses } from '@/engine/harness_costing';
+import type { HarnessInput, InternalHarnessResult } from '@/types/harness';
+import type { MetalPrices, InternalCostRates } from '@/types/project';
 
 export function safeComputeHarnessCost(
   input: HarnessInput,
-  costRates: CostRates,
+  _costRates: InternalCostRates,
   metalPrices: MetalPrices,
   context?: string,
-): HarnessResult | null {
+): InternalHarnessResult | null {
   try {
-    return computeHarnessCost(input, costRates, metalPrices);
+    return computeInternalHarnessCost(input, _costRates, metalPrices);
   } catch (error) {
     console.error(
-      `[safeCompute] computeHarnessCost failed for ${input.harnessId}${context ? ` (${context})` : ''}:`,
+      `[safeCompute] computeInternalHarnessCost failed for ${input.harnessId}${context ? ` (${context})` : ''}:`,
       error,
     );
     return null;
@@ -48,12 +48,12 @@ export function safeComputeInternalHarnessCost(
 }
 
 export function safeComputeProjectFromHarnesses(
-  results: HarnessResult[],
-): ReturnType<typeof computeProjectFromHarnesses> | null {
+  results: InternalHarnessResult[],
+): ReturnType<typeof computeInternalProjectFromHarnesses> | null {
   try {
-    return computeProjectFromHarnesses(results);
+    return computeInternalProjectFromHarnesses(results);
   } catch (error) {
-    console.error('[safeCompute] computeProjectFromHarnesses failed:', error);
+    console.error('[safeCompute] computeInternalProjectFromHarnesses failed:', error);
     return null;
   }
 }
@@ -75,9 +75,9 @@ export function safeComputeInternalProjectFromHarnesses(
  */
 export function batchSafeCompute(
   inputs: HarnessInput[],
-  costRates: CostRates,
+  costRates: InternalCostRates,
   metalPrices: MetalPrices,
-): Array<HarnessResult | null> {
+): Array<InternalHarnessResult | null> {
   return inputs.map(input => safeComputeHarnessCost(input, costRates, metalPrices, 'batch'));
 }
 

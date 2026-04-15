@@ -1,5 +1,5 @@
 import type { VersionSnapshot, VersionDiff, VersionDiffItem } from '../types/version';
-import { computeHarnessCost } from './harness_costing';
+import { computeInternalHarnessCost, INTERNAL_DEFAULTS, mapInternalToHarnessResult } from './harness_costing';
 
 export function computeVersionDiff(before: VersionSnapshot, after: VersionSnapshot): VersionDiff {
   const projectLevel: VersionDiffItem[] = [
@@ -18,8 +18,8 @@ export function computeVersionDiff(before: VersionSnapshot, after: VersionSnapsh
     const a = harnessMapAfter.get(harnessId);
     const harnessName = a?.harnessName || b?.harnessName || 'Unknown';
 
-    const resultBefore = b ? computeHarnessCost(b.input, before.config.costRates, before.config.metalPrices) : null;
-    const resultAfter = a ? computeHarnessCost(a.input, after.config.costRates, after.config.metalPrices) : null;
+    const resultBefore = b ? mapInternalToHarnessResult(computeInternalHarnessCost(b.input, before.config.internalRates ?? INTERNAL_DEFAULTS, before.config.metalPrices)) : null;
+    const resultAfter = a ? mapInternalToHarnessResult(computeInternalHarnessCost(a.input, after.config.internalRates ?? INTERNAL_DEFAULTS, after.config.metalPrices)) : null;
 
     const diffs: VersionDiffItem[] = [
       createDiffItem('deliveredPrice', '到厂价', resultBefore?.deliveredPrice || 0, resultAfter?.deliveredPrice || 0),

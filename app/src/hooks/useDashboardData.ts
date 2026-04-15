@@ -9,20 +9,17 @@ import { db } from '@/data/db';
 import { applyE281ScenarioFallback } from '@/data/e281Fallback';
 import type { ProjectRecord, ScenarioRecord } from '@/data/db';
 import {
-  computeHarnessCost,
-  computeProjectFromHarnesses,
   computeInternalHarnessCost,
   computeInternalProjectFromHarnesses,
+  mapInternalProjectToProjectHarnessResult,
   INTERNAL_DEFAULTS,
-  DEFAULTS,
 } from '@/engine/harness_costing';
 import type {
   HarnessResult,
-  ProjectHarnessResult,
   InternalHarnessResult,
   InternalProjectResult,
+  ProjectHarnessResult,
 } from '@/types/harness';
-import { applyCustomerQuoteSnapshot } from '@/utils/customerQuoteSnapshots';
 import { useProjectStore } from '@/store/projectStore';
 import { useAllocStore } from '@/store/allocStore';
 
@@ -140,27 +137,14 @@ export function useDashboardData() {
         ? await db.harnesses.where('scenarioId').equals(sid).toArray()
         : await db.harnesses.where('projectId').equals(id).toArray();
 
-      // FIX #22: use optional chaining with safe defaults instead of sc! non-null assertion
-      const rates = sc?.config?.costRates ?? DEFAULTS;
       const metalPrices = sc?.config?.metalPrices ?? { copper: 68400, aluminum: 18200 };
       const internalRates = sc?.config?.internalRates ?? INTERNAL_DEFAULTS;
-      const customerQuoteSnapshots = sc?.config?.customerQuoteSnapshots;
 
-      // customer quote per harness
-      const harnessResults: HarnessResult[] = hRecords.map((rec) =>
-        applyCustomerQuoteSnapshot(
-          computeHarnessCost(rec.input, rates, metalPrices),
-          customerQuoteSnapshots?.[rec.harnessId],
-        ),
-      );
-      const projectResult = computeProjectFromHarnesses(harnessResults);
-      setHarnesses(projectResult);
-
-      // internal cost per harness
       const internalResults: InternalHarnessResult[] = hRecords.map((rec) =>
         computeInternalHarnessCost(rec.input, internalRates, metalPrices),
       );
       const intProjResult = computeInternalProjectFromHarnesses(internalResults);
+      setHarnesses(mapInternalProjectToProjectHarnessResult(internalResults));
       setInternalProject(intProjResult);
       setInternalHarnesses(intProjResult.harnesses);
 
@@ -184,7 +168,7 @@ export function useDashboardData() {
   // ---- aliases ------------------------------------------------------
   const summary = harnesses;
   const internalSummary = internalProject;
-  const snapshotCustomerVehicleCost = summary?.vehicleCost || 0;
+  const snapshotCustomerVehicleCost = internalSummary?.vehicleCost || 0;
 
   // ---- allocation look-ups -----------------------------------------
   const allocTrackerByHarnessId = useMemo(
@@ -229,7 +213,7 @@ export function useDashboardData() {
   const grossMargin =
     customerVehicleCost > 0
       ? ((customerVehicleCost - internalVehicleCost) / customerVehicleCost) * 100
-      : 0;
+      : 0; // 保留字段名，当前表示分摊前后成本差异率，不再表示销售毛利率。 // 保留字段名，当前表示分摊前后成本差异率，不再表示销售毛利率。
 
   const allocPerVehicle = effectiveCustomerHarnesses.reduce(
     (sum, item) =>
@@ -239,8 +223,8 @@ export function useDashboardData() {
 
   const vehicleCost =
     mode === 'internal' ? internalVehicleCost : customerVehicleCost;
-  const harnessCount = summary?.harnessCount || 0;
-  const totalHours = summary?.totalProcessHours || 0;
+  const harnessCount = summary?.harnessCount || internalSummary?.harnesses.length || 0;
+  const totalHours = summary?.totalProcessHours || internalSummary?.harnesses.reduce((s, h) => s + h.processHours, 0) || 0;
 
   // ---- lifecycle P&L -----------------------------------------------
   const lifecyclePnL: LifecyclePnLData | null = useMemo(() => {

@@ -11,7 +11,7 @@
  */
 import { db } from '@/data/db';
 import type { HarnessRecord } from '@/data/db';
-import { computeHarnessCost } from '@/engine/harness_costing';
+import { computeInternalHarnessCost, INTERNAL_DEFAULTS, mapInternalToHarnessResult } from '@/engine/harness_costing';
 import type { HarnessInput, HarnessResult } from '@/types/harness';
 
 export interface SaveHarnessOptions {
@@ -47,17 +47,18 @@ export async function saveHarnessWithResult(
   const { projectId, scenarioId, input, isNew, existingRecord } = opts;
   const now = new Date().toISOString();
 
-  // Load scenario for cost rates
+  // Load scenario for internal cost rates
   let result: HarnessResult | null = null;
   if (scenarioId) {
     const scenario = await db.scenarios.get(scenarioId);
-    if (scenario?.config?.costRates && scenario?.config?.metalPrices) {
+    if (scenario?.config?.metalPrices) {
       try {
-        result = computeHarnessCost(
+        const internalResult = computeInternalHarnessCost(
           input,
-          scenario.config.costRates,
+          scenario.config.internalRates ?? INTERNAL_DEFAULTS,
           scenario.config.metalPrices,
         );
+        result = mapInternalToHarnessResult(internalResult);
       } catch (e) {
         console.warn('[saveHarnessWithResult] recompute failed:', e);
       }

@@ -1,3 +1,21 @@
+## [2026-04-16 01:12] - Task: [T30] 深色主题 + 工业蓝图风格
+
+### 完成的工作:
+- 更新 `app/src/index.css`，统一工业蓝图主题变量、胶囊导航高亮和 Semi UI 暗色控件风格，避免顶部激活态继续使用浅色黑字
+- 更新 `app/src/styles/common.css`，将 KPI 卡片、汇总行、配置矩阵、点阵开关、比例输入框改为跟随全局蓝图主题变量，不再写死浅色背景/黑色文字
+- 更新 `app/src/layouts/MainLayout.tsx`，将顶部导航文字颜色统一改为主题变量，未激活/禁用状态也与深色蓝图风一致
+- 清理 `app/src/store/allocStore.ts` 中阻塞构建的未使用导入，恢复 TypeScript build 通过
+- 补充浏览器验收截图 `test-screenshots/t30-project-list-blueprint-theme.png`
+
+### 测试:
+- `cd app && npm run test:run` 通过（56 files, 409 passed, 15 skipped）
+- `cd app && npm run build` 通过
+- Playwright 打开 `http://127.0.0.1:5173/` 验证项目列表页、侧边栏、顶部导航与空态页面已按工业蓝图深色主题渲染；截图 `test-screenshots/t30-project-list-blueprint-theme.png`
+
+### 备注:
+- `init.ps1` 在本仓库当前会话里仍有编码/解析问题，本次改为手动启动 app/server 完成验收
+- 页面数据请求依赖登录态，未登录时项目接口返回鉴权错误；本次主题任务主要验收视觉统一性，不影响样式修改结论
+
 ## [2026-04-16 01:07] - Task: COSTING ENGINE REFACTOR - 一次性费用分摊矩阵接线
 
 ### 完成的工作:

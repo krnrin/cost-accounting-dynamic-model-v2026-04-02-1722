@@ -3,6 +3,9 @@ import {
   computeOnetimeAlloc,
   computeAllocRecovery,
   computeProjectAlloc,
+  computeProjectAllocFromItems,
+  computeHarnessAllocationFromItems,
+  normalizeOnetimeInputs,
   computeProjectRecovery,
   simulateRecoveryTimeline,
 } from '../onetime_alloc';
@@ -86,8 +89,50 @@ describe('computeProjectAlloc', () => {
     expect(r.nonParticipatingCount).toBe(1);
     expect(r.totalTooling).toBe(100000);
     expect(r.grandTotal).toBe(150000);
-    // weighted = 3 * 1.0 + 0 * 0.5 = 3
     expect(r.weightedAllocPerVehicle).toBeCloseTo(3);
+  });
+
+  it('supports matrix-based allocation items', () => {
+    const items = [
+      {
+        feeId: 'tool-1',
+        feeName: '电脑',
+        feeCategory: 'tooling' as const,
+        unitPrice: 4200,
+        allocBase: 50000,
+        participants: [
+          { harnessId: 'A', harnessName: 'A线束', vehicleRatio: 1, quantity: 2 },
+          { harnessId: 'B', harnessName: 'B线束', vehicleRatio: 0.5, quantity: 1 },
+        ],
+      },
+      {
+        feeId: 'test-1',
+        feeName: '试验',
+        feeCategory: 'testing' as const,
+        unitPrice: 10000,
+        allocBase: 50000,
+        participants: [
+          { harnessId: 'A', harnessName: 'A线束', vehicleRatio: 1, quantity: 1 },
+          { harnessId: 'B', harnessName: 'B线束', vehicleRatio: 0.5, quantity: 0 },
+        ],
+      },
+    ];
+
+    const single = computeHarnessAllocationFromItems('A', 'A线束', 1, items);
+    expect(single.toolingCost).toBe(8400);
+    expect(single.testingCost).toBe(10000);
+    expect(single.totalPerUnit).toBeCloseTo((8400 + 10000) / 50000);
+
+    const summary = computeProjectAllocFromItems(items);
+    expect(summary.participatingCount).toBe(2);
+    expect(summary.totalTooling).toBe(12600);
+    expect(summary.totalTesting).toBe(10000);
+    expect(summary.grandTotal).toBe(22600);
+
+    const normalized = normalizeOnetimeInputs([
+      makeInput({ harnessId: 'A', harnessName: 'A线束', feeItems: items as any }),
+    ]);
+    expect(normalized.grandTotal).toBe(22600);
   });
 });
 

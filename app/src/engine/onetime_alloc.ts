@@ -19,7 +19,26 @@ export type PaymentMode = 'amortized' | 'lumpsum' | 'mixed';
 /** 回收状态 */
 export type RecoveryStatus = 'recovering' | 'recovered' | 'overdue';
 
-/** 单条线束的一次性费用输入 */
+/** 单个费用项在单条线束上的分摊配置 */
+export interface OnetimeAllocationParticipant {
+  harnessId: string;
+  harnessName: string;
+  vehicleRatio: number;
+  quantity: number;
+}
+
+/** 单个一次性费用项（矩阵的一行） */
+export interface OnetimeCostItem {
+  feeId: string;
+  feeName: string;
+  feeCategory: 'tooling' | 'testing' | 'rnd';
+  unitPrice: number;
+  allocBase: number;
+  paymentMode?: PaymentMode;
+  participants: OnetimeAllocationParticipant[];
+}
+
+/** 单条线束的一次性费用输入（兼容旧模型：每线束一条） */
 export interface OnetimeCostInput {
   /** 零件号 */
   harnessId: string;
@@ -31,12 +50,14 @@ export interface OnetimeCostInput {
   toolingCost: number;
   /** 试验费用 (元) — 新制 */
   testingCost: number;
-  /** 研发费用 (元) — 通常为 0 */
+  /** 研发费用 (元) */
   rndCost: number;
   /** 分摊基数 (根)，默认 50,000 */
   allocBase: number;
   /** 支付模式：amortized=分摊, lumpsum=一次性付清, mixed=混合 */
   paymentMode?: PaymentMode;
+  /** 可选：矩阵来源费用项明细 */
+  feeItems?: OnetimeCostItem[];
 }
 
 /** 单条线束的分摊计算结果 */
@@ -156,9 +177,91 @@ export interface ProjectRecoverySummary {
 // 核心计算函数
 // ═══════════════════════════════════════════
 
+export function computeHarnessAllocationFromItems(
+  harnessId: string,
+  harnessName: string,
+  vehicleRatio: number,
+  items: OnetimeCostItem[],
+): OnetimeCostAllocation {
+  const relevant = items.filter((item) =>
+    item.participants.some((p) => p.harnessId === harnessId && p.quantity > 0),
+  );
+
+  let toolingCost = 0;
+  let testingCost = 0;
+  let rndCost = 0;
+  let allocBase = 50000;
+  let paymentMode: PaymentMode = 'amortized';
+
+  for (const item of relevant) {
+    const participant = item.participants.find((p) => p.harnessId === harnessId);
+    if (!participant || participant.quantity <= 0) continue;
+    const amount = item.unitPrice * participant.quantity;
+    allocBase = item.allocBase || allocBase;
+    paymentMode = item.paymentMode ?? paymentMode;
+    if (item.feeCategory === 'tooling') toolingCost += amount;
+    else if (item.feeCategory === 'testing') testingCost += amount;
+    else if (item.feeCategory === 'rnd') rndCost += amount;
+    else if (item.feeCategory === 'rnd') rndCost += amount;
+  }
+
+  return computeOnetimeAlloc({
+    harnessId,
+    harnessName,
+    vehicleRatio,
+    toolingCost,
+    testingCost,
+    rndCost,
+    allocBase,
+    paymentMode,
+    feeItems: relevant,
+  });
+}
+
+export function computeProjectAllocFromItems(items: OnetimeCostItem[]): ProjectAllocSummary {
+  const harnessMap = new Map<string, { harnessName: string; vehicleRatio: number }>();
+  for (const item of items) {
+    for (const p of item.participants) {
+      if (p.quantity > 0 && !harnessMap.has(p.harnessId)) {
+        harnessMap.set(p.harnessId, { harnessName: p.harnessName, vehicleRatio: p.vehicleRatio });
+      }
+    }
+  }
+
+  const allocations = Array.from(harnessMap.entries()).map(([harnessId, meta]) =>
+    computeHarnessAllocationFromItems(harnessId, meta.harnessName, meta.vehicleRatio, items),
+  );
+
+  const participating = allocations.filter(a => a.participates);
+  const totalTooling = allocations.reduce((sum, a) => sum + a.toolingCost, 0);
+  const totalTesting = allocations.reduce((sum, a) => sum + a.testingCost, 0);
+  const totalRnd = allocations.reduce((sum, a) => sum + a.rndCost, 0);
+  const weightedAllocPerVehicle = allocations.reduce((sum, a) => sum + a.totalPerUnit * a.vehicleRatio, 0);
+
+  return {
+    allocations,
+    participatingCount: participating.length,
+    nonParticipatingCount: allocations.length - participating.length,
+    totalTooling,
+    totalTesting,
+    totalRnd,
+    grandTotal: totalTooling + totalTesting + totalRnd,
+    weightedAllocPerVehicle,
+  };
+}
+
+/** 兼容旧模型输入与矩阵输入 */
+export function normalizeOnetimeInputs(inputs: OnetimeCostInput[]): ProjectAllocSummary {
+  const itemBased = inputs.flatMap((input) => input.feeItems || []);
+  if (itemBased.length > 0) {
+    return computeProjectAllocFromItems(itemBased);
+  }
+  return computeProjectAlloc(inputs);
+}
+
 /**
  * 计算单条线束的一次性费用分摊
- * 
+ *
  * @param input 一次性费用输入
  * @returns 分摊计算结果
  */

@@ -48,7 +48,6 @@ interface EditRow {
   vehicleRatio: number;
   toolingCost: number;
   testingCost: number;
-  rndCost: number;
   allocBase: number;
   paymentMode: PaymentMode;
   cumProduced: number;
@@ -101,7 +100,6 @@ export default function AllocManagerPage() {
           vehicleRatio: h.input.vehicleRatio,
           toolingCost: existing?.toolingCost ?? 0,
           testingCost: existing?.testingCost ?? 0,
-          rndCost: existing?.rndCost ?? 0,
           allocBase: existing?.allocBase ?? 50000,
           paymentMode: existing?.paymentMode ?? 'amortized',
           cumProduced: existing?.cumProduced ?? 0,
@@ -138,7 +136,6 @@ export default function AllocManagerPage() {
         vehicleRatio: r.vehicleRatio,
         toolingCost: r.toolingCost,
         testingCost: r.testingCost,
-        rndCost: r.rndCost,
         allocBase: r.allocBase,
         paymentMode: r.paymentMode,
       }));
@@ -518,7 +515,7 @@ export default function AllocManagerPage() {
                   { title: '工装/根', dataIndex: 'toolingPerUnit', width: 100, align: 'right' as const, render: (v: number) => <span className="ledger-number">¥{v.toFixed(4)}</span> },
                   { title: '试验/根', dataIndex: 'testingPerUnit', width: 100, align: 'right' as const, render: (v: number) => <span className="ledger-number">¥{v.toFixed(4)}</span> },
                   { title: '研发/根', dataIndex: 'rndPerUnit', width: 100, align: 'right' as const, render: (v: number) => <span className="ledger-number">¥{v.toFixed(4)}</span> },
-                  { title: '合计/根', dataIndex: 'totalPerUnit', width: 110, align: 'right' as const, render: (v: number) => <span className="ledger-number" style={{ fontWeight: 700, color: '#2563eb' }}>¥{v.toFixed(4)}</span> },
+                  { title: '合计/根', dataIndex: 'totalPerUnit', width: 110, align: 'right' as const, render: (v: number) => <span className="ledger-number" style={{ fontWeight: 700, color: 'var(--accent)' }}>¥{v.toFixed(4)}</span> },
                   { title: '总费用', dataIndex: 'totalOnetimeCost', width: 120, align: 'right' as const, render: (v: number) => <span className="ledger-number">¥{v.toLocaleString()}</span> },
                 ]}
                 dataSource={summary.allocations.filter(a => a.participates)}

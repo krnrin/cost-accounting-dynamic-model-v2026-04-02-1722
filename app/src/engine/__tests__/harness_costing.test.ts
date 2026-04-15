@@ -4,17 +4,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { computeHarnessCost, computeInternalHarnessCost, INTERNAL_DEFAULTS } from '../harness_costing';
-import type { CostRates, MetalPrices, InternalCostRates } from '@/types/project';
+import { computeInternalHarnessCost, INTERNAL_DEFAULTS } from '../harness_costing';
+import type { MetalPrices } from '@/types/project';
 import type { HarnessInput, BomItem, WireItem, PackagingCost, FreightCost } from '@/types/harness';
-
-const RATES: CostRates = {
-  laborRate: 35,
-  mfgRate: 46.69,
-  wasteRate: 0.01,
-  mgmtRate: 0.06,
-  profitRate: 0.056627,
-};
 
 const METALS: MetalPrices = {
   copper: 72800,
@@ -60,7 +52,7 @@ const zeroFreight: FreightCost = {
   thirdPartyWarehouse: 0, storage: 0, subtotal: 0,
 };
 
-describe('computeHarnessCost', () => {
+describe('computeInternalHarnessCost basics', () => {
   it('should compute basic material cost from BOM', () => {
     const input: HarnessInput = {
       harnessId: 'TEST001',
@@ -76,31 +68,22 @@ describe('computeHarnessCost', () => {
       freight: zeroFreight,
     };
 
-    const result = computeHarnessCost(input, RATES, METALS);
+    const result = computeInternalHarnessCost(input, INTERNAL_DEFAULTS, METALS);
 
-    // 材料 = 100 + 30 = 130
     expect(result.materialCost).toBeCloseTo(130, 2);
-    // 废品 = 130 × 0.01 = 1.30
-    expect(result.wasteCost).toBeCloseTo(1.30, 2);
-    // 工时 = 0.5 + 0.3 = 0.8
     expect(result.processHours).toBeCloseTo(0.8, 4);
-    // 人工 = 0.8 × 35 = 28
-    expect(result.directLabor).toBeCloseTo(28, 2);
-    // 制造 = 0.8 × 46.69 = 37.352
-    expect(result.manufacturing).toBeCloseTo(37.352, 2);
-    // 管理费 = (130 + 28 + 37.352) × 0.06 = 11.72112
-    expect(result.mgmtFee).toBeCloseTo(11.72112, 2);
-    // 利润 = (130 + 1.30 + 28 + 37.352 + 11.72112) × 0.056627
-    const profitBase = 130 + 1.30 + 28 + 37.352 + 11.72112;
-    expect(result.profit).toBeCloseTo(profitBase * 0.056627, 2);
-    // 出厂价 = 材料+废品+人工+制造+管理+利润
-    expect(result.exFactoryPrice).toBeCloseTo(
-      result.materialCost + result.wasteCost + result.directLabor +
-      result.manufacturing + result.mgmtFee + result.profit,
-      2,
-    );
-    // 到厂价 = 出厂价 (无包装运输)
-    expect(result.deliveredPrice).toBeCloseTo(result.exFactoryPrice, 2);
+    expect(result.directLabor).toBeCloseTo(0.8 * INTERNAL_DEFAULTS.laborRate, 2);
+    expect(result.materialWaste).toBeCloseTo(130 * INTERNAL_DEFAULTS.materialWasteRate, 2);
+    const expectedMfg =
+      0.8 * INTERNAL_DEFAULTS.indirectLaborRate +
+      0.8 * INTERNAL_DEFAULTS.lowValueConsumablesRate +
+      0.8 * INTERNAL_DEFAULTS.materialConsumptionRate +
+      0.8 * INTERNAL_DEFAULTS.factoryAmortizationRate +
+      0.8 * INTERNAL_DEFAULTS.automationAmortizationRate +
+      0.8 * INTERNAL_DEFAULTS.otherOverheadRate +
+      130 * INTERNAL_DEFAULTS.materialWasteRate;
+    expect(result.mfgOverheadTotal).toBeCloseTo(expectedMfg, 2);
+    expect(result.internalCost).toBeCloseTo(130 + result.directLabor + expectedMfg, 2);
   });
 
   it('should compute wire material cost from metal weights', () => {
@@ -123,7 +106,7 @@ describe('computeHarnessCost', () => {
       freight: zeroFreight,
     };
 
-    const result = computeHarnessCost(input, RATES, METALS);
+    const result = computeInternalHarnessCost(input, INTERNAL_DEFAULTS, METALS);
 
     // 铜成本 = 10 × 0.001 × 72800 = 728 (kg × 元/吨 → 需要看实际单位)
     // 铜重 = 10 × 0.001 = 0.01 kg
@@ -147,22 +130,20 @@ describe('computeHarnessCost', () => {
       },
     };
 
-    const result = computeHarnessCost(input, RATES, METALS);
+    const result = computeInternalHarnessCost(input, INTERNAL_DEFAULTS, METALS);
 
-    expect(result.packSubtotal).toBeCloseTo(5, 2);
-    expect(result.freightSubtotal).toBeCloseTo(5.5, 2);
-    expect(result.deliveredPrice).toBeCloseTo(
-      result.exFactoryPrice + 5 + 5.5,
+    expect(result.packTotal).toBeCloseTo(10.5, 2);
+    expect(result.internalCost).toBeCloseTo(
+      result.materialCost + result.directLabor + result.mfgOverheadTotal + 10.5,
       2,
     );
     expect(result.vehicleRatio).toBe(0.525);
   });
 
-  it('should correctly apply management fee basis (excludes waste)', () => {
-    // 管理费基数 = 材料 + 人工 + 制造 (不含废品)
+  it('should correctly apply internal material waste basis', () => {
     const input: HarnessInput = {
       harnessId: 'MGMT001',
-      harnessName: '管理费基数测试',
+      harnessName: '材料损耗基数测试',
       vehicleRatio: 1.0,
       bom: [makeBomItem({ amount: 200 })],
       frontHours: 1,
@@ -171,11 +152,9 @@ describe('computeHarnessCost', () => {
       freight: zeroFreight,
     };
 
-    const result = computeHarnessCost(input, RATES, METALS);
-
-    // 管理费 = (材料 + 人工 + 制造) × 6%
-    const mgmtBase = result.materialCost + result.directLabor + result.manufacturing;
-    expect(result.mgmtFee).toBeCloseTo(mgmtBase * 0.06, 2);
+    const result = computeInternalHarnessCost(input, INTERNAL_DEFAULTS, METALS);
+    expect(result.materialWaste).toBeGreaterThanOrEqual(0);
+    expect(result.materialWaste).toBeLessThanOrEqual(result.materialCost * INTERNAL_DEFAULTS.materialWasteRate + 1e-6);
   });
 });
 

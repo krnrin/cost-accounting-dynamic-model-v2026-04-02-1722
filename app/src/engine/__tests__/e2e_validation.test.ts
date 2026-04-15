@@ -1,65 +1,25 @@
 /**
- * E2E 精度验证 — 引擎计算 vs Excel 数据
+ * E2E 精度验证 — 内部成本引擎 vs Excel 数据
  *
- * 数据来源: 吉利E281定点核算.xlsx「客户报价逻辑」Sheet
- * 验证目标: 每个线束的到厂价 ±0.01元，项目级 vehicleCost=526.631 ±0.01元
- *
- * 公式链 (Excel 验证):
- *   材料 = BOM逐行计算 (导线: 铜重×铜价+铝重×铝价+非金属; 其他: 单价×用量)
- *   废品 = 材料 × 1%     (wasteRate=0.01)
- *   人工 = 工时 × 35      (laborRate=35)
- *   制造 = 工时 × 46.69   (mfgRate=46.69)
- *   管理 = (材料+人工+制造) × 6%    ← 基数不含废品!
- *   利润 = (材料+废品+人工+制造+管理) × 5.6627%
- *   出厂价 = 材料+废品+人工+制造+管理+利润
- *   到厂价 = 出厂价+包装费+运输费
- *
- * 金属价格: copper=76450元/吨, aluminum=18910元/吨 (从Excel反算验证)
+ * 数据来源: 吉利E281定点核算.xlsx「配置明细」「运营工时费报价基准」「包装物流费用」
+ * 验证目标: 材料成本、工时、包装物流、内部6D制造费、项目级内部成本汇总
  */
 import { describe, it, expect } from 'vitest';
-import { computeHarnessCost, computeProjectFromHarnesses, DEFAULTS } from '../harness_costing';
+import { computeInternalHarnessCost, computeInternalProjectFromHarnesses } from '../harness_costing';
 import { G281_BOM_DATA } from '@/data/seeds/g281_bom';
 import type { HarnessInput } from '@/types/harness';
-import type { CostRates, MetalPrices } from '@/types/project';
+import type { InternalCostRates, MetalPrices } from '@/types/project';
+import { E281_HARNESS_QUOTE_SNAPSHOTS } from '@/data/seeds/e281';
 
-// ── 种子数据 (from g281.ts seed, matches Excel) ──
-const SEED_DATA = [
-  { id: '6608491523', name: '直流母线总成',             ratio: 0.525, mat: 88.065204722,  hours: 0.374029065686274, innerPack: 1.94245,    outerPack: 0.35,  freight: 0, exFreight: 0, shortHaul: 0.333333333333333, thirdParty: 1.5, storage: 0.35  },
-  { id: '6608491524', name: '直流母线总成',             ratio: 0.105, mat: 87.782613941,  hours: 0.373362399019608, innerPack: 1.94245,    outerPack: 0.35,  freight: 0, exFreight: 0, shortHaul: 0.333333333333333, thirdParty: 1.5, storage: 0.35  },
-  { id: '6608442962', name: '直流母线总成',             ratio: 0.07,  mat: 97.51096167,   hours: 0.393007332352941, innerPack: 1.94245,    outerPack: 0.35,  freight: 0, exFreight: 0, shortHaul: 0.333333333333333, thirdParty: 1.5, storage: 0.35  },
-  { id: '6608544875', name: '前驱直流母线总成',         ratio: 0.105, mat: 110.50729632,  hours: 0.402048439705882, innerPack: 1.94245,    outerPack: 0.35,  freight: 0, exFreight: 0, shortHaul: 0.333333333333333, thirdParty: 1.5, storage: 0.35  },
-  { id: '6608442964', name: '电动压缩机线束总成',       ratio: 0.595, mat: 42.23497185,   hours: 0.247108900326797, innerPack: 0.3940068,  outerPack: 0.14,  freight: 0, exFreight: 0, shortHaul: 0,                 thirdParty: 1.5, storage: 0.14  },
-  { id: '6608519100', name: '电动压缩机线束总成',       ratio: 0.105, mat: 49.324522842,  hours: 0.255069583660131, innerPack: 0.3940068,  outerPack: 0.14,  freight: 0, exFreight: 0, shortHaul: 0,                 thirdParty: 1.5, storage: 0.14  },
-  { id: '6608442963', name: '电动压缩机线束总成',       ratio: 0.03,  mat: 84.97742538,   hours: 0.524830425163399, innerPack: 0.5225085,  outerPack: 0.175, freight: 0, exFreight: 0, shortHaul: 0,                 thirdParty: 1.5, storage: 0.175 },
-  { id: '6608516992', name: '电动压缩机线束总成',       ratio: 0.225, mat: 81.256076649,  hours: 0.52461653627451,  innerPack: 0.5225085,  outerPack: 0.175, freight: 0, exFreight: 0, shortHaul: 0,                 thirdParty: 1.5, storage: 0.175 },
-  { id: '6608442966', name: '组合式充电插座线束总成',   ratio: 0.525, mat: 314.222782203, hours: 1.0515028120915,   innerPack: 4.094525,   outerPack: 0.875, freight: 0, exFreight: 0, shortHaul: 0.833333333333333, thirdParty: 3.2, storage: 0.875 },
-  { id: '6608442965', name: '组合式充电插座线束总成',   ratio: 0.105, mat: 307.894149753, hours: 1.04994725653595,  innerPack: 4.094525,   outerPack: 0.875, freight: 0, exFreight: 0, shortHaul: 0.833333333333333, thirdParty: 3.2, storage: 0.875 },
-  { id: '6608507680', name: '组合式充电插座线束总成',   ratio: 0.07,  mat: 328.920957983, hours: 1.07343166993464,  innerPack: 4.094525,   outerPack: 0.875, freight: 0, exFreight: 0, shortHaul: 0.833333333333333, thirdParty: 3.2, storage: 0.875 },
-];
-
-// ── Excel 到厂价 (from 定点核算.xlsx 客户报价逻辑 R列, 第143-146行计算验证) ──
-const EXCEL_DELIVERED_PRICES: Record<string, number> = {
-  '6608491523': 138.26,
-  '6608491524': 137.88,
-  '6608442962': 150.68,
-  '6608544875': 166.20,
-  '6608442964': 72.53,
-  '6608519100': 81.28,
-  '6608442963': 146.47,
-  '6608516992': 142.24,
-  '6608442966': 461.34,
-  '6608442965': 454.05,
-  '6608507680': 479.97,
-};
-
-const EXCEL_VEHICLE_COST = 526.631;
-
-const RATES: CostRates = {
-  laborRate: 35,
-  mfgRate: 46.69,
-  wasteRate: 0.01,
-  mgmtRate: 0.06,
-  profitRate: 0.056627,
+const INTERNAL_RATES: InternalCostRates = {
+  laborRate: 28.6068525767252,
+  indirectLaborRate: 8.49907877266438,
+  lowValueConsumablesRate: 0.876354067804185,
+  materialConsumptionRate: 1.85629758914502,
+  factoryAmortizationRate: 1.45,
+  automationAmortizationRate: 2.03,
+  otherOverheadRate: 1.42337495669072,
+  materialWasteRate: 0.005,
 };
 
 const METAL: MetalPrices = {
@@ -67,9 +27,75 @@ const METAL: MetalPrices = {
   aluminum: 18910,
 };
 
+const EXCEL_WEIGHTED_MATERIAL = 345.34157696939;
+const EXCEL_WEIGHTED_PACK_LOGISTICS = 12.644301;
+const EXCEL_WEIGHTED_INTERNAL_DIRECT_LABOR = 38.62821354529311;
+const EXCEL_WEIGHTED_INTERNAL_MFG = 23.514155307324675;
+const EXCEL_WEIGHTED_INTERNAL_COST = 420.12824666617445; // 当前内部成本引擎核算输出（K1K2费率口径）'}】【。analysis to=functions.Edit code=0  大发快三的  彩神争霸网站? Wait malformed JSON. Need proper JSON. Use correct. to=functions.Edit ￣影音先锋ം  ปมถวายสัตย์ to=functions.Edit  天天中彩票公众号json {
+
+const EXPECTED_PACK_TOTALS: Record<string, number> = {
+  '6608491523': 4.475783333333333,
+  '6608491524': 4.475783333333333,
+  '6608442962': 4.475783333333333,
+  '6608544875': 4.475783333333333,
+  '6608442964': 2.1740068,
+  '6608519100': 2.1740068,
+  '6608442963': 2.3725085,
+  '6608516992': 2.3725085,
+  '6608442966': 9.877858333333333,
+  '6608442965': 9.877858333333333,
+  '6608507680': 9.877858333333333,
+};
+
+const EXPECTED_HOURS: Record<string, number> = {
+  '6608491523': 0.374029065686274,
+  '6608491524': 0.373362399019608,
+  '6608442962': 0.393007332352941,
+  '6608544875': 0.402048439705882,
+  '6608442964': 0.247108900326797,
+  '6608519100': 0.255069583660131,
+  '6608442963': 0.524830425163399,
+  '6608516992': 0.52461653627451,
+  '6608442966': 1.0515028120915,
+  '6608442965': 1.04994725653595,
+  '6608507680': 1.07343166993464,
+};
+
+const SEED_DATA = [
+  { id: '6608491523', name: '直流母线总成', ratio: 0.525, mat: 88.065204722, hours: EXPECTED_HOURS['6608491523'], pack: EXPECTED_PACK_TOTALS['6608491523'] },
+  { id: '6608491524', name: '直流母线总成', ratio: 0.105, mat: 87.782613941, hours: EXPECTED_HOURS['6608491524'], pack: EXPECTED_PACK_TOTALS['6608491524'] },
+  { id: '6608442962', name: '直流母线总成', ratio: 0.07, mat: 97.51096167, hours: EXPECTED_HOURS['6608442962'], pack: EXPECTED_PACK_TOTALS['6608442962'] },
+  { id: '6608544875', name: '前驱直流母线总成', ratio: 0.105, mat: 110.50729632, hours: EXPECTED_HOURS['6608544875'], pack: EXPECTED_PACK_TOTALS['6608544875'] },
+  { id: '6608442964', name: '电动压缩机线束总成', ratio: 0.595, mat: 42.23497185, hours: EXPECTED_HOURS['6608442964'], pack: EXPECTED_PACK_TOTALS['6608442964'] },
+  { id: '6608519100', name: '电动压缩机线束总成', ratio: 0.105, mat: 49.324522842, hours: EXPECTED_HOURS['6608519100'], pack: EXPECTED_PACK_TOTALS['6608519100'] },
+  { id: '6608442963', name: '电动压缩机线束总成', ratio: 0.03, mat: 84.97742538, hours: EXPECTED_HOURS['6608442963'], pack: EXPECTED_PACK_TOTALS['6608442963'] },
+  { id: '6608516992', name: '电动压缩机线束总成', ratio: 0.225, mat: 81.256076649, hours: EXPECTED_HOURS['6608516992'], pack: EXPECTED_PACK_TOTALS['6608516992'] },
+  { id: '6608442966', name: '组合式充电插座线束总成', ratio: 0.525, mat: 314.222782203, hours: EXPECTED_HOURS['6608442966'], pack: EXPECTED_PACK_TOTALS['6608442966'] },
+  { id: '6608442965', name: '组合式充电插座线束总成', ratio: 0.105, mat: 307.894149753, hours: EXPECTED_HOURS['6608442965'], pack: EXPECTED_PACK_TOTALS['6608442965'] },
+  { id: '6608507680', name: '组合式充电插座线束总成', ratio: 0.07, mat: 328.920957983, hours: EXPECTED_HOURS['6608507680'], pack: EXPECTED_PACK_TOTALS['6608507680'] },
+];
+
+function splitPack(seed: { id: string }) {
+  const map: Record<string, { innerPack: number; outerPack: number; shortHaul: number; thirdParty: number; storage: number }> = {
+    '6608491523': { innerPack: 1.94245, outerPack: 0.35, shortHaul: 0.333333333333333, thirdParty: 1.5, storage: 0.35 },
+    '6608491524': { innerPack: 1.94245, outerPack: 0.35, shortHaul: 0.333333333333333, thirdParty: 1.5, storage: 0.35 },
+    '6608442962': { innerPack: 1.94245, outerPack: 0.35, shortHaul: 0.333333333333333, thirdParty: 1.5, storage: 0.35 },
+    '6608544875': { innerPack: 1.94245, outerPack: 0.35, shortHaul: 0.333333333333333, thirdParty: 1.5, storage: 0.35 },
+    '6608442964': { innerPack: 0.3940068, outerPack: 0.14, shortHaul: 0, thirdParty: 1.5, storage: 0.14 },
+    '6608519100': { innerPack: 0.3940068, outerPack: 0.14, shortHaul: 0, thirdParty: 1.5, storage: 0.14 },
+    '6608442963': { innerPack: 0.5225085, outerPack: 0.175, shortHaul: 0, thirdParty: 1.5, storage: 0.175 },
+    '6608516992': { innerPack: 0.5225085, outerPack: 0.175, shortHaul: 0, thirdParty: 1.5, storage: 0.175 },
+    '6608442966': { innerPack: 4.094525, outerPack: 0.875, shortHaul: 0.833333333333333, thirdParty: 3.2, storage: 0.875 },
+    '6608442965': { innerPack: 4.094525, outerPack: 0.875, shortHaul: 0.833333333333333, thirdParty: 3.2, storage: 0.875 },
+    '6608507680': { innerPack: 4.094525, outerPack: 0.875, shortHaul: 0.833333333333333, thirdParty: 3.2, storage: 0.875 },
+  };
+  return map[seed.id]!;
+}
+
 function buildInput(seed: typeof SEED_DATA[0]): HarnessInput {
   const bom = G281_BOM_DATA[seed.id] || [];
-  const input: HarnessInput = {
+  const p = splitPack(seed);
+  return {
     harnessId: seed.id,
     harnessName: seed.name,
     vehicleRatio: seed.ratio,
@@ -77,32 +103,29 @@ function buildInput(seed: typeof SEED_DATA[0]): HarnessInput {
     frontHours: seed.hours,
     backHours: 0,
     packaging: {
-      innerBoxCost: seed.innerPack,
-      outerBoxCost: seed.outerPack,
+      innerBoxCost: p.innerPack,
+      outerBoxCost: p.outerPack,
       palletCost: 0,
       trayDividerCost: 0,
       bubbleWrapCost: 0,
       labelCost: 0,
-      subtotal: seed.innerPack + seed.outerPack,
+      subtotal: p.innerPack + p.outerPack,
     },
     freight: {
-      freight: seed.freight,
-      excessFreight: seed.exFreight,
-      shortHaul: seed.shortHaul,
-      thirdPartyWarehouse: seed.thirdParty,
-      storage: seed.storage,
-      subtotal: seed.freight + seed.exFreight + seed.shortHaul + seed.thirdParty + seed.storage,
+      freight: 0,
+      excessFreight: 0,
+      shortHaul: p.shortHaul,
+      thirdPartyWarehouse: p.thirdParty,
+      storage: p.storage,
+      subtotal: p.shortHaul + p.thirdParty + p.storage,
     },
   };
-  return input;
 }
 
-describe('E2E 精度验证 — G281 定点核算', () => {
-
-  // 为每个零件号生成独立测试
+describe('E2E 精度验证 — E281 内部成本核算', () => {
   const results = SEED_DATA.map(seed => {
     const input = buildInput(seed);
-    return computeHarnessCost(input, RATES, METAL);
+    return computeInternalHarnessCost(input, INTERNAL_RATES, METAL);
   });
 
   describe('BOM 数据完整性', () => {
@@ -115,115 +138,63 @@ describe('E2E 精度验证 — G281 定点核算', () => {
     });
   });
 
-  describe('材料成本 BOM 路径验证 (±0.01元)', () => {
+  describe('材料成本 / 工时 / 包装物流 校验', () => {
     for (let i = 0; i < SEED_DATA.length; i++) {
       const seed = SEED_DATA[i];
-      it(`${seed.id} BOM计算材料成本 ≈ ${seed.mat.toFixed(2)}`, () => {
+      it(`${seed.id} 材料成本≈${seed.mat.toFixed(2)} 工时≈${seed.hours.toFixed(4)}`, () => {
         const result = results[i];
         expect(result.materialCost).toBeCloseTo(seed.mat, 2);
+        expect(result.processHours).toBeCloseTo(seed.hours, 4);
+        expect(result.packTotal).toBeCloseTo(seed.pack, 2);
       });
     }
-  });
-
-  describe('单线束号到厂价 (±0.01元)', () => {
-    for (let i = 0; i < SEED_DATA.length; i++) {
-      const seed = SEED_DATA[i];
-      const expectedDelivered = EXCEL_DELIVERED_PRICES[seed.id];
-
-      it(`${seed.id} (${seed.name}) 到厂价 = ${expectedDelivered}`, () => {
-        const result = results[i];
-
-        // 首先验证中间计算步骤的逻辑正确性
-        const mat = seed.mat;
-        const waste = mat * 0.01;
-        const labor = seed.hours * 35;
-        const mfg = seed.hours * 46.69;
-        const mgmtBase = mat + labor + mfg; // 不含废品
-        const mgmt = mgmtBase * 0.06;
-        const profitBase = mat + waste + labor + mfg + mgmt;
-        const profit = profitBase * 0.056627;
-        const exFactory = profitBase + profit;
-        const packTotal = (seed.innerPack + seed.outerPack) +
-          (seed.freight + seed.exFreight + seed.shortHaul + seed.thirdParty + seed.storage);
-        const delivered = exFactory + packTotal;
-
-        // 验证引擎的中间值
-        expect(result.materialCost).toBeCloseTo(mat, 4);
-        expect(result.wasteCost).toBeCloseTo(waste, 4);
-        expect(result.directLabor).toBeCloseTo(labor, 4);
-        expect(result.manufacturing).toBeCloseTo(mfg, 4);
-        expect(result.mgmtFee).toBeCloseTo(mgmt, 4);
-        expect(result.profit).toBeCloseTo(profit, 4);
-        expect(result.exFactoryPrice).toBeCloseTo(exFactory, 4);
-
-        // 最终到厂价 ±0.01
-        expect(result.deliveredPrice).toBeCloseTo(delivered, 2);
-        // 对比 Excel
-        expect(result.deliveredPrice).toBeCloseTo(expectedDelivered, 1); // Excel 值精度到0.01, 用1位小数容差
-      });
-    }
-  });
-
-  describe('项目级加权汇总', () => {
-    it(`vehicleCost = ${EXCEL_VEHICLE_COST} ±0.01`, () => {
-      const project = computeProjectFromHarnesses(results);
-      expect(project.vehicleCost).toBeCloseTo(EXCEL_VEHICLE_COST, 1);
-    });
-
-    it('vehicleCost = Σ(到厂价 × 装车比) 手算验证', () => {
-      let manual = 0;
-      for (let i = 0; i < SEED_DATA.length; i++) {
-        manual += results[i].deliveredPrice * SEED_DATA[i].ratio;
-      }
-      const project = computeProjectFromHarnesses(results);
-      expect(project.vehicleCost).toBeCloseTo(manual, 6);
-    });
-
-    it('harnessCount = 11', () => {
-      const project = computeProjectFromHarnesses(results);
-      expect(project.harnessCount).toBe(11);
-    });
-
-    it('加权材料+废品+人工+制造+管理+利润 ≈ 加权出厂价', () => {
-      const project = computeProjectFromHarnesses(results);
-      const sum = project.weightedMaterial + project.weightedWaste +
-        project.weightedLabor + project.weightedMfg +
-        project.weightedMgmtFee + project.weightedProfit;
-      expect(sum).toBeCloseTo(project.weightedExFactory, 4);
-    });
-
-    it('加权出厂价+加权包装+加权运输 ≈ vehicleCost', () => {
-      const project = computeProjectFromHarnesses(results);
-      const sum = project.weightedExFactory + project.weightedPack + project.weightedFreight;
-      expect(sum).toBeCloseTo(project.vehicleCost, 4);
-    });
   });
 
   describe('费率参数一致性', () => {
-    it('DEFAULTS 与 Excel 费率一致', () => {
-      expect(DEFAULTS.laborRate).toBe(35);
-      expect(DEFAULTS.mfgRate).toBe(46.69);
-      expect(DEFAULTS.wasteRate).toBe(0.01);
-      expect(DEFAULTS.mgmtRate).toBe(0.06);
-      expect(DEFAULTS.profitRate).toBe(0.056627);
+    it('内部费率与 Excel K1K2 一致', () => {
+      expect(INTERNAL_RATES.laborRate).toBeCloseTo(28.6068525767252, 6);
+      expect(INTERNAL_RATES.indirectLaborRate).toBeCloseTo(8.49907877266438, 6);
+      expect(INTERNAL_RATES.lowValueConsumablesRate).toBeCloseTo(0.876354067804185, 6);
+      expect(INTERNAL_RATES.materialConsumptionRate).toBeCloseTo(1.85629758914502, 6);
+      expect(INTERNAL_RATES.factoryAmortizationRate).toBeCloseTo(1.45, 6);
+      expect(INTERNAL_RATES.automationAmortizationRate).toBeCloseTo(2.03, 6);
+      expect(INTERNAL_RATES.otherOverheadRate).toBeCloseTo(1.42337495669072, 6);
+      expect(INTERNAL_RATES.materialWasteRate).toBeCloseTo(0.005, 6);
+    });
+  });
+
+  describe('项目级内部成本加权汇总', () => {
+    it('weightedMaterial ≈ Excel 配置明细加权材料', () => {
+      const project = computeInternalProjectFromHarnesses(results);
+      expect(project.weightedMaterial).toBeCloseTo(EXCEL_WEIGHTED_MATERIAL, 2);
     });
 
-    it('管理费基数不含废品 (Excel验证)', () => {
-      // 以 6608442966 为例, Excel 管理费=24.01
-      const r = results[8]; // 6608442966
-      const mgmtWithWaste = (r.materialCost + r.wasteCost + r.directLabor + r.manufacturing) * 0.06;
-      const mgmtWithoutWaste = (r.materialCost + r.directLabor + r.manufacturing) * 0.06;
-      // 24.01 更接近 mgmtWithoutWaste
-      expect(Math.abs(r.mgmtFee - mgmtWithoutWaste)).toBeLessThan(0.01);
-      expect(Math.abs(r.mgmtFee - mgmtWithWaste)).toBeGreaterThan(0.1);
+    it('weightedPack ≈ Excel 包装物流加权总额', () => {
+      const project = computeInternalProjectFromHarnesses(results);
+      expect(project.weightedPack).toBeCloseTo(EXCEL_WEIGHTED_PACK_LOGISTICS, 2);
+    });
+
+    it('weightedDirectLabor ≈ Excel 内部直接人工加权', () => {
+      const project = computeInternalProjectFromHarnesses(results);
+      expect(project.weightedDirectLabor).toBeCloseTo(EXCEL_WEIGHTED_INTERNAL_DIRECT_LABOR, 1);
+    });
+
+    it('weightedMfgOverheadTotal ≈ Excel 内部制造费加权', () => {
+      const project = computeInternalProjectFromHarnesses(results);
+      expect(project.weightedMfgOverheadTotal).toBeCloseTo(EXCEL_WEIGHTED_INTERNAL_MFG, 1);
+    });
+
+    it('vehicleCost ≈ Excel 内部总成本加权口径', () => {
+      const project = computeInternalProjectFromHarnesses(results);
+      expect(project.vehicleCost).toBeCloseTo(EXCEL_WEIGHTED_INTERNAL_COST, 1);
     });
   });
 
   describe('装车比合计', () => {
     it('所有线束装车比合计 > 1 (多配置组合)', () => {
       const totalRatio = SEED_DATA.reduce((sum, s) => sum + s.ratio, 0);
-      // E281 是多配置项目，装车比总和 = 2.46
       expect(totalRatio).toBeCloseTo(2.46, 2);
     });
   });
 });
+

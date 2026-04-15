@@ -124,31 +124,31 @@ export default function MainLayout() {
               style={{ cursor: 'pointer', opacity: selectedKey === '/' ? 1 : 0.4, transition: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
               onClick={() => navigate('/')}
             >
-              <IconHome style={{ fontSize: 24, color: '#bfdbfe' }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#e2e8f0' }}>项目</span>
+              <IconHome style={{ fontSize: 24, color: 'var(--accent-hover)' }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-primary)' }}>项目</span>
             </div>
             <div 
               style={{ cursor: 'pointer', opacity: selectedKey === '/manager' ? 1 : 0.4, transition: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
               onClick={() => navigate('/manager')}
             >
-              <IconFile style={{ fontSize: 24, color: '#bfdbfe' }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#e2e8f0' }}>报表</span>
+              <IconFile style={{ fontSize: 24, color: 'var(--accent-hover)' }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-primary)' }}>报表</span>
             </div>
             <div
               style={{ cursor: 'pointer', opacity: selectedKey === '/alerts' ? 1 : 0.4, transition: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
               onClick={() => navigate(currentProjectId ? `/project/${currentProjectId}/alerts` : '/alerts')}
             >
               <Badge count={activeAlertCount} overflowCount={99}>
-                <IconBell style={{ fontSize: 24, color: '#bfdbfe' }} />
+                <IconBell style={{ fontSize: 24, color: 'var(--accent-hover)' }} />
               </Badge>
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#e2e8f0' }}>预警</span>
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-primary)' }}>预警</span>
             </div>
             <div
               style={{ cursor: 'pointer', opacity: selectedKey === '/profile' ? 1 : 0.4, transition: '0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
               onClick={() => navigate('/profile')}
             >
-              <IconUser style={{ fontSize: 24, color: '#bfdbfe' }} />
-              <span style={{ fontSize: 9, fontWeight: 700, color: '#e2e8f0' }}>我的</span>
+              <IconUser style={{ fontSize: 24, color: 'var(--accent-hover)' }} />
+              <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-primary)' }}>我的</span>
             </div>
           </div>
         </Sider>
@@ -170,71 +170,71 @@ export default function MainLayout() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div className="top-nav-capsule" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px' }}>
             <div 
-              className={selectedKey === '/' ? 'nav-active-pill' : ''} 
-              style={{ padding: '8px 24px', cursor: 'pointer', fontSize: 13, transition: '0.2s', color: selectedKey === '/' ? '#000' : '#71717a' }}
+              className={selectedKey === '/' ? 'nav-active-pill' : ''}
+              style={{ padding: '8px 24px', cursor: 'pointer', fontSize: 13, transition: '0.2s', color: selectedKey === '/' ? 'var(--text-primary)' : 'var(--text-secondary)' }}
               onClick={() => navigate('/')}
             >
               总览
             </div>
             <div
               className={selectedKey === '/manager' ? 'nav-active-pill' : ''}
-              style={{ padding: '8px 24px', cursor: 'pointer', fontSize: 13, transition: '0.2s', color: selectedKey === '/manager' ? '#000' : '#71717a' }}
+              style={{ padding: '8px 24px', cursor: 'pointer', fontSize: 13, transition: '0.2s', color: selectedKey === '/manager' ? 'var(--text-primary)' : 'var(--text-secondary)' }}
               onClick={() => navigate('/manager')}
             >
               分析
             </div>
             <div
               className={selectedKey.includes('/quote') ? 'nav-active-pill' : ''}
-              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/quote') ? '#000' : hasProject ? '#71717a' : '#c4c4c4' }}
+              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/quote') ? 'var(--text-primary)' : hasProject ? 'var(--text-secondary)' : 'var(--text-muted)' }}
               onClick={() => navToProject('quote')}
             >
               报价
             </div>
             <div
               className={selectedKey.includes('/annual-drop') ? 'nav-active-pill' : ''}
-              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/annual-drop') ? '#000' : hasProject ? '#71717a' : '#c4c4c4' }}
+              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/annual-drop') ? 'var(--text-primary)' : hasProject ? 'var(--text-secondary)' : 'var(--text-muted)' }}
               onClick={() => navToProject('annual-drop')}
             >
               价格
             </div>
             <div
               className={selectedKey.includes('/simulation') ? 'nav-active-pill' : ''}
-              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/simulation') ? '#000' : hasProject ? '#71717a' : '#c4c4c4' }}
+              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/simulation') ? 'var(--text-primary)' : hasProject ? 'var(--text-secondary)' : 'var(--text-muted)' }}
               onClick={() => navToProject('simulation')}
             >
               模拟
             </div>
             <div
               className={selectedKey.includes('/alloc') ? 'nav-active-pill' : ''}
-              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/alloc') ? '#000' : hasProject ? '#71717a' : '#c4c4c4' }}
+              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/alloc') ? 'var(--text-primary)' : hasProject ? 'var(--text-secondary)' : 'var(--text-muted)' }}
               onClick={() => navToProject('alloc')}
             >
               分摊
             </div>
             <div
               className={selectedKey.includes('/change-engine') ? 'nav-active-pill' : ''}
-              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/change-engine') ? '#000' : hasProject ? '#71717a' : '#c4c4c4' }}
+              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/change-engine') ? 'var(--text-primary)' : hasProject ? 'var(--text-secondary)' : 'var(--text-muted)' }}
               onClick={() => navToProject('change-engine')}
             >
               设变
             </div>
             <div
               className={selectedKey.includes('/tracking') ? 'nav-active-pill' : ''}
-              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/tracking') ? '#000' : hasProject ? '#71717a' : '#c4c4c4' }}
+              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/tracking') ? 'var(--text-primary)' : hasProject ? 'var(--text-secondary)' : 'var(--text-muted)' }}
               onClick={() => navToProject('tracking')}
             >
               跟踪
             </div>
             <div
               className={selectedKey.includes('/config') ? 'nav-active-pill' : ''}
-              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/config') ? '#000' : hasProject ? '#71717a' : '#c4c4c4' }}
+              style={{ padding: '8px 24px', cursor: hasProject ? 'pointer' : 'not-allowed', fontSize: 13, transition: '0.2s', color: selectedKey.includes('/config') ? 'var(--text-primary)' : hasProject ? 'var(--text-secondary)' : 'var(--text-muted)' }}
               onClick={() => navToProject('config')}
             >
               配置
             </div>
             <div
               className={selectedKey === '/settings' ? 'nav-active-pill' : ''}
-              style={{ padding: '8px 24px', cursor: 'pointer', fontSize: 13, transition: '0.2s', color: selectedKey === '/settings' ? '#000' : '#71717a' }}
+              style={{ padding: '8px 24px', cursor: 'pointer', fontSize: 13, transition: '0.2s', color: selectedKey === '/settings' ? 'var(--text-primary)' : 'var(--text-secondary)' }}
               onClick={() => navigate('/settings')}
             >
               设置
@@ -248,15 +248,15 @@ export default function MainLayout() {
                 gap: 12,
                 padding: '8px 16px',
                 borderRadius: 999,
-                border: '1px solid rgba(96, 165, 250, 0.26)',
-                background: 'rgba(9, 18, 35, 0.88)',
+                border: '1px solid var(--border)',
+                background: 'var(--panel-bg-strong)',
                 backdropFilter: 'blur(16px)',
-                boxShadow: '0 18px 42px rgba(2, 6, 23, 0.34)',
+                boxShadow: 'var(--shadow-panel)',
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }}>
-                <Text strong style={{ color: '#f8fafc', fontSize: 13 }}>{user?.name || '未登录用户'}</Text>
-                <Text type="tertiary" style={{ fontSize: 11, color: '#93c5fd' }}>{user?.role || 'GUEST'}</Text>
+                <Text strong style={{ color: 'var(--text-primary)', fontSize: 13 }}>{user?.name || '未登录用户'}</Text>
+                <Text type="tertiary" style={{ fontSize: 11, color: 'var(--accent-hover)' }}>{user?.role || 'GUEST'}</Text>
               </div>
               <Button theme="borderless" type="danger" size="small" onClick={handleLogout}>
                 退出

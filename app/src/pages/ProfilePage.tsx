@@ -146,10 +146,10 @@ export default function ProfilePage() {
       <Title heading={2} className="ink-heading" style={{ marginBottom: 28 }}>用户配置</Title>
 
       <div className="glass-card animate-fade-up" style={{ padding: 0, marginBottom: 20, overflow: 'hidden' }}>
-        <div style={{ height: 3, background: 'rgba(0,0,0,0.08)' }} />
+        <div style={{ height: 3, background: 'linear-gradient(90deg, var(--accent), var(--success))' }} />
         <div style={{ padding: '32px 40px 36px' }}>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 20, marginBottom: 24 }}>
-            <Avatar size="large" style={{ backgroundColor: '#d4d4d8', width: 72, height: 72, fontSize: 26, flexShrink: 0 }} src={user?.avatarUrl}>
+            <Avatar size="large" style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--text-primary)', width: 72, height: 72, fontSize: 26, flexShrink: 0 }} src={user?.avatarUrl}>
               {user?.name?.[0] || <IconUser />}
             </Avatar>
             <div style={{ flex: 1, paddingBottom: 4 }}>
@@ -162,17 +162,17 @@ export default function ProfilePage() {
           </div>
 
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: 'var(--semi-color-fill-1)' }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>
                 {user?.role ? ROLE_LABELS[user.role as UserRole] || user.role : '离线模式'}
               </span>
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: 'var(--semi-color-fill-0)' }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
                 {authSource === 'feishu' ? '飞书登录' : '本地登录'}
               </span>
             </div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.03)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 10, background: 'var(--semi-color-fill-0)' }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
                 {permissionStats.allowed}/{permissionStats.total} 权限
               </span>
@@ -231,7 +231,7 @@ export default function ProfilePage() {
                 { label: '认证来源', value: authSource === 'feishu' ? '飞书 OAuth' : '本地密码', mono: false },
                 ...(user?.feishuOpenId ? [{ label: '飞书 OpenID', value: user.feishuOpenId, mono: true }] : []),
               ].map(item => (
-                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, background: 'rgba(0,0,0,0.02)' }}>
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, background: 'var(--semi-color-fill-0)' }}>
                   <Text style={{ fontWeight: 700, fontSize: 11, color: 'var(--text-muted)', width: 80, flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.3px' }}>{item.label}</Text>
                   <Text className={item.mono ? 'consolas-font' : ''} style={{ fontSize: 13 }}>{item.value}</Text>
                 </div>
@@ -264,12 +264,12 @@ export default function ProfilePage() {
               </div>
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div className="consolas-font" style={{ fontSize: 22, fontWeight: 800, color: '#000' }}>{permissionStats.allowed}</div>
+                  <div className="consolas-font" style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)' }}>{permissionStats.allowed}</div>
                   <Text style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>允许</Text>
                 </div>
-                <div style={{ width: 1, background: 'rgba(0,0,0,0.06)' }} />
+                <div style={{ width: 1, background: 'var(--border)' }} />
                 <div style={{ textAlign: 'center' }}>
-                  <div className="consolas-font" style={{ fontSize: 22, fontWeight: 800, color: '#71717a' }}>{permissionStats.denied}</div>
+                  <div className="consolas-font" style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-secondary)' }}>{permissionStats.denied}</div>
                   <Text style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>禁止</Text>
                 </div>
               </div>
@@ -294,8 +294,8 @@ export default function ProfilePage() {
                   width: 120,
                   align: 'center' as const,
                   render: (v: boolean) => (
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 6, background: v ? 'rgba(0,0,0,0.06)' : 'rgba(0,0,0,0.02)', border: `1px solid ${v ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.04)'}` }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: v ? '#000' : '#a1a1aa' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 6, background: v ? 'var(--semi-color-fill-1)' : 'var(--semi-color-fill-0)', border: `1px solid ${v ? 'var(--border)' : 'rgba(125, 211, 252, 0.08)'}` }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: v ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                         {v ? '允许' : '禁止'}
                       </span>
                     </div>

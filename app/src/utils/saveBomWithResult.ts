@@ -10,7 +10,7 @@
  */
 import { db } from '@/data/db';
 import type { ScenarioRecord } from '@/data/db';
-import { computeHarnessCost } from '@/engine/harness_costing';
+import { computeInternalHarnessCost, INTERNAL_DEFAULTS, mapInternalToHarnessResult } from '@/engine/harness_costing';
 import type { HarnessInput, HarnessResult } from '@/types/harness';
 
 /**
@@ -29,12 +29,14 @@ export async function saveBomHarnessWithResult(
 ): Promise<HarnessResult | null> {
   let result: HarnessResult | null = null;
 
-  if (scenario?.config?.costRates && scenario?.config?.metalPrices) {
+  if (scenario?.config?.metalPrices) {
     try {
-      result = computeHarnessCost(
-        input,
-        scenario.config.costRates,
-        scenario.config.metalPrices,
+      result = mapInternalToHarnessResult(
+        computeInternalHarnessCost(
+          input,
+          scenario.config.internalRates ?? INTERNAL_DEFAULTS,
+          scenario.config.metalPrices,
+        ),
       );
     } catch (e) {
       console.warn('[saveBomHarnessWithResult] compute failed for', input.harnessId, e);

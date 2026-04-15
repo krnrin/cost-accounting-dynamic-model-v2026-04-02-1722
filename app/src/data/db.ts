@@ -1,7 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { Project, ProjectConfig } from '../types/project';
 import type { HarnessInput, HarnessResult, HarnessRelation, VehicleConfig, VehicleConfigMeta } from '../types/harness';
-import type { QuoteSheet } from '../types/quote';
 import type { VersionRecord } from '../types/version';
 import type { OnetimeCostInput } from '../engine/onetime_alloc';
 import { applyE281ScenarioFallback } from './e281Fallback';
@@ -82,12 +81,15 @@ export interface HarnessRecord {
   updatedAt: string;
 }
 
-export interface QuoteRecord extends QuoteSheet {
+/** 报价记录 (legacy — customer quote template removed) */
+export interface QuoteRecord {
   id: string;
   projectId: string;
   version: string;
   status: string;
   updatedAt: string;
+  /** 保留通用字段供未来扩展 */
+  [key: string]: unknown;
 }
 
 export interface SettingRecord {

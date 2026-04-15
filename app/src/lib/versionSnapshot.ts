@@ -1,4 +1,4 @@
-import { computeHarnessCost, computeProjectFromHarnesses, DEFAULTS } from '@/engine/harness_costing';
+import { computeInternalHarnessCost, computeInternalProjectFromHarnesses, INTERNAL_DEFAULTS, mapInternalProjectToProjectHarnessResult } from '@/engine/harness_costing';
 import type { HarnessInput, ProjectHarnessResult } from '@/types/harness';
 import type { MetalPrices, ProjectConfig, VolumeSchedule } from '@/types/project';
 import type { VersionSnapshot } from '@/types/version';
@@ -26,7 +26,7 @@ const DEFAULT_METAL_PRICES: MetalPrices = {
 
 export function normalizeProjectConfig(project: ProjectVersionSource | null): ProjectConfig {
   return {
-    costRates: project?.costRates ?? DEFAULTS,
+    costRates: project?.costRates ?? ({} as ProjectConfig['costRates']),
     metalPrices: project?.metalPrices ?? DEFAULT_METAL_PRICES,
     volumes: Array.isArray(project?.volumes) ? project.volumes : [],
     annualDropRate: 0,
@@ -35,8 +35,8 @@ export function normalizeProjectConfig(project: ProjectVersionSource | null): Pr
 
 export function buildVersionSnapshot(project: ProjectVersionSource | null, harnesses: HarnessVersionSource[]): VersionSnapshot {
   const config = normalizeProjectConfig(project);
-  const results = harnesses.map((harness) => computeHarnessCost(harness.input, config.costRates, config.metalPrices));
-  const summary = computeProjectFromHarnesses(results);
+  const results = harnesses.map((harness) => computeInternalHarnessCost(harness.input, INTERNAL_DEFAULTS, config.metalPrices));
+  const summary = computeInternalProjectFromHarnesses(results);
 
   return {
     harnesses: harnesses.map((harness) => ({
@@ -48,7 +48,7 @@ export function buildVersionSnapshot(project: ProjectVersionSource | null, harne
     summary: {
       vehicleCost: summary.vehicleCost,
       totalMaterial: summary.weightedMaterial,
-      totalLabor: summary.weightedLabor,
+      totalLabor: summary.weightedDirectLabor,
       harnessCount: harnesses.length,
     },
   };
@@ -56,7 +56,7 @@ export function buildVersionSnapshot(project: ProjectVersionSource | null, harne
 
 export function computeProjectResultFromSnapshot(snapshot: VersionSnapshot): ProjectHarnessResult {
   const harnesses = snapshot.harnesses.map((harness) =>
-    computeHarnessCost(harness.input, snapshot.config.costRates, snapshot.config.metalPrices),
+    computeInternalHarnessCost(harness.input, INTERNAL_DEFAULTS, snapshot.config.metalPrices),
   );
-  return computeProjectFromHarnesses(harnesses);
+  return mapInternalProjectToProjectHarnessResult(harnesses);
 }

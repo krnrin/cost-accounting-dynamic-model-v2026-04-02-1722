@@ -1,7 +1,7 @@
-import type { FactoryConfig } from '@/types/project';
+import type { FactoryConfig, InternalCostRates, MetalPrices } from '@/types/project';
 import type { HarnessInput, HarnessResult } from '@/types/harness';
-import { computeHarnessCost, DEFAULTS } from './harness_costing';
-import type { MetalPrices } from '@/types/project';
+import { computeInternalHarnessCost, INTERNAL_DEFAULTS, mapInternalToHarnessResult } from './harness_costing';
+import { numberOr } from './shared_utils';
 import { safeArray } from './shared_utils';
 
 /** 单工厂单线束核算结果 */
@@ -41,19 +41,25 @@ export function computeHarnessCostForFactory(
   metalPrices: MetalPrices,
   wireCatalog: Map<string, any> | null = null
 ): HarnessResult {
-  // Apply efficiency factor to hours
   const adjustedInput: HarnessInput = {
     ...input,
     frontHours: input.frontHours * factory.efficiencyFactor,
     backHours: input.backHours * factory.efficiencyFactor,
   };
 
-  // Handle legacy or additional processHours field
   if ((input as any).processHours !== undefined) {
     (adjustedInput as any).processHours = (input as any).processHours * factory.efficiencyFactor;
   }
 
-  return computeHarnessCost(adjustedInput, factory.costRates, metalPrices, wireCatalog);
+  const internalRates: InternalCostRates = (factory as any).internalRates ?? {
+    ...INTERNAL_DEFAULTS,
+    laborRate: numberOr((factory as any).costRates?.laborRate, INTERNAL_DEFAULTS.laborRate),
+    materialWasteRate: numberOr((factory as any).costRates?.wasteRate, INTERNAL_DEFAULTS.materialWasteRate),
+  };
+
+  return mapInternalToHarnessResult(
+    computeInternalHarnessCost(adjustedInput, internalRates, metalPrices, wireCatalog),
+  );
 }
 
 /**
@@ -71,7 +77,7 @@ export function compareFactoryCosts(
     const defaultFactory: FactoryConfig = {
       factoryId: 'default',
       factoryName: '默认工厂',
-      costRates: DEFAULTS,
+      costRates: { laborRate: INTERNAL_DEFAULTS.laborRate, mfgRate: INTERNAL_DEFAULTS.indirectLaborRate + INTERNAL_DEFAULTS.lowValueConsumablesRate + INTERNAL_DEFAULTS.materialConsumptionRate + INTERNAL_DEFAULTS.factoryAmortizationRate + INTERNAL_DEFAULTS.automationAmortizationRate + INTERNAL_DEFAULTS.otherOverheadRate, wasteRate: INTERNAL_DEFAULTS.materialWasteRate, mgmtRate: 0, profitRate: 0 },
       efficiencyFactor: 1.0,
       isBase: true,
     };

@@ -341,10 +341,10 @@ function AlertCenterPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
         {[
-          { label: '活跃预警', value: summary.active, color: '#dc2626' },
-          { label: '已确认', value: summary.acknowledged, color: '#d97706' },
+          { label: '活跃预警', value: summary.active, color: 'var(--danger)' },
+          { label: '已确认', value: summary.acknowledged, color: 'var(--warning)' },
           { label: '严重级别', value: summary.critical, color: '#7c3aed' },
-          { label: '总影响金额', value: `楼${summary.totalImpact.toFixed(2)}`, color: '#1d4ed8' },
+          { label: '总影响金额', value: `¥${summary.totalImpact.toFixed(2)}`, color: 'var(--accent)' },
         ].map((card) => (
           <div key={card.label} className="glass-card animate-fade-up" style={{ padding: '24px 20px' }}>
             <Text style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 14 }}>
@@ -610,9 +610,9 @@ function AlertRulesPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
         {[
-          { label: '规则总数', value: stats.total, color: '#1d4ed8' },
-          { label: '启用规则', value: stats.enabled, color: '#059669' },
-          { label: '严重级别', value: stats.critical, color: '#dc2626' },
+          { label: '规则总数', value: stats.total, color: 'var(--accent)' },
+          { label: '启用规则', value: stats.enabled, color: 'var(--success)' },
+          { label: '严重级别', value: stats.critical, color: 'var(--danger)' },
           { label: '覆盖类别', value: stats.categories, color: '#7c3aed' },
         ].map((card) => (
           <div key={card.label} className="glass-card" style={{ padding: '20px 24px' }}>

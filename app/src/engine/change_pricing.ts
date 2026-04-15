@@ -1,5 +1,5 @@
 import { numberOr, safeArray } from './shared_utils';
-import { computeHarnessCost, computeProjectFromHarnesses } from './harness_costing';
+import { computeInternalHarnessCost, INTERNAL_DEFAULTS, mapInternalProjectToProjectHarnessResult } from './harness_costing';
 import type { HarnessResult, ProjectHarnessResult } from '@/types/harness';
 import type { 
   ChangePricingResult, 
@@ -207,11 +207,11 @@ export function computeMetalEscalation(
 ): ChangePricingResult {
   const configs = safeArray(baseHarnessConfigs);
 
-  const baseResults = configs.map((c) => computeHarnessCost(c, params, baseMetalPrices));
-  const newResults = configs.map((c) => computeHarnessCost(c, params, newMetalPrices));
+  const baseResults = configs.map((c) => computeInternalHarnessCost(c, params?.internalRates ?? INTERNAL_DEFAULTS, baseMetalPrices));
+  const newResults = configs.map((c) => computeInternalHarnessCost(c, params?.internalRates ?? INTERNAL_DEFAULTS, newMetalPrices));
 
-  const baseProject = computeProjectFromHarnesses(baseResults);
-  const newProject = computeProjectFromHarnesses(newResults);
+  const baseProject = mapInternalProjectToProjectHarnessResult(baseResults);
+  const newProject = mapInternalProjectToProjectHarnessResult(newResults);
 
   const result = computeChangePricing(baseProject, newProject, 'metal_escalation', params);
 

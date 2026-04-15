@@ -4,7 +4,7 @@
  * 分析多个项目的整体财务表现、各项目贡献度、和金属价格风险敞口。
  */
 
-import { computeHarnessCost, computeProjectFromHarnesses } from './harness_costing';
+import { computeInternalHarnessCost, computeInternalProjectFromHarnesses, INTERNAL_DEFAULTS } from './harness_costing';
 import type { HarnessInput, ProjectHarnessResult } from '../types/harness';
 import type { CostRates, MetalPrices } from '../types/project';
 
@@ -206,10 +206,10 @@ export function analyzeRiskExposure(
     
     // Baseline cost at original metal prices
     const baseResults = p.harnessInputs.map(input =>
-      computeHarnessCost(input, p.costRates, p.metalPrices)
+      computeInternalHarnessCost(input, (p as any).internalRates ?? INTERNAL_DEFAULTS, p.metalPrices)
     );
-    const baseProjectResult = computeProjectFromHarnesses(baseResults);
-    const baseCost = baseProjectResult.vehicleCost - baseProjectResult.weightedProfit;
+    const baseProjectResult = computeInternalProjectFromHarnesses(baseResults);
+    const baseCost = baseProjectResult.vehicleCost;
 
     // Recompute with adjusted metal prices
     const newMetalPrices: MetalPrices = {
@@ -218,10 +218,10 @@ export function analyzeRiskExposure(
     };
     
     const newResults = p.harnessInputs.map(input =>
-      computeHarnessCost(input, p.costRates, newMetalPrices)
+      computeInternalHarnessCost(input, (p as any).internalRates ?? INTERNAL_DEFAULTS, newMetalPrices)
     );
-    const newProjectResult = computeProjectFromHarnesses(newResults);
-    const newCost = newProjectResult.vehicleCost - newProjectResult.weightedProfit;
+    const newProjectResult = computeInternalProjectFromHarnesses(newResults);
+    const newCost = newProjectResult.vehicleCost;
     
     // Profit impact assumes selling price is fixed
     const profitDelta = (baseCost - newCost) * p.annualVolume;

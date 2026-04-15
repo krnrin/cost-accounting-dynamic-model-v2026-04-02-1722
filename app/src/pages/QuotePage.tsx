@@ -7,7 +7,10 @@ import { applyE281ScenarioFallback } from '@/data/e281Fallback';
 import type { HarnessRecord, ProjectRecord, ScenarioRecord } from '@/data/db';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
 import { computeChangePricing, buildChangeComparisonTable } from '@/engine/change_pricing';
-import { computeSuggestedPrice } from '@/engine/quote_template';
+function computeSuggestedPrice(baselineCost: number, marginPercent: number): number {
+  if (marginPercent <= 0 || marginPercent >= 100) return baselineCost;
+  return baselineCost / (1 - marginPercent / 100);
+}
 import { exportChangePricingExcel } from '@/engine/excel_export';
 import { exportQuoteExcel, exportQuotePdf } from '@/lib/exportApi';
 import { apiClient } from '@/lib/apiClient';
