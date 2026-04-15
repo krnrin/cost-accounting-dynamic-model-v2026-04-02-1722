@@ -2,7 +2,9 @@ import JSZip from 'jszip';
 import { exportProjectPackage } from './project_io';
 import { db, type QuoteSnapshotRecord } from '@/data/db';
 import { computeHarnessCost } from './harness_costing';
-import type { HarnessResult } from '@/types/harness';
+import type { BomItem, HarnessResult, WireItem } from '@/types/harness';
+import { captureQuoteParamRef, generateQuoteVerificationReport } from './quote_param_snapshot';
+import { validateBom } from './bom_validation';
 
 function formatFactoryRateSource(snapshot: QuoteSnapshotRecord): string[] {
   const source = (snapshot.params as { factoryRateSource?: Record<string, unknown> | null })?.factoryRateSource;
@@ -21,6 +23,50 @@ function formatFactoryRateSource(snapshot: QuoteSnapshotRecord): string[] {
     `- 制造费率: ${mfgRate.toFixed(4)}`,
     note ? `- 来源说明: ${note}` : '- 来源说明: 未提供',
   ];
+}
+
+function buildExcelExtractionValidationReport(
+  harnessRecords: Array<{ harnessId: string; harnessName: string; input: { bom?: (BomItem | WireItem)[] } }>,
+): string {
+  const sections: string[] = [
+    '# Excel Extraction Validation Report',
+    '',
+    '## Summary',
+  ];
+
+  let totalErrors = 0;
+  let totalWarnings = 0;
+  let totalSuggestions = 0;
+
+  const lines = harnessRecords.flatMap((record) => {
+    const validation = validateBom(record.input.bom || []);
+    totalErrors += validation.errors.length;
+    totalWarnings += validation.warnings.length;
+    totalSuggestions += validation.suggestions.length;
+
+    return [
+      `### ${record.harnessId} ${record.harnessName}`,
+      `- Valid: ${validation.valid ? 'YES' : 'NO'}`,
+      `- BOM Rows: ${(record.input.bom || []).length}`,
+      `- Errors: ${validation.errors.length}`,
+      `- Warnings: ${validation.warnings.length}`,
+      `- Suggestions: ${validation.suggestions.length}`,
+      ...validation.errors.slice(0, 5).map((item) => `  - ERROR row ${item.row} ${item.field}: ${item.message}`),
+      ...validation.warnings.slice(0, 5).map((item) => `  - WARNING row ${item.row} ${item.field}: ${item.message}`),
+      ...validation.suggestions.slice(0, 5).map((item) => `  - SUGGEST row ${item.row} ${item.field}: ${item.reason}`),
+      '',
+    ];
+  });
+
+  sections.push(`- Harness Count: ${harnessRecords.length}`);
+  sections.push(`- Total Errors: ${totalErrors}`);
+  sections.push(`- Total Warnings: ${totalWarnings}`);
+  sections.push(`- Total Suggestions: ${totalSuggestions}`);
+  sections.push('');
+  sections.push('## Harness Details');
+  sections.push(...lines);
+
+  return sections.join('\n');
 }
 
 function buildUsageGuide(
@@ -42,6 +88,7 @@ function buildUsageGuide(
     '- `quotes.json`：报价记录快照',
     '- `quote_snapshots.json`：报价版本与参数/结果快照',
     '- `verification/quote_snapshot_diff_*.md`：最近两版报价的验证报告（至少两版快照时导出）',
+    '- `verification/excel_extraction_validation.md`：基于已导入 BOM 的 Excel 抽取校验摘要',
     '- `usage/README.md`：当前这份使用说明',
     '',
     '## 当前包摘要',
@@ -62,34 +109,59 @@ function buildUsageGuide(
   ].join('\n');
 }
 
-function buildQuoteVerificationReport(base: QuoteSnapshotRecord, compare: QuoteSnapshotRecord): string {
-  const baseParams = JSON.stringify(base.params, null, 2);
-  const compareParams = JSON.stringify(compare.params, null, 2);
-  const paramChanged = baseParams !== compareParams;
-  const baseDelivered = Number((base.results as { totalDeliveredPrice?: unknown })?.totalDeliveredPrice ?? 0);
-  const compareDelivered = Number((compare.results as { totalDeliveredPrice?: unknown })?.totalDeliveredPrice ?? 0);
-  const deliveredDelta = compareDelivered - baseDelivered;
-  const sign = deliveredDelta > 0 ? '+' : '';
+function toQuoteParamRef(snapshot: QuoteSnapshotRecord) {
+  const params = snapshot.params as {
+    costRates?: Record<string, unknown>;
+    metalPrices?: Record<string, unknown>;
+    annualDropRate?: unknown;
+    lifecycleYears?: unknown;
+    factoryRateSource?: Record<string, unknown>;
+  };
+  const results = snapshot.results as {
+    totalMaterialCost?: unknown;
+    totalDeliveredPrice?: unknown;
+    harnessResults?: Array<{ harnessId?: string; harnessName?: string; result?: HarnessResult }>;
+  };
+  const costRates = params.costRates ?? {};
+  const metalPrices = params.metalPrices ?? {};
+  const factoryRateSource = params.factoryRateSource ?? {};
 
-  return [
-    '# Quote Snapshot Verification Report',
-    '',
-    `- Project ID: ${compare.projectId}`,
-    `- Scenario ID: ${compare.scenarioId}`,
-    `- Base Snapshot: v${base.version} ${base.label || ''}`.trimEnd(),
-    `- Compare Snapshot: v${compare.version} ${compare.label || ''}`.trimEnd(),
-    `- Generated At: ${new Date().toISOString()}`,
-    '',
-    '## Parameter Diffs',
-    paramChanged ? '- 快照参数已变化，请查看 quote_snapshots.json 详情' : '- 无参数变化',
-    '',
-    '## Result Diffs',
-    `- 总到厂价: ${baseDelivered.toFixed(4)} -> ${compareDelivered.toFixed(4)} | Δ ${sign}${deliveredDelta.toFixed(4)}`,
-    '',
-    '## Summary',
-    `- Param Changes: ${paramChanged ? 1 : 0}`,
-    `- Result Changes: ${Math.abs(deliveredDelta) > 0.0001 ? 1 : 0}`,
-  ].join('\n');
+  return captureQuoteParamRef(snapshot.quoteId, snapshot.scenarioId, {
+    rateSnapshotVersion: `quote-snapshot-v${snapshot.version}`,
+    bomVersionRef: typeof params.lifecycleYears === 'number' ? `lifecycle-${params.lifecycleYears}` : undefined,
+    metalPrices: {
+      copper: Number(metalPrices.copper ?? 0),
+      aluminum: Number(metalPrices.aluminum ?? 0),
+      source: 'manual',
+    },
+    rates: {
+      managementFeeRate: Number(costRates.mgmtRate ?? costRates.managementFeeRate ?? 0),
+      profitRate: Number(costRates.profitRate ?? 0),
+      scrapRate: Number(costRates.wasteRate ?? costRates.scrapRate ?? 0),
+      packagingRate: Number(costRates.packagingRate ?? 0),
+      laborRate: Number(costRates.laborRate ?? 0),
+    },
+    factoryRateSource: {
+      factoryId: factoryRateSource.factoryId != null ? String(factoryRateSource.factoryId) : factoryRateSource.baseFactoryId != null ? String(factoryRateSource.baseFactoryId) : null,
+      factoryName: factoryRateSource.factoryName != null ? String(factoryRateSource.factoryName) : factoryRateSource.baseFactoryName != null ? String(factoryRateSource.baseFactoryName) : null,
+      laborRate: factoryRateSource.laborRate != null ? Number(factoryRateSource.laborRate) : null,
+      manufacturingRate:
+        factoryRateSource.manufacturingRate != null ? Number(factoryRateSource.manufacturingRate) : factoryRateSource.mfgRate != null ? Number(factoryRateSource.mfgRate) : null,
+      sourceNote: factoryRateSource.sourceNote != null ? String(factoryRateSource.sourceNote) : factoryRateSource.note != null ? String(factoryRateSource.note) : null,
+    },
+    output: {
+      totalCostPerSet: Number(results.totalMaterialCost ?? 0),
+      sellingPricePerSet: Number(results.totalDeliveredPrice ?? 0),
+      marginRate: 0,
+      lifecycleProfit: 0,
+    },
+  });
+}
+
+function buildQuoteVerificationReport(base: QuoteSnapshotRecord, compare: QuoteSnapshotRecord): string {
+  return generateQuoteVerificationReport(toQuoteParamRef(base), toQuoteParamRef(compare), {
+    title: 'Quote Snapshot Verification Report',
+  });
 }
 
 /**
@@ -109,6 +181,7 @@ export async function exportProjectZip(projectId: string): Promise<void> {
     bom: h.input.bom || [],
   }));
   zip.file('bom_data.json', JSON.stringify(bomData, null, 2));
+  zip.file('verification/excel_extraction_validation.md', buildExcelExtractionValidationReport(harnessRecords));
 
   const project = pkg.project;
   if (project && harnessRecords.length > 0) {

@@ -1,3 +1,47 @@
+## [2026-04-16 03:31] - Task: COSTING ENGINE REFACTOR - 清理 ZIP 导出重复校验写入
+
+### 完成的工作:
+- 清理 `app/src/engine/zip_export.ts` 中重复的 Excel extraction validation 构建/写入逻辑，确保 Sprint 4 ZIP 导出链路只维护一份 `buildExcelExtractionValidationReport()` 与一次 `verification/excel_extraction_validation.md` 写入
+- 清理 `app/src/engine/zip_export.ui.test.ts` 中重复断言，保留对报价快照验证报告、工厂费率来源章节与 Excel extraction summary 的单次有效校验
+- 本轮不扩展新功能，只收口重复实现，避免后续 Sprint 4 验证报告与使用说明继续出现双写/双断言漂移
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 这一步属于 Sprint 4 verification/export chain 的代码收口，减少重复实现后，后续继续补 Excel extraction validation 或 usage documentation 时只需改一处
+
+## [2026-04-16 03:29] - Task: COSTING ENGINE REFACTOR - ZIP 导出补齐 Excel 抽取校验报告
+
+### 完成的工作:
+- 更新 `app/src/engine/zip_export.ts`，在导出 ZIP 时新增 `verification/excel_extraction_validation.md`，对每个线束已导入 BOM 执行 `validateBom()` 并汇总错误、警告、标准化建议
+- 在导出说明中补充该校验文件入口，让 Sprint 4 的 Excel extraction-based validation 不再只停留在测试代码，而是随交付包一起输出可读报告
+- 更新 `app/src/engine/zip_export.ui.test.ts`，断言 ZIP 包固定包含 `verification/excel_extraction_validation.md`，并校验报告摘要章节存在
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 这一步完成的是 Sprint 4 “Excel extraction-based validation / verification export chain” 的一个具体收口：导出包现在自带 BOM 抽取校验摘要，便于脱离代码环境直接验收导入质量
+- build 仍有既有 chunk size warning，但未阻塞本轮功能与产物生成
+
+## [2026-04-16 03:16] - Task: COSTING ENGINE REFACTOR - ZIP 报价验证报告复用统一生成器
+
+### 完成的工作:
+- 更新 `app/src/engine/zip_export.ts`，将 ZIP 中 `verification/quote_snapshot_diff_v*_to_v*.md` 的生成逻辑改为复用 `app/src/engine/quote_param_snapshot.ts` 里的 `generateQuoteVerificationReport()`，避免 ZIP 导出与验证模块各维护一套报告格式
+- 新增 `toQuoteParamRef()` 映射，把 `quoteSnapshots` 中已有的费率、金属价、工厂费率来源、报价结果转换成统一的 `QuoteParamRef`，让 Sprint 4 导出报告直接继承 Sprint 2 工厂费率追溯字段
+- 扩展 `app/src/engine/zip_export.ui.test.ts`，断言 ZIP 验证报告现在包含 `## Base Factory Rate Source` 段落，确保导出产物和统一验证报告结构保持一致
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/zip_export.ui.test.ts` 通过（3 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 这一步继续收口 Sprint 4 的 verification report generation/export chain：ZIP 导出报告已不再和页面/验证逻辑分叉，后续若补充参数追溯字段，只需维护统一生成器
+- `init.ps1` 当前存在 PowerShell 编码损坏导致的 parser error，本轮未修该脚本，直接用定向测试与 build 完成本步验证
+
 ## [2026-04-16 03:20] - Task: COSTING ENGINE REFACTOR - 分摊管理页补齐一次性费用矩阵明细
 
 ### 完成的工作:

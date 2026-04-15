@@ -78,6 +78,10 @@ describe('zip_export', () => {
     
     expect(zipInstance.file).toHaveBeenCalledWith('project.json', expect.any(String));
     expect(zipInstance.file).toHaveBeenCalledWith('bom_data.json', expect.any(String));
+    expect(zipInstance.file).toHaveBeenCalledWith(
+      'verification/excel_extraction_validation.md',
+      expect.stringContaining('# Excel Extraction Validation Report'),
+    );
     expect(zipInstance.file).toHaveBeenCalledWith('usage/README.md', expect.stringContaining('# 使用说明'));
     expect(zipInstance.generateAsync).toHaveBeenCalledWith({ type: 'blob' });
     
@@ -152,12 +156,8 @@ describe('zip_export', () => {
       expect.stringContaining('# Quote Snapshot Verification Report'),
     );
     expect(zipInstance.file).toHaveBeenCalledWith(
-      'usage/README.md',
-      expect.stringContaining('## 最新报价快照中的工厂费率来源'),
-    );
-    expect(zipInstance.file).toHaveBeenCalledWith(
-      'usage/README.md',
-      expect.stringContaining('工厂费率来源: 未记录'),
+      'verification/quote_snapshot_diff_v1_to_v2.md',
+      expect.stringContaining('## Base Factory Rate Source'),
     );
     expect(zipInstance.file).toHaveBeenCalledWith(
       'usage/README.md',
@@ -166,6 +166,10 @@ describe('zip_export', () => {
     expect(zipInstance.file).toHaveBeenCalledWith(
       'usage/README.md',
       expect.stringContaining('工厂费率来源: 未记录'),
+    );
+    expect(zipInstance.file).toHaveBeenCalledWith(
+      'verification/excel_extraction_validation.md',
+      expect.stringContaining('## Summary'),
     );
 
     createElementSpy.mockRestore();
