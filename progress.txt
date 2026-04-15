@@ -1,3 +1,18 @@
+## [2026-04-16 03:05] - Task: COSTING ENGINE REFACTOR - 验证报告导出接入工厂费率来源
+
+### 完成的工作:
+- 更新 `server/src/services/exportService.ts`，让报价导出在 `loadQuoteBundle()` 中解析 `quoteParams.factoryRateSource`，并在 Excel 新增“工厂费率追溯”sheet、在 PDF 新增工厂费率追溯段落
+- 工厂费率追溯内容包含基准工厂 ID/名称、人工费率、制造费率、来源说明，使 Sprint 4 的 verification/export report 能直接展示 Sprint 2 工厂费率参数化来源，而不必回查 seed/settings
+- 扩展 `server/test_api.js`，在报价导出集成链路中补充工厂费率追溯断言，验证 quote Excel/PDF 导出均包含新增追溯内容
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/server run build` 通过
+- `PORT=3016 TEST_PORT=3016 TEST_BASE_URL=http://localhost:3016 node C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/server/test_api.js` 仍有既有失败，但本轮新增导出相关断言全部通过：quote Excel/PDF 导出成功，且能检测到“工厂费率追溯”“运营工时费报价基准”“昆山工厂”等新增内容
+
+### 备注:
+- 当前 `server/test_api.js` 剩余失败仍是仓库既有 Prisma transaction timeout / settings publish / quote confirm / audit foreign key 问题，非本轮导出改动引入
+- 这一步完成的是 Sprint 4 “验证/报告生成” 的一个具体收口：验证产物已能直接展示工厂费率基线来源，下一步可继续把同类追溯项扩展到使用说明或 Excel extraction validation 汇总页
+
 ## [2026-04-16 02:47] - Task: COSTING ENGINE REFACTOR - 验证报告补齐工厂费率来源展示
 
 ### 完成的工作:

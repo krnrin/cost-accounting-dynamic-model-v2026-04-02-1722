@@ -5,6 +5,7 @@
 import { spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import * as XLSX from 'xlsx';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const TEST_PORT = process.env.TEST_PORT || process.env.PORT || '3001';
@@ -94,7 +95,42 @@ async function api(method, path, body, token) {
   const text = await res.text();
   let json;
   try { json = JSON.parse(text); } catch { json = text; }
-  return { status: res.status, json };
+  return { status: res.status, json, headers: res.headers, text };
+}
+
+async function apiRaw(method, path, body, token) {
+  const headers = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  });
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return { status: res.status, headers: res.headers, buffer };
+}
+
+function bufferIncludes(buffer, needle) {
+  return buffer.toString('utf8').includes(needle);
+}
+
+function readWorkbook(buffer) {
+  return XLSX.read(buffer, { type: 'buffer' });
+}
+
+function worksheetValue(workbook, sheetName, cell) {
+  return workbook?.Sheets?.[sheetName]?.[cell]?.v;
+}
+
+function sheetToJsonText(workbook, sheetName) {
+  const sheet = workbook?.Sheets?.[sheetName];
+  if (!sheet) return '';
+  return JSON.stringify(XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false }));
+}
+
+function isPdf(buffer) {
+  return buffer.subarray(0, 4).toString('utf8') === '%PDF';
 }
 
 let passed = 0;
@@ -467,7 +503,16 @@ async function runTests() {
     version: 'v1.0',
     template: 'geely',
     data: { items: [{ name: '总价', value: 526.63 }] },
-    quoteParams: { source: 'api-test' },
+    quoteParams: {
+      source: 'api-test',
+      factoryRateSource: {
+        factoryId: 'ks-base',
+        factoryName: '昆山工厂',
+        laborRate: 28.6068525767252,
+        manufacturingRate: 15.136105386304305,
+        sourceNote: '来自《运营工时费报价基准》报价版运营成本工时费（不包含折旧）基准'
+      }
+    },
     quoteResult: { arrivalPrice: 526.63 },
     internalCostBaseline: 500,
     exWorksPrice: 520,
@@ -518,6 +563,19 @@ async function runTests() {
     arrivalPrice: 999,
   }, token);
   assert('locked_fields enforced after confirm', qLockedUpdate.status === 400);
+
+  const quoteExcelExport = await apiRaw('POST', '/api/export/excel', { quoteId }, token);
+  const quoteExcelBook = quoteExcelExport.status === 200 ? readWorkbook(quoteExcelExport.buffer) : null;
+  assert('POST /api/export/excel (quote)', quoteExcelExport.status === 200 && quoteExcelExport.headers.get('content-type')?.includes('spreadsheetml.sheet'));
+  assert('  → quote excel includes factory rate trace sheet', !!quoteExcelBook?.SheetNames.includes('工厂费率追溯'));
+  const factoryRateTraceJson = sheetToJsonText(quoteExcelBook, '工厂费率追溯');
+  assert('  → quote excel includes factory source note', factoryRateTraceJson.includes('运营工时费报价基准'));
+  assert('  → quote excel includes factory name', factoryRateTraceJson.includes('昆山工厂'));
+
+  const quotePdfExport = await apiRaw('POST', '/api/export/pdf', { quoteId }, token);
+  assert('POST /api/export/pdf (quote)', quotePdfExport.status === 200 && quotePdfExport.headers.get('content-type')?.includes('application/pdf'));
+  assert('  → quote pdf returns valid pdf header', isPdf(quotePdfExport.buffer));
+  assert('  → quote pdf grows after trace section addition', quotePdfExport.buffer.length > 1500);
 
   // 16. Create version
   const vCreate = await api('POST', '/api/versions', {
