@@ -139,6 +139,7 @@ function toQuoteParamRef(snapshot: QuoteSnapshotRecord) {
       profitRate: Number(costRates.profitRate ?? 0),
       scrapRate: Number(costRates.wasteRate ?? costRates.scrapRate ?? 0),
       packagingRate: Number(costRates.packagingRate ?? 0),
+      freightRate: Number(costRates.freightRate ?? 0),
       laborRate: Number(costRates.laborRate ?? 0),
     },
     factoryRateSource: {

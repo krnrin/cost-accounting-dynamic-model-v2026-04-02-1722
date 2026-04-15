@@ -1,3 +1,33 @@
+## [2026-04-16 03:40] - Task: COSTING ENGINE REFACTOR - 报价快照补齐运输费率追溯
+
+### 完成的工作:
+- 更新 `app/src/engine/quote_param_snapshot.ts`，在 `QuoteParamRef.rates`、参数差异比对与验证报告基线区块中补齐 `freightRate`，让 Sprint 3 物流系统参数不再只停留在引擎/系数层，而能进入 snapshot/report 追溯链路
+- 更新 `app/src/engine/zip_export.ts` 的 `toQuoteParamRef()`，使 ZIP 导出的 `verification/quote_snapshot_diff_v*_to_v*.md` 复用统一报告时同步带出运输费率
+- 更新 `app/src/engine/__tests__/quote_param_snapshot.test.ts`，新增运输费率差异断言与报告文本断言，锁定包装/物流参数在版本比较中的可见性
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/quote_param_snapshot.test.ts` 通过（3 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 失败，仍为仓库既有 `app/src/pages/AlertsPage.tsx` 重复 import / 重复变量定义问题（`useSettingsStore`、`useInternalMetalStore`、`computeMetalAlerts`、`metalClientCheck`、`clientCheckSummary`），非本轮改动引入
+
+### 备注:
+- 这一步属于 Sprint 3 包装/物流系统与 Sprint 4 验证报告链路之间的收口：运输费率现在已能随报价快照进入比较报告与 ZIP 导出验证文档
+- 下一步若继续做 Sprint 3，可把 `freightRate` 的来源继续向 settings/page/store 明确参数化；但本轮先只补 snapshot/report/export 可追溯闭环
+
+## [2026-04-16 03:40] - Task: COSTING ENGINE REFACTOR - 报价快照补齐运输费率追溯
+
+### 完成的工作:
+- 更新 `app/src/engine/quote_param_snapshot.ts`，在 `QuoteParamRef.rates`、参数差异比对与验证报告基线区块中补齐 `freightRate`，让 Sprint 3 物流系统参数不再只停留在引擎/系数层，而能进入 snapshot/report 追溯链路
+- 更新 `app/src/engine/zip_export.ts` 的 `toQuoteParamRef()`，使 ZIP 导出的 `verification/quote_snapshot_diff_v*_to_v*.md` 复用统一报告时同步带出运输费率
+- 更新 `app/src/engine/__tests__/quote_param_snapshot.test.ts`，新增运输费率差异断言与报告文本断言，锁定包装/物流参数在版本比较中的可见性
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/quote_param_snapshot.test.ts` 通过（3 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 失败，仍为仓库既有 `app/src/pages/AlertsPage.tsx` 重复 import / 重复变量定义问题（`useSettingsStore`、`useInternalMetalStore`、`computeMetalAlerts`、`metalClientCheck`、`clientCheckSummary`），非本轮改动引入
+
+### 备注:
+- 这一步属于 Sprint 3 包装/物流系统与 Sprint 4 验证报告链路之间的收口：运输费率现在已能随报价快照进入比较报告与 ZIP 导出验证文档
+- 下一步若继续做 Sprint 3，可把 `freightRate` 的来源继续向 settings/page/store 明确参数化；但本轮先只补 snapshot/report/export 可追溯闭环
+
 ## [2026-04-16 03:31] - Task: COSTING ENGINE REFACTOR - 清理 ZIP 导出重复校验写入
 
 ### 完成的工作:

@@ -26,6 +26,7 @@ export interface QuoteParamRef {
     profitRate: number;
     scrapRate: number;
     packagingRate: number;
+    freightRate: number;
     laborRate: number;
   };
   /** Factory-rate traceability captured for validation/reporting */
@@ -148,6 +149,7 @@ export function compareQuoteVersions(
     profitRate: '利润率',
     scrapRate: '废品率',
     packagingRate: '包装费率',
+    freightRate: '运输费率',
     laborRate: '工时费率',
   };
   for (const [key, label] of Object.entries(rateLabels)) {
@@ -319,8 +321,8 @@ export function generateQuoteVerificationReport(
     '## Captured Parameter Baseline',
     `- Base Metal Prices: 铜 ${formatNumber(base.metalPrices.copper, 2)}, 铝 ${formatNumber(base.metalPrices.aluminum, 2)}, 来源 ${base.metalPrices.source}`,
     `- Compare Metal Prices: 铜 ${formatNumber(compare.metalPrices.copper, 2)}, 铝 ${formatNumber(compare.metalPrices.aluminum, 2)}, 来源 ${compare.metalPrices.source}`,
-    `- Base Labor/Packaging: 工时 ${formatNumber(base.rates.laborRate, 4)}, 包装费率 ${formatPercent(base.rates.packagingRate)}`,
-    `- Compare Labor/Packaging: 工时 ${formatNumber(compare.rates.laborRate, 4)}, 包装费率 ${formatPercent(compare.rates.packagingRate)}`,
+    `- Base Labor/Packaging/Freight: 工时 ${formatNumber(base.rates.laborRate, 4)}, 包装费率 ${formatPercent(base.rates.packagingRate)}, 运输费率 ${formatPercent(base.rates.freightRate)}`,
+    `- Compare Labor/Packaging/Freight: 工时 ${formatNumber(compare.rates.laborRate, 4)}, 包装费率 ${formatPercent(compare.rates.packagingRate)}, 运输费率 ${formatPercent(compare.rates.freightRate)}`,
     '',
     `## Parameter Diffs (${diff.summary.totalParamChanges})`,
     ...paramLines,

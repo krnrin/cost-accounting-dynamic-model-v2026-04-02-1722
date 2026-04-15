@@ -15,6 +15,7 @@ describe('quote_param_snapshot factory-rate traceability', () => {
         profitRate: 0.05,
         scrapRate: 0.01,
         packagingRate: 0.02,
+        freightRate: 0.006,
         laborRate: 35,
       },
       output: {
@@ -43,6 +44,7 @@ describe('quote_param_snapshot factory-rate traceability', () => {
         profitRate: 0.05,
         scrapRate: 0.01,
         packagingRate: 0.02,
+        freightRate: 0.006,
         laborRate: 35,
       },
       factoryRateSource: {
@@ -68,6 +70,7 @@ describe('quote_param_snapshot factory-rate traceability', () => {
         profitRate: 0.05,
         scrapRate: 0.01,
         packagingRate: 0.02,
+        freightRate: 0.008,
         laborRate: 35,
       },
       factoryRateSource: {
@@ -93,6 +96,7 @@ describe('quote_param_snapshot factory-rate traceability', () => {
     expect(fields).toContain('factoryRateSource.laborRate');
     expect(fields).toContain('factoryRateSource.manufacturingRate');
     expect(fields).toContain('factoryRateSource.sourceNote');
+    expect(fields).toContain('rates.freightRate');
     expect(hasParamChanged(base, compare)).toBe(true);
   });
 
@@ -106,6 +110,7 @@ describe('quote_param_snapshot factory-rate traceability', () => {
         profitRate: 0.05,
         scrapRate: 0.01,
         packagingRate: 0.02,
+        freightRate: 0.006,
         laborRate: 35,
       },
       factoryRateSource: {
@@ -132,6 +137,7 @@ describe('quote_param_snapshot factory-rate traceability', () => {
         profitRate: 0.05,
         scrapRate: 0.01,
         packagingRate: 0.021,
+        freightRate: 0.008,
         laborRate: 35,
       },
       factoryRateSource: {
@@ -158,6 +164,8 @@ describe('quote_param_snapshot factory-rate traceability', () => {
     expect(report).toContain('基准工厂: 昆山工厂 (KS)');
     expect(report).toContain('基准工厂: 武汉工厂 (WH)');
     expect(report).toContain('工厂费率来源说明');
+    expect(report).toContain('运输费率 0.60%');
+    expect(report).toContain('运输费率 0.80%');
     expect(report).toContain('Cost Impact: +1.0000');
   });
 });
