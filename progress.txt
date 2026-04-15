@@ -1,18 +1,17 @@
-## [2026-04-16 02:18] - Task: COSTING ENGINE REFACTOR - 工厂费率参数化基线收口
+## [2026-04-16 02:24] - Task: COSTING ENGINE REFACTOR - 工厂费率来源在设置页显式化
 
 ### 完成的工作:
-- 修正 `engine/compute_model.js` 在线束级精算路径中的费率优先级：优先取 `laborValidation.versionSnapshots`，否则回退到 base factory `costRates`，再回退到 `projectConfig.costRates` / `internalRates`
-- 将 base factory 的 `factoryId` / `factoryName` 一并写入 `harnessDetail.params`，使工厂费率来源能随结果一起暴露
-- 删除 `resolveBaseFactory()` 的重复定义，并补充 `tests/engine/compute-model-harness-rates.test.js`，覆盖运营工时费报价基准对应的 base factory 费率场景
-- 修复空 labor snapshot 被 `numberOr()` 吃成 0 的问题，避免无快照时 labor/mfg 费率错误归零
+- 更新 `app/src/pages/SettingsPage.tsx` 的多工厂面板，新增“费率来源/备注”列，允许直接维护工厂费率来源说明并随设置发布流一并快照化
+- 在多工厂面板顶部新增基准工厂摘要，显式展示当前 `isBase` 工厂、人工/制造费率，以及基准备注，便于追溯 Sprint 2 工厂费率参数化的实际来源
+- 本次展示收口已对齐 `app/src/data/seeds/e281.ts` 中昆山工厂“来自《运营工时费报价基准》报价版运营成本工时费（不包含折旧）基准”的业务语义
 
 ### 测试:
-- `node` 内联断言通过：覆盖 labor snapshot 优先、customer 回退、internalRates 回退、base factory 优先、运营工时费报价基准 base factory 场景，输出 `rate-priority-node-check: ok`
-- `npx vitest run tests/engine/compute-model-harness-rates.test.js` 未能执行，原因是仓库当前缺少 `happy-dom`，属于现有测试环境依赖缺口，不是本次改动引入
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/e2e_validation.test.ts` 通过（19 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
 
 ### 备注:
-- 本次只完成 Sprint 2 “工厂费率参数化” 的一处具体引擎收口，直接对应 `app/src/data/seeds/e281.ts` 中“来自《运营工时费报价基准》”的昆山工厂报价版费率基线
-- 下一步可继续把该 factory-rate 来源显式映射进 store/page/api，或转入 Sprint 3 的连接器 / 同步开发件价格体系
+- 这一步完成的是 Sprint 2 “工厂费率参数化” 在 page/store 设置流上的一处具体补口：费率基线不再只藏在 seed / 引擎里，页面侧也能直接说明来源并在发布快照中保留追溯信息
+- 下一步可继续把该来源透传到 server settings snapshot / verification report，或转入 Sprint 3 的材料价格体系与包装物流系统
 
 ## [2026-04-16 02:18] - Task: COSTING ENGINE REFACTOR - 工厂费率参数化基线收口
 

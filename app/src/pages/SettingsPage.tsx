@@ -540,6 +540,7 @@ function FactoryPanel({ factories, addFactory, updateFactory, removeFactory }: {
     for (const ref of REFERENCE_FACTORIES) if (!factories.find((f) => f.factoryId === ref.factoryId)) addFactory({ ...ref });
     Toast.success('已加载参考工厂数据');
   };
+  const baseFactory = factories.find((factory) => factory.isBase) ?? factories[0] ?? null;
   const columns = [
     { title: 'ID', dataIndex: 'factoryId', render: (text: string) => <Tag>{text}</Tag> },
     { title: '工厂名称', dataIndex: 'factoryName', render: (text: string, r: FactoryConfig) => <Input value={text} onChange={(v: string) => updateFactory(r.factoryId, { factoryName: v })} /> },
@@ -550,9 +551,10 @@ function FactoryPanel({ factories, addFactory, updateFactory, removeFactory }: {
     { title: '利润率', dataIndex: 'profitRate', render: (_: any, r: FactoryConfig) => <InputNumber value={r.costRates.profitRate} onChange={(v: any) => updateFactory(r.factoryId, { costRates: { ...r.costRates, profitRate: Number(v) } })} /> },
     { title: '效率系数', dataIndex: 'efficiencyFactor', render: (_: any, r: FactoryConfig) => <InputNumber value={r.efficiencyFactor} onChange={(v: any) => updateFactory(r.factoryId, { efficiencyFactor: Number(v) })} /> },
     { title: '基准', dataIndex: 'isBase', render: (_: any, r: FactoryConfig) => <Switch checked={!!r.isBase} onChange={(v: boolean) => updateFactory(r.factoryId, { isBase: v })} /> },
+    { title: '费率来源/备注', dataIndex: 'remark', render: (text: string | undefined, r: FactoryConfig) => <Input value={text ?? ''} placeholder="如：来自《运营工时费报价基准》" onChange={(v: string) => updateFactory(r.factoryId, { remark: v })} /> },
     { title: '', dataIndex: 'op', render: (_: any, r: FactoryConfig) => <Button icon={<IconDelete />} theme="borderless" type="danger" onClick={() => removeFactory(r.factoryId)} /> },
   ];
-  return <div style={{ marginTop: 16 }}><Card className="glass-card" title={`工厂配置 (${factories.length})`} headerLine={false} headerExtraContent={<Button theme="light" onClick={loadRefFactories}>加载参考工厂</Button>}><Table columns={columns} dataSource={factories} rowKey="factoryId" pagination={false} /><Button icon={<IconPlus />} theme="light" style={{ marginTop: 12 }} onClick={addNewFactory}>添加工厂</Button></Card></div>;
+  return <div style={{ marginTop: 16 }}><Card className="glass-card" title={`工厂配置 (${factories.length})`} headerLine={false} headerExtraContent={<Button theme="light" onClick={loadRefFactories}>加载参考工厂</Button>}><div style={{ display: 'grid', gap: 12, marginBottom: 12 }}><Text type="tertiary">工厂费率基准会随发布流快照化；这里显式记录基准工厂与费率来源，便于追溯《运营工时费报价基准》口径。</Text>{baseFactory && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Tag color="blue">基准工厂 {baseFactory.factoryId} / {baseFactory.factoryName}</Tag><Tag color="cyan">人工 {safeNumber(baseFactory.costRates?.laborRate)}</Tag><Tag color="green">制造 {safeNumber(baseFactory.costRates?.mfgRate)}</Tag>{baseFactory.remark ? <Tag color="grey">{baseFactory.remark}</Tag> : null}</div>}</div><Table columns={columns} dataSource={factories} rowKey="factoryId" pagination={false} /><Button icon={<IconPlus />} theme="light" style={{ marginTop: 12 }} onClick={addNewFactory}>添加工厂</Button></Card></div>;
 }
 
 function AllocationPanel({ allocationConfig, updateAllocationDriver }: { allocationConfig: AllocationConfig; updateAllocationDriver: (key: keyof AllocationConfig, driver: AllocationDriver) => void; }) {
