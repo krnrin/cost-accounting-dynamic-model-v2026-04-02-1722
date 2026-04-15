@@ -186,7 +186,7 @@ export function mapAllocationItemsToFeeItems(items: ScenarioAllocationItem[]): S
   }));
 }
 
-function mapFeeItemToAllocationCreatePayload(
+function mapFeeItemToAllocationPayload(
   projectId: string,
   feeItem: ScenarioAllocationFeeItemInput,
   participant: ScenarioAllocationParticipant,
@@ -212,6 +212,130 @@ function mapFeeItemToAllocationCreatePayload(
   };
 }
 
+function buildArchivedAllocationPayload(item: ScenarioAllocationItem) {
+  return {
+    totalAmount: 0,
+    plannedRecovery: 0,
+    actualRecovered: 0,
+    status: 'archived',
+    priceAdjustReminder: false,
+    completedAt: item.completedAt ?? new Date().toISOString(),
+  };
+}
+
+function collectReferencedAllocationIds(feeItems: ScenarioAllocationFeeItemInput[]) {
+  const referencedIds = new Set<string>();
+  for (const feeItem of feeItems) {
+    for (const participant of feeItem.participants) {
+      if (participant.allocationItemId) {
+        referencedIds.add(participant.allocationItemId);
+      }
+    }
+  }
+  return referencedIds;
+}
+
+function toNonZeroFeeItems(items: ScenarioAllocationFeeItem[]) {
+  return items
+    .map((item) => ({
+      ...item,
+      participants: item.participants.filter((participant) => Number(participant.quantity || 0) > 0),
+    }))
+    .filter((item) => item.participants.length > 0 && Number(item.unitPrice || 0) > 0);
+}
+
+async function upsertScenarioAllocationFeeItem(
+  scenarioId: string,
+  projectId: string,
+  feeItem: ScenarioAllocationFeeItemInput,
+) {
+  const saved = await Promise.all(
+    feeItem.participants
+      .filter((participant) => Number(participant.quantity || 0) > 0)
+      .map((participant) => {
+        const body = mapFeeItemToAllocationPayload(projectId, feeItem, participant);
+        if (participant.allocationItemId) {
+          return apiClient<ScenarioAllocationItem>(`/allocations/${participant.allocationItemId}`, {
+            method: 'PUT',
+            body,
+          });
+        }
+        return apiClient<ScenarioAllocationItem>(`/scenarios/${scenarioId}/allocations`, {
+          method: 'POST',
+          body,
+        });
+      }),
+  );
+
+  return saved;
+}
+
+async function archiveRemovedAllocationItems(
+  existingItems: ScenarioAllocationItem[],
+  referencedIds: Set<string>,
+) {
+  const staleItems = existingItems.filter((item) => !referencedIds.has(item.id));
+  if (staleItems.length === 0) {
+    return;
+  }
+
+  await Promise.all(
+    staleItems.map((item) => apiClient<ScenarioAllocationItem>(`/allocations/${item.id}`, {
+      method: 'PUT',
+      body: buildArchivedAllocationPayload(item),
+    })),
+  );
+}
+
+function toFeeItemInputs(feeItems: ScenarioAllocationFeeItemInput[]) {
+  return feeItems.map((feeItem) => ({
+    ...feeItem,
+    participants: feeItem.participants.map((participant) => ({ ...participant })),
+  }));
+}
+
+function mapCreatedItemsToFirstFeeItem(items: ScenarioAllocationItem[]) {
+  return toNonZeroFeeItems(mapAllocationItemsToFeeItems(items))[0] ?? null;
+}
+
+function mergeSavedFeeItems(items: ScenarioAllocationItem[]) {
+  return toNonZeroFeeItems(mapAllocationItemsToFeeItems(items));
+}
+
+function ensurePaymentMode(feeItem: ScenarioAllocationFeeItemInput): ScenarioAllocationFeeItemInput {
+  return {
+    ...feeItem,
+    paymentMode: feeItem.paymentMode ?? 'amortized',
+  };
+}
+
+function ensureFeeItemDefaults(feeItems: ScenarioAllocationFeeItemInput[]) {
+  return toFeeItemInputs(feeItems).map(ensurePaymentMode);
+}
+
+function collectSavedAllocationIds(items: ScenarioAllocationItem[]) {
+  return new Set(items.map((item) => item.id));
+}
+
+async function saveScenarioAllocationFeeItemsInternal(
+  scenarioId: string,
+  projectId: string,
+  feeItems: ScenarioAllocationFeeItemInput[],
+) {
+  const existingItems = await fetchScenarioAllocations(scenarioId);
+  const normalizedFeeItems = ensureFeeItemDefaults(feeItems);
+  const savedGroups = await Promise.all(
+    normalizedFeeItems.map((feeItem) => upsertScenarioAllocationFeeItem(scenarioId, projectId, feeItem)),
+  );
+  const savedItems = savedGroups.flat();
+  const referencedIds = collectReferencedAllocationIds(normalizedFeeItems);
+  for (const savedId of collectSavedAllocationIds(savedItems)) {
+    referencedIds.add(savedId);
+  }
+  await archiveRemovedAllocationItems(existingItems, referencedIds);
+  return fetchScenarioAllocationFeeItems(scenarioId);
+}
+
 export async function fetchScenarioAllocations(scenarioId: string, burdenSide?: string) {
   const query = burdenSide ? `?burden_side=${encodeURIComponent(burdenSide)}` : '';
   return apiClient<ScenarioAllocationItem[]>(`/scenarios/${scenarioId}/allocations${query}`);
@@ -227,28 +351,30 @@ export async function createScenarioAllocationFeeItem(
   projectId: string,
   feeItem: ScenarioAllocationFeeItemInput,
 ) {
-  const created = await Promise.all(
-    feeItem.participants
-      .filter((participant) => Number(participant.quantity || 0) > 0)
-      .map((participant) => apiClient<ScenarioAllocationItem>(`/scenarios/${scenarioId}/allocations`, {
-        method: 'POST',
-        body: mapFeeItemToAllocationCreatePayload(projectId, feeItem, participant),
-      })),
+  const created = await upsertScenarioAllocationFeeItem(
+    scenarioId,
+    projectId,
+    ensurePaymentMode(feeItem),
   );
 
-  return mapAllocationItemsToFeeItems(created)[0] ?? null;
+  return mapCreatedItemsToFirstFeeItem(created);
 }
 
 export async function saveScenarioAllocationFeeItems(
   scenarioId: string,
   payload: { projectId: string; feeItems: ScenarioAllocationFeeItemInput[] },
 ) {
-  const createdGroups = await Promise.all(
-    payload.feeItems.map((feeItem) => createScenarioAllocationFeeItem(scenarioId, payload.projectId, feeItem)),
-  );
-
-  return createdGroups.filter(Boolean) as ScenarioAllocationFeeItem[];
+  return saveScenarioAllocationFeeItemsInternal(scenarioId, payload.projectId, payload.feeItems);
 }
+
+export async function replaceScenarioAllocationFeeItems(
+  scenarioId: string,
+  payload: { projectId: string; feeItems: ScenarioAllocationFeeItemInput[] },
+) {
+  return saveScenarioAllocationFeeItemsInternal(scenarioId, payload.projectId, payload.feeItems);
+}
+
+export { mergeSavedFeeItems };
 
 export async function bulkSyncScenarioAllocations(
   scenarioId: string,

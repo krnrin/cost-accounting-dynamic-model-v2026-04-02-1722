@@ -6,8 +6,8 @@
 - 新增 `createScenarioAllocationFeeItem()` 与 `saveScenarioAllocationFeeItems()`，支持按费用项矩阵拆分回写到现有分摊接口，同时保留 `fetchScenarioAllocations()` 与 `bulkSyncScenarioAllocations()` 旧接口兼容
 
 ### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts` 通过（9 passed）
 - `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过（仅剩既有 chunk size warning）
+- `init.ps1` 为 PowerShell 脚本；当前会话运行在 bash 环境，直接执行会因 `Write-Host` / PowerShell 语法失败，故本轮按目标文件范围完成构建校验
 
 ### 备注:
 - 这一步只完成 Sprint 2 的 API 适配层，矩阵状态管理与 UI 改造留给后续 S2-02 / S2-03
