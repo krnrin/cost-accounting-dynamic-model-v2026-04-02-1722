@@ -4,8 +4,8 @@ import { db } from '@/data/db';
 import type { OnetimeCostRecord } from '@/data/db';
 import { getScenarioOnetimeCostFallback } from '@/utils/e281Fallback';
 import {
-  computeProjectAlloc,
   computeProjectRecovery,
+  normalizeOnetimeInputs,
   type OnetimeCostInput,
   type PaymentMode,
   type ProjectAllocSummary,
@@ -141,7 +141,7 @@ function toCostRecords(projectId: string, scenarioId: string, rows: ScenarioAllo
 
 async function buildStateFromRows(projectId: string, scenarioId: string, rows: ScenarioAllocRow[]) {
   const inputs = toOnetimeCostInputs(rows);
-  const allocSummary = inputs.length > 0 ? computeProjectAlloc(inputs) : null;
+  const allocSummary = inputs.length > 0 ? normalizeOnetimeInputs(inputs) : null;
   const scenario = scenarioId ? await db.scenarios.get(scenarioId) : null;
   const project = projectId ? await db.projects.get(projectId) : null;
   const annualCapacity = (scenario?.config as any)?.annualCapacity
@@ -319,7 +319,7 @@ export const useAllocStore = create<AllocState>()(
           set({ allocSummary: null, recoverySummary: null });
           return;
         }
-        const allocSummary = computeProjectAlloc(inputs);
+        const allocSummary = normalizeOnetimeInputs(inputs);
         const cumProducedMap = Object.fromEntries(rows.map((row) => [row.harnessId, Math.max(0, Number(row.cumProduced || 0))]));
         const recoverySummary = computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity);
         set({ allocSummary, recoverySummary });

@@ -20,7 +20,7 @@ import { db } from '@/data/db';
 import type { ProjectRecord, ScenarioRecord } from '@/data/db';
 import { useAllocStore } from '@/store/allocStore';
 import {
-  computeProjectAlloc,
+  normalizeOnetimeInputs,
   simulateRecoveryTimeline,
   type OnetimeCostInput,
   type PaymentMode,
@@ -173,7 +173,7 @@ export default function AllocManagerPage() {
       allocBase: r.allocBase,
       paymentMode: r.paymentMode,
     }));
-    return inputs.length > 0 ? computeProjectAlloc(inputs) : null;
+    return inputs.length > 0 ? normalizeOnetimeInputs(inputs) : null;
   }, [editRows]);
 
   // 回收时间轴图表
@@ -434,7 +434,7 @@ export default function AllocManagerPage() {
         {/* 汇总 KPI 卡片 */}
         <Col span={6}>
           <div className="glass-card" style={{ padding: 24, height: '100%' }}>
-            <Text style={{ fontWeight: 600, fontSize: 13, color: '#71717a' }}>工装费合计</Text>
+            <Text style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>工装费合计</Text>
             <div className="ledger-number" style={{ fontSize: 28, marginTop: 8 }}>
               ¥{totalTooling.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </div>
@@ -442,7 +442,7 @@ export default function AllocManagerPage() {
         </Col>
         <Col span={6}>
           <div className="glass-card" style={{ padding: 24, height: '100%' }}>
-            <Text style={{ fontWeight: 600, fontSize: 13, color: '#71717a' }}>试验费合计</Text>
+            <Text style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>试验费合计</Text>
             <div className="ledger-number" style={{ fontSize: 28, marginTop: 8 }}>
               ¥{totalTesting.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </div>
@@ -450,22 +450,22 @@ export default function AllocManagerPage() {
         </Col>
         <Col span={6}>
           <div className="glass-card" style={{ padding: 24, height: '100%' }}>
-            <Text style={{ fontWeight: 600, fontSize: 13, color: '#71717a' }}>一次性费用总计</Text>
-            <div className="ledger-number" style={{ fontSize: 28, marginTop: 8, color: '#2563eb' }}>
+            <Text style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>一次性费用总计</Text>
+            <div className="ledger-number" style={{ fontSize: 28, marginTop: 8, color: 'var(--accent)' }}>
               ¥{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </div>
-            <Text style={{ fontSize: 12, color: '#71717a', marginTop: 4, display: 'block' }}>
+            <Text style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, display: 'block' }}>
               参与: {summary?.participatingCount ?? 0} / 不参与: {summary?.nonParticipatingCount ?? 0}
             </Text>
           </div>
         </Col>
         <Col span={6}>
           <div className="glass-card" style={{ padding: 24, height: '100%' }}>
-            <Text style={{ fontWeight: 600, fontSize: 13, color: '#71717a' }}>加权单车分摊</Text>
-            <div className="ledger-number" style={{ fontSize: 28, marginTop: 8, color: '#dc2626' }}>
+            <Text style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>加权单车分摊</Text>
+            <div className="ledger-number" style={{ fontSize: 28, marginTop: 8, color: 'var(--danger)' }}>
               ¥{weightedAlloc.toFixed(4)}
             </div>
-            <Text style={{ fontSize: 12, color: '#71717a', marginTop: 4, display: 'block' }}>
+            <Text style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, display: 'block' }}>
               Σ(单根分摊 × 装车比)
             </Text>
           </div>
