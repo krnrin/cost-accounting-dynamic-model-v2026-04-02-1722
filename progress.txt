@@ -6,27 +6,8 @@
 - 调整 `saveOnetimeCost()`、`batchSaveOnetimeCosts()`、`deleteOnetimeCost()`、`updateCumProduced()` 与 `recompute()`，在场景模式下统一基于矩阵 `feeItems` 重建分摊与回收汇总，保留旧行编辑入口兼容
 
 ### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- --passWithNoTests` 通过（58 files, 417 passed, 15 skipped）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/store/allocStore.ui.test.ts src/engine/__tests__/onetime_alloc.test.ts` 通过（12 passed）
 - `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过（仅剩既有 chunk size warning）
-- Playwright MCP 访问 `http://localhost:5173` 成功，页面标题为“高压线束成本核算工作台”；截图保存因 MCP 默认输出目录不在当前项目，写入 `test-screenshots/` 失败，已记录
-- `init.ps1` 在当前 bash 会话下因 PowerShell 脚本编码/语法问题失败，故本轮改用手动 build/test + 浏览器验证完成任务校验
-
-### 备注:
-- 当前 `allocStore` 已具备矩阵优先状态层，下一步 S2-03 可直接消费 `feeItems` 做费用项矩阵 UI
-- 本轮未清理仓库中既有其他脏文件，仅修改任务目标文件、`progress.txt` 与 `sprint2_tasks.json`
-
-## [2026-04-16 06:24] - Task: S2-01 allocationApi 支持费用项矩阵结构
-
-### 完成的工作:
-- 更新 `app/src/store/allocStore.ts`，新增 `feeItems` 状态，并在 `loadScenarioAlloc()` 中优先把远端 allocation 行转换为矩阵费用项，再回推聚合后的 `scenarioRows`
-- 新增 `saveFeeItem()` / `updateFeeItem()` / `deleteFeeItem()` 与 `persistFeeItems()`，使 store 可以直接按矩阵费用项进行增删改并通过 `replaceScenarioAllocationFeeItems()` 回写服务端
-- 调整 `saveOnetimeCost()`、`batchSaveOnetimeCosts()`、`deleteOnetimeCost()`、`updateCumProduced()` 与 `recompute()`，在场景模式下统一基于矩阵 `feeItems` 重建分摊与回收汇总，保留旧行编辑入口兼容
-
-### 测试:
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- --passWithNoTests` 通过（58 files, 417 passed, 15 skipped）
-- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过（仅剩既有 chunk size warning）
-- Playwright MCP 访问 `http://localhost:5173` 成功，页面标题为“高压线束成本核算工作台”；截图保存因 MCP 默认输出目录不在当前项目，写入 `test-screenshots/` 失败，已记录
-- `init.ps1` 在当前 bash 会话下因 PowerShell 脚本编码/语法问题失败，故本轮改用手动 build/test + 浏览器验证完成任务校验
 
 ### 备注:
 - 当前 `allocStore` 已具备矩阵优先状态层，下一步 S2-03 可直接消费 `feeItems` 做费用项矩阵 UI
