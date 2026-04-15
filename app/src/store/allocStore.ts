@@ -23,6 +23,7 @@ export interface ScenarioAllocRow extends ScenarioAllocationSyncRow {}
 interface AllocState {
   costRecords: OnetimeCostRecord[];
   scenarioRows: ScenarioAllocRow[];
+  rawScenarioItems: ScenarioAllocationItem[];
   allocSummary: ProjectAllocSummary | null;
   recoverySummary: ProjectRecoverySummary | null;
   loading: boolean;
@@ -49,6 +50,7 @@ function createEmptySummary() {
   return {
     costRecords: [],
     scenarioRows: [],
+    rawScenarioItems: [],
     allocSummary: null,
     recoverySummary: null,
   };
@@ -61,7 +63,7 @@ function buildFallbackRows(_scenarioId: string, scenario: any): ScenarioAllocRow
     vehicleRatio: record.vehicleRatio,
     toolingCost: record.input.toolingCost,
     testingCost: record.input.testingCost,
-    rndCost: record.input.rndCost,
+    rndCost: record.input.rndCost ?? 0,
     allocBase: record.input.allocBase,
     paymentMode: record.input.paymentMode ?? 'amortized',
     cumProduced: 0,
@@ -139,7 +141,12 @@ function toCostRecords(projectId: string, scenarioId: string, rows: ScenarioAllo
   }));
 }
 
-async function buildStateFromRows(projectId: string, scenarioId: string, rows: ScenarioAllocRow[]) {
+async function buildStateFromRows(
+  projectId: string,
+  scenarioId: string,
+  rows: ScenarioAllocRow[],
+  rawScenarioItems: ScenarioAllocationItem[] = [],
+) {
   const inputs = toOnetimeCostInputs(rows);
   const allocSummary = inputs.length > 0 ? normalizeOnetimeInputs(inputs) : null;
   const scenario = scenarioId ? await db.scenarios.get(scenarioId) : null;
@@ -157,6 +164,7 @@ async function buildStateFromRows(projectId: string, scenarioId: string, rows: S
   return {
     costRecords: toCostRecords(projectId, scenarioId, rows),
     scenarioRows: rows,
+    rawScenarioItems,
     allocSummary,
     recoverySummary,
   };
@@ -193,7 +201,7 @@ export const useAllocStore = create<AllocState>()(
           const rows = remoteItems.length > 0
             ? aggregateScenarioRows(remoteItems)
             : buildFallbackRows(scenarioId, scenario);
-          const nextState = await buildStateFromRows(projectId, scenarioId, rows);
+          const nextState = await buildStateFromRows(projectId, scenarioId, rows, remoteItems);
           set({ ...nextState, loading: false });
         } catch (error) {
           console.error('Failed to load scenario allocation from server:', error);
@@ -228,7 +236,7 @@ export const useAllocStore = create<AllocState>()(
           rows: payloadRows,
         });
         const nextRows = remoteItems.length > 0 ? aggregateScenarioRows(remoteItems) : payloadRows;
-        const nextState = await buildStateFromRows(projectId, scenarioId, nextRows);
+        const nextState = await buildStateFromRows(projectId, scenarioId, nextRows, remoteItems);
         set({ ...nextState, loading: false });
       },
 
@@ -242,6 +250,7 @@ export const useAllocStore = create<AllocState>()(
           vehicleRatio: input.vehicleRatio,
           toolingCost: input.toolingCost,
           testingCost: input.testingCost,
+          rndCost: input.rndCost ?? 0,
           allocBase: input.allocBase,
           paymentMode: input.paymentMode ?? current?.paymentMode ?? 'amortized',
           cumProduced: current?.cumProduced ?? 0,
@@ -266,6 +275,7 @@ export const useAllocStore = create<AllocState>()(
             vehicleRatio: input.vehicleRatio,
             toolingCost: input.toolingCost,
             testingCost: input.testingCost,
+            rndCost: input.rndCost ?? 0,
             allocBase: input.allocBase,
             paymentMode: input.paymentMode ?? current?.paymentMode ?? 'amortized',
             cumProduced: current?.cumProduced ?? 0,

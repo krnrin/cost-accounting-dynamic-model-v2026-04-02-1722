@@ -1,3 +1,31 @@
+## [2026-04-16 03:20] - Task: COSTING ENGINE REFACTOR - 分摊管理页补齐一次性费用矩阵明细
+
+### 完成的工作:
+- 更新 `app/src/store/allocStore.ts`，在加载/同步场景分摊数据时保留 API 返回的原始 `allocationItem` 行，避免页面只能看到按线束聚合后的结果
+- 更新 `app/src/pages/AllocManagerPage.tsx`，新增“一次性费用矩阵明细”表，直接展示费用类型、费用名称、总金额、分摊基数、单根分摊、承担方、定价影响、支付模式、装车比、累计产量、回收进度与状态
+- 保留原有“按线束聚合后的分摊计算明细”，把 Sprint 2 一次性费用矩阵链路补成“矩阵原始行 + 聚合结果”双视图，便于端到端核对 engine/store/page/api
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 这一步完成的是 Sprint 2 “one-time allocation matrix end-to-end” 的一个具体收口：前端分摊页已能直接消费并展示后端矩阵行，而不是只看聚合值
+- 本轮未改 `task.json`，因为仍属于 Sprint 2 下的局部闭环步骤，尚不足以整体标记相关任务完成
+
+## [2026-04-16 03:20] - Task: COSTING ENGINE REFACTOR - 分摊管理页补齐一次性费用矩阵明细
+
+### 完成的工作:
+- 更新 `app/src/store/allocStore.ts`，在加载/同步场景分摊数据时保留 API 返回的原始 `allocationItem` 行，避免页面只能看到按线束聚合后的结果
+- 更新 `app/src/pages/AllocManagerPage.tsx`，新增“一次性费用矩阵明细”表，直接展示费用类型、费用名称、总金额、分摊基数、单根分摊、承担方、定价影响、支付模式、装车比、累计产量、回收进度与状态
+- 保留原有“按线束聚合后的分摊计算明细”，把 Sprint 2 一次性费用矩阵链路补成“矩阵原始行 + 聚合结果”双视图，便于端到端核对 engine/store/page/api
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` 通过
+
+### 备注:
+- 这一步完成的是 Sprint 2 “one-time allocation matrix end-to-end” 的一个具体收口：前端分摊页已能直接消费并展示后端矩阵行，而不是只看聚合值
+- 本轮未改 `task.json`，因为仍属于 Sprint 2 下的局部闭环步骤，尚不足以整体标记相关任务完成
+
 ## [2026-04-16 03:06] - Task: COSTING ENGINE REFACTOR - ZIP 导出补齐使用说明文档
 
 ### 完成的工作:

@@ -48,6 +48,7 @@ interface EditRow {
   vehicleRatio: number;
   toolingCost: number;
   testingCost: number;
+  rndCost: number;
   allocBase: number;
   paymentMode: PaymentMode;
   cumProduced: number;
@@ -61,7 +62,14 @@ export default function AllocManagerPage() {
   const [editRows, setEditRows] = useState<EditRow[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const { recoverySummary, loadProjectAlloc, loadScenarioAlloc, batchSaveOnetimeCosts, syncScenarioAllocRows } = useAllocStore();
+  const {
+    recoverySummary,
+    rawScenarioItems,
+    loadProjectAlloc,
+    loadScenarioAlloc,
+    batchSaveOnetimeCosts,
+    syncScenarioAllocRows,
+  } = useAllocStore();
 
   // 加载数据
   const loadData = useCallback(async () => {
@@ -100,6 +108,7 @@ export default function AllocManagerPage() {
           vehicleRatio: h.input.vehicleRatio,
           toolingCost: existing?.toolingCost ?? 0,
           testingCost: existing?.testingCost ?? 0,
+          rndCost: existing?.rndCost ?? 0,
           allocBase: existing?.allocBase ?? 50000,
           paymentMode: existing?.paymentMode ?? 'amortized',
           cumProduced: existing?.cumProduced ?? 0,
@@ -136,6 +145,7 @@ export default function AllocManagerPage() {
         vehicleRatio: r.vehicleRatio,
         toolingCost: r.toolingCost,
         testingCost: r.testingCost,
+        rndCost: r.rndCost,
         allocBase: r.allocBase,
         paymentMode: r.paymentMode,
       }));
@@ -244,8 +254,18 @@ export default function AllocManagerPage() {
   const summary = previewSummary;
   const totalTooling = summary?.totalTooling ?? 0;
   const totalTesting = summary?.totalTesting ?? 0;
+  const totalRnd = summary?.totalRnd ?? 0;
   const grandTotal = summary?.grandTotal ?? 0;
   const weightedAlloc = summary?.weightedAllocPerVehicle ?? 0;
+  const matrixRows = rawScenarioItems.map((item) => ({
+    ...item,
+    baselineVolume: Number(item.baselineVolume || 0),
+    totalAmount: Number(item.totalAmount || 0),
+    unitAllocation: Number(item.unitAllocation || 0),
+    latestInstallRatioSnapshot: Number(item.latestInstallRatioSnapshot || 0),
+    latestCumulativeVolume: Number(item.latestCumulativeVolume || 0),
+  }));
+  const matrixGrandTotal = matrixRows.reduce((sum, row) => sum + row.totalAmount, 0);
 
   // 费用录入表列定义
   const columns = [
@@ -447,6 +467,14 @@ export default function AllocManagerPage() {
         </Col>
         <Col span={6}>
           <div className="glass-card" style={{ padding: 24, height: '100%' }}>
+            <Text style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>研发费合计</Text>
+            <div className="ledger-number" style={{ fontSize: 28, marginTop: 8 }}>
+              ¥{totalRnd.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            </div>
+          </div>
+        </Col>
+        <Col span={6}>
+          <div className="glass-card" style={{ padding: 24, height: '100%' }}>
             <Text style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-secondary)' }}>一次性费用总计</Text>
             <div className="ledger-number" style={{ fontSize: 28, marginTop: 8, color: 'var(--accent)' }}>
               ¥{grandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
@@ -498,12 +526,50 @@ export default function AllocManagerPage() {
           </div>
         </Col>
 
+        {/* 一次性费用矩阵明细 */}
+        {matrixRows.length > 0 && (
+          <Col span={24}>
+            <div className="glass-card" style={{ padding: 32 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <Title heading={4} className="ink-heading" style={{ margin: 0 }}>
+                  一次性费用矩阵明细
+                </Title>
+                <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                  API 原始矩阵行 {matrixRows.length} 条 · 合计 ¥{matrixGrandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </Text>
+              </div>
+              <Table
+                pagination={false}
+                size="small"
+                scroll={{ x: 1500 }}
+                columns={[
+                  { title: '零件号', dataIndex: 'harnessId', width: 120, render: (v: string) => <Text strong>{v}</Text> },
+                  { title: '费用类型', dataIndex: 'expenseType', width: 100, align: 'center' as const, render: (v: string) => <Tag>{v}</Tag> },
+                  { title: '费用名称', dataIndex: 'expenseName', width: 120 },
+                  { title: '总金额', dataIndex: 'totalAmount', width: 120, align: 'right' as const, render: (v: number) => <span className="ledger-number">¥{v.toLocaleString()}</span> },
+                  { title: '分摊基数', dataIndex: 'baselineVolume', width: 110, align: 'right' as const, render: (v: number) => <span className="ledger-number">{v.toLocaleString()}</span> },
+                  { title: '单根分摊', dataIndex: 'unitAllocation', width: 110, align: 'right' as const, render: (v: number) => <span className="ledger-number" style={{ color: 'var(--accent)', fontWeight: 700 }}>¥{v.toFixed(4)}</span> },
+                  { title: '承担方', dataIndex: 'burdenSide', width: 100, align: 'center' as const },
+                  { title: '定价影响', dataIndex: 'pricingEffect', width: 120, align: 'center' as const },
+                  { title: '支付模式', dataIndex: 'allocationBasis', width: 100, align: 'center' as const },
+                  { title: '装车比', dataIndex: 'latestInstallRatioSnapshot', width: 90, align: 'right' as const, render: (v: number) => `${(v * 100).toFixed(1)}%` },
+                  { title: '累计产量', dataIndex: 'latestCumulativeVolume', width: 110, align: 'right' as const, render: (v: number) => <span className="ledger-number">{v.toLocaleString()}</span> },
+                  { title: '回收进度', dataIndex: 'recoveryProgress', width: 110, align: 'right' as const, render: (v: number) => `${(v * 100).toFixed(1)}%` },
+                  { title: '状态', dataIndex: 'status', width: 100, align: 'center' as const, render: (v: string) => <Tag color={v === 'completed' ? 'green' : v === 'recovering' ? 'blue' : 'grey'}>{v}</Tag> },
+                ]}
+                dataSource={matrixRows}
+                rowKey="id"
+              />
+            </div>
+          </Col>
+        )}
+
         {/* 分摊计算结果明细 */}
         {summary && summary.allocations.filter(a => a.participates).length > 0 && (
           <Col span={24}>
             <div className="glass-card" style={{ padding: 32 }}>
               <Title heading={4} className="ink-heading" style={{ marginBottom: 16 }}>
-                分摊计算明细
+                按线束聚合后的分摊计算明细
               </Title>
               <Table
                 pagination={false}
