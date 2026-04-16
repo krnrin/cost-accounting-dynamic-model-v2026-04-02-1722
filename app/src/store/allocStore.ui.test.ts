@@ -259,8 +259,59 @@ describe('allocStore matrix-first state', () => {
     });
 
     expect(result.current.allocSummary?.grandTotal).toBe(6000);
-    expect(result.current.recoverySummary?.totalRecovered).toBe(3000);
+    expect(result.current.recoverySummary?.totalRecovered).toBe(0);
     expect(fetchScenarioAllocations).not.toHaveBeenCalled();
     expect(replaceScenarioAllocationFeeItems).not.toHaveBeenCalled();
+  });
+
+  it('keeps matrix recovery summary aligned with fee-item reminder rules', async () => {
+    useAllocStore.setState({
+      feeItems: [
+        {
+          feeId: 'fee-alert',
+          projectId: 'project-1',
+          scenarioId: 'scenario-1',
+          feeName: '工装投入',
+          feeCategory: 'tooling',
+          unitPrice: 50000,
+          allocBase: 50000,
+          paymentMode: 'amortized',
+          burdenSide: 'customer',
+          pricingEffect: 'included_in_price',
+          recoveryCompletionBehavior: 'trigger_price_adjust',
+          priceAdjustReminder: true,
+          targetRecoveryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          completedAt: null,
+          status: 'allocated',
+          sourceVersionId: null,
+          participants: [
+            { harnessId: 'H011', harnessName: 'H011', vehicleRatio: 1, quantity: 1, latestCumulativeVolume: 50000 },
+          ],
+        },
+      ],
+      scenarioRows: [
+        {
+          harnessId: 'H011',
+          harnessName: 'H011',
+          vehicleRatio: 1,
+          toolingCost: 50000,
+          testingCost: 0,
+          rndCost: 0,
+          allocBase: 50000,
+          paymentMode: 'amortized',
+          cumProduced: 50000,
+        },
+      ],
+    });
+
+    const { result } = renderHook(() => useAllocStore());
+
+    act(() => {
+      result.current.recompute(120000);
+    });
+
+    expect(result.current.recoverySummary?.priceAdjustmentAlerts).toEqual(['H011']);
+    expect(result.current.recoverySummary?.trackers[0]?.needsPriceAdjustment).toBe(true);
+    expect(result.current.recoverySummary?.trackers[0]?.status).toBe('recovered');
   });
 });

@@ -26,8 +26,8 @@ import type { ProjectRecord, ScenarioRecord } from '@/data/db';
 import { useAllocStore, type ScenarioFeeItem } from '@/store/allocStore';
 import {
   computeProjectAllocFromItems,
-  computeProjectRecovery,
-  simulateRecoveryTimeline,
+  computeProjectRecoveryFromItems,
+  simulateRecoveryTimelineFromItems,
   type OnetimeCostItem,
   type PaymentMode,
 } from '@/engine/onetime_alloc';
@@ -138,6 +138,11 @@ function toPreviewItems(feeItems: ScenarioFeeItem[], cumProducedMap: Record<stri
     unitPrice: Number(feeItem.unitPrice || 0),
     allocBase: Math.max(1, Number(feeItem.allocBase || 1)),
     paymentMode: feeItem.paymentMode ?? 'amortized',
+    recoveryCompletionBehavior: feeItem.recoveryCompletionBehavior,
+    priceAdjustReminder: feeItem.priceAdjustReminder,
+    targetRecoveryDate: feeItem.targetRecoveryDate ?? null,
+    completedAt: feeItem.completedAt ?? null,
+    status: feeItem.status,
     participants: feeItem.participants.map((participant) => ({
       harnessId: participant.harnessId,
       harnessName: participant.harnessName,
@@ -298,9 +303,9 @@ export default function AllocManagerPage() {
   }, [previewItems]);
 
   const previewRecovery = useMemo(() => {
-    if (!previewSummary) return null;
-    return computeProjectRecovery(previewSummary.allocations, cumProducedMap, annualCapacity, lifecycleYears);
-  }, [previewSummary, cumProducedMap, annualCapacity, lifecycleYears]);
+    if (previewItems.length === 0) return null;
+    return computeProjectRecoveryFromItems(previewItems, annualCapacity, lifecycleYears);
+  }, [previewItems, annualCapacity, lifecycleYears]);
 
   const updateFeeItemField = useCallback(
     <K extends keyof ScenarioFeeItem>(feeId: string, field: K, value: ScenarioFeeItem[K]) => {
@@ -402,9 +407,10 @@ export default function AllocManagerPage() {
 
   const recoveryChart = useMemo(() => {
     if (!previewSummary) return {};
-    const timeline = simulateRecoveryTimeline(
-      previewSummary.allocations,
+    const timeline = simulateRecoveryTimelineFromItems(
+      previewItems,
       annualCapacity,
+      lifecycleYears,
       lifecycleYears,
     );
 
@@ -449,7 +455,7 @@ export default function AllocManagerPage() {
       },
       series,
     };
-  }, [previewSummary, annualCapacity, lifecycleYears]);
+  }, [previewItems, previewSummary, annualCapacity, lifecycleYears]);
 
   const matrixGrandTotal = useMemo(
     () => editFeeItems.reduce((sum, item) => sum + Number(item.unitPrice || 0) * item.participants.reduce((rowSum, p) => rowSum + Number(p.quantity || 0), 0), 0),

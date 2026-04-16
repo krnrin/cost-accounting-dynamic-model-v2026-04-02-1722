@@ -6,6 +6,7 @@ import { getScenarioOnetimeCostFallback } from '@/utils/e281Fallback';
 import {
   computeProjectAllocFromItems,
   computeProjectRecovery,
+  computeProjectRecoveryFromItems,
   normalizeOnetimeInputs,
   type OnetimeCostInput,
   type OnetimeCostItem,
@@ -149,11 +150,17 @@ function toOnetimeCostItems(feeItems: ScenarioFeeItem[]): OnetimeCostItem[] {
     unitPrice: Number(feeItem.unitPrice || 0),
     allocBase: Math.max(1, Number(feeItem.allocBase || 1)),
     paymentMode: feeItem.paymentMode ?? 'amortized',
+    recoveryCompletionBehavior: feeItem.recoveryCompletionBehavior,
+    priceAdjustReminder: feeItem.priceAdjustReminder,
+    targetRecoveryDate: feeItem.targetRecoveryDate ?? null,
+    completedAt: feeItem.completedAt ?? null,
+    status: feeItem.status,
     participants: feeItem.participants.map((participant) => ({
       harnessId: participant.harnessId,
       harnessName: participant.harnessName,
       vehicleRatio: Number(participant.vehicleRatio || 0),
       quantity: Number(participant.quantity || 0),
+      latestCumulativeVolume: Math.max(0, Number(participant.latestCumulativeVolume || 0)),
     })),
   }));
 }
@@ -325,7 +332,9 @@ async function buildStateFromRows(
   const lifecycleYears = scenario?.lifecycleYears || project?.meta?.lifecycleYears || undefined;
   const cumProducedMap = Object.fromEntries(itemRows.map((row) => [row.harnessId, Math.max(0, Number(row.cumProduced || 0))]));
   const recoverySummary = allocSummary
-    ? computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity, lifecycleYears)
+    ? normalizedFeeItems.length > 0
+      ? computeProjectRecoveryFromItems(toOnetimeCostItems(normalizedFeeItems), annualCapacity, lifecycleYears)
+      : computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity, lifecycleYears)
     : null;
 
   return {
@@ -653,7 +662,9 @@ export const useAllocStore = create<AllocState>()(
           ? computeProjectAllocFromItems(toOnetimeCostItems(feeItems))
           : normalizeOnetimeInputs(inputs);
         const cumProducedMap = Object.fromEntries(rows.map((row) => [row.harnessId, Math.max(0, Number(row.cumProduced || 0))]));
-        const recoverySummary = computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity);
+        const recoverySummary = feeItems.length > 0
+          ? computeProjectRecoveryFromItems(toOnetimeCostItems(feeItems), annualCapacity)
+          : computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity);
         set({ allocSummary, recoverySummary });
       },
 

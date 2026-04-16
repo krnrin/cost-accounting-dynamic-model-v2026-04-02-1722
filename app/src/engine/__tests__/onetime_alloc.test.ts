@@ -7,7 +7,9 @@ import {
   computeHarnessAllocationFromItems,
   normalizeOnetimeInputs,
   computeProjectRecovery,
+  computeProjectRecoveryFromItems,
   simulateRecoveryTimeline,
+  simulateRecoveryTimelineFromItems,
 } from '../onetime_alloc';
 import type { OnetimeCostInput } from '../onetime_alloc';
 
@@ -160,5 +162,62 @@ describe('simulateRecoveryTimeline', () => {
     // Year 3: 60000 produced, capped at 1.0
     expect(timeline[2].overallRecoveryProgress).toBe(1);
     expect(timeline[2].fullyRecoveredCount).toBe(1);
+  });
+
+  it('supports matrix recovery alerts, overdue status, and timeline behavior', () => {
+    const futureDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    const items = [
+      {
+        feeId: 'fee-1',
+        feeName: '工装投入',
+        feeCategory: 'tooling' as const,
+        unitPrice: 50000,
+        allocBase: 50000,
+        paymentMode: 'amortized' as const,
+        recoveryCompletionBehavior: 'trigger_price_adjust' as const,
+        priceAdjustReminder: true,
+        targetRecoveryDate: futureDate,
+        participants: [
+          { harnessId: 'A', harnessName: 'A线束', vehicleRatio: 1, quantity: 1, latestCumulativeVolume: 50000 },
+          { harnessId: 'B', harnessName: 'B线束', vehicleRatio: 0.2, quantity: 1, latestCumulativeVolume: 0 },
+        ],
+      },
+    ];
+
+    const recovery = computeProjectRecoveryFromItems(items, 10000, 1);
+    const recovered = recovery.trackers.find((tracker) => tracker.harnessId === 'A');
+    const overdue = recovery.trackers.find((tracker) => tracker.harnessId === 'B');
+
+    expect(recovery.priceAdjustmentAlerts).toContain('A');
+    expect(recovered?.needsPriceAdjustment).toBe(true);
+    expect(recovered?.status).toBe('recovered');
+    expect(overdue?.status).toBe('overdue');
+
+    const timeline = simulateRecoveryTimelineFromItems(items, 10000, 2, 1);
+    expect(timeline).toHaveLength(2);
+    expect(timeline[0].trackers.find((tracker) => tracker.harnessId === 'B')?.status).toBe('overdue');
+    expect(timeline[1].trackers.find((tracker) => tracker.harnessId === 'A')?.recoveryProgress).toBeCloseTo(0.4);
+  });
+
+  it('does not raise price adjustment alerts for notify-only items', () => {
+    const items = [
+      {
+        feeId: 'fee-2',
+        feeName: '试验验证',
+        feeCategory: 'testing' as const,
+        unitPrice: 12000,
+        allocBase: 12000,
+        paymentMode: 'amortized' as const,
+        recoveryCompletionBehavior: 'notify_only' as const,
+        priceAdjustReminder: true,
+        participants: [
+          { harnessId: 'C', harnessName: 'C线束', vehicleRatio: 1, quantity: 1, latestCumulativeVolume: 12000 },
+        ],
+      },
+    ];
+
+    const recovery = computeProjectRecoveryFromItems(items, 12000, 2);
+    expect(recovery.priceAdjustmentAlerts).toEqual([]);
+    expect(recovery.trackers[0].needsPriceAdjustment).toBe(false);
   });
 });

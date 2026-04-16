@@ -25,6 +25,7 @@ export interface OnetimeAllocationParticipant {
   harnessName: string;
   vehicleRatio: number;
   quantity: number;
+  latestCumulativeVolume?: number;
 }
 
 /** 单个一次性费用项（矩阵的一行） */
@@ -35,6 +36,11 @@ export interface OnetimeCostItem {
   unitPrice: number;
   allocBase: number;
   paymentMode?: PaymentMode;
+  recoveryCompletionBehavior?: 'trigger_price_adjust' | 'notify_only' | 'archive' | string;
+  priceAdjustReminder?: boolean;
+  targetRecoveryDate?: string | null;
+  completedAt?: string | null;
+  status?: string;
   participants: OnetimeAllocationParticipant[];
 }
 
@@ -131,8 +137,134 @@ export interface AllocRecoveryTracker {
   estimatedRecoveryYear: number | null;
   /** 回收完成后是否需要调价 */
   needsPriceAdjustment: boolean;
+  /** 目标回收日期 */
+  targetRecoveryDate?: string | null;
+  /** 是否开启调价提醒 */
+  priceAdjustReminder?: boolean;
+  /** 费用项完成行为 */
+  recoveryCompletionBehavior?: 'trigger_price_adjust' | 'notify_only' | 'archive' | string;
   /** 支付模式 */
   paymentMode: PaymentMode;
+}
+
+export interface MatrixRecoveryContext {
+  targetRecoveryDate?: string | null;
+  priceAdjustReminder?: boolean;
+  recoveryCompletionBehavior?: 'trigger_price_adjust' | 'notify_only' | 'archive' | string;
+}
+
+function parseTargetRecoveryYears(targetRecoveryDate?: string | null): number | null {
+  if (!targetRecoveryDate) return null;
+  const target = new Date(targetRecoveryDate);
+  if (Number.isNaN(target.getTime())) return null;
+  const now = new Date();
+  const diffMs = target.getTime() - now.getTime();
+  if (diffMs <= 0) return 0;
+  const yearMs = 365 * 24 * 60 * 60 * 1000;
+  return Math.ceil(diffMs / yearMs);
+}
+
+function resolveTrackerStatus(
+  fullyRecovered: boolean,
+  estimatedRecoveryYear: number | null,
+  lifecycleYears?: number,
+  context?: MatrixRecoveryContext,
+): RecoveryStatus {
+  if (fullyRecovered) return 'recovered';
+
+  const targetRecoveryYears = parseTargetRecoveryYears(context?.targetRecoveryDate);
+  if (targetRecoveryYears !== null && estimatedRecoveryYear !== null && estimatedRecoveryYear > targetRecoveryYears) {
+    return 'overdue';
+  }
+
+  if (lifecycleYears && estimatedRecoveryYear !== null && estimatedRecoveryYear > lifecycleYears) {
+    return 'overdue';
+  }
+
+  return 'recovering';
+}
+
+function shouldTriggerPriceAdjustment(
+  fullyRecovered: boolean,
+  context?: MatrixRecoveryContext,
+): boolean {
+  if (!fullyRecovered) return false;
+  if (context?.recoveryCompletionBehavior === 'notify_only' || context?.recoveryCompletionBehavior === 'archive') {
+    return false;
+  }
+  return context?.priceAdjustReminder !== false;
+}
+
+function buildHarnessMatrixContext(items: OnetimeCostItem[]): Record<string, MatrixRecoveryContext> {
+  const contexts = new Map<string, MatrixRecoveryContext>();
+
+  for (const item of items) {
+    for (const participant of item.participants) {
+      if (participant.quantity <= 0) continue;
+      const current = contexts.get(participant.harnessId) ?? {};
+      contexts.set(participant.harnessId, {
+        priceAdjustReminder: current.priceAdjustReminder || Boolean(item.priceAdjustReminder),
+        targetRecoveryDate: current.targetRecoveryDate ?? item.targetRecoveryDate ?? null,
+        recoveryCompletionBehavior: current.recoveryCompletionBehavior ?? item.recoveryCompletionBehavior,
+      });
+    }
+  }
+
+  return Object.fromEntries(contexts.entries());
+}
+
+function buildCumProducedMapFromItems(items: OnetimeCostItem[]): Record<string, number> {
+  const produced = new Map<string, number>();
+
+  for (const item of items) {
+    for (const participant of item.participants) {
+      const current = produced.get(participant.harnessId) ?? 0;
+      produced.set(
+        participant.harnessId,
+        Math.max(current, Math.max(0, Number(participant.latestCumulativeVolume || 0))),
+      );
+    }
+  }
+
+  return Object.fromEntries(produced.entries());
+}
+
+export function computeProjectRecoveryFromItems(
+  items: OnetimeCostItem[],
+  annualCapacity: number,
+  lifecycleYears?: number,
+): ProjectRecoverySummary {
+  const allocSummary = computeProjectAllocFromItems(items);
+  const cumProducedMap = buildCumProducedMapFromItems(items);
+  const matrixContext = buildHarnessMatrixContext(items);
+  return computeProjectRecovery(
+    allocSummary.allocations,
+    cumProducedMap,
+    annualCapacity,
+    lifecycleYears,
+    matrixContext,
+  );
+}
+
+export function simulateRecoveryTimelineFromItems(
+  items: OnetimeCostItem[],
+  annualCapacity: number,
+  years: number,
+  lifecycleYears?: number,
+): ProjectRecoverySummary[] {
+  const allocSummary = computeProjectAllocFromItems(items);
+  const matrixContext = buildHarnessMatrixContext(items);
+  const timeline: ProjectRecoverySummary[] = [];
+
+  for (let y = 1; y <= years; y++) {
+    const cumProducedMap: Record<string, number> = {};
+    for (const alloc of allocSummary.allocations) {
+      cumProducedMap[alloc.harnessId] = annualCapacity * alloc.vehicleRatio * y;
+    }
+    timeline.push(computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity, lifecycleYears, matrixContext));
+  }
+
+  return timeline;
 }
 
 /** 项目级分摊汇总 */
@@ -310,6 +442,7 @@ export function computeAllocRecovery(
   cumProduced: number,
   annualCapacity: number,
   lifecycleYears?: number,
+  matrixContext?: MatrixRecoveryContext,
 ): AllocRecoveryTracker {
   const paymentMode: PaymentMode = alloc.paymentMode ?? 'amortized';
 
@@ -328,6 +461,9 @@ export function computeAllocRecovery(
       remainingAmount: 0,
       estimatedRecoveryYear: null,
       needsPriceAdjustment: false,
+      targetRecoveryDate: matrixContext?.targetRecoveryDate ?? null,
+      priceAdjustReminder: matrixContext?.priceAdjustReminder ?? false,
+      recoveryCompletionBehavior: matrixContext?.recoveryCompletionBehavior,
       paymentMode,
     };
   }
@@ -350,12 +486,10 @@ export function computeAllocRecovery(
   }
 
   // 判断回收状态
-  let status: RecoveryStatus = 'recovering';
+  const status = resolveTrackerStatus(fullyRecovered, estimatedRecoveryYear, lifecycleYears, matrixContext);
   let recoveredDate: string | undefined;
   if (fullyRecovered) {
-    status = 'recovered';
-  } else if (lifecycleYears && estimatedRecoveryYear !== null && estimatedRecoveryYear > lifecycleYears) {
-    status = 'overdue';
+    recoveredDate = matrixContext?.targetRecoveryDate ?? undefined;
   }
 
   return {
@@ -372,7 +506,10 @@ export function computeAllocRecovery(
     recoveredAmount,
     remainingAmount: Math.max(0, remainingAmount),
     estimatedRecoveryYear,
-    needsPriceAdjustment: fullyRecovered,
+    needsPriceAdjustment: shouldTriggerPriceAdjustment(fullyRecovered, matrixContext),
+    targetRecoveryDate: matrixContext?.targetRecoveryDate ?? null,
+    priceAdjustReminder: matrixContext?.priceAdjustReminder ?? false,
+    recoveryCompletionBehavior: matrixContext?.recoveryCompletionBehavior,
     paymentMode,
   };
 }
@@ -423,9 +560,16 @@ export function computeProjectRecovery(
   cumProducedMap: Record<string, number>,
   annualCapacity: number,
   lifecycleYears?: number,
+  matrixContextMap?: Record<string, MatrixRecoveryContext>,
 ): ProjectRecoverySummary {
   const trackers = allocations.map(a =>
-    computeAllocRecovery(a, cumProducedMap[a.harnessId] || 0, annualCapacity, lifecycleYears)
+    computeAllocRecovery(
+      a,
+      cumProducedMap[a.harnessId] || 0,
+      annualCapacity,
+      lifecycleYears,
+      matrixContextMap?.[a.harnessId],
+    )
   );
 
   const participatingTrackers = trackers.filter(t => t.totalOnetimeCost > 0);

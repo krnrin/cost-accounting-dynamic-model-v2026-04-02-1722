@@ -1,3 +1,67 @@
+## [2026-04-16 10:43] - Task: S2-04 回收进度与降价提醒接入矩阵模型
+
+### 完成的工作:
+- 更新 `app/src/engine/onetime_alloc.ts`，为矩阵费用项补充 `priceAdjustReminder`、`targetRecoveryDate`、`recoveryCompletionBehavior` 等回收上下文，并新增 `computeProjectRecoveryFromItems()` / `simulateRecoveryTimelineFromItems()`，使矩阵模型下 `recoverySummary`、超期判断与时间轴预测基于费用项元数据生效
+- 更新 `app/src/store/allocStore.ts`，让场景加载与 `recompute()` 在存在 `feeItems` 时走矩阵回收汇总路径，确保线束级达标后能正确进入降价提醒列表
+- 更新 `app/src/pages/AllocManagerPage.tsx`，让页面预览使用矩阵回收计算与矩阵时间轴模拟，保持回收进度、超期状态、降价提醒与图表一致
+- 补充 `app/src/engine/__tests__/onetime_alloc.test.ts` 与 `app/src/store/allocStore.ui.test.ts`，覆盖矩阵模型下的回收提醒、notify_only 行为与超期状态
+
+### 测试:
+- `powershell -NoLogo -File C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/init.ps1` ❌（脚本当前因编码/字符串内容触发 PowerShell ParserError，未能完成初始化）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts src/store/allocStore.ui.test.ts` ✅（15 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` ✅（通过，仅保留既有 dynamic import / chunk size warning）
+
+### 备注:
+- 本轮按 `target_files` 完成 S2-04，并已将 `sprint2_tasks.json` 中 S2-04 标记为 done
+- `init.ps1` 仍需后续单独修复；本轮未改该脚本
+
+## [2026-04-16 08:27] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+### 完成的工作:
+- 确认 `app/src/pages/AllocManagerPage.tsx` 已切换为费用项矩阵录入：每费用项一行，动态生成参与线束列
+- 确认矩阵单元格支持 quantity 录入，并在单元格内实时预览单根分摊额
+- 确认页面支持新增/删除费用项，且保留回收输入、回收进度与调价提醒预览联动
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts` ✅（9 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` ✅（通过，仅保留既有 dynamic import / chunk warning）
+- Playwright MCP 打开 `http://127.0.0.1:4173/project/e281-quote/s/e281-scn-001/alloc` 验证矩阵页面加载成功，并生成截图 `s2-03-alloc-page.png` ✅
+
+### 备注:
+- S2-03 已完成，可继续处理 S2-04 的矩阵模型回收与降价提醒联动
+
+## [2026-04-16 08:27] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+### 完成的工作:
+- 确认 `app/src/pages/AllocManagerPage.tsx` 已切换为费用项矩阵录入：每费用项一行，动态生成参与线束列
+- 确认矩阵单元格支持 quantity 录入，并在单元格内实时预览单根分摊额
+- 确认页面支持新增/删除费用项，且保留回收输入、回收进度与调价提醒预览联动
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts` ✅（9 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` ✅（通过，仅保留既有 dynamic import / chunk warning）
+- Playwright MCP 打开 `http://127.0.0.1:4173/project/e281-quote/s/e281-scn-001/alloc` 验证矩阵页面加载成功，并生成截图 `s2-03-alloc-page.png` ✅
+
+### 备注:
+- S2-03 已完成，可继续处理 S2-04 的矩阵模型回收与降价提醒联动
+
+## [2026-04-16 08:18] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+### 完成的工作:
+- 更新 `app/src/engine/onetime_alloc.ts`，为矩阵费用项补充 `priceAdjustReminder`、`targetRecoveryDate`、`recoveryCompletionBehavior` 等回收上下文，并新增 `computeProjectRecoveryFromItems()` / `simulateRecoveryTimelineFromItems()`，使矩阵模型下 `recoverySummary`、超期判断与时间轴预测基于费用项元数据生效
+- 更新 `app/src/store/allocStore.ts`，让场景加载与 `recompute()` 在存在 `feeItems` 时走矩阵回收汇总路径，确保线束级达标后能正确进入降价提醒列表
+- 更新 `app/src/pages/AllocManagerPage.tsx`，让页面预览使用矩阵回收计算与矩阵时间轴模拟，保持回收进度、超期状态、降价提醒与图表一致
+- 补充 `app/src/engine/__tests__/onetime_alloc.test.ts` 与 `app/src/store/allocStore.ui.test.ts`，覆盖矩阵模型下的回收提醒、notify_only 行为与超期状态
+
+### 测试:
+- `powershell -NoLogo -File C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/init.ps1` ❌（脚本当前因编码/字符串内容触发 PowerShell ParserError，未能完成初始化）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts src/store/allocStore.ui.test.ts` ✅（15 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` ✅（通过，仅保留既有 dynamic import / chunk size warning）
+
+### 备注:
+- 本轮按 `target_files` 完成 S2-04，并已将 `sprint2_tasks.json` 中 S2-04 标记为 done
+- `init.ps1` 仍需后续单独修复；本轮未改该脚本
+
 ## [2026-04-16 08:27] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
 
 ### 完成的工作:
