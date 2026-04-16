@@ -12,6 +12,68 @@ import {
   simulateRecoveryTimelineFromItems,
 } from '../onetime_alloc';
 import type { OnetimeCostInput } from '../onetime_alloc';
+import { E281_FINAL_QUOTE_ONETIME_COSTS } from '@/data/seeds/e281';
+import { getInternalFactoryRates, getSelectedFactoryId, INTERNAL_FACTORY_RATES } from '../harness_costing';
+
+const E281_RATIO_MAP = {
+  '6608491523': 0.525,
+  '6608491524': 0.105,
+  '6608442962': 0.07,
+  '6608442964': 0.595,
+  '6608442963': 0.03,
+  '6608442966': 0.525,
+  '6608544875': 0.105,
+} as const;
+
+const E281_PARTICIPATING_HARNESSES = Object.keys(E281_RATIO_MAP) as Array<keyof typeof E281_RATIO_MAP>;
+
+const E281_TOOLING_TOTAL = E281_PARTICIPATING_HARNESSES.reduce(
+  (sum, harnessId) => sum + (E281_FINAL_QUOTE_ONETIME_COSTS[harnessId]?.toolingCost ?? 0),
+  0,
+);
+
+const E281_TESTING_TOTAL = E281_PARTICIPATING_HARNESSES.reduce(
+  (sum, harnessId) => sum + (E281_FINAL_QUOTE_ONETIME_COSTS[harnessId]?.testingCost ?? 0),
+  0,
+);
+
+const E281_WEIGHTED_ALLOC = 8.40778;
+
+function buildE281MatrixItems() {
+  return [
+    {
+      feeId: 'e281-tooling',
+      feeName: '项目工装投入',
+      feeCategory: 'tooling' as const,
+      unitPrice: 1000,
+      allocBase: 50000,
+      participants: E281_PARTICIPATING_HARNESSES
+        .filter((harnessId) => (E281_FINAL_QUOTE_ONETIME_COSTS[harnessId]?.toolingCost ?? 0) > 0)
+        .map((harnessId) => ({
+          harnessId,
+          harnessName: harnessId,
+          vehicleRatio: E281_RATIO_MAP[harnessId],
+          quantity: Math.round((E281_FINAL_QUOTE_ONETIME_COSTS[harnessId]?.toolingCost ?? 0) / 1000),
+        })),
+    },
+    {
+      feeId: 'e281-testing',
+      feeName: '项目试验投入',
+      feeCategory: 'testing' as const,
+      unitPrice: 100,
+      allocBase: 50000,
+      participants: E281_PARTICIPATING_HARNESSES
+        .filter((harnessId) => (E281_FINAL_QUOTE_ONETIME_COSTS[harnessId]?.testingCost ?? 0) > 0)
+        .map((harnessId) => ({
+          harnessId,
+          harnessName: harnessId,
+          vehicleRatio: E281_RATIO_MAP[harnessId],
+          quantity: Math.round((E281_FINAL_QUOTE_ONETIME_COSTS[harnessId]?.testingCost ?? 0) / 100),
+        })),
+    },
+  ];
+}
+
 
 const makeInput = (overrides: Partial<OnetimeCostInput> = {}): OnetimeCostInput => ({
   harnessId: 'H001',
@@ -162,6 +224,53 @@ describe('simulateRecoveryTimeline', () => {
     // Year 3: 60000 produced, capped at 1.0
     expect(timeline[2].overallRecoveryProgress).toBe(1);
     expect(timeline[2].fullyRecoveredCount).toBe(1);
+  });
+
+  it('validates E281 matrix fee items against project tooling投入和试验费基准', () => {
+    const items = buildE281MatrixItems();
+    const summary = computeProjectAllocFromItems(items);
+
+    expect(summary.participatingCount).toBe(7);
+    expect(summary.nonParticipatingCount).toBe(0);
+    expect(summary.totalTooling).toBe(E281_TOOLING_TOTAL);
+    expect(summary.totalTesting).toBe(E281_TESTING_TOTAL);
+    expect(summary.grandTotal).toBe(E281_TOOLING_TOTAL + E281_TESTING_TOTAL);
+    expect(summary.weightedAllocPerVehicle).toBeCloseTo(E281_WEIGHTED_ALLOC, 5);
+
+    const harness6608491523 = summary.allocations.find((item) => item.harnessId === '6608491523');
+    expect(harness6608491523?.toolingCost).toBe(88000);
+    expect(harness6608491523?.testingCost).toBe(222000);
+    expect(harness6608491523?.totalPerUnit).toBeCloseTo(6.2, 6);
+
+    const harness6608442964 = summary.allocations.find((item) => item.harnessId === '6608442964');
+    expect(harness6608442964?.toolingCost).toBe(0);
+    expect(harness6608442964?.testingCost).toBe(8200);
+    expect(harness6608442964?.totalPerUnit).toBeCloseTo(0.164, 6);
+  });
+
+  it('uses K3 as default and switches internal factory rate baselines correctly', () => {
+    expect(getSelectedFactoryId(undefined)).toBe('K3');
+    expect(getSelectedFactoryId('bad-id')).toBe('K3');
+    expect(getSelectedFactoryId('k7')).toBe('K7');
+
+    const defaultRates = getInternalFactoryRates(undefined);
+    const k7Rates = getInternalFactoryRates('K7');
+
+    expect(defaultRates).toEqual(INTERNAL_FACTORY_RATES.K3);
+    expect(k7Rates).toEqual(INTERNAL_FACTORY_RATES.K7);
+    expect(k7Rates.laborRate).toBeGreaterThan(defaultRates.laborRate);
+    expect(k7Rates.factoryAmortizationRate).toBeGreaterThan(defaultRates.factoryAmortizationRate);
+  });
+
+  it('keeps matrix summary stable when factory baseline switches', () => {
+    const items = buildE281MatrixItems();
+    const summary = computeProjectAllocFromItems(items);
+    const k3Rates = getInternalFactoryRates('K3');
+    const k1Rates = getInternalFactoryRates('K1');
+
+    expect(summary.grandTotal).toBe(E281_TOOLING_TOTAL + E281_TESTING_TOTAL);
+    expect(summary.weightedAllocPerVehicle).toBeCloseTo(E281_WEIGHTED_ALLOC, 5);
+    expect(k1Rates.laborRate).not.toBe(k3Rates.laborRate);
   });
 
   it('supports matrix recovery alerts, overdue status, and timeline behavior', () => {

@@ -105,7 +105,7 @@
   {
     "id": "S2-07",
     "title": "用项目工装投入和工时费基准做 Sprint 2 验证",
-    "status": "pending",
+    "status": "done",
     "depends_on": [
       "S2-04",
       "S2-06"

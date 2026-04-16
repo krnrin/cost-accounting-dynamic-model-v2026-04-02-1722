@@ -1,3 +1,18 @@
+## [2026-04-17 00:28] - Task: S2-07 用项目工装投入和工时费基准做 Sprint 2 验证
+
+### 完成的工作:
+- 更新 `app/src/engine/__tests__/onetime_alloc.test.ts`，新增基于 E281 项目工装投入/试验费基准的矩阵费用项验证，校验总工装、总试验、加权单车分摊和关键线束单根分摊额
+- 在同一测试文件补充工厂费率切换验证，覆盖默认 K3、非法工厂回退 K3、切换到 K7/K1 后内部费率基线变化
+- 确认 `app/src/pages/AllocManagerPage.tsx` 当前矩阵页面无需额外代码调整，现有实现可直接支撑 Sprint 2 验证口径
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts src/engine/__tests__/factory_comparison.test.ts` ✅（26 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` ✅（通过，仅保留既有 dynamic import / chunk size warning）
+
+### 备注:
+- 本轮按 `target_files` 完成 S2-07，并已将 `sprint2_tasks.json` 中 S2-07 标记为 done
+- Sprint 2 任务已全部完成；`init.ps1` 的 PowerShell ParserError 仍是独立遗留问题，未纳入本任务范围
+
 ## [2026-04-16 16:00] - Task: S2-06 SettingsPage 接入工厂费率切换
 
 ### 完成的工作:
