@@ -1,3 +1,318 @@
+## [2026-04-16 08:27] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+### 完成的工作:
+- 确认 `app/src/pages/AllocManagerPage.tsx` 已切换为费用项矩阵录入：每费用项一行，动态生成参与线束列
+- 确认矩阵单元格支持 quantity 录入，并在单元格内实时预览单根分摊额
+- 确认页面支持新增/删除费用项，且保留回收输入、回收进度与调价提醒预览联动
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts` ✅（9 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` ✅（通过，仅保留既有 dynamic import / chunk warning）
+- Playwright MCP 打开 `http://127.0.0.1:4173/project/e281-quote/s/e281-scn-001/alloc` 验证矩阵页面加载成功，并生成截图 `s2-03-alloc-page.png` ✅
+
+### 备注:
+- S2-03 已完成，可继续处理 S2-04 的矩阵模型回收与降价提醒联动
+
+## [2026-04-16 08:27] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+### 完成的工作:
+- 确认 `app/src/pages/AllocManagerPage.tsx` 已切换为费用项矩阵录入：每费用项一行，动态生成参与线束列
+- 确认矩阵单元格支持 quantity 录入，并在单元格内实时预览单根分摊额
+- 确认页面支持新增/删除费用项，且保留回收输入、回收进度与调价提醒预览联动
+
+### 测试:
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts` ✅（9 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` ✅（通过，仅保留既有 dynamic import / chunk warning）
+- Playwright MCP 打开 `http://127.0.0.1:4173/project/e281-quote/s/e281-scn-001/alloc` 验证矩阵页面加载成功，并生成截图 `s2-03-alloc-page.png` ✅
+
+### 备注:
+- S2-03 已完成，可继续处理 S2-04 的矩阵模型回收与降价提醒联动
+
+## [2026-04-16 08:18] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前实现已满足矩阵 UI 目标：每费用项一行、动态参与线束列、单元格录入数量 quantity、新增/删除费用项、实时预览单根分摊额
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 dynamic import 提示与 chunk size warning）
+- 再次尝试 Playwright MCP 浏览器验收，`browser_tabs` 返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+
+阻塞原因:
+- 根据 `CLAUDE.md`，S2-03 这类前端页面重构必须完成 Playwright MCP 浏览器验收与截图
+- 当前 Playwright MCP 浏览器实例仍被其他会话占用，本会话无法列出标签页或继续页面验收
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图
+3. 验收通过后，再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 08:10] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前实现仍满足矩阵 UI 目标：每费用项一行、动态参与线束列、单元格录入数量、新增/删除费用项、实时预览单根分摊额
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 dynamic import 提示与 chunk size warning）
+- 再次尝试 Playwright MCP 浏览器验收，`browser_tabs` 返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+
+阻塞原因:
+- 按项目约定，AllocManagerPage 这类前端大幅页面改造必须使用 Playwright MCP 完成浏览器验收与截图
+- 当前 Playwright MCP 浏览器实例仍被其他会话占用，本会话无法接管浏览器或继续 UI 验证
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图
+3. 验收通过后，再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 07:51] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前实现已满足矩阵 UI 目标：每费用项一行、动态参与线束列、单元格录入数量、新增/删除费用项、实时预览单根分摊额
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 dynamic import 提示与 chunk size warning）
+- 再次尝试 Playwright MCP 浏览器验收，`browser_tabs` 返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+
+阻塞原因:
+- 按项目约定，AllocManagerPage 这类前端大幅页面改造必须使用 Playwright MCP 完成浏览器验收与截图
+- 当前 Playwright MCP 浏览器实例被其他会话占用，本会话无法列出标签页、接管浏览器或继续 UI 验证
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图
+3. 验收通过后，再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 07:51] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前实现已满足矩阵 UI 目标：每费用项一行、动态参与线束列、单元格录入数量、新增/删除费用项、实时预览单根分摊额
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 dynamic import 提示与 chunk size warning）
+- 再次尝试 Playwright MCP 浏览器验收，`browser_tabs` 返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+
+阻塞原因:
+- 按项目约定，AllocManagerPage 这类前端大幅页面改造必须使用 Playwright MCP 完成浏览器验收与截图
+- 当前 Playwright MCP 浏览器实例被其他会话占用，本会话无法列出标签页、接管浏览器或继续 UI 验证
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图
+3. 验收通过后，再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 07:45] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前实现仍满足矩阵 UI 目标：每费用项一行、动态参与线束列、数量录入、新增/删除费用项、单元格实时预览单根分摊额
+- 再次运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 再次运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有动态导入提示与 chunk size warning）
+- 再次尝试 Playwright MCP 浏览器验收，`browser_tabs` 返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+- 再次尝试执行 `init.ps1`，仍因脚本编码/字符串异常触发 PowerShell ParserError，不能作为替代初始化入口
+
+阻塞原因:
+- 按项目约定，前端大幅页面修改必须使用 Playwright MCP 做浏览器验收并截图
+- 当前 Playwright MCP 浏览器实例仍被其他会话占用，本会话无法接管、关闭或新开实例，因此无法完成强制 UI 验证
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 修复或确认 `init.ps1` 的编码/内容问题
+3. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图；验收通过后再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 07:42] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前实现仍满足矩阵 UI 目标：每费用项一行、动态参与线束列、数量录入、新增/删除费用项、单元格实时预览单根分摊额
+- 再次验证 `sprint2_tasks.json`，S2-03 仍是依赖已满足的下一个 pending 任务
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 chunk size warning）
+- 再次尝试 Playwright MCP 浏览器验收，`browser_tabs` 返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+
+阻塞原因:
+- 按项目约定，前端大幅页面修改必须使用 Playwright MCP 做浏览器验收并截图
+- 当前 Playwright MCP 浏览器实例仍被其他会话占用，本会话无法接管、关闭或新开实例，因此无法完成强制 UI 验证
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图
+3. 验收通过后，再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 07:42] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前实现仍满足矩阵 UI 目标：每费用项一行、动态参与线束列、数量录入、新增/删除费用项、单元格实时预览单根分摊额
+- 再次验证 `sprint2_tasks.json`，S2-03 仍是依赖已满足的下一个 pending 任务
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 chunk size warning）
+- 再次尝试 Playwright MCP 浏览器验收，`browser_tabs` 返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+
+阻塞原因:
+- 按项目约定，前端大幅页面修改必须使用 Playwright MCP 做浏览器验收并截图
+- 当前 Playwright MCP 浏览器实例仍被其他会话占用，本会话无法接管、关闭或新开实例，因此无法完成强制 UI 验证
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图
+3. 验收通过后，再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 07:35] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前实现仍满足矩阵 UI 目标：每费用项一行、动态参与线束列、数量录入、新增/删除费用项、单元格实时预览单根分摊额
+- 再次验证 `sprint2_tasks.json`，S2-03 仍是依赖已满足的下一个 pending 任务
+- 再次尝试 Playwright MCP 浏览器验收，`browser_tabs` 返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+
+阻塞原因:
+- 按项目约定，前端大幅页面修改必须使用 Playwright MCP 做浏览器验收并截图
+- 当前 Playwright MCP 浏览器实例仍被其他会话占用，本会话无法接管、关闭或新开实例，因此无法完成强制 UI 验证
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图
+3. 验收通过后，再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 07:26] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前页面仍满足矩阵 UI 目标：每费用项一行、动态参与线束列、数量录入、新增/删除费用项、单元格实时预览单根分摊额
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 chunk size warning）
+- 再次尝试 Playwright MCP 浏览器验收，`browser_tabs` 仍返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+
+阻塞原因:
+- 按项目约定，前端大幅页面修改必须使用 Playwright MCP 做浏览器验收并截图
+- 当前 Playwright MCP 浏览器实例仍被其他会话占用，本会话无法接管、关闭或新开实例，因此无法完成强制 UI 验证
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图
+3. 验收通过后，再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 07:22] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前页面已满足矩阵 UI 目标：每费用项一行、动态参与线束列、数量录入、新增/删除费用项、单元格实时预览单根分摊额
+- 再次运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 再次运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 chunk size warning）
+- 再次尝试 Playwright MCP 浏览器验收，`browser_tabs` 与 `browser_close` 均返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+
+阻塞原因:
+- 按项目约定，前端大幅页面修改必须使用 Playwright MCP 做浏览器验收并截图
+- 当前 Playwright MCP 浏览器实例仍被其他会话占用，本会话无法接管、关闭或新开实例，因此无法完成强制 UI 验证
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图
+3. 验收通过后，再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 07:12] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 复查 `app/src/pages/AllocManagerPage.tsx`，当前实现已满足矩阵 UI 目标：每费用项一行、动态参与线束列、数量录入、新增/删除费用项、单元格单根分摊额实时预览
+- 再次运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 再次运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 chunk size warning）
+- 再次尝试 Playwright MCP 列出浏览器标签页，返回 `Browser is already in use for C:\Users\lyvee\AppData\Local\ms-playwright\mcp-chrome-d6c88c1, use --isolated to run multiple instances of the same browser`
+
+阻塞原因:
+- 按项目约定，前端大幅页面修改必须使用 Playwright MCP 做浏览器验收并截图
+- 当前 Playwright MCP 浏览器实例被其他会话占用，本会话无法接管或新开实例，因此无法完成强制 UI 验证
+- 在缺少浏览器验收的情况下，不能把 `sprint2_tasks.json` 中的 S2-03 标记为 done，也不能提交 commit
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 浏览器资源释放后，重新执行 S2-03 的页面验收与截图
+3. 验收通过后，再更新 `sprint2_tasks.json` 并提交
+
+## [2026-04-16 07:03] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 检查 `app/src/pages/AllocManagerPage.tsx` 当前实现，页面已切为“每费用项一行”的矩阵 UI，支持动态线束列、数量录入、新增/删除费用项与单元格单根分摊额预览
+- 再次运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 再次运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 chunk size warning）
+- 再次尝试 Playwright MCP 浏览器接管/列出标签页，仍被现有浏览器会话占用
+
+阻塞原因:
+- 按项目约定，前端大幅页面修改必须使用 Playwright MCP 做浏览器验收并截图
+- 当前 Playwright MCP 返回 `Browser is already in use ... use --isolated to run multiple instances of the same browser`，本会话无法接管或新开浏览器实例，因此无法完成强制 UI 验证
+- `init.ps1` 当前文件内容也存在 PowerShell 解析错误，未能作为可用替代验收入口
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 修复或确认 `init.ps1` 的编码/内容问题（当前执行时报字符串未终止）
+3. 释放后重新执行 S2-03 的浏览器验收，再决定是否标记 `sprint2_tasks.json` 为 done 并提交
+
+## [2026-04-16 06:52] - Task: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+🚫 任务阻塞 - 需要人工介入
+
+当前任务: S2-03 AllocManagerPage 重构为费用项矩阵 UI
+
+已完成的工作:
+- 检查 `app/src/pages/AllocManagerPage.tsx` 当前实现，页面已切为“每费用项一行”的矩阵 UI，支持动态线束列、数量录入、新增/删除费用项与单元格单根分摊额预览
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/onetime_alloc.test.ts`，通过（9 passed）
+- 运行 `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build`，通过（仅剩既有 chunk size warning）
+
+阻塞原因:
+- 按项目约定，前端大幅页面修改必须使用 Playwright MCP 做浏览器验收并截图
+- 当前 Playwright MCP 返回 `Browser is already in use ... use --isolated to run multiple instances of the same browser`，本会话无法接管或新开浏览器实例，因此无法完成强制 UI 验证
+
+需要人工帮助:
+1. 关闭占用中的 Playwright MCP 浏览器会话，或提供可用的隔离浏览器实例
+2. 释放后重新执行 S2-03 的浏览器验收，再决定是否标记 `sprint2_tasks.json` 为 done 并提交
+
 ## [2026-04-16 06:35] - Task: S2-02 allocStore 切换到矩阵优先状态管理
 
 ### 完成的工作:

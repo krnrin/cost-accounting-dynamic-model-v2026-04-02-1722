@@ -32,7 +32,7 @@
   {
     "id": "S2-03",
     "title": "AllocManagerPage 重构为费用项矩阵 UI",
-    "status": "pending",
+    "status": "done",
     "depends_on": ["S2-02"],
     "done_definition": [
       "页面从每线束一行改为每费用项一行",
