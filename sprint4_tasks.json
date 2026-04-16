@@ -1,0 +1,103 @@
+[
+  {
+    "id": "S4-01",
+    "title": "建立参考 Excel 数据抽取脚本",
+    "status": "pending",
+    "depends_on": [],
+    "done_definition": [
+      "可抽取配置明细",
+      "可抽取运营工时费报价基准",
+      "可抽取包装物流费用",
+      "可抽取项目工装投入",
+      "输出统一 JSON"
+    ],
+    "target_files": [
+      "scripts",
+      "app/src/data"
+    ]
+  },
+  {
+    "id": "S4-02",
+    "title": "建立 E281 核算基准数据集",
+    "status": "pending",
+    "depends_on": ["S4-01"],
+    "done_definition": [
+      "生成配置明细基准数据",
+      "生成工厂费率基准数据",
+      "生成包装物流基准数据",
+      "生成工装矩阵基准数据"
+    ],
+    "target_files": [
+      "app/src/data",
+      "参考表格"
+    ]
+  },
+  {
+    "id": "S4-03",
+    "title": "建立核心自动验证测试",
+    "status": "pending",
+    "depends_on": ["S4-02"],
+    "done_definition": [
+      "材料成本验证",
+      "制造费用验证",
+      "包装物流验证",
+      "一次性费用矩阵验证",
+      "项目级加权汇总验证"
+    ],
+    "target_files": [
+      "app/src/engine/__tests__/e2e_validation.test.ts",
+      "app/src/engine/__tests__/onetime_alloc.test.ts"
+    ]
+  },
+  {
+    "id": "S4-04",
+    "title": "生成验证报告输出能力",
+    "status": "pending",
+    "depends_on": ["S4-03"],
+    "done_definition": [
+      "输出 Excel 值 / 引擎值 / 偏差",
+      "支持 Markdown 报告导出",
+      "支持通过/失败摘要",
+      "支持异常项列表"
+    ],
+    "target_files": [
+      "scripts",
+      "docs",
+      "app/src/engine"
+    ]
+  },
+  {
+    "id": "S4-05",
+    "title": "输出核算引擎使用说明文档",
+    "status": "pending",
+    "depends_on": ["S4-04"],
+    "done_definition": [
+      "输出核算引擎使用说明",
+      "输出材料价格管理说明",
+      "输出工厂费率配置说明",
+      "输出一次性费用矩阵说明",
+      "输出验证报告说明"
+    ],
+    "target_files": [
+      "docs",
+      "README.md"
+    ]
+  },
+  {
+    "id": "S4-06",
+    "title": "完成最终交付验证",
+    "status": "pending",
+    "depends_on": ["S4-05"],
+    "done_definition": [
+      "tsc -b 通过",
+      "vitest 全绿",
+      "主流程可用",
+      "验证报告输出完成",
+      "更新 progress.txt"
+    ],
+    "target_files": [
+      "app",
+      "progress.txt"
+    ]
+  }
+]

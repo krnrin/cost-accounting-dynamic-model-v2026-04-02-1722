@@ -25,6 +25,34 @@ function worksheetFromRows(rows) {
     sheet['!cols'] = rows[0]?.map((cell) => ({ wch: Math.max(String(cell).length + 4, 14) })) ?? [];
     return sheet;
 }
+function parseFactoryRateSource(value) {
+    const source = value && typeof value === 'object' ? value : {};
+    return {
+        factoryId: typeof source.factoryId === 'string' ? source.factoryId : null,
+        factoryName: typeof source.factoryName === 'string' ? source.factoryName : null,
+        laborRate: typeof source.laborRate === 'number' ? source.laborRate : null,
+        manufacturingRate: typeof source.manufacturingRate === 'number' ? source.manufacturingRate : null,
+        sourceNote: typeof source.sourceNote === 'string' ? source.sourceNote : null,
+    };
+}
+function factoryRateRows(source) {
+    return [
+        ['基准工厂ID', source.factoryId ?? '-'],
+        ['基准工厂名称', source.factoryName ?? '-'],
+        ['人工费率', source.laborRate ?? '-'],
+        ['制造费率', source.manufacturingRate ?? '-'],
+        ['来源说明', source.sourceNote ?? '-'],
+    ];
+}
+function factoryRatePdfLines(source) {
+    return [
+        `基准工厂ID: ${source.factoryId ?? '-'}`,
+        `基准工厂名称: ${source.factoryName ?? '-'}`,
+        `人工费率: ${source.laborRate ?? '-'}`,
+        `制造费率: ${source.manufacturingRate ?? '-'}`,
+        `来源说明: ${source.sourceNote ?? '-'}`,
+    ];
+}
 async function loadProjectBundle(projectId) {
     const project = await prisma.project.findUnique({
         where: { id: projectId },
@@ -132,6 +160,7 @@ async function loadQuoteBundle(quoteId) {
     const approvalFields = fromJson(quote.approvalFields, []);
     const harnessInput = harness ? fromJson(harness.input, {}) : null;
     const bomRows = Array.isArray(harnessInput?.bom) ? harnessInput.bom : [];
+    const factoryRateSource = parseFactoryRateSource(quoteParams.factoryRateSource);
     const summary = {
         quoteId: quote.id,
         version: quote.version,
@@ -166,6 +195,7 @@ async function loadQuoteBundle(quoteId) {
         editableFields,
         approvalFields,
         bomRows,
+        factoryRateSource,
         summary,
     };
 }
@@ -245,6 +275,10 @@ function createQuoteExcel(bundle) {
         ['editableFields', jsonText(bundle.editableFields)],
         ['approvalFields', jsonText(bundle.approvalFields)],
     ]), '\u62a5\u4ef7\u53c2\u6570');
+    XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
+        ['\u5de5\u5382\u8d39\u7387\u8ffd\u6eaf\u9879', '\u5185\u5bb9'],
+        ...factoryRateRows(bundle.factoryRateSource),
+    ]), '\u5de5\u5382\u8d39\u7387\u8ffd\u6eaf');
     XLSX.utils.book_append_sheet(workbook, worksheetFromRows([
         ['\u5e8f\u53f7', '\u5206\u7c7b', '\u6570\u91cf', '\u5355\u4ef7', '\u91d1\u989d'],
         ...bundle.bomRows.map((row, index) => [
@@ -335,6 +369,10 @@ async function createQuotePdf(bundle) {
         doc.fontSize(10).text(`BOM\u884c\u6570: ${bundle.summary.bomCount}`);
         bundle.bomRows.slice(0, 20).forEach((row, index) => {
             doc.text(`${index + 1}. ${row.itemCategory ?? '-'} | \u6570\u91cf ${Number(row.qty ?? 0)} | \u5355\u4ef7 ${formatCurrency(Number(row.unitPrice ?? 0))} | \u91d1\u989d ${formatCurrency(Number(row.amount ?? 0))}`);
+        });
+        doc.moveDown().fontSize(14).text('工厂费率追溯');
+        factoryRatePdfLines(bundle.factoryRateSource).forEach((line) => {
+            doc.fontSize(10).text(line);
         });
         if (bundle.allocations.length > 0) {
             doc.moveDown().fontSize(14).text('\u5206\u644a\u56de\u6536');

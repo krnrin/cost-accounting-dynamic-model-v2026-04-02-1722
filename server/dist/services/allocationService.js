@@ -205,6 +205,19 @@ export class AllocationService {
                 where: { scenarioId },
             });
             const existingItemMap = new Map(existingItems.map((item) => [`${item.harnessId}:${item.expenseType}`, item]));
+            const incomingHarnessIds = new Set(rows.map((row) => row.harnessId));
+            const staleItems = existingItems.filter((item) => !incomingHarnessIds.has(item.harnessId));
+            if (staleItems.length > 0) {
+                await tx.recoveryRecord.deleteMany({
+                    where: { allocationItemId: { in: staleItems.map((item) => item.id) } },
+                });
+                await tx.allocationItem.deleteMany({
+                    where: { id: { in: staleItems.map((item) => item.id) } },
+                });
+                for (const item of staleItems) {
+                    existingItemMap.delete(`${item.harnessId}:${item.expenseType}`);
+                }
+            }
             for (const row of rows) {
                 const activeItems = [];
                 for (const spec of SYNC_EXPENSE_SPECS) {

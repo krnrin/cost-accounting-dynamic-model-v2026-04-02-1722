@@ -5,7 +5,7 @@
 # =============================================================================
 
 param(
-    [int]$TotalRuns = 38
+    [int]$TotalRuns = 100
 )
 
 $ProjectDir = "D:\harness-project"

@@ -1,0 +1,101 @@
+[
+  {
+    "id": "S3-01",
+    "title": "建立导线价格服务与金属价格参数读取",
+    "status": "pending",
+    "depends_on": [],
+    "done_definition": [
+      "抽离导线单价计算服务",
+      "输入铜重/铝重/非铜/铜价/铝价",
+      "输出导线单价、铜成本、铝成本、非铜成本",
+      "支持批量计算"
+    ],
+    "target_files": [
+      "app/src/engine/pricing_engine.ts",
+      "app/src/engine/harness_costing.ts"
+    ]
+  },
+  {
+    "id": "S3-02",
+    "title": "建立连接器/端子/辅料价格来源优先级模型",
+    "status": "pending",
+    "depends_on": ["S3-01"],
+    "done_definition": [
+      "定义价格来源枚举与优先级",
+      "支持最终谈判价/协议价/询价/系统价/批量价/分摊价/客户指定",
+      "同一物料可选出当前有效价格",
+      "价格来源可追溯"
+    ],
+    "target_files": [
+      "app/src/engine/pricing_engine.ts",
+      "app/src/types/project.ts",
+      "app/src/types/harness.ts"
+    ]
+  },
+  {
+    "id": "S3-03",
+    "title": "建立同步开发件价格模型",
+    "status": "pending",
+    "depends_on": ["S3-02"],
+    "done_definition": [
+      "识别同步开发件",
+      "支持批量价与模具分摊分离",
+      "支持分摊期内价格与分摊后价格",
+      "支持模具回收后价格切换"
+    ],
+    "target_files": [
+      "app/src/engine/pricing_engine.ts",
+      "app/src/engine/onetime_alloc.ts"
+    ]
+  },
+  {
+    "id": "S3-04",
+    "title": "建立材料价格维护页面",
+    "status": "pending",
+    "depends_on": ["S3-02", "S3-03"],
+    "done_definition": [
+      "可按物料号查看当前有效价格",
+      "可查看多来源价格",
+      "可手工修订价格",
+      "可显示价格来源与时间"
+    ],
+    "target_files": [
+      "app/src/pages/SettingsPage.tsx",
+      "app/src/store/settingsStore.ts"
+    ]
+  },
+  {
+    "id": "S3-05",
+    "title": "建立包装物流统一数据模型与维护页",
+    "status": "pending",
+    "depends_on": [],
+    "done_definition": [
+      "统一包装与运输结构",
+      "支持内包装/外包装/短驳/三方仓/仓储拆分",
+      "支持线束级录入与项目级汇总",
+      "包装物流变更可影响内部总成本"
+    ],
+    "target_files": [
+      "app/src/types/harness.ts",
+      "app/src/pages/AllocManagerPage.tsx",
+      "app/src/pages/HarnessEditPage.tsx"
+    ]
+  },
+  {
+    "id": "S3-06",
+    "title": "对照二次物料明细/KSK/包装物流费用做 Sprint 3 验证",
+    "status": "pending",
+    "depends_on": ["S3-04", "S3-05"],
+    "done_definition": [
+      "导线价格验证通过",
+      "连接器/端子价格来源验证通过",
+      "包装物流费用验证通过",
+      "更新 progress.txt"
+    ],
+    "target_files": [
+      "app/src/engine/__tests__/pricing_engine.test.ts",
+      "app/src/engine/__tests__/e2e_validation.test.ts",
+      "progress.txt"
+    ]
+  }
+]

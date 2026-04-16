@@ -18,17 +18,17 @@ export const E281_CUSTOMER_QUOTE_SNAPSHOTS: Record<string, CustomerQuoteSnapshot
 };
 
 export const E281_FINAL_QUOTE_ONETIME_COSTS = {
-  '6608491523': { toolingCost: 88000, testingCost: 222000, rndCost: 0, allocBase: 50000 },
-  '6608491524': { toolingCost: 39000, testingCost: 275000, rndCost: 0, allocBase: 50000 },
-  '6608442962': { toolingCost: 29000, testingCost: 275000, rndCost: 0, allocBase: 50000 },
-  '6608442964': { toolingCost: 0, testingCost: 8200, rndCost: 0, allocBase: 50000 },
-  '6608442963': { toolingCost: 0, testingCost: 275000, rndCost: 0, allocBase: 50000 },
-  '6608516992': { toolingCost: 0, testingCost: 0, rndCost: 0, allocBase: 50000 },
-  '6608519100': { toolingCost: 0, testingCost: 0, rndCost: 0, allocBase: 50000 },
-  '6608442966': { toolingCost: 65000, testingCost: 258000, rndCost: 0, allocBase: 50000 },
-  '6608442965': { toolingCost: 0, testingCost: 0, rndCost: 0, allocBase: 50000 },
-  '6608507680': { toolingCost: 0, testingCost: 0, rndCost: 0, allocBase: 50000 },
-  '6608544875': { toolingCost: 197000, testingCost: 0, rndCost: 0, allocBase: 50000 },
+  '6608491523': { toolingCost: 88000, testingCost: 222000, allocBase: 50000 },
+  '6608491524': { toolingCost: 39000, testingCost: 275000, allocBase: 50000 },
+  '6608442962': { toolingCost: 29000, testingCost: 275000, allocBase: 50000 },
+  '6608442964': { toolingCost: 0, testingCost: 8200, allocBase: 50000 },
+  '6608442963': { toolingCost: 0, testingCost: 275000, allocBase: 50000 },
+  '6608516992': { toolingCost: 0, testingCost: 0, allocBase: 50000 },
+  '6608519100': { toolingCost: 0, testingCost: 0, allocBase: 50000 },
+  '6608442966': { toolingCost: 65000, testingCost: 258000, allocBase: 50000 },
+  '6608442965': { toolingCost: 0, testingCost: 0, allocBase: 50000 },
+  '6608507680': { toolingCost: 0, testingCost: 0, allocBase: 50000 },
+  '6608544875': { toolingCost: 197000, testingCost: 0, allocBase: 50000 },
 } as const;
 
 export const E281_HARNESS_SEED_DATA = [
@@ -290,6 +290,22 @@ export async function seedE281Project(): Promise<string> {
       yearDistribution: [10000000, 0, 0, 0, 0, 0],
     },
     customerQuoteSnapshots: E281_CUSTOMER_QUOTE_SNAPSHOTS,
+    factories: [
+      {
+        factoryId: 'KS',
+        factoryName: '昆山工厂',
+        costRates: {
+          laborRate: 35,
+          mfgRate: 52.2753446503895,
+          wasteRate: 0.01,
+          mgmtRate: 0.06,
+          profitRate: 0.056627,
+        },
+        efficiencyFactor: 1,
+        isBase: true,
+        remark: '来自《运营工时费报价基准》报价版运营成本工时费（不包含折旧）基准。',
+      },
+    ],
   };
 
   const project: ProjectRecord = {
