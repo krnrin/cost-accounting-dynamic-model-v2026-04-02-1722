@@ -4,6 +4,13 @@
 
 import type { NreData } from './quote';
 
+export const PROJECT_FACTORY_IDS = ['K1', 'K2', 'K3', 'K4', 'K5', 'K6', 'K7'] as const;
+export type ProjectFactoryId = (typeof PROJECT_FACTORY_IDS)[number];
+export const DEFAULT_PROJECT_FACTORY_ID: ProjectFactoryId = 'K3';
+
+/** 7 工厂内部费率结构 */
+export type InternalFactoryRatesMap = Record<ProjectFactoryId, InternalCostRates>;
+
 export interface CustomerQuoteSnapshot {
   deliveredPrice: number;
   exFactoryPrice?: number;
@@ -100,6 +107,10 @@ export interface ProjectConfig {
   costRates: CostRates;
   /** 内部核算费率 (可选) */
   internalRates?: InternalCostRates;
+  /** 7 工厂内部费率配置，缺省时由引擎回退默认值 */
+  internalFactoryRates?: Partial<InternalFactoryRatesMap>;
+  /** 当前选中的工厂，默认 K3 */
+  selectedFactory?: ProjectFactoryId;
   /** 基准金属价格 */
   metalPrices: MetalPrices;
   /** 年度产量计划 */

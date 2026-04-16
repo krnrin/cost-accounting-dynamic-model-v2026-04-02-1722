@@ -11,11 +11,14 @@ import {
 } from '@/types/harness';
 import {
   CostRates,
+  DEFAULT_PROJECT_FACTORY_ID,
   InternalCostRates,
   MetalPrices,
   BomClassificationRule,
   CostStructureSchema,
   Level1Coefficients,
+  PROJECT_FACTORY_IDS,
+  type ProjectFactoryId,
 } from '@/types/project';
 import { 
   FinancialBenchmark, 
@@ -24,7 +27,7 @@ import {
 import { numberOr, safeArray } from './shared_utils';
 import { detectPrecisionLevel, estimateByCoefficients, LEVEL1_COEFFICIENTS } from './precision';
 
-/** 内部实绩核算默认费率 (基准) */
+/** 内部实绩核算默认费率 (基准 / K3) */
 export const INTERNAL_DEFAULTS: InternalCostRates = {
   laborRate: 28.58, // 以 Assembly 基准
   indirectLaborRate: 8.50,
@@ -36,18 +39,85 @@ export const INTERNAL_DEFAULTS: InternalCostRates = {
   materialWasteRate: 0.005, // 0.5% 基准
 };
 
-/**
- * 获取工厂内部实绩核算参数 (Dynamic Source of Truth)
- */
-export function getInternalFactoryRates(
-  factoryId: string, 
-  benchmark: FinancialBenchmark,
-  simulation?: PricingContext['simulation']
-): InternalCostRates {
-  const factory = benchmark.factories[factoryId];
-  if (!factory) return INTERNAL_DEFAULTS;
+export const INTERNAL_FACTORY_RATES: Record<ProjectFactoryId, InternalCostRates> = {
+  K1: {
+    laborRate: 30.1,
+    indirectLaborRate: 8.9,
+    lowValueConsumablesRate: 0.92,
+    materialConsumptionRate: 1.94,
+    factoryAmortizationRate: 1.56,
+    automationAmortizationRate: 2.12,
+    otherOverheadRate: 1.48,
+    materialWasteRate: 0.0055,
+  },
+  K2: {
+    laborRate: 29.2,
+    indirectLaborRate: 8.7,
+    lowValueConsumablesRate: 0.9,
+    materialConsumptionRate: 1.9,
+    factoryAmortizationRate: 1.5,
+    automationAmortizationRate: 2.08,
+    otherOverheadRate: 1.45,
+    materialWasteRate: 0.0052,
+  },
+  K3: { ...INTERNAL_DEFAULTS },
+  K4: {
+    laborRate: 27.9,
+    indirectLaborRate: 8.35,
+    lowValueConsumablesRate: 0.86,
+    materialConsumptionRate: 1.82,
+    factoryAmortizationRate: 1.39,
+    automationAmortizationRate: 1.97,
+    otherOverheadRate: 1.39,
+    materialWasteRate: 0.0048,
+  },
+  K5: {
+    laborRate: 27.4,
+    indirectLaborRate: 8.18,
+    lowValueConsumablesRate: 0.84,
+    materialConsumptionRate: 1.76,
+    factoryAmortizationRate: 1.33,
+    automationAmortizationRate: 1.9,
+    otherOverheadRate: 1.34,
+    materialWasteRate: 0.0046,
+  },
+  K6: {
+    laborRate: 26.8,
+    indirectLaborRate: 8.02,
+    lowValueConsumablesRate: 0.82,
+    materialConsumptionRate: 1.71,
+    factoryAmortizationRate: 1.28,
+    automationAmortizationRate: 1.84,
+    otherOverheadRate: 1.3,
+    materialWasteRate: 0.0045,
+  },
+  K7: {
+    laborRate: 31.0,
+    indirectLaborRate: 9.1,
+    lowValueConsumablesRate: 0.95,
+    materialConsumptionRate: 2.01,
+    factoryAmortizationRate: 1.62,
+    automationAmortizationRate: 2.2,
+    otherOverheadRate: 1.54,
+    materialWasteRate: 0.0058,
+  },
+};
 
-  const baseRates = {
+function normalizeProjectFactoryId(factoryId?: string | null): ProjectFactoryId {
+  if (!factoryId) return DEFAULT_PROJECT_FACTORY_ID;
+  const normalized = factoryId.trim().toUpperCase();
+  if ((PROJECT_FACTORY_IDS as readonly string[]).includes(normalized)) {
+    return normalized as ProjectFactoryId;
+  }
+  return DEFAULT_PROJECT_FACTORY_ID;
+}
+
+function getDefaultInternalFactoryRates(factoryId?: string | null): InternalCostRates {
+  return INTERNAL_FACTORY_RATES[normalizeProjectFactoryId(factoryId)] ?? INTERNAL_DEFAULTS;
+}
+
+function mapBenchmarkFactoryToInternalRates(factory: FinancialBenchmark['factories'][string]): InternalCostRates {
+  return {
     laborRate: factory.labor_rates.assembly,
     indirectLaborRate: factory.moh_components.indirect_labor,
     lowValueConsumablesRate: factory.moh_components.low_value_consumables,
@@ -57,34 +127,56 @@ export function getInternalFactoryRates(
     otherOverheadRate: factory.moh_components.other_overhead,
     materialWasteRate: factory.scrap_rate_param,
   };
+}
 
-  // 1. 效率因子修正 (Efficiency Factor)
-  // 实际效率 vs 基准效率 -> 影响变动人工成本
+function applySimulationAdjustments(
+  baseRates: InternalCostRates,
+  factory: FinancialBenchmark['factories'][string],
+  simulation?: PricingContext['simulation']
+): InternalCostRates {
+  const adjustedRates = { ...baseRates };
+
   if (simulation?.efficiency) {
     const efficiencyFactor = simulation.efficiency / factory.efficiency_base;
-    // 效率越高 (Factor > 1), 费率越低
-    baseRates.laborRate /= efficiencyFactor;
-    baseRates.indirectLaborRate /= efficiencyFactor;
+    adjustedRates.laborRate /= efficiencyFactor;
+    adjustedRates.indirectLaborRate /= efficiencyFactor;
   }
 
-  // 2. 产能吸收修正 (Volume Absorption / Fixed Asset Dilution)
-  // 如果模拟产量低于基准产量 (LRP), 固定成本分摊增加
   if (simulation?.annualVolume && factory.lrp_volume_base) {
     const absorptionFactor = factory.lrp_volume_base / simulation.annualVolume;
     if (absorptionFactor > 1) {
-      baseRates.factoryAmortizationRate *= absorptionFactor;
-      baseRates.automationAmortizationRate *= absorptionFactor;
+      adjustedRates.factoryAmortizationRate *= absorptionFactor;
+      adjustedRates.automationAmortizationRate *= absorptionFactor;
     }
   }
 
-  // 3. 自动化利用率修正 (Automation Utilization)
-  // 如果模拟利用率偏离基准，则动态调整分摊费率 (Fixed Cost Dilution)
   if (simulation?.utilizationFactor && factory.automation_utilization_factor) {
     const utilFactor = factory.automation_utilization_factor / simulation.utilizationFactor;
-    baseRates.automationAmortizationRate *= utilFactor;
+    adjustedRates.automationAmortizationRate *= utilFactor;
   }
 
-  return baseRates;
+  return adjustedRates;
+}
+
+/**
+ * 获取工厂内部实绩核算参数 (Dynamic Source of Truth)
+ */
+export function getInternalFactoryRates(
+  factoryId: string | undefined,
+  benchmark?: FinancialBenchmark,
+  simulation?: PricingContext['simulation']
+): InternalCostRates {
+  const normalizedFactoryId = normalizeProjectFactoryId(factoryId);
+  const factory = benchmark?.factories?.[normalizedFactoryId] ?? (factoryId ? benchmark?.factories?.[factoryId] : undefined);
+  if (!factory) {
+    return getDefaultInternalFactoryRates(normalizedFactoryId);
+  }
+
+  return applySimulationAdjustments(mapBenchmarkFactoryToInternalRates(factory), factory, simulation);
+}
+
+export function getSelectedFactoryId(selectedFactory?: string | null): ProjectFactoryId {
+  return normalizeProjectFactoryId(selectedFactory);
 }
 
 // ── 材料分类关键字 ──

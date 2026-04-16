@@ -1,3 +1,19 @@
+## [2026-04-16 14:19] - Task: S2-05 建立工厂费率数据模型并默认 K3
+
+### 完成的工作:
+- 更新 `app/src/types/project.ts`，新增 7 工厂 ID 类型、`internalFactoryRates` 映射与 `selectedFactory` 字段，明确项目配置层默认工厂为 K3
+- 更新 `app/src/engine/harness_costing.ts`，新增 K1~K7 内部费率基线，`getInternalFactoryRates()` 在无 benchmark/缺少工厂时回退到对应工厂默认值，并通过 `getSelectedFactoryId()` 统一归一化选中工厂
+- 保持 benchmark 存在时仍优先读取动态财务基准，并继续叠加效率、产能吸收、自动化利用率模拟修正
+
+### 测试:
+- `powershell -NoLogo -File C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/init.ps1` ❌（脚本当前仍因编码/字符串内容触发 PowerShell ParserError，未能完成初始化）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/factory_comparison.test.ts` ✅（9 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` ✅（通过，仅保留既有 dynamic import / chunk size warning）
+
+### 备注:
+- 本轮按 `target_files` 完成 S2-05，并已将 `sprint2_tasks.json` 中 S2-05 标记为 done
+- `selectedFactory` 数据模型已就位，下一步 S2-06 可在设置页接入工厂切换 UI
+
 ## [2026-04-16 10:43] - Task: S2-04 回收进度与降价提醒接入矩阵模型
 
 ### 完成的工作:

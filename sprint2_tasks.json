@@ -65,7 +65,7 @@
   {
     "id": "S2-05",
     "title": "建立工厂费率数据模型并默认 K3",
-    "status": "pending",
+    "status": "done",
     "depends_on": [],
     "done_definition": [
       "定义 7 工厂费率结构",
