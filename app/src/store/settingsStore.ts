@@ -1,9 +1,19 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import type { CostRates, MetalPrices, CostStructureSchema, FactoryConfig, AllocationConfig, BomClassificationRule, Level1Coefficients } from '@/types';
-import { DEFAULT_COST_STRUCTURE, DEFAULT_CLASSIFICATION_RULES } from '@/engine/harness_costing';
+import type {
+  CostRates,
+  MetalPrices,
+  CostStructureSchema,
+  FactoryConfig,
+  AllocationConfig,
+  BomClassificationRule,
+  Level1Coefficients,
+} from '@/types';
+import type { InternalCostRates, InternalFactoryRatesMap, ProjectFactoryId } from '@/types/project';
+import { DEFAULT_COST_STRUCTURE, DEFAULT_CLASSIFICATION_RULES, INTERNAL_FACTORY_RATES, getSelectedFactoryId } from '@/engine/harness_costing';
 import { DEFAULT_ALLOCATION } from '@/engine/allocation';
 import { LEVEL1_COEFFICIENTS } from '@/engine/precision';
+import { DEFAULT_PROJECT_FACTORY_ID } from '@/types/project';
 // REFERENCE_FACTORIES available from '@/engine/factory_comparison' for UI presets
 
 interface SettingsState {
@@ -27,6 +37,10 @@ interface SettingsState {
   useSchemaEngine: boolean;
   /** 多工厂配置 */
   factories: FactoryConfig[];
+  /** 当前选中的内部核算工厂 */
+  selectedFactory: ProjectFactoryId;
+  /** 7工厂内部费率映射 */
+  internalFactoryRates: Partial<InternalFactoryRatesMap>;
   /** 间接费用分摊配置 */
   allocationConfig: AllocationConfig;
   /** BOM 分类规则 */
@@ -52,6 +66,9 @@ interface SettingsState {
   addFactory: (factory: FactoryConfig) => void;
   updateFactory: (factoryId: string, patch: Partial<FactoryConfig>) => void;
   removeFactory: (factoryId: string) => void;
+  setSelectedFactory: (factoryId: ProjectFactoryId) => void;
+  setInternalFactoryRates: (rates: Partial<InternalFactoryRatesMap>) => void;
+  updateInternalFactoryRate: (factoryId: ProjectFactoryId, patch: Partial<InternalCostRates>) => void;
   setAllocationConfig: (config: AllocationConfig) => void;
   updateAllocationDriver: (key: keyof AllocationConfig, driver: AllocationConfig[keyof AllocationConfig]) => void;
   setBomClassificationRules: (rules: BomClassificationRule[]) => void;
@@ -92,6 +109,8 @@ export const useSettingsStore = create<SettingsState>()(
         costStructure: { ...DEFAULT_COST_STRUCTURE },
         useSchemaEngine: false,
         factories: [],
+        selectedFactory: DEFAULT_PROJECT_FACTORY_ID,
+        internalFactoryRates: { ...INTERNAL_FACTORY_RATES },
         allocationConfig: { ...DEFAULT_ALLOCATION },
         bomClassificationRules: [...DEFAULT_CLASSIFICATION_RULES],
         level1Coefficients: { ...LEVEL1_COEFFICIENTS },
@@ -123,12 +142,23 @@ export const useSettingsStore = create<SettingsState>()(
           factories: [...state.factories, factory]
         })),
         updateFactory: (factoryId, patch) => set((state) => ({
-          factories: state.factories.map(f => 
+          factories: state.factories.map(f =>
             f.factoryId === factoryId ? { ...f, ...patch } : f
           )
         })),
         removeFactory: (factoryId) => set((state) => ({
           factories: state.factories.filter(f => f.factoryId !== factoryId)
+        })),
+        setSelectedFactory: (factoryId) => set({ selectedFactory: getSelectedFactoryId(factoryId) }),
+        setInternalFactoryRates: (rates) => set({ internalFactoryRates: { ...INTERNAL_FACTORY_RATES, ...rates } }),
+        updateInternalFactoryRate: (factoryId, patch) => set((state) => ({
+          internalFactoryRates: {
+            ...state.internalFactoryRates,
+            [factoryId]: {
+              ...(state.internalFactoryRates[factoryId] ?? INTERNAL_FACTORY_RATES[factoryId]),
+              ...patch,
+            }
+          }
         })),
         setAllocationConfig: (config) => set({ allocationConfig: config }),
         updateAllocationDriver: (key, driver) => set((state) => ({

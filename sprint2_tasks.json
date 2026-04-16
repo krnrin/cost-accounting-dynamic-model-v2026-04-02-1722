@@ -18,7 +18,9 @@
     "id": "S2-02",
     "title": "allocStore 切换到矩阵优先状态管理",
     "status": "done",
-    "depends_on": ["S2-01"],
+    "depends_on": [
+      "S2-01"
+    ],
     "done_definition": [
       "allocStore 增加 feeItems 状态",
       "loadScenarioAlloc 支持矩阵数据",
@@ -33,7 +35,9 @@
     "id": "S2-03",
     "title": "AllocManagerPage 重构为费用项矩阵 UI",
     "status": "done",
-    "depends_on": ["S2-02"],
+    "depends_on": [
+      "S2-02"
+    ],
     "done_definition": [
       "页面从每线束一行改为每费用项一行",
       "动态生成参与线束列",
@@ -49,7 +53,9 @@
     "id": "S2-04",
     "title": "回收进度与降价提醒接入矩阵模型",
     "status": "done",
-    "depends_on": ["S2-03"],
+    "depends_on": [
+      "S2-03"
+    ],
     "done_definition": [
       "矩阵模型下 recoverySummary 正常工作",
       "达标线束出现降价提醒",
@@ -81,8 +87,10 @@
   {
     "id": "S2-06",
     "title": "SettingsPage 接入工厂费率切换",
-    "status": "pending",
-    "depends_on": ["S2-05"],
+    "status": "done",
+    "depends_on": [
+      "S2-05"
+    ],
     "done_definition": [
       "页面显示当前工厂",
       "支持切换工厂",
@@ -98,7 +106,10 @@
     "id": "S2-07",
     "title": "用项目工装投入和工时费基准做 Sprint 2 验证",
     "status": "pending",
-    "depends_on": ["S2-04", "S2-06"],
+    "depends_on": [
+      "S2-04",
+      "S2-06"
+    ],
     "done_definition": [
       "增加矩阵费用项测试",
       "增加工厂费率切换测试",

@@ -8,11 +8,12 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { db } from '@/data/db';
 import type {
   CostItemDef, CostItemCalcMethod, FactoryConfig,
-  AllocationDriver, AllocationConfig, BomClassificationRule,
+  AllocationDriver, AllocationConfig, BomClassificationRule, ProjectFactoryId,
 } from '@/types/project';
 import type { Level1Coefficients } from '@/types';
+import type { InternalCostRates } from '@/types/project';
 import { REFERENCE_FACTORIES } from '@/engine/factory_comparison';
-import { DEFAULT_CLASSIFICATION_RULES, DEFAULT_COST_STRUCTURE } from '@/engine/harness_costing';
+import { DEFAULT_CLASSIFICATION_RULES, DEFAULT_COST_STRUCTURE, getSelectedFactoryId } from '@/engine/harness_costing';
 import { RoleGuard } from '@/components/RoleGuard';
 import {
   fetchSettingsCategory,
@@ -135,6 +136,8 @@ function useSettingsSync() {
       enabled: alert.enabled !== false,
     });
     store.setFactories(Array.isArray(factories.list) ? factories.list : []);
+    store.setSelectedFactory(getSelectedFactoryId(factories.selectedFactory));
+    store.setInternalFactoryRates(factories.internalFactoryRates ?? {});
     store.setAllocationConfig({
       equipment: allocation.drivers?.equipment ?? 'hours',
       rnd: allocation.drivers?.rnd ?? 'revenue',
@@ -204,6 +207,8 @@ function useSettingsSync() {
         updateSetting(SETTINGS_CATEGORY_MAP.alertThreshold, 'aluminumPercent', store.alertThresholds.aluminumPercent),
         updateSetting(SETTINGS_CATEGORY_MAP.alertThreshold, 'enabled', store.alertThresholds.enabled),
         updateSetting(SETTINGS_CATEGORY_MAP.factories, 'list', store.factories),
+        updateSetting(SETTINGS_CATEGORY_MAP.factories, 'selectedFactory', store.selectedFactory),
+        updateSetting(SETTINGS_CATEGORY_MAP.factories, 'internalFactoryRates', store.internalFactoryRates),
         updateSetting(SETTINGS_CATEGORY_MAP.allocation, 'drivers', store.allocationConfig),
         updateSetting(SETTINGS_CATEGORY_MAP.coefficients, 'default', store.level1Coefficients),
         updateSetting(SETTINGS_CATEGORY_MAP.bomRules, 'rules', store.bomClassificationRules),
@@ -266,6 +271,7 @@ export default function SettingsPage() {
     setDefaultTemplateType, setDefaultAnnualDropRate, resetCostRates,
     costStructure, setCostStructure, useSchemaEngine, setUseSchemaEngine,
     factories, addFactory, updateFactory, removeFactory,
+    selectedFactory, setSelectedFactory, internalFactoryRates,
     allocationConfig, updateAllocationDriver, setAllocationConfig,
     level1Coefficients, setLevel1Coefficients, resetLevel1Coefficients,
     bomClassificationRules, setBomClassificationRules,
@@ -354,7 +360,15 @@ export default function SettingsPage() {
           <CostStructurePanel costStructure={costStructure} setCostStructure={setCostStructure} useSchemaEngine={useSchemaEngine} setUseSchemaEngine={setUseSchemaEngine} />
         </TabPane>
         <TabPane tab="多工厂" itemKey="factories">
-          <FactoryPanel factories={factories} addFactory={addFactory} updateFactory={updateFactory} removeFactory={removeFactory} />
+          <FactoryPanel
+            factories={factories}
+            addFactory={addFactory}
+            updateFactory={updateFactory}
+            removeFactory={removeFactory}
+            selectedFactory={selectedFactory}
+            setSelectedFactory={setSelectedFactory}
+            internalFactoryRates={internalFactoryRates}
+          />
         </TabPane>
         <TabPane tab="费用分摊" itemKey="allocation">
           <AllocationPanel allocationConfig={allocationConfig} updateAllocationDriver={updateAllocationDriver} />
@@ -534,8 +548,25 @@ function CostStructurePanel({ costStructure, setCostStructure, useSchemaEngine, 
   );
 }
 
-function FactoryPanel({ factories, addFactory, updateFactory, removeFactory }: { factories: FactoryConfig[]; addFactory: (f: FactoryConfig) => void; updateFactory: (id: string, p: Partial<FactoryConfig>) => void; removeFactory: (id: string) => void; }) {
+function FactoryPanel({
+  factories,
+  addFactory,
+  updateFactory,
+  removeFactory,
+  selectedFactory,
+  setSelectedFactory,
+  internalFactoryRates,
+}: {
+  factories: FactoryConfig[];
+  addFactory: (f: FactoryConfig) => void;
+  updateFactory: (id: string, p: Partial<FactoryConfig>) => void;
+  removeFactory: (id: string) => void;
+  selectedFactory: ProjectFactoryId;
+  setSelectedFactory: (id: ProjectFactoryId) => void;
+  internalFactoryRates: Partial<Record<ProjectFactoryId, InternalCostRates>>;
+}) {
   const addNewFactory = () => addFactory({ factoryId: `F${Date.now().toString(36).toUpperCase()}`, factoryName: '新工厂', costRates: { laborRate: 35, mfgRate: 46.69, wasteRate: 0.01, mgmtRate: 0.06, profitRate: 0.056627 }, efficiencyFactor: 1.0 });
+  const currentInternalRates = internalFactoryRates[selectedFactory];
   const loadRefFactories = () => {
     for (const ref of REFERENCE_FACTORIES) if (!factories.find((f) => f.factoryId === ref.factoryId)) addFactory({ ...ref });
     Toast.success('已加载参考工厂数据');
@@ -554,7 +585,39 @@ function FactoryPanel({ factories, addFactory, updateFactory, removeFactory }: {
     { title: '费率来源/备注', dataIndex: 'remark', render: (text: string | undefined, r: FactoryConfig) => <Input value={text ?? ''} placeholder="如：来自《运营工时费报价基准》" onChange={(v: string) => updateFactory(r.factoryId, { remark: v })} /> },
     { title: '', dataIndex: 'op', render: (_: any, r: FactoryConfig) => <Button icon={<IconDelete />} theme="borderless" type="danger" onClick={() => removeFactory(r.factoryId)} /> },
   ];
-  return <div style={{ marginTop: 16 }}><Card className="glass-card" title={`工厂配置 (${factories.length})`} headerLine={false} headerExtraContent={<Button theme="light" onClick={loadRefFactories}>加载参考工厂</Button>}><div style={{ display: 'grid', gap: 12, marginBottom: 12 }}><Text type="tertiary">工厂费率基准会随发布流快照化；这里显式记录基准工厂与费率来源，便于追溯《运营工时费报价基准》口径。</Text>{baseFactory && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Tag color="blue">基准工厂 {baseFactory.factoryId} / {baseFactory.factoryName}</Tag><Tag color="cyan">人工 {safeNumber(baseFactory.costRates?.laborRate)}</Tag><Tag color="green">制造 {safeNumber(baseFactory.costRates?.mfgRate)}</Tag>{baseFactory.remark ? <Tag color="grey">{baseFactory.remark}</Tag> : null}</div>}</div><Table columns={columns} dataSource={factories} rowKey="factoryId" pagination={false} /><Button icon={<IconPlus />} theme="light" style={{ marginTop: 12 }} onClick={addNewFactory}>添加工厂</Button></Card></div>;
+  return <div style={{ marginTop: 16 }}><Card className="glass-card" title={`工厂配置 (${factories.length})`} headerLine={false} headerExtraContent={<Button theme="light" onClick={loadRefFactories}>加载参考工厂</Button>}><div style={{ display: 'grid', gap: 12, marginBottom: 12 }}><Text type="tertiary">工厂费率基准会随发布流快照化；这里显式记录基准工厂与费率来源，便于追溯《运营工时费报价基准》口径。</Text>{baseFactory && <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><Tag color="blue">基准工厂 {baseFactory.factoryId} / {baseFactory.factoryName}</Tag><Tag color="cyan">人工 {safeNumber(baseFactory.costRates?.laborRate)}</Tag><Tag color="green">制造 {safeNumber(baseFactory.costRates?.mfgRate)}</Tag>{baseFactory.remark ? <Tag color="grey">{baseFactory.remark}</Tag> : null}</div>}<Card
+  bodyStyle={{ padding: 16 }}
+  style={{ background: 'rgba(15, 23, 42, 0.35)', border: '1px solid rgba(96, 165, 250, 0.2)' }}
+  title="内部成本工厂切换"
+  headerLine={false}
+>
+  <div style={{ display: 'grid', gap: 12 }}>
+    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+      <Text strong>当前工厂</Text>
+      <Select
+        value={selectedFactory}
+        style={{ width: 220 }}
+        optionList={(Object.keys(internalFactoryRates) as ProjectFactoryId[]).map((factoryId) => ({
+          value: factoryId,
+          label: `${factoryId}${factoryId === 'K3' ? '（默认）' : ''}`,
+        }))}
+        onChange={(value: any) => setSelectedFactory(getSelectedFactoryId(value))}
+      />
+      <Tag color="blue">当前 {selectedFactory}</Tag>
+      <Tag color="green">默认打开 K3</Tag>
+    </div>
+    {currentInternalRates ? (
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <Tag color="cyan">直接人工 {safeNumber(currentInternalRates.laborRate)}</Tag>
+        <Tag color="green">间接人工 {safeNumber(currentInternalRates.indirectLaborRate)}</Tag>
+        <Tag color="orange">厂房分摊 {safeNumber(currentInternalRates.factoryAmortizationRate)}</Tag>
+        <Tag color="purple">自动化分摊 {safeNumber(currentInternalRates.automationAmortizationRate)}</Tag>
+        <Tag color="grey">材料损耗 {safeNumber(currentInternalRates.materialWasteRate)}</Tag>
+      </div>
+    ) : null}
+    <Text type="tertiary">切换后会更新系统设置中的 selectedFactory，内部成本链按所选工厂费率重新读取并重算。</Text>
+  </div>
+</Card></div><Table columns={columns} dataSource={factories} rowKey="factoryId" pagination={false} /><Button icon={<IconPlus />} theme="light" style={{ marginTop: 12 }} onClick={addNewFactory}>添加工厂</Button></Card></div>;
 }
 
 function AllocationPanel({ allocationConfig, updateAllocationDriver }: { allocationConfig: AllocationConfig; updateAllocationDriver: (key: keyof AllocationConfig, driver: AllocationDriver) => void; }) {

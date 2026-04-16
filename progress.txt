@@ -1,3 +1,19 @@
+## [2026-04-16 16:00] - Task: S2-06 SettingsPage 接入工厂费率切换
+
+### 完成的工作:
+- 更新 `app/src/pages/SettingsPage.tsx`，在“多工厂”页签增加内部成本工厂切换卡片，显示当前工厂、K3 默认标识与所选工厂关键内部费率摘要
+- 更新 `app/src/pages/SettingsPage.tsx` 的设置同步逻辑，加载并保存 `selectedFactory` 与 `internalFactoryRates`，使设置页切换可以进入发布流快照
+- 更新 `app/src/store/settingsStore.ts`，将 `setSelectedFactory()` 统一归一化到合法工厂 ID，并让 `setInternalFactoryRates()` 保持 7 工厂费率基线，确保默认打开为 K3 且切换后内部成本链读取新工厂费率重算
+
+### 测试:
+- `powershell -NoLogo -File C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/init.ps1` ❌（脚本仍因编码/字符串内容触发 PowerShell ParserError，未能完成初始化）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run test:run -- src/engine/__tests__/factory_comparison.test.ts` ✅（9 passed）
+- `npm --prefix C:/Users/lyvee/OneDrive/文档/GitHub/cost-accounting-dynamic-model-v2026-04-02-1722/app run build` ✅（通过，仅保留既有 dynamic import / chunk size warning）
+
+### 备注:
+- 本轮按 `target_files` 完成 S2-06，并已将 `sprint2_tasks.json` 中 S2-06 标记为 done
+- `selectedFactory` 已可在设置页维护；内部成本页面后续只需读取该字段即可统一按工厂费率重算
+
 ## [2026-04-16 14:19] - Task: S2-05 建立工厂费率数据模型并默认 K3
 
 ### 完成的工作:
