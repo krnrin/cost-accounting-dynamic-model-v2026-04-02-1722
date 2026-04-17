@@ -6,8 +6,16 @@ import type {
   LifecyclePriceBreakdown,
   PriceDiscrepancyRecord,
   PriceQueryResult,
+  WireCostBreakdown,
+  WirePricingInput,
   WirePricingRecord,
 } from '@/types/pricing';
+import {
+  buildPriceSourceCandidate,
+  resolveMaterialPriceSource,
+  type PriceSourceCandidate,
+  type ResolvedPriceSource,
+} from '@/types/project';
 import type { BomItem } from '@/types/harness';
 
 export interface MetalPrices {
@@ -16,7 +24,7 @@ export interface MetalPrices {
 }
 
 export function checkConnectorPriceDiscrepancy(
-  connector: ConnectorPricingRecord
+  connector: ConnectorPricingRecord,
 ): Omit<PriceDiscrepancyRecord, 'id' | 'projectId' | 'scenarioId' | 'createdAt' | 'updatedAt'> | null {
   if (connector.customerAgreedPrice <= 0 || connector.supplierQuotedPrice <= connector.customerAgreedPrice) {
     return null;
@@ -39,35 +47,123 @@ export function checkConnectorPriceDiscrepancy(
   };
 }
 
-export function getConnectorFinalPrice(connector: ConnectorPricingRecord): number {
-  if (connector.finalNegotiatedPrice > 0) {
-    return connector.finalNegotiatedPrice;
-  }
-  if (connector.customerAgreedPrice > 0) {
-    return connector.customerAgreedPrice;
-  }
-  return connector.supplierQuotedPrice;
+export function buildConnectorPriceCandidates(connector: ConnectorPricingRecord): PriceSourceCandidate[] {
+  return [
+    buildPriceSourceCandidate('final_negotiated', connector.finalNegotiatedPrice, 'final_negotiated'),
+    buildPriceSourceCandidate('customer_agreed', connector.customerAgreedPrice, 'customer_agreed'),
+    buildPriceSourceCandidate('supplier_quoted', connector.supplierQuotedPrice, 'supplier_quoted'),
+  ];
 }
 
-export function calculateWirePrice(
-  wire: Pick<WirePricingRecord, 'copperWeightG' | 'aluminumWeightG' | 'nonMetalCost' | 'processingFee'>,
-  metalPrices: MetalPrices
-): number {
-  const copperCost = (wire.copperWeightG * metalPrices.copper) / 1000;
-  const aluminumCost = (wire.aluminumWeightG * metalPrices.aluminum) / 1000;
-  return roundMoney(copperCost + aluminumCost + wire.nonMetalCost + wire.processingFee);
+export function getConnectorPriceResolution(connector: ConnectorPricingRecord): ResolvedPriceSource {
+  return resolveMaterialPriceSource(buildConnectorPriceCandidates(connector));
+}
+
+export function getConnectorFinalPrice(connector: ConnectorPricingRecord): number {
+  return getConnectorPriceResolution(connector).price;
+}
+
+export function getConnectorPrice(connector: ConnectorPricingRecord): number {
+  return getConnectorPriceResolution(connector).price;
+}
+
+export function calculateWireCostBreakdown(
+  wire: WirePricingInput,
+  metalPrices: MetalPrices,
+): WireCostBreakdown {
+  const copperCost = roundMoney((wire.copperWeightG * metalPrices.copper) / 1000);
+  const aluminumCost = roundMoney((wire.aluminumWeightG * metalPrices.aluminum) / 1000);
+  const nonMetalCost = roundMoney(wire.nonMetalCost);
+  const processingFee = roundMoney(wire.processingFee);
+  return {
+    copperCost,
+    aluminumCost,
+    nonMetalCost,
+    processingFee,
+    total: roundMoney(copperCost + aluminumCost + nonMetalCost + processingFee),
+  };
+}
+
+export function calculateWirePrice(wire: WirePricingInput, metalPrices: MetalPrices): number {
+  return calculateWireCostBreakdown(wire, metalPrices).total;
+}
+
+export function calculateWirePricesBatch(
+  wires: WirePricingInput[],
+  metalPrices: MetalPrices,
+): WireCostBreakdown[] {
+  return wires.map((wire) => calculateWireCostBreakdown(wire, metalPrices));
+}
+
+export function getWirePricingSnapshot(wire: WirePricingInput, metalPrices: MetalPrices) {
+  const breakdown = calculateWireCostBreakdown(wire, metalPrices);
+  return {
+    unitPrice: breakdown.total,
+    copperCost: breakdown.copperCost,
+    aluminumCost: breakdown.aluminumCost,
+    nonMetalCost: breakdown.nonMetalCost,
+    processingFee: breakdown.processingFee,
+  };
+}
+
+export function getWirePricingSnapshotsBatch(
+  wires: WirePricingInput[],
+  metalPrices: MetalPrices,
+) {
+  return wires.map((wire) => getWirePricingSnapshot(wire, metalPrices));
 }
 
 export function updateWirePricingWithMetalPrice(
   wire: WirePricingRecord,
-  metalPrices: MetalPrices
+  metalPrices: MetalPrices,
 ): WirePricingRecord {
+  const breakdown = calculateWireCostBreakdown(wire, metalPrices);
   return {
     ...wire,
     copperBasePrice: metalPrices.copper,
     aluminumBasePrice: metalPrices.aluminum,
-    calculatedPrice: calculateWirePrice(wire, metalPrices),
+    calculatedPrice: breakdown.total,
   };
+}
+
+export function updateWirePricingBatchWithMetalPrice(
+  wires: WirePricingRecord[],
+  metalPrices: MetalPrices,
+): WirePricingRecord[] {
+  return wires.map((wire) => updateWirePricingWithMetalPrice(wire, metalPrices));
+}
+
+export function createWirePricingService() {
+  return {
+    calculate: (wire: WirePricingInput, metalPrices: MetalPrices) => ({
+      price: calculateWirePrice(wire, metalPrices),
+      breakdown: calculateWireCostBreakdown(wire, metalPrices),
+    }),
+    calculateBatch: (wires: WirePricingInput[], metalPrices: MetalPrices) =>
+      wires.map((wire) => ({
+        price: calculateWirePrice(wire, metalPrices),
+        breakdown: calculateWireCostBreakdown(wire, metalPrices),
+      })),
+    updateRecord: updateWirePricingWithMetalPrice,
+    updateRecords: updateWirePricingBatchWithMetalPrice,
+  };
+}
+
+export const wirePricingService = createWirePricingService();
+
+export function calculateTotalMoldCost(molds: Array<{ moldCost: number }>): number {
+  return roundMoney(molds.reduce((sum, mold) => sum + mold.moldCost, 0));
+}
+
+export function calculateDevPartPriceWithAmortization(
+  unitPriceAfterAmortization: number,
+  totalMoldCost: number,
+  amortizationQty: number,
+): number {
+  if (amortizationQty <= 0) {
+    return roundMoney(unitPriceAfterAmortization);
+  }
+  return roundMoney(unitPriceAfterAmortization + totalMoldCost / amortizationQty);
 }
 
 export function parseDevPartNumber(partNo: string): { projectCode: string; type: string; seq: string } | null {
@@ -84,30 +180,15 @@ export function isDevPart(partNo: string): boolean {
   return parseDevPartNumber(partNo) !== null;
 }
 
-export function calculateTotalMoldCost(molds: Array<{ moldCost: number }>): number {
-  return roundMoney(molds.reduce((sum, mold) => sum + mold.moldCost, 0));
-}
-
-export function calculateDevPartPriceWithAmortization(
-  unitPriceAfterAmortization: number,
-  totalMoldCost: number,
-  amortizationQty: number
-): number {
-  if (amortizationQty <= 0) {
-    return roundMoney(unitPriceAfterAmortization);
-  }
-  return roundMoney(unitPriceAfterAmortization + totalMoldCost / amortizationQty);
-}
-
 export function calculateDevPartLifecycleCost(
   devPart: DevPartPricingRecord,
-  lifecycleTotalQty: number
+  lifecycleTotalQty: number,
 ): { totalCost: number; avgUnitCost: number; breakdown: DevPartPriceSummary } {
   const moldTotalCost = calculateTotalMoldCost(devPart.molds);
   const amortizedPrice = calculateDevPartPriceWithAmortization(
     devPart.unitPriceAfterAmortization,
     moldTotalCost,
-    devPart.amortizationQty
+    devPart.amortizationQty,
   );
   const preAmortizationQty = Math.min(devPart.amortizationQty, lifecycleTotalQty);
   const postAmortizationQty = Math.max(0, lifecycleTotalQty - preAmortizationQty);
@@ -134,13 +215,13 @@ export function calculateDevPartLifecycleCost(
 
 export function calculateDevPartFinanceAlgorithm(
   devPart: DevPartPricingRecord,
-  lifecycleTotalQty: number
+  lifecycleTotalQty: number,
 ): { totalCost: number; avgUnitCost: number } {
   const moldTotalCost = calculateTotalMoldCost(devPart.molds);
   const amortizedPrice = calculateDevPartPriceWithAmortization(
     devPart.unitPriceAfterAmortization,
     moldTotalCost,
-    devPart.amortizationQty
+    devPart.amortizationQty,
   );
   return {
     totalCost: roundMoney(lifecycleTotalQty * amortizedPrice),
@@ -155,6 +236,67 @@ export interface PricingContext {
   lifecycleVolumes: Map<string, number>;
 }
 
+function buildWirePriceCandidates(
+  wire: WirePricingRecord,
+  metalPrices: MetalPrices,
+  bomUnitPrice: number,
+): PriceSourceCandidate[] {
+  const breakdown = calculateWireCostBreakdown(wire, metalPrices);
+  return [
+    buildPriceSourceCandidate('metal_linked', breakdown.total, 'metal_linked'),
+    buildPriceSourceCandidate('bom', bomUnitPrice, 'bom'),
+  ];
+}
+
+function buildDevPartPriceCandidates(
+  devPart: DevPartPricingRecord,
+  lifecycleQty: number,
+  bomUnitPrice: number,
+): PriceSourceCandidate[] {
+  const lifecycle = calculateDevPartLifecycleCost(devPart, lifecycleQty);
+  return [
+    buildPriceSourceCandidate('lifecycle_amortized', lifecycle.avgUnitCost, 'lifecycle_amortized'),
+    buildPriceSourceCandidate('batch', devPart.unitPriceAfterAmortization, 'post_amortization_base'),
+    buildPriceSourceCandidate('bom', bomUnitPrice, 'bom'),
+  ];
+}
+
+function buildAuxiliaryPriceCandidates(
+  auxiliary: AuxiliaryPartRecord,
+  bomUnitPrice: number,
+): PriceSourceCandidate[] {
+  return [
+    buildPriceSourceCandidate('auxiliary_purchase', auxiliary.unitPrice, 'auxiliary_purchase'),
+    buildPriceSourceCandidate('bom', bomUnitPrice, 'bom'),
+  ];
+}
+
+function buildPriceResult(
+  partNo: string,
+  partName: string,
+  category: PriceQueryResult['category'],
+  candidates: PriceSourceCandidate[],
+  validFrom: string,
+  validTo: string,
+  priceBreakdown?: PriceQueryResult['priceBreakdown'],
+): PriceQueryResult {
+  const resolved = resolveMaterialPriceSource(candidates);
+  return {
+    partNo,
+    partName,
+    category,
+    currentPrice: resolved.price,
+    priceSource: resolved.source,
+    sourcePriority: resolved.priority,
+    sourceTrace: resolved.candidates,
+    fallbackApplied: resolved.fallbackApplied,
+    resolvedSource: resolved,
+    validFrom,
+    validTo,
+    priceBreakdown,
+  };
+}
+
 export function queryPartPrice(
   bomItem: BomItem,
   context: PricingContext,
@@ -163,7 +305,7 @@ export function queryPartPrice(
     wires: Map<string, WirePricingRecord>;
     devParts: Map<string, DevPartPricingRecord>;
     auxiliary?: Map<string, AuxiliaryPartRecord>;
-  }
+  },
 ): PriceQueryResult {
   const partNo = bomItem.partNo;
   const lifecycleQty = context.lifecycleVolumes.get(partNo) ?? 0;
@@ -171,78 +313,73 @@ export function queryPartPrice(
   if (isDevPart(partNo) && pricingData.devParts.has(partNo)) {
     const devPart = pricingData.devParts.get(partNo)!;
     const lifecycleCost = calculateDevPartLifecycleCost(devPart, lifecycleQty);
-    return {
+    return buildPriceResult(
       partNo,
-      partName: bomItem.partName,
-      category: 'dev_part',
-      currentPrice: lifecycleCost.avgUnitCost,
-      priceSource: 'lifecycle_amortized',
-      validFrom: devPart.createdAt,
-      validTo: '',
-      priceBreakdown: {
+      bomItem.partName,
+      'dev_part',
+      buildDevPartPriceCandidates(devPart, lifecycleQty, bomItem.unitPrice || 0),
+      devPart.createdAt,
+      '',
+      {
         basePrice: devPart.unitPriceAfterAmortization,
         processingFee: 0,
         amortizationShare: lifecycleQty > 0 ? roundMoney(lifecycleCost.breakdown.moldTotalCost / lifecycleQty) : 0,
         metalCost: 0,
       },
-    };
+    );
   }
 
   if (bomItem.itemCategory === 'wire' && pricingData.wires.has(partNo)) {
     const wire = pricingData.wires.get(partNo)!;
-    const updatedWire = updateWirePricingWithMetalPrice(wire, context.metalPrices);
-    return {
+    const breakdown = calculateWireCostBreakdown(wire, context.metalPrices);
+    return buildPriceResult(
       partNo,
-      partName: bomItem.partName,
-      category: 'wire',
-      currentPrice: updatedWire.calculatedPrice,
-      priceSource: 'metal_linked',
-      validFrom: updatedWire.validFrom,
-      validTo: updatedWire.validTo ?? '',
-      priceBreakdown: {
+      bomItem.partName,
+      'wire',
+      buildWirePriceCandidates(wire, context.metalPrices, bomItem.unitPrice || 0),
+      wire.validFrom,
+      wire.validTo ?? '',
+      {
         basePrice: 0,
-        processingFee: updatedWire.processingFee,
+        processingFee: breakdown.processingFee,
         amortizationShare: 0,
-        metalCost: roundMoney(updatedWire.calculatedPrice - updatedWire.processingFee - updatedWire.nonMetalCost),
+        metalCost: roundMoney(breakdown.copperCost + breakdown.aluminumCost),
       },
-    };
+    );
   }
 
   if (pricingData.connectors.has(partNo)) {
     const connector = pricingData.connectors.get(partNo)!;
-    return {
+    return buildPriceResult(
       partNo,
-      partName: bomItem.partName,
-      category: 'connector',
-      currentPrice: getConnectorFinalPrice(connector),
-      priceSource: connector.finalNegotiatedPrice > 0 ? 'negotiated' : 'agreed',
-      validFrom: connector.createdAt,
-      validTo: '',
-    };
+      bomItem.partName,
+      'connector',
+      buildConnectorPriceCandidates(connector),
+      connector.createdAt,
+      '',
+    );
   }
 
   if (pricingData.auxiliary?.has(partNo)) {
     const auxiliary = pricingData.auxiliary.get(partNo)!;
-    return {
+    return buildPriceResult(
       partNo,
-      partName: bomItem.partName,
-      category: 'auxiliary',
-      currentPrice: auxiliary.unitPrice,
-      priceSource: 'auxiliary_purchase',
-      validFrom: auxiliary.updatedAt,
-      validTo: '',
-    };
+      bomItem.partName,
+      'auxiliary',
+      buildAuxiliaryPriceCandidates(auxiliary, bomItem.unitPrice || 0),
+      auxiliary.updatedAt,
+      '',
+    );
   }
 
-  return {
+  return buildPriceResult(
     partNo,
-    partName: bomItem.partName,
-    category: 'other',
-    currentPrice: bomItem.unitPrice || 0,
-    priceSource: 'bom',
-    validFrom: '',
-    validTo: '',
-  };
+    bomItem.partName,
+    'other',
+    [buildPriceSourceCandidate('bom', bomItem.unitPrice || 0, 'bom')],
+    '',
+    '',
+  );
 }
 
 export function calculateLifecyclePriceBreakdown(
@@ -253,7 +390,7 @@ export function calculateLifecyclePriceBreakdown(
     wires: Map<string, WirePricingRecord>;
     devParts: Map<string, DevPartPricingRecord>;
     auxiliary?: Map<string, AuxiliaryPartRecord>;
-  }
+  },
 ): LifecyclePriceBreakdown {
   const result: LifecyclePriceBreakdown = {
     projectId: context.projectId,
@@ -288,7 +425,7 @@ export function calculateLifecyclePriceBreakdown(
     if (priceInfo.category === 'connector') {
       result.byCategory.connectors.totalQty += lifecycleQty;
       result.byCategory.connectors.totalAmount = roundMoney(
-        result.byCategory.connectors.totalAmount + lifecycleQty * priceInfo.currentPrice
+        result.byCategory.connectors.totalAmount + lifecycleQty * priceInfo.currentPrice,
       );
       continue;
     }
@@ -296,7 +433,7 @@ export function calculateLifecyclePriceBreakdown(
     if (priceInfo.category === 'wire') {
       result.byCategory.wires.totalQty += lifecycleQty;
       result.byCategory.wires.totalAmount = roundMoney(
-        result.byCategory.wires.totalAmount + lifecycleQty * priceInfo.currentPrice
+        result.byCategory.wires.totalAmount + lifecycleQty * priceInfo.currentPrice,
       );
       continue;
     }
@@ -308,21 +445,21 @@ export function calculateLifecyclePriceBreakdown(
 
       result.byCategory.devParts.totalQty += lifecycleQty;
       result.byCategory.devParts.totalAmount = roundMoney(
-        result.byCategory.devParts.totalAmount + lifecycleCost.totalCost
+        result.byCategory.devParts.totalAmount + lifecycleCost.totalCost,
       );
       result.byCategory.devParts.preAmortizationQty += lifecycleCost.breakdown.preAmortizationQty;
       result.byCategory.devParts.preAmortizationAmount = roundMoney(
-        result.byCategory.devParts.preAmortizationAmount + lifecycleCost.breakdown.preAmortizationAmount
+        result.byCategory.devParts.preAmortizationAmount + lifecycleCost.breakdown.preAmortizationAmount,
       );
       result.byCategory.devParts.postAmortizationQty += lifecycleCost.breakdown.postAmortizationQty;
       result.byCategory.devParts.postAmortizationAmount = roundMoney(
-        result.byCategory.devParts.postAmortizationAmount + lifecycleCost.breakdown.postAmortizationAmount
+        result.byCategory.devParts.postAmortizationAmount + lifecycleCost.breakdown.postAmortizationAmount,
       );
       result.byCategory.devParts.moldTotalCost = roundMoney(
-        result.byCategory.devParts.moldTotalCost + lifecycleCost.breakdown.moldTotalCost
+        result.byCategory.devParts.moldTotalCost + lifecycleCost.breakdown.moldTotalCost,
       );
       result.totalMaterialCostWithAmortization = roundMoney(
-        result.totalMaterialCostWithAmortization + financeCost.totalCost
+        result.totalMaterialCostWithAmortization + financeCost.totalCost,
       );
       continue;
     }
@@ -330,14 +467,14 @@ export function calculateLifecyclePriceBreakdown(
     if (priceInfo.category === 'auxiliary') {
       result.byCategory.auxiliary.totalQty += lifecycleQty;
       result.byCategory.auxiliary.totalAmount = roundMoney(
-        result.byCategory.auxiliary.totalAmount + lifecycleQty * priceInfo.currentPrice
+        result.byCategory.auxiliary.totalAmount + lifecycleQty * priceInfo.currentPrice,
       );
       continue;
     }
 
     result.byCategory.others.totalQty += lifecycleQty;
     result.byCategory.others.totalAmount = roundMoney(
-      result.byCategory.others.totalAmount + lifecycleQty * priceInfo.currentPrice
+      result.byCategory.others.totalAmount + lifecycleQty * priceInfo.currentPrice,
     );
   }
 
@@ -348,18 +485,18 @@ export function calculateLifecyclePriceBreakdown(
 
   result.totalMaterialCost = roundMoney(
     result.byCategory.connectors.totalAmount +
-    result.byCategory.wires.totalAmount +
-    result.byCategory.devParts.totalAmount +
-    result.byCategory.auxiliary.totalAmount +
-    result.byCategory.others.totalAmount
+      result.byCategory.wires.totalAmount +
+      result.byCategory.devParts.totalAmount +
+      result.byCategory.auxiliary.totalAmount +
+      result.byCategory.others.totalAmount,
   );
 
   result.totalMaterialCostWithAmortization = roundMoney(
     result.totalMaterialCostWithAmortization +
-    result.byCategory.connectors.totalAmount +
-    result.byCategory.wires.totalAmount +
-    result.byCategory.auxiliary.totalAmount +
-    result.byCategory.others.totalAmount
+      result.byCategory.connectors.totalAmount +
+      result.byCategory.wires.totalAmount +
+      result.byCategory.auxiliary.totalAmount +
+      result.byCategory.others.totalAmount,
   );
   result.actualLifecycleMaterialCost = result.totalMaterialCost;
   result.profitImpact = roundMoney(result.actualLifecycleMaterialCost - result.totalMaterialCostWithAmortization);
@@ -370,7 +507,7 @@ export function scanPriceDiscrepancies(
   bomItems: BomItem[],
   pricingData: {
     connectors: Map<string, ConnectorPricingRecord>;
-  }
+  },
 ): Array<Omit<PriceDiscrepancyRecord, 'id' | 'projectId' | 'scenarioId' | 'createdAt' | 'updatedAt'>> {
   const discrepancies: Array<Omit<PriceDiscrepancyRecord, 'id' | 'projectId' | 'scenarioId' | 'createdAt' | 'updatedAt'>> = [];
   for (const item of bomItems) {

@@ -4,12 +4,19 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "postinstall": "prisma generate",
+    "predev": "npm run db:init",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "prestart": "npm run db:init",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",
+    "db:status": "prisma migrate status",
+    "db:deploy": "prisma migrate deploy",
+    "db:init": "tsx src/lib/dbInit.ts",
+    "db:reset": "prisma migrate reset --force && prisma db seed",
     "seed": "tsx prisma/seed.ts"
   },
   "prisma": {

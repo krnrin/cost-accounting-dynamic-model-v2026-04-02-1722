@@ -1,0 +1,27 @@
+﻿='项目评估汇总（昆山90%）'!A1,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,=SUM(O4:Y4),,,,=G4-I4,=N4*K4,,,,,,,,,,,,,
+,,,,,,=SUM(O5:Y5),,,,=G5-I5,=N5*K5,,,,,,,,,,,,,
+,,,,,,=SUM(O6:Y6),,,,=G6-I6,=N6*K6,,,,,,,,,,,,,
+,,,,,,=SUM(O7:Y7),,,,=G7-I7,=N7*K7,,,,,,,,,,,,,
+,,,,,,=SUM(O8:Y8),,,,=G8-I8,=N8*K8,,,,,,,,,,,,,
+,,,,,,=SUM(O9:Y9),,,,=G9-I9,=N9*K9,,,,,,,,,,,,,
+,,,,,,=SUM(O10:Y10),,,,=G10-I10,=N10*K10,,,,,,,,,,,,,
+,,,,,,=SUM(O11:Y11),,,,=G11-I11,=N11*K11,,,,,,,,,,,,,
+,,,,,,=SUM(O12:Y12),,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2faba0>,,,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2fab10>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2fab40>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2faab0>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2faa80>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2fa9c0>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2faa20>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2fa9f0>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2fa960>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2fa990>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2fa900>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2fa930>
+,,,,,,,,,,,=L15/'项目评估汇总（昆山90%）'!E5,,,,,,,,,,,,,
+,,,,,,,,,,,,,=项目专用模具!N14,='项目评估汇总（昆山90%）'!P35,='项目评估汇总（昆山90%）'!Q35,='项目评估汇总（昆山90%）'!R35,='项目评估汇总（昆山90%）'!S35,='项目评估汇总（昆山90%）'!T35,='项目评估汇总（昆山90%）'!U35,='项目评估汇总（昆山90%）'!V35,='项目评估汇总（昆山90%）'!W35,='项目评估汇总（昆山90%）'!X35,='项目评估汇总（昆山90%）'!Y35,='项目评估汇总（昆山90%）'!Z35
+,,,,,,,,,,,,,=项目专用模具!N15,='项目评估汇总（昆山90%）'!P36,='项目评估汇总（昆山90%）'!Q36,='项目评估汇总（昆山90%）'!R36,='项目评估汇总（昆山90%）'!S36,='项目评估汇总（昆山90%）'!T36,='项目评估汇总（昆山90%）'!U36,='项目评估汇总（昆山90%）'!V36,='项目评估汇总（昆山90%）'!W36,='项目评估汇总（昆山90%）'!X36,='项目评估汇总（昆山90%）'!Y36,='项目评估汇总（昆山90%）'!Z36
+,,,,,,,,,,,,,=项目专用模具!N16,=O17*O18,=P17*P18,=Q17*Q18,=R17*R18,=S17*S18,=T17*T18,=U17*U18,=V17*V18,=W17*W18,=X17*X18,=Y17*Y18
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,=L20/50000,,,,,,,,,,,,,
+,,,,,,,,,,,,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2dc740>,,,,,,,,,,,,
+,,,,,,,,,,,=L15-L20,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,=L23/'项目评估汇总（昆山90%）'!E5,,=50000*L21+L25*35000,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,=N25/'项目评估汇总（昆山90%）'!F5,,,,,,,,,,,

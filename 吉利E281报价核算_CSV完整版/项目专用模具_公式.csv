@@ -1,0 +1,19 @@
+﻿='项目评估汇总（昆山90%）'!A1,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,=SUM(O4:Y4),,,,=G4-I4,=K4*N4,,,,,,,,,,,,,
+,,,,,,=SUM(O5:Y5),,,,=G5-I5,=K5*N5,,,,,,,,,,,,,
+,,,,,,=SUM(O6:Y6),,,,=G6-I6,=K6*N6,,,,,,,,,,,,,
+,,,,,,=SUM(O7:Y7),,,,=G7-I7,=K7*N7,,,,,,,,,,,,,
+,,,,,,=SUM(O8:Y8),,,,=G8-I8,=K8*N8,,,,,,,,,,,,,
+,,,,,,=SUM(O9:Y9),,,,=G9-I9,=K9*N9,,,,,,,,,,,,,
+,,,,,,,,,,=G10-I10,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,=SUM(L4:L11),,,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b3a70>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b39e0>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b3a10>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b3980>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b39b0>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b3920>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b3950>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b38c0>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b38f0>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b3860>,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b3890>
+,,,,,,,,,,,=L12/'项目评估汇总（昆山90%）'!E5,,,,,,,,,,,,,
+,,,,,,,,,,,,,=设备投资明细!N42,='项目评估汇总（昆山90%）'!P35,=设备投资明细!R42,=设备投资明细!S42,=设备投资明细!T42,=设备投资明细!U42,=设备投资明细!V42,=设备投资明细!W42,=设备投资明细!X42,=设备投资明细!Y42,=设备投资明细!Z42,=设备投资明细!AA42
+,,,,,,,,,,,,,=设备投资明细!N43,='项目评估汇总（昆山90%）'!P36,=设备投资明细!R43,=设备投资明细!S43,=设备投资明细!T43,=设备投资明细!U43,=设备投资明细!V43,=设备投资明细!W43,=设备投资明细!X43,=设备投资明细!Y43,=设备投资明细!Z43,=设备投资明细!AA43
+,,,,,,,,,,,,,=设备投资明细!N44,=O14*O15,=P14*P15,=Q14*Q15,=R14*R15,=S14*S15,=T14*T15,=U14*U15,=V14*V15,=W14*W15,=X14*X15,=Y14*Y15
+,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,<openpyxl.worksheet.formula.ArrayFormula object at 0x7f7c4a2b1550>,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,

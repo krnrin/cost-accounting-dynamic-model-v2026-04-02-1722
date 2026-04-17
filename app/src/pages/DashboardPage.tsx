@@ -124,6 +124,7 @@ export default function DashboardPage() {
         visible={d.showMultiImport}
         onClose={() => d.setShowMultiImport(false)}
         projectId={d.id!}
+        scenarioId={d.sid}
         onImported={d.loadData}
       />
     </div>

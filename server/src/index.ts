@@ -2,7 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import prisma from './lib/prisma.js';
 import { config } from './config.js';
+import { ensureDatabaseReady as initializeDatabase } from './lib/dbInit.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 // Routes
@@ -83,15 +85,34 @@ app.get('/health', (_req, res) => {
 // Global Error Handler
 app.use(errorHandler);
 
-// Start server
-const server = app.listen(config.PORT, () => {
-  console.log(`\n  \u{1F680} Server running on http://localhost:${config.PORT}`);
-  console.log(`  \u{1F4E6} Database: SQLite`);
-  console.log(`  \u{1F310} CORS: ${config.CORS_ORIGIN}`);
-  console.log(`  \u{1F527} Mode: ${config.NODE_ENV}\n`);
-});
+async function verifyDatabaseReady() {
+  await prisma.$queryRaw`SELECT 1`;
+}
 
-process.on('unhandledRejection', (err: any) => {
-  console.error('Unhandled Rejection:', err?.message || err);
-  server.close(() => process.exit(1));
+async function main() {
+  try {
+    await verifyDatabaseReady();
+  } catch {
+    await initializeDatabase();
+    await verifyDatabaseReady();
+  }
+
+  const server = app.listen(config.PORT, () => {
+    console.log(`\n  \u{1F680} Server running on http://localhost:${config.PORT}`);
+    console.log(`  \u{1F4E6} Database: SQLite`);
+    console.log(`  \u{1F4C2} DATABASE_URL: ${config.DATABASE_URL}`);
+    console.log(`  \u{1F310} CORS: ${config.CORS_ORIGIN}`);
+    console.log(`  \u{1F527} Mode: ${config.NODE_ENV}\n`);
+  });
+
+  process.on('unhandledRejection', (err: any) => {
+    console.error('Unhandled Rejection:', err?.message || err);
+    server.close(() => process.exit(1));
+  });
+}
+
+main().catch(async (err) => {
+  console.error('[startup] Database bootstrap failed:', err?.message || err);
+  await prisma.$disconnect().catch(() => {});
+  process.exit(1);
 });

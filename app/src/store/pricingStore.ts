@@ -37,7 +37,7 @@ import {
   calculateDevPartPriceWithAmortization,
   calculateWirePrice,
   checkConnectorPriceDiscrepancy,
-  getConnectorFinalPrice,
+  getConnectorPrice,
   type MetalPrices,
 } from '@/engine/pricing_engine';
 
@@ -290,7 +290,7 @@ export const usePricingStore = create<PricingState>()(
         getConnectorPrice: (partNo) => {
           const row = get().connectorPricing[partNo];
           if (!row) return 0;
-          return getConnectorFinalPrice(row);
+          return getConnectorPrice(row);
         },
 
         addWirePricing: async (payload) => {
