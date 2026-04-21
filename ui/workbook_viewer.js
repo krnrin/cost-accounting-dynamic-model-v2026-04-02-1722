@@ -1172,6 +1172,7 @@
     const normalized = typeof options === 'string' ? { datasetKey: options } : (options || {});
     const datasetKey = normalizeDatasetKey(normalized.datasetKey || viewerState.datasetKey);
     if (datasetKey === 'bom') {
+      // BOM datasets always navigate to the dedicated workbench; do not open the legacy modal.
       navigateToBomWorkbench({
         versionKey: normalized.versionKey || viewerState.versionKey,
         sheetName: normalized.sheetName || '',
