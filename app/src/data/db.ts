@@ -13,6 +13,7 @@ import type { VersionRecord } from '../types/version';
 import type { OnetimeCostInput } from '../engine/onetime_alloc';
 import type { ChangeOrder } from '../engine/change_verification';
 import type { SimulationLayer } from '../engine/simulation_layers';
+import type { PackagingScheme, PackagingLogisticsCost } from '../types/packaging';
 
 /** 场景类型 */
 export type ScenarioType =
@@ -308,6 +309,34 @@ export interface MetalPriceHistoryRecord {
   note?: string;
 }
 
+/** F09: 包装方案记录 */
+export interface PackagingSchemeRecord {
+  /** 主键: `${projectId}::${harnessId}` */
+  id: string;
+  /** 所属项目 */
+  projectId: string;
+  /** 线束零件号 */
+  harnessId: string;
+  /** 包装方案数据 */
+  scheme: PackagingScheme;
+  /** 更新时间 */
+  updatedAt: string;
+}
+
+/** F10: 包装物流费用记录 */
+export interface PackagingLogisticsRecord {
+  /** 主键: `${projectId}::${harnessId}` */
+  id: string;
+  /** 所属项目 */
+  projectId: string;
+  /** 线束零件号 */
+  harnessId: string;
+  /** 包装物流费用数据 */
+  cost: PackagingLogisticsCost;
+  /** 更新时间 */
+  updatedAt: string;
+}
+
 class CostWorkbenchDB extends Dexie {
   projects!: Table<ProjectRecord, string>;
   scenarios!: Table<ScenarioRecord, string>;
@@ -326,6 +355,8 @@ class CostWorkbenchDB extends Dexie {
   changeOrders!: Table<ChangeOrderRecord, string>;
   gapSnapshots!: Table<GapSnapshotRecord, string>;
   metalPriceHistory!: Table<MetalPriceHistoryRecord, string>;
+  packagingSchemes!: Table<PackagingSchemeRecord, string>;
+  packagingLogistics!: Table<PackagingLogisticsRecord, string>;
 
   constructor() {
     super('CostWorkbenchDB');
@@ -450,6 +481,11 @@ class CostWorkbenchDB extends Dexie {
     this.version(12).stores({
       trackingItems: 'id, projectId, scenarioId, category, status, harnessId, changeEventId, createdAt, [projectId+scenarioId], [scenarioId+status]',
       changeEvents: 'id, projectId, scenarioId, status, createdAt, baselineVersionId, compareVersionId, [projectId+scenarioId], [scenarioId+status]',
+    });
+    // v13: F09 包装方案 + F10 包装物流费用
+    this.version(13).stores({
+      packagingSchemes: 'id, projectId, harnessId, [projectId+harnessId]',
+      packagingLogistics: 'id, projectId, harnessId, [projectId+harnessId]',
     });
   }
 }

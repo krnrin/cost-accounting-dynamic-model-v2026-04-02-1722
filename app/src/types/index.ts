@@ -46,3 +46,12 @@ export type {
   VersionDiffItem, VersionDiff,
 } from './version';
 export { VERSION_TRANSITIONS, VERSION_STATUS_LABELS, validateTransition, isVersionEditable } from './version';
+export type {
+  BoxType, PackagingScheme, PackagingLogisticsCost,
+  PackagingSchemeSummary, PackagingLogisticsSummary,
+} from './packaging';
+export {
+  createEmptyPackagingScheme,
+  createEmptyPackagingLogisticsCost,
+  calculatePackagingLogisticsTotals,
+} from './packaging';

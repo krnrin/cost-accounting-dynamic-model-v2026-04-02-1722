@@ -84,6 +84,8 @@ export default function MainLayout() {
       if (path.includes('/quote')) return `/project/${currentProjectId}/quote`;
       if (path.includes('/annual-drop')) return `/project/${currentProjectId}/annual-drop`;
       if (path.includes('/config')) return `/project/${currentProjectId}/config`;
+      if (path.includes('/packaging/scheme')) return `/project/${currentProjectId}/packaging/scheme`;
+      if (path.includes('/packaging/logistics')) return `/project/${currentProjectId}/packaging/logistics`;
       if (path.startsWith(`/project/${currentProjectId}`)) return `/project/${currentProjectId}`;
     }
     if (path.startsWith('/manager')) return '/manager';
@@ -151,6 +153,8 @@ export default function MainLayout() {
     { key: 'change-engine', label: '设变', onClick: () => navToProject('change-engine'), disabled: !hasProject },
     { key: 'tracking', label: '跟踪', onClick: () => navToProject('tracking'), disabled: !hasProject },
     { key: 'config', label: '配置', onClick: () => navToProject('config'), disabled: !hasProject },
+    { key: 'packaging/scheme', label: '包装方案', onClick: () => navToProject('packaging/scheme'), disabled: !hasProject },
+    { key: 'packaging/logistics', label: '包装物流', onClick: () => navToProject('packaging/logistics'), disabled: !hasProject },
     { key: '/settings', label: '设置', onClick: () => navigate('/settings'), disabled: false },
   ];
 

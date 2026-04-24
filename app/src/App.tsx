@@ -32,6 +32,8 @@ import ConnectorPricingPage from '@/pages/ConnectorPricingPage';
 import WirePricingPage from '@/pages/WirePricingPage';
 import DevPartPricingPage from '@/pages/DevPartPricingPage';
 import GapAnalysisPage from '@/pages/GapAnalysisPage';
+import PackagingSchemePage from '@/pages/PackagingSchemePage';
+import PackagingLogisticsPage from '@/pages/PackagingLogisticsPage';
 import SWUpdatePrompt from '@/components/SWUpdatePrompt';
 import { useAuthStore } from '@/store/authStore';
 import { useTheme } from '@/hooks/useTheme';
@@ -93,6 +95,8 @@ export default function App() {
           <Route path="/project/:id/s/:sid/pricing/connectors" element={<ConnectorPricingPage />} />
           <Route path="/project/:id/s/:sid/pricing/wires" element={<WirePricingPage />} />
           <Route path="/project/:id/s/:sid/pricing/devparts" element={<DevPartPricingPage />} />
+          <Route path="/project/:id/s/:sid/packaging/scheme" element={<PackagingSchemePage />} />
+          <Route path="/project/:id/s/:sid/packaging/logistics" element={<PackagingLogisticsPage />} />
           <Route path="/project/:id/alerts" element={<AlertsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/settings/alert-rules" element={<AlertsPage mode="rules" />} />
