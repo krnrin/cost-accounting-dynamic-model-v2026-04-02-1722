@@ -62,3 +62,6 @@ playwright-auth.json
 
 # === Local worktrees ===
 .worktrees/
+
+# Large test data files
+tests/data/e281_expected_costs.json
