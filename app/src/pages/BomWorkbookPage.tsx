@@ -16,6 +16,8 @@ import { IconArrowLeft, IconSave, IconUpload, IconInfoCircle, IconEdit } from '@
 import { useStableLiveQueryObject } from '../hooks/useStableLiveQuery';
 import { RoleGuard } from '@/components/RoleGuard';
 import { db, type HarnessRecord, type ProjectRecord, type ScenarioRecord } from '@/data/db';
+import { requireScenarioConfig } from '@/data/scenarioGuards';
+import { ensureScenarioWorkspaceHydrated, pushLocalScenarioWorkspaceToServer } from '@/data/serverScenarioSync';
 import { settingsRepo } from '@/data/repositories';
 import { apiClient } from '@/lib/apiClient';
 import { computeHarnessCost } from '@/engine/harness_costing';
@@ -37,6 +39,7 @@ import {
   bomRowsToSheetData,
   buildAssemblyPartRows,
   buildBomSheetRows,
+  bomSheetDataToBomItems,
   buildKskBomRows,
   buildSecondaryMaterialRows,
   historyRowsToSheetData,
@@ -59,12 +62,13 @@ import {
   type SheetChangeEvent,
   type SheetType,
 } from '@/engine/change_bus';
+import { getSafeBom, normalizeHarnessRecordInput } from '@/lib/harnessInputDefaults';
 
 const { Text } = Typography;
 
 const TOOLBAR_HEIGHT = 48;
 const STATUS_BAR_HEIGHT = 36;
-const BOM_COL_WIDTHS = [45, 120, 160, 180, 55, 110, 160, 65, 50, 120, 80, 75, 85];
+const BOM_COL_WIDTHS = [45, 120, 160, 180, 55, 110, 160, 65, 50, 120, 80, 75, 85, 110, 110, 130];
 const CONFIG_HEADERS = ['序号', '零件包名称', '零件号', '零件名称', '适配导线', '配置', '标配/选配', '单台用量', '占比'];
 
 type PersistedWorkbookState = {
@@ -162,16 +166,37 @@ function buildPendingChangeSubmission(
   };
 }
 
-function cloneInput(input: HarnessInput): HarnessInput {
-  return JSON.parse(JSON.stringify(input)) as HarnessInput;
+function cloneInput(
+  input: Partial<HarnessInput> | null | undefined,
+  fallback: Pick<HarnessInput, 'harnessId' | 'harnessName'>
+): HarnessInput {
+  const cloned = input ? (JSON.parse(JSON.stringify(input)) as Partial<HarnessInput>) : undefined;
+  return normalizeHarnessRecordInput(cloned, fallback);
 }
 
 function buildInputMap(harnesses: HarnessRecord[]): Map<string, HarnessInput> {
   const initial = new Map<string, HarnessInput>();
   harnesses.forEach((harness) => {
-    initial.set(harness.harnessId, cloneInput(harness.input));
+    initial.set(
+      harness.harnessId,
+      cloneInput(harness.input, {
+        harnessId: harness.harnessId,
+        harnessName: harness.harnessName,
+      })
+    );
   });
   return initial;
+}
+
+function getInputForHarness(
+  harness: HarnessRecord,
+  inputs?: Map<string, HarnessInput>
+): HarnessInput {
+  const input = inputs?.get(harness.harnessId) ?? harness.input;
+  return normalizeHarnessRecordInput(input, {
+    harnessId: harness.harnessId,
+    harnessName: harness.harnessName,
+  });
 }
 
 function flattenMapRows<T>(rowsByHarness: Map<string, T[]>): T[] {
@@ -198,7 +223,7 @@ function rebuildDerivedRows(harnesses: HarnessRecord[], inputs: Map<string, Harn
   const ksk = new Map<string, KskBomRow[]>();
 
   harnesses.forEach((harness) => {
-    const input = inputs.get(harness.harnessId) || harness.input;
+    const input = getInputForHarness(harness, inputs);
     assembly.set(harness.harnessId, buildAssemblyPartRows(harness.harnessId, harness.harnessName, input.bom));
     secondary.set(
       harness.harnessId,
@@ -254,58 +279,24 @@ function arrayToBom(
   data: (string | number | null)[][],
   previousBom: Array<BomItem | WireItem> = []
 ): (BomItem | WireItem)[] {
-  return data
-    .slice(1)
-    .filter((row) => String(row[2] || '').trim().length > 0)
-    .map((row, index) => {
-      const itemCategory = String(row[10] || 'other');
-      const qty = Number(row[7] || 0);
-      const unitPrice = Number(row[11] || 0);
-      const semiFlag = String(row[4] || '').toUpperCase();
-      const previousItem = previousBom[index];
-      const previousWire = previousItem?.itemCategory === 'wire' ? previousItem as WireItem : null;
-
-      const base: BomItem = {
-        partNo: String(row[2] || ''),
-        partName: String(row[3] || ''),
-        itemCategory: itemCategory as BomItem['itemCategory'],
-        spec: String(row[6] || ''),
-        unit: String(row[8] || ''),
-        qty,
-        unitPrice,
-        amount: Number((qty * unitPrice).toFixed(4)),
-        functionText: String(row[1] || ''),
-        sapNo: String(row[5] || ''),
-        supplier: String(row[9] || ''),
-        isSemiFinished: semiFlag === 'Y' || semiFlag === '是',
-      };
-
-      if (itemCategory === 'wire') {
-        return {
-          ...base,
-          copperWeightPerUnit: previousWire?.copperWeightPerUnit || 0,
-          aluminumWeightPerUnit: previousWire?.aluminumWeightPerUnit || 0,
-          nonMetalCostPerUnit: previousWire?.nonMetalCostPerUnit || 0,
-        } as WireItem;
-      }
-
-      return base;
-    });
+  return bomSheetDataToBomItems(data, previousBom);
 }
 
 function buildSummarySheet(
   harnesses: HarnessRecord[],
-  results: Map<string, HarnessResult>
+  results: Map<string, HarnessResult>,
+  inputs: Map<string, HarnessInput>
 ): (string | number | null)[][] {
   const header = ['序号', '线束号', '线束名称', '装车比', 'BOM项数', '材料成本', '人工成本', '制造费用', '出厂价', '到厂价'];
   const rows = harnesses.map((harness, index) => {
+    const input = getInputForHarness(harness, inputs);
     const result = results.get(harness.harnessId);
     return [
       index + 1,
       harness.harnessId,
       harness.harnessName,
-      harness.input.vehicleRatio,
-      harness.input.bom?.length || 0,
+      input.vehicleRatio,
+      getSafeBom(input.bom).length,
       result ? Number(result.materialCost.toFixed(2)) : '-',
       result ? Number(result.directLabor.toFixed(2)) : '-',
       result ? Number(result.manufacturing.toFixed(2)) : '-',
@@ -319,12 +310,44 @@ function buildSummarySheet(
 export default function BomWorkbookPage() {
   const { id, sid } = useParams<{ id: string; sid: string }>();
   const navigate = useNavigate();
+  const [hydrationReady, setHydrationReady] = useState(!sid);
+  const [hydrationError, setHydrationError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!id || !sid) {
+      setHydrationReady(true);
+      setHydrationError(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setHydrationReady(false);
+    setHydrationError(null);
+
+    void ensureScenarioWorkspaceHydrated(id, sid)
+      .then(() => {
+        if (cancelled) return;
+        setHydrationReady(true);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setHydrationError(error instanceof Error ? error.message : '场景工作区加载失败');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, sid]);
+
   const data = useStableLiveQueryObject<{
     project: ProjectRecord;
     scenario: ScenarioRecord | null;
     harnesses: HarnessRecord[];
   }>(async () => {
-    if (!id) return null as any;
+    if (!id || !hydrationReady) return null as any;
     const project = await db.projects.get(id);
     if (!project) return null as any;
     const scenario = sid ? await db.scenarios.get(sid) : null;
@@ -334,7 +357,7 @@ export default function BomWorkbookPage() {
       : harnesses;
     scopedHarnesses.sort((a, b) => a.harnessId.localeCompare(b.harnessId));
     return { project, scenario: scenario ?? null, harnesses: scopedHarnesses };
-  }, [id, sid]);
+  }, [id, sid, hydrationReady]);
 
   const scenarioScopeId = sid || data?.scenario?.id || 'default';
   const persistedStateKey = id ? workbookStateKey(id, scenarioScopeId) : null;
@@ -361,7 +384,36 @@ export default function BomWorkbookPage() {
   } | null>(null);
   const [suspendDetection, setSuspendDetection] = useState(false);
   const [hydratedStateKey, setHydratedStateKey] = useState<string | null>(null);
+/*
 
+  if (!hydrationReady && !hydrationError) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <Spin size="large" tip="正在加载场景工作区..." />
+      </div>
+    );
+  }
+
+  if (hydrationError) {
+    return (
+      <div style={{ maxWidth: 720, margin: '80px auto', padding: 24 }}>
+        <Text type="danger" strong>场景工作区加载失败</Text>
+        <div style={{ marginTop: 12, marginBottom: 20 }}>
+          <Text>{hydrationError}</Text>
+        </div>
+        <Space>
+          <Button icon={<IconArrowLeft />} onClick={() => navigate(id ? `/project/${id}` : '/')}>
+            返回项目
+          </Button>
+          <Button type="primary" onClick={() => window.location.reload()}>
+            重新加载
+          </Button>
+        </Space>
+      </div>
+    );
+  }
+
+*/
   useEffect(() => {
     if (!persistedStateKey || !data?.harnesses || hydratedStateKey === persistedStateKey) return;
 
@@ -425,36 +477,65 @@ export default function BomWorkbookPage() {
     void settingsRepo.set(persistedStateKey, { historyRows });
   }, [historyRows, hydratedStateKey, persistedStateKey]);
 
-  const resultsMap = useMemo(() => {
+  const workbookComputation = useMemo<{
+    map: Map<string, HarnessResult>;
+    rowErrors: string[];
+    fatalError: string | null;
+  }>(() => {
     const map = new Map<string, HarnessResult>();
-    const scenario = data?.scenario;
-    if (!scenario) return map;
+    const rowErrors: string[] = [];
+    if (!data?.scenario) {
+      return {
+        map,
+        rowErrors,
+        fatalError: 'BOM 工作簿必须绑定场景后才能计算',
+      };
+    }
 
-    modifiedInputs.forEach((input, harnessId) => {
-      if (!input.harnessId || input.bom.length === 0) return;
-      try {
-        map.set(
+    try {
+      const config = requireScenarioConfig(data.scenario, 'BomWorkbookPage');
+      modifiedInputs.forEach((input, harnessId) => {
+        const normalizedInput = normalizeHarnessRecordInput(input, {
           harnessId,
-          computeHarnessCost(input, scenario.config.costRates, scenario.config.metalPrices)
-        );
-      } catch {
-        // keep workbook interactive even when a single harness cannot be computed
-      }
-    });
+          harnessName: input.harnessName || harnessId,
+        });
+        if (!normalizedInput.harnessId || getSafeBom(normalizedInput.bom).length === 0) return;
+        try {
+          map.set(harnessId, computeHarnessCost(normalizedInput, config.costRates, config.metalPrices));
+        } catch (error) {
+          rowErrors.push(`${harnessId}: ${error instanceof Error ? error.message : '计算失败'}`);
+        }
+      });
 
-    return map;
+      return {
+        map,
+        rowErrors,
+        fatalError: null,
+      };
+    } catch (error) {
+      return {
+        map,
+        rowErrors,
+        fatalError: error instanceof Error ? error.message : '场景配置缺失，无法计算工作簿结果',
+      };
+    }
   }, [data?.scenario, modifiedInputs]);
+
+  const resultsMap = workbookComputation.map;
 
   const isDirty = useMemo(() => {
     if (!data?.harnesses) return false;
     return data.harnesses.some((harness) => {
       const modified = modifiedInputs.get(harness.harnessId);
-      return modified ? JSON.stringify(modified) !== JSON.stringify(harness.input) : false;
+      return modified
+        ? JSON.stringify(modified) !== JSON.stringify(getInputForHarness(harness))
+        : false;
     });
   }, [data?.harnesses, modifiedInputs]);
 
   const hasPendingWorkflow =
     Boolean(changeDetection) || incomingEvents.length > 0 || Boolean(inboundSyncState);
+  const hasComputationErrors = Boolean(workbookComputation.fatalError) || workbookComputation.rowErrors.length > 0;
 
   useEffect(() => {
     const handler = (event: BeforeUnloadEvent) => {
@@ -475,9 +556,9 @@ export default function BomWorkbookPage() {
     const kskFlat = flattenMapRows(kskRowsByHarness);
 
     const indexedRows = data.harnesses.flatMap((harness) => {
-      const input = modifiedInputs.get(harness.harnessId) || harness.input;
+      const input = getInputForHarness(harness, modifiedInputs);
       return [
-        ...input.bom.map((item, rowIndex) => ({
+        ...getSafeBom(input.bom).map((item, rowIndex) => ({
           projectId: id,
           scenarioId: scenarioScopeId,
           harnessId: harness.harnessId,
@@ -577,7 +658,7 @@ export default function BomWorkbookPage() {
       {
         id: 'summary',
         name: '总览',
-        data: buildSummarySheet(data.harnesses, resultsMap),
+        data: buildSummarySheet(data.harnesses, resultsMap, modifiedInputs),
         columnWidths: [45, 120, 180, 70, 70, 85, 85, 85, 85, 85],
         freezeRows: 1,
       },
@@ -619,7 +700,7 @@ export default function BomWorkbookPage() {
     ];
 
     data.harnesses.forEach((harness) => {
-      const input = modifiedInputs.get(harness.harnessId) || harness.input;
+      const input = getInputForHarness(harness, modifiedInputs);
       result.push({
         id: `bom-${harness.harnessId}`,
         name: harness.harnessId,
@@ -640,7 +721,7 @@ export default function BomWorkbookPage() {
       const harness = data?.harnesses.find((item) => item.harnessId === harnessId);
       if (!harness) return;
 
-      const beforeBom = modifiedInputs.get(harnessId)?.bom || harness.input.bom;
+      const beforeBom = getSafeBom(modifiedInputs.get(harnessId)?.bom ?? harness.input.bom);
       const nextBom = arrayToBom(sheetData, beforeBom);
       const beforeRows = buildBomSheetRows(harnessId, harness.harnessName, beforeBom);
       const afterRows = buildBomSheetRows(harnessId, harness.harnessName, nextBom);
@@ -652,9 +733,8 @@ export default function BomWorkbookPage() {
       setModifiedInputs((prev) => {
         const next = new Map(prev);
         const existing = next.get(harnessId);
-        if (existing) {
-          next.set(harnessId, { ...existing, bom: nextBom });
-        }
+        const baseInput = existing ?? getInputForHarness(harness);
+        next.set(harnessId, { ...baseInput, bom: nextBom });
         return next;
       });
       setAssemblyRowsByHarness((prev) =>
@@ -785,55 +865,26 @@ export default function BomWorkbookPage() {
 
   const handleSaveAll = useCallback(async () => {
     if (!data?.harnesses) return;
+    if (!id) {
+      Toast.error('当前项目上下文丢失，无法同步 BOM 工作簿。');
+      return;
+    }
     if (hasPendingWorkflow) {
       Toast.warning('请先完成当前联动确认，再执行保存。');
+      return;
+    }
+    if (hasComputationErrors) {
+      Toast.error(workbookComputation.fatalError || '当前工作簿存在线束计算错误，请先修复后再保存');
       return;
     }
 
     try {
       const changedHarnesses = data.harnesses.filter((harness) => {
         const modified = modifiedInputs.get(harness.harnessId);
-        return modified ? JSON.stringify(modified) !== JSON.stringify(harness.input) : false;
+        return modified
+          ? JSON.stringify(modified) !== JSON.stringify(getInputForHarness(harness))
+          : false;
       });
-
-      if (sid) {
-        for (const harness of changedHarnesses) {
-          const modified = modifiedInputs.get(harness.harnessId);
-          if (!modified) continue;
-
-          await apiClient(`/scenarios/${sid}/bom/import`, {
-            method: 'POST',
-            body: {
-              harnessId: harness.harnessId,
-              rows: modified.bom.map((item) => ({
-                partNo: item.partNo,
-                partName: item.partName,
-                itemCategory: item.itemCategory,
-                qty: item.qty,
-                unit: item.unit,
-                unitPrice: item.unitPrice,
-                amount: item.amount,
-                sapNo: item.sapNo,
-                spec: item.spec,
-                supplier: item.supplier,
-                functionText: item.functionText,
-              })),
-            },
-          });
-        }
-
-        for (const submission of pendingChangeSubmissions) {
-          const created = await apiClient<{ id: string }>(`/projects/${id}/scenarios/${sid}/changes`, {
-            method: 'POST',
-            body: submission.payload,
-          });
-          await apiClient(`/changes/${created.id}/calculate-impact`, {
-            method: 'POST',
-          });
-        }
-      } else if (pendingChangeSubmissions.length > 0) {
-        Toast.warning('当前未绑定场景，本次仅保存本地 BOM，未同步设变台账。');
-      }
 
       const updates = changedHarnesses.map((harness) => {
         const modified = modifiedInputs.get(harness.harnessId)!;
@@ -849,12 +900,63 @@ export default function BomWorkbookPage() {
 
       await Promise.all(updates);
       setPendingChangeSubmissions([]);
-      Toast.success(`已保存 ${updates.length} 条线束 BOM${sid ? '，并同步场景台账' : ''}。`);
+
+      const remoteErrors: string[] = [];
+      if (sid) {
+        try {
+          await pushLocalScenarioWorkspaceToServer(id, sid);
+
+          for (const harness of changedHarnesses) {
+            const modified = modifiedInputs.get(harness.harnessId);
+            if (!modified) continue;
+
+            await apiClient(`/scenarios/${sid}/bom/import`, {
+              method: 'POST',
+              body: {
+                harnessId: harness.harnessId,
+                rows: modified.bom.map((item) => ({
+                  partNo: item.partNo,
+                  partName: item.partName,
+                  itemCategory: item.itemCategory,
+                  qty: item.qty,
+                  unit: item.unit,
+                  unitPrice: item.unitPrice,
+                  amount: item.amount,
+                  sapNo: item.sapNo,
+                  spec: item.spec,
+                  supplier: item.supplier,
+                  functionText: item.functionText,
+                })),
+              },
+            });
+          }
+
+          for (const submission of pendingChangeSubmissions) {
+            const created = await apiClient<{ id: string }>(`/projects/${id}/scenarios/${sid}/changes`, {
+              method: 'POST',
+              body: submission.payload,
+            });
+            await apiClient(`/changes/${created.id}/calculate-impact`, {
+              method: 'POST',
+            });
+          }
+        } catch (error) {
+          remoteErrors.push(error instanceof Error ? error.message : '场景台账同步失败');
+        }
+      } else if (pendingChangeSubmissions.length > 0) {
+        Toast.warning('当前未绑定场景，本次仅保存本地 BOM，未同步设变台账。');
+      }
+
+      if (remoteErrors.length > 0) {
+        Toast.error(`本地 BOM 已保存，但服务端同步失败：${remoteErrors.join('；')}`);
+      } else {
+        Toast.success(`已保存 ${updates.length} 条线束 BOM${sid ? '，并同步场景台账' : ''}。`);
+      }
     } catch (error) {
       console.error('Save failed:', error);
       Toast.error('保存失败。');
     }
-  }, [data?.harnesses, hasPendingWorkflow, id, modifiedInputs, pendingChangeSubmissions, sid]);
+  }, [data?.harnesses, hasPendingWorkflow, hasComputationErrors, id, modifiedInputs, pendingChangeSubmissions, sid, workbookComputation.fatalError]);
 
   const handleImportBom = useCallback(
     (newBom: (BomItem | WireItem)[]) => {
@@ -866,9 +968,8 @@ export default function BomWorkbookPage() {
       setModifiedInputs((prev) => {
         const next = new Map(prev);
         const existing = next.get(importTarget.harnessId);
-        if (existing) {
-          next.set(importTarget.harnessId, { ...existing, bom: newBom });
-        }
+        const baseInput = existing ?? getInputForHarness(harness);
+        next.set(importTarget.harnessId, { ...baseInput, bom: newBom });
         return next;
       });
       setAssemblyRowsByHarness((prev) =>
@@ -913,7 +1014,26 @@ export default function BomWorkbookPage() {
     return { count: resultsMap.size, material, labor, manufacturing, exFactory, delivered };
   }, [resultsMap]);
 
-  if (!data || !persistedStateKey || hydratedStateKey !== persistedStateKey) {
+  if (hydrationError) {
+    return (
+      <div style={{ maxWidth: 720, margin: '80px auto', padding: 24 }}>
+        <Text type="danger" strong>场景工作区加载失败</Text>
+        <div style={{ marginTop: 12, marginBottom: 20 }}>
+          <Text>{hydrationError}</Text>
+        </div>
+        <Space>
+          <Button icon={<IconArrowLeft />} onClick={() => navigate(id ? `/project/${id}` : '/')}>
+            返回项目
+          </Button>
+          <Button type="primary" onClick={() => window.location.reload()}>
+            重新加载
+          </Button>
+        </Space>
+      </div>
+    );
+  }
+
+  if (!hydrationReady || !data || !persistedStateKey || hydratedStateKey !== persistedStateKey) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
         <Spin size="large" tip="正在加载 BOM 工作簿..." />
@@ -1026,10 +1146,11 @@ export default function BomWorkbookPage() {
 
           <RoleGuard field="bomEdit" readOnlyFallback>
             <Button
+              data-testid="bom-workbook-save-all"
               icon={<IconSave />}
               type="primary"
               theme="solid"
-              disabled={!isDirty || hasPendingWorkflow}
+              disabled={!isDirty || hasPendingWorkflow || hasComputationErrors}
               onClick={handleSaveAll}
             >
               全部保存
@@ -1056,6 +1177,23 @@ export default function BomWorkbookPage() {
         }
       />
 
+      {hasComputationErrors ? (
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--semi-color-danger-light-default)', background: 'rgba(244, 63, 94, 0.08)' }}>
+          <Text strong style={{ color: 'var(--semi-color-danger)' }}>
+            {workbookComputation.fatalError || '当前工作簿存在计算错误，已禁止保存。'}
+          </Text>
+          {workbookComputation.rowErrors.length > 0 ? (
+            <div style={{ marginTop: 8 }}>
+              {workbookComputation.rowErrors.slice(0, 5).map((message) => (
+                <div key={message}>
+                  <Text style={{ color: 'var(--semi-color-danger)' }}>{message}</Text>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div style={{ flex: 1, position: 'relative' }}>
         <UniverSheet
           sheets={sheets}
@@ -1063,6 +1201,8 @@ export default function BomWorkbookPage() {
           onActiveSheetChange={setActiveSheetId}
           height="100%"
           hideToolbar
+          testId="bom-workbook-sheet"
+          ariaLabel="BOM 工作簿"
         />
       </div>
 

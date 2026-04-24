@@ -630,4 +630,4 @@
   if (typeof module !== 'undefined' && module.exports) {
     module.exports = api;
   }
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

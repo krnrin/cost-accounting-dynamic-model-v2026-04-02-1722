@@ -11,6 +11,9 @@
 ;(function (global) {
   'use strict';
 
+  var U = global.G281SharedUtils || {};
+  var numberOr = U.numberOr || function (v, fb) { var n = Number(v); return Number.isFinite(n) ? n : fb; };
+
   // ============================================================
   // 硬编码回退值（与 g281.project.json 一致）
   // ============================================================
@@ -40,10 +43,10 @@
         : null;
       if (config && config.materialComposition) {
         return {
-          connector: Number(config.materialComposition.connector) || FALLBACK_MATERIAL_COMPOSITION.connector,
-          copper: Number(config.materialComposition.copper) || FALLBACK_MATERIAL_COMPOSITION.copper,
-          aluminum: Number(config.materialComposition.aluminum) || FALLBACK_MATERIAL_COMPOSITION.aluminum,
-          other: Number(config.materialComposition.other) || FALLBACK_MATERIAL_COMPOSITION.other,
+          connector: numberOr(config.materialComposition.connector, FALLBACK_MATERIAL_COMPOSITION.connector),
+          copper: numberOr(config.materialComposition.copper, FALLBACK_MATERIAL_COMPOSITION.copper),
+          aluminum: numberOr(config.materialComposition.aluminum, FALLBACK_MATERIAL_COMPOSITION.aluminum),
+          other: numberOr(config.materialComposition.other, FALLBACK_MATERIAL_COMPOSITION.other),
         };
       }
       return { ...FALLBACK_MATERIAL_COMPOSITION };
@@ -59,8 +62,8 @@
         : null;
       if (config && config.metalSensitivity) {
         return {
-          copper: Number(config.metalSensitivity.copper) || FALLBACK_METAL_SENSITIVITY.copper,
-          aluminum: Number(config.metalSensitivity.aluminum) || FALLBACK_METAL_SENSITIVITY.aluminum,
+          copper: numberOr(config.metalSensitivity.copper, FALLBACK_METAL_SENSITIVITY.copper),
+          aluminum: numberOr(config.metalSensitivity.aluminum, FALLBACK_METAL_SENSITIVITY.aluminum),
         };
       }
       return { ...FALLBACK_METAL_SENSITIVITY };

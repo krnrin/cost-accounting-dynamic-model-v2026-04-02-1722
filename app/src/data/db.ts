@@ -1,9 +1,18 @@
 import Dexie, { type Table } from 'dexie';
 import type { Project, ProjectConfig } from '../types/project';
-import type { HarnessInput, HarnessResult, HarnessRelation, VehicleConfig, VehicleConfigMeta } from '../types/harness';
+import type {
+  HarnessConfigMapping,
+  HarnessInput,
+  HarnessRelation,
+  HarnessResult,
+  VehicleConfig,
+  VehicleConfigMeta,
+  ConfigSku,
+} from '../types/harness';
 import type { VersionRecord } from '../types/version';
 import type { OnetimeCostInput } from '../engine/onetime_alloc';
-import { applyE281ScenarioFallback } from './e281Fallback';
+import type { ChangeOrder } from '../engine/change_verification';
+import type { SimulationLayer } from '../engine/simulation_layers';
 
 /** 场景类型 */
 export type ScenarioType =
@@ -46,6 +55,9 @@ export interface ScenarioRecord {
   relations?: HarnessRelation[];
   /** 车型配置列表 */
   vehicleConfigs?: VehicleConfig[];
+  configSkus?: ConfigSku[];
+  harnessConfigMappings?: HarnessConfigMapping[];
+  simulationLayers?: SimulationLayer[];
   /** 车型配置发布状态 */
   vehicleConfigMeta?: VehicleConfigMeta;
   /** B1: 场景状态 */
@@ -85,6 +97,7 @@ export interface HarnessRecord {
 export interface QuoteRecord {
   id: string;
   projectId: string;
+  scenarioId?: string;
   version: string;
   status: string;
   updatedAt: string;
@@ -131,6 +144,7 @@ export interface OnetimeCostRecord {
   harnessId: string;
   harnessName: string;
   vehicleRatio: number;
+  installationRatio?: number;
   /** 一次性费用输入 */
   input: OnetimeCostInput;
   updatedAt: string;
@@ -140,6 +154,13 @@ export interface OnetimeCostRecord {
 export interface TrackingItemRecord {
   id: string;
   projectId: string;
+  scenarioId?: string;
+  changeEventId?: string;
+  baselineVersionId?: string;
+  compareVersionId?: string;
+  source?: 'alert' | 'change_event' | 'stagnant_material' | 'manual';
+  sourceAlertId?: string;
+  severity?: 'critical' | 'warning' | 'info';
   category: 'anomaly' | 'recovery' | 'config_change' | 'sales_input';
   title: string;
   description: string;
@@ -149,12 +170,58 @@ export interface TrackingItemRecord {
   partName?: string;
   costImpact: number;
   recoveredAmount?: number;
+  remainingAmount?: number;
+  needsPriceAdjustment?: boolean;
   status: 'open' | 'investigating' | 'resolved' | 'closed';
   priority: 'low' | 'medium' | 'high';
   createdAt: string;
   updatedAt: string;
   resolvedAt?: string;
   note?: string;
+}
+
+export interface ChangeEventBomRowRecord {
+  harnessId: string;
+  harnessName: string;
+  partNo: string;
+  partName: string;
+  changeType: 'added' | 'removed' | 'qty_changed' | 'price_changed' | 'assembly_replace';
+  beforeQty: number;
+  afterQty: number;
+  beforePrice: number;
+  afterPrice: number;
+  deltaAmount: number;
+  replacedAssembly?: string;
+  remainingQuantity?: number;
+  rowKey?: string;
+  rowIndex?: number;
+  itemCategory?: string;
+  supplier?: string;
+  fieldChanges?: Array<{
+    field: string;
+    label?: string;
+    before: unknown;
+    after: unknown;
+  }>;
+}
+
+export interface ChangeEventRecord {
+  id: string;
+  projectId: string;
+  scenarioId: string;
+  changeType: 'add' | 'replace' | 'cancel' | 'adjust';
+  reason?: string;
+  affectedHarnessIds: string[];
+  affectedBomRows: ChangeEventBomRowRecord[];
+  costImpact: number;
+  quoteImpact: number;
+  residualImpact: number;
+  baselineVersionId?: string;
+  compareVersionId?: string;
+  status: 'draft' | 'calculated' | 'tracked' | 'closed';
+  createdBy?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 /** 分摊回收跟踪记录 */
@@ -193,6 +260,12 @@ export interface QuoteSnapshotRecord {
   results: Record<string, unknown>;
   notes?: string;
   createdAt: string;
+}
+
+export interface ChangeOrderRecord extends ChangeOrder {
+  projectId: string;
+  scenarioId: string;
+  updatedAt: string;
 }
 
 /** C7: Gap 分析快照记录 */
@@ -247,8 +320,10 @@ class CostWorkbenchDB extends Dexie {
   onetimeCosts!: Table<OnetimeCostRecord, string>;
   allocTrackers!: Table<AllocTrackerRecord, string>;
   trackingItems!: Table<TrackingItemRecord, string>;
+  changeEvents!: Table<ChangeEventRecord, string>;
   settingsSnapshots!: Table<SettingsSnapshotRecord, string>;
   quoteSnapshots!: Table<QuoteSnapshotRecord, string>;
+  changeOrders!: Table<ChangeOrderRecord, string>;
   gapSnapshots!: Table<GapSnapshotRecord, string>;
   metalPriceHistory!: Table<MetalPriceHistoryRecord, string>;
 
@@ -369,14 +444,14 @@ class CostWorkbenchDB extends Dexie {
         }
       }
     });
+    this.version(11).stores({
+      changeOrders: 'id, projectId, scenarioId, changeNo, status, createdAt, [projectId+scenarioId], [scenarioId+status]',
+    });
+    this.version(12).stores({
+      trackingItems: 'id, projectId, scenarioId, category, status, harnessId, changeEventId, createdAt, [projectId+scenarioId], [scenarioId+status]',
+      changeEvents: 'id, projectId, scenarioId, status, createdAt, baselineVersionId, compareVersionId, [projectId+scenarioId], [scenarioId+status]',
+    });
   }
 }
 
 export const db = new CostWorkbenchDB();
-
-db.scenarios.hook('reading', (obj) => {
-  if (!obj) {
-    return obj;
-  }
-  return applyE281ScenarioFallback(obj as ScenarioRecord);
-});

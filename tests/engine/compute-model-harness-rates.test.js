@@ -3,7 +3,7 @@ const computeModelApi = engine.G281ComputeModel || globalThis.G281ComputeModel |
 
 describe('computeModel harness rate priority', () => {
   function buildRuntime() {
-    return {
+    const base = {
       years: [2026],
       volumes: [100],
       asp: [10],
@@ -38,6 +38,7 @@ describe('computeModel harness rate priority', () => {
         annualDrop: { quote: { annualRate: 0 } },
         oneTimeCustomer: { quote: { amountTotal: 0, entries: [] } },
         rebate: { quote: { amountTotal: 0, amountPerSet: 0 } },
+        vave: { none: { factor: 1 } },
       },
       projectConfig: {
         costRates: {
@@ -69,6 +70,26 @@ describe('computeModel harness rate priority', () => {
         },
       },
     }
+    // master mirrors runtime top-level fields for computeModel(BASE = runtime.master)
+    base.master = {
+      name: 'base',
+      years: base.years,
+      volumes: base.volumes,
+      baselineMix: base.baselineMix,
+      priceMixIndexes: base.priceMixIndexes,
+      costMixIndexes: base.costMixIndexes,
+      versions: base.versions,
+      projectConfig: base.projectConfig,
+      harnessSeedData: base.harnessSeedData,
+    }
+    return base
+  }
+
+  // ctx with harnessCosting so that computeModel generates harnessDetail
+  function buildCtx() {
+    return {
+      harnessCosting: engine.G281HarnessCosting,
+    }
   }
 
   it('prefers laborValidation snapshot rates over projectConfig customer rates', () => {
@@ -86,7 +107,7 @@ describe('computeModel harness rate priority', () => {
       packOther: 0,
       volumes: [100],
       asp: [10],
-    }, {}, undefined)
+    }, {}, buildCtx())
 
     expect(result.harnessDetail.params.laborRate).toBe(99)
     expect(result.harnessDetail.params.mfgRate).toBe(88)
@@ -108,7 +129,7 @@ describe('computeModel harness rate priority', () => {
       packOther: 0,
       volumes: [100],
       asp: [10],
-    }, {}, undefined)
+    }, {}, buildCtx())
 
     expect(result.harnessDetail.params.laborRate).toBe(35)
     expect(result.harnessDetail.params.mfgRate).toBe(46.69)
@@ -127,6 +148,7 @@ describe('computeModel harness rate priority', () => {
         materialWasteRate: 0.005,
       },
     }
+    runtime.master.projectConfig = runtime.projectConfig
     const result = computeModelApi.computeModel(runtime, {
       copperPrice: 68400,
       aluminumPrice: 18200,
@@ -140,7 +162,7 @@ describe('computeModel harness rate priority', () => {
       packOther: 0,
       volumes: [100],
       asp: [10],
-    }, {}, undefined)
+    }, {}, buildCtx())
 
     expect(result.harnessDetail.params.laborRate).toBe(28.6)
     expect(result.harnessDetail.params.mfgRate).toBe(52.3)
@@ -178,6 +200,7 @@ describe('computeModel harness rate priority', () => {
         efficiencyFactor: 1,
       },
     ]
+    runtime.master.projectConfig = runtime.projectConfig
     const result = computeModelApi.computeModel(runtime, {
       copperPrice: 68400,
       aluminumPrice: 18200,
@@ -191,7 +214,7 @@ describe('computeModel harness rate priority', () => {
       packOther: 0,
       volumes: [100],
       asp: [10],
-    }, {}, undefined)
+    }, {}, buildCtx())
 
     expect(result.harnessDetail.params.factoryId).toBe('KS')
     expect(result.harnessDetail.params.factoryName).toBe('昆山工厂')
@@ -229,6 +252,7 @@ describe('computeModel harness rate priority', () => {
         },
       ],
     }
+    runtime.master.projectConfig = runtime.projectConfig
     const result = computeModelApi.computeModel(runtime, {
       copperPrice: 68400,
       aluminumPrice: 18200,
@@ -242,7 +266,7 @@ describe('computeModel harness rate priority', () => {
       packOther: 0,
       volumes: [100],
       asp: [10],
-    }, {}, undefined)
+    }, {}, buildCtx())
 
     expect(result.harnessDetail.params.factoryId).toBe('KS')
     expect(result.harnessDetail.params.laborRate).toBe(35)
@@ -251,4 +275,4 @@ describe('computeModel harness rate priority', () => {
     expect(result.harnessDetail.params.mgmtRate).toBe(0.06)
     expect(result.harnessDetail.params.profitRate).toBe(0.056627)
   })
-'}})
+})

@@ -465,7 +465,7 @@ export default function ProjectListPage() {
           <Button theme="light" icon={<IconUpload />} onClick={handleImport}>
             导入项目
           </Button>
-          <Button theme="solid" type="primary" icon={<IconPlus />} onClick={() => navigate('/project/new')}>
+          <Button data-testid="project-list-new-project" theme="solid" type="primary" icon={<IconPlus />} onClick={() => navigate('/project/new')}>
             新建项目
           </Button>
         </Space>

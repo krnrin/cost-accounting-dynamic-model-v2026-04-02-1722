@@ -56,9 +56,12 @@ function detectDetailedChangeType(before: HarnessResult | null, after: HarnessRe
   if (!after) return 'remove';
   const d = buildDelta(before, after);
   const types: string[] = [];
+  const beforeRatio = numberOr(before.installationRatio, numberOr(before.vehicleRatio, 0));
+  const afterRatio = numberOr(after.installationRatio, numberOr(after.vehicleRatio, 0));
   if (Math.abs(d.materialCost) > 0.001) types.push('material');
   if (Math.abs(d.processHours) > 0.0001) types.push('hours');
   if (Math.abs(d.packTotal) > 0.001) types.push('packaging');
+  if (Math.abs(afterRatio - beforeRatio) > 0.000001) types.push('config_ratio');
   return types.length > 0 ? types.join('+') : 'no_change';
 }
 
@@ -97,6 +100,11 @@ export function computeChangePricing(
   allIds.forEach((id) => {
     const base = baseMap[id] || null;
     const curr = newMap[id] || null;
+    const baseRatio = numberOr(base?.installationRatio, numberOr(base?.vehicleRatio, 0));
+    const currRatio = numberOr(curr?.installationRatio, numberOr(curr?.vehicleRatio, 0));
+    const baseWeightedPrice = numberOr(base?.deliveredPrice, 0) * baseRatio;
+    const currWeightedPrice = numberOr(curr?.deliveredPrice, 0) * currRatio;
+    const weightedDeltaPrice = currWeightedPrice - baseWeightedPrice;
 
     if (!base && curr) {
       // 新增零件号
@@ -108,6 +116,11 @@ export function computeChangePricing(
         before: null,
         after: curr,
         delta: buildDelta(null, curr),
+        beforeWeightedPrice: 0,
+        afterWeightedPrice: currWeightedPrice,
+        weightedDeltaPrice,
+        ratioDelta: currRatio,
+        installationRatioDelta: currRatio,
       });
     } else if (base && !curr) {
       // 删除零件号
@@ -119,10 +132,17 @@ export function computeChangePricing(
         before: base,
         after: null,
         delta: buildDelta(base, null),
+        beforeWeightedPrice: baseWeightedPrice,
+        afterWeightedPrice: 0,
+        weightedDeltaPrice,
+        ratioDelta: -baseRatio,
+        installationRatioDelta: -baseRatio,
       });
     } else if (base && curr) {
       const delta = buildDelta(base, curr);
-      if (Math.abs(delta.deliveredPrice) > 0.001) {
+      const hasUnitPriceDelta = Math.abs(delta.deliveredPrice) > 0.001;
+      const hasWeightedDelta = Math.abs(weightedDeltaPrice) > 0.001;
+      if (hasUnitPriceDelta || hasWeightedDelta) {
         changes.push({
           harnessId: id,
           harnessName: curr.harnessName || base.harnessName || '',
@@ -130,7 +150,12 @@ export function computeChangePricing(
           detailedType: detectDetailedChangeType(base, curr),
           before: base,
           after: curr,
-          delta: delta,
+          delta,
+          beforeWeightedPrice: baseWeightedPrice,
+          afterWeightedPrice: currWeightedPrice,
+          weightedDeltaPrice,
+          ratioDelta: numberOr(curr.vehicleRatio, 0) - numberOr(base.vehicleRatio, 0),
+          installationRatioDelta: currRatio - baseRatio,
         });
       } else {
         unchangedCount++;
@@ -281,16 +306,17 @@ export function buildChangeComparisonTable(changePricingResult: ChangePricingRes
   ];
 
   const rows = changes.map((c: ChangeItem) => {
-    const beforePrice = c.before ? c.before.deliveredPrice : 0;
-    const afterPrice = c.after ? c.after.deliveredPrice : 0;
+    const beforePrice = c.beforeWeightedPrice ?? (c.before ? c.before.deliveredPrice : 0);
+    const afterPrice = c.afterWeightedPrice ?? (c.after ? c.after.deliveredPrice : 0);
+    const deltaPrice = c.weightedDeltaPrice ?? c.delta.deliveredPrice;
     return {
       harnessId: c.harnessId,
       harnessName: c.harnessName,
       changeCategory: c.changeCategory === 'add' ? '新增' : c.changeCategory === 'remove' ? '删除' : '变更',
       beforePrice: beforePrice,
       afterPrice: afterPrice,
-      deltaPrice: c.delta.deliveredPrice,
-      deltaPercent: beforePrice > 0 ? (c.delta.deliveredPrice / beforePrice * 100) : 0,
+      deltaPrice: deltaPrice,
+      deltaPercent: beforePrice > 0 ? (deltaPrice / beforePrice * 100) : 0,
     };
   });
 

@@ -2,9 +2,9 @@
   'use strict';
 
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-  const weighted = (shares, indexes) => shares.reduce((sum, value, index) => sum + (Number(value) || 0) / 100 * indexes[index], 0);
+  const weighted = (shares, indexes) => shares.reduce((sum, value, index) => sum + numberOr(value, 0) / 100 * indexes[index], 0);
   const normalizeMix = (values) => {
-    const series = values.map((value) => Math.max(0, Number(value) || 0));
+    const series = values.map((value) => Math.max(0, numberOr(value, 0)));
     const total = series.reduce((sum, value) => sum + value, 0) || 1;
     return series.map((value) => value / total * 100);
   };
@@ -18,8 +18,9 @@
     equipment: { base: 'quote', shared: 'fixed' },
     packaging: { base: 'quote', optimize: 'fixed' },
     mix: { quote: 'quote', fixed: 'fixed' },
+    configSheet: { quote: 'quote', fixed: 'fixed' },
   };
-  const connectorBaseCostDefault = (base) => Number(base && base.baseMaterial) * 0.24 || 0;
+  const connectorBaseCostDefault = (base) => numberOr(base && base.baseMaterial, 0) * 0.24;
   const connectorVersionKey = (versions, key, fallback) => (key && versions[key] ? key : fallback);
   const specialConnectorStages = {
     progress: {
@@ -546,7 +547,7 @@
   function buildConnectorScenario(base, versions, defaultKey, draftPricing, protocolStatus, ctx) {
     const portfolio = base && base.connectorPortfolio ? base.connectorPortfolio : {};
     const items = Array.isArray(portfolio.items) ? portfolio.items : [];
-    const baseCostPerSet = Number(portfolio.baseCostPerSet) || connectorBaseCostDefault(base);
+    const baseCostPerSet = numberOr(portfolio.baseCostPerSet, 0) || connectorBaseCostDefault(base);
     const pricing = normalizeConnectorPricing(draftPricing, items, versions);
 
     if (!items.length || !baseCostPerSet) {
@@ -570,8 +571,8 @@
     let followCount = 0;
 
     const connectorItems = items.map((item) => {
-      const share = Number(item.share) || 0;
-      const baseCost = Number(item.baseCost) || baseCostPerSet * share;
+      const share = numberOr(item.share, 0);
+      const baseCost = numberOr(item.baseCost, baseCostPerSet * share);
       const progressMeta = buildConnectorProgressMeta(protocolStatus, item.id, versions);
       const rawExplicitKey = pricing[item.id] || '';
       const explicitKey = rawExplicitKey && rawExplicitKey !== defaultKey ? rawExplicitKey : '';
@@ -649,11 +650,11 @@
       if (row.action === '替换') acc.replaceCount += 1;
       else if (row.action === '新增') acc.addCount += 1;
       else if (row.action === '取消') acc.cancelCount += 1;
-      acc.obsoleteQty += Number(row.obsoleteQty) || 0;
-      acc.obsoleteValue += Number(row.obsoleteValue) || 0;
-      acc.equipmentDelta += Number(row.equipmentDelta) || 0;
-      acc.laborDelta += Number(row.laborDelta) || 0;
-      acc.packagingDelta += Number(row.packagingDelta) || 0;
+      acc.obsoleteQty += numberOr(row.obsoleteQty, 0);
+      acc.obsoleteValue += numberOr(row.obsoleteValue, 0);
+      acc.equipmentDelta += numberOr(row.equipmentDelta, 0);
+      acc.laborDelta += numberOr(row.laborDelta, 0);
+      acc.packagingDelta += numberOr(row.packagingDelta, 0);
       (row.configs || []).forEach((cfg) => acc.configs.add(cfg));
       return acc;
     }, {
@@ -672,7 +673,7 @@
   function validationCapitalAmount(validation, scopeId, kind, fallback) {
     const summaryKey = kind === 'quote' ? 'quoteSummary' : 'fixedSummary';
     const amount = Number(validation && validation.comparisons && validation.comparisons[scopeId] && validation.comparisons[scopeId][summaryKey] && validation.comparisons[scopeId][summaryKey].totalNewAmount);
-    return Number.isFinite(amount) ? amount : (Number(fallback) || 0);
+    return Number.isFinite(amount) ? amount : numberOr(fallback, 0);
   }
 
   function bomVersionSnapshot(runtime, base, versionKey) {
@@ -699,24 +700,24 @@
       equipment: validationCapitalAmount(runtime && runtime.capitalValidation, 'equipment', 'quote', base && base.capital && base.capital.equipment),
       tooling: validationCapitalAmount(runtime && runtime.capitalValidation, 'tooling', 'quote', base && base.capital && base.capital.tooling),
       fixtures: validationCapitalAmount(runtime && runtime.capitalValidation, 'fixtures', 'quote', base && base.capital && base.capital.fixtures),
-      rnd: Number(base && base.capital && base.capital.rnd) || 0,
+      rnd: numberOr(base && base.capital && base.capital.rnd, 0),
       sourceKind: 'quote',
     };
     const fixedSnapshot = {
       equipment: validationCapitalAmount(runtime && runtime.capitalValidation, 'equipment', 'fixed', base && base.capital && base.capital.equipment),
       tooling: validationCapitalAmount(runtime && runtime.capitalValidation, 'tooling', 'fixed', base && base.capital && base.capital.tooling),
       fixtures: validationCapitalAmount(runtime && runtime.capitalValidation, 'fixtures', 'fixed', base && base.capital && base.capital.fixtures),
-      rnd: Number(base && base.capital && base.capital.rnd) || 0,
+      rnd: numberOr(base && base.capital && base.capital.rnd, 0),
       sourceKind: 'fixed',
     };
     const option = base && base.versions && base.versions.equipment ? base.versions.equipment[versionKey] || {} : {};
     const hasExplicitCapital = ['equipment', 'tooling', 'fixtures', 'rnd'].some((key) => option && option[key] !== undefined && option[key] !== null && option[key] !== '');
     if (hasExplicitCapital) {
       return {
-        equipment: Number(option.equipment) || 0,
-        tooling: Number(option.tooling) || 0,
-        fixtures: Number(option.fixtures) || 0,
-        rnd: Number(option.rnd) || 0,
+        equipment: numberOr(option.equipment, 0),
+        tooling: numberOr(option.tooling, 0),
+        fixtures: numberOr(option.fixtures, 0),
+        rnd: numberOr(option.rnd, 0),
         sourceKind: 'custom',
       };
     }
@@ -1058,25 +1059,25 @@
 
     const d = {
       scenarioName: (draft && draft.scenarioName ? String(draft.scenarioName) : BASE.name).trim() || BASE.name,
-      copperPrice: Number(draft && draft.copperPrice) || 0,
-      aluminumPrice: Number(draft && draft.aluminumPrice) || 0,
-      directHours: Number(draft && draft.directHours) || 0,
-      directRate: Number(draft && draft.directRate) || 0,
-      manufacturingHours: Number(draft && draft.manufacturingHours) || 0,
-      manufacturingRate: Number(draft && draft.manufacturingRate) || 0,
-      packInner: Number(draft && draft.packInner) || 0,
-      packFreight: Number(draft && draft.packFreight) || 0,
-      packWarehouse: Number(draft && draft.packWarehouse) || 0,
-      packOther: Number(draft && draft.packOther) || 0,
-      bomWireDrawing: Number(draft && draft.bomWireDrawing) || 0,
-      bomWireEat: Number(draft && draft.bomWireEat) || 0,
-      bomWireHidden: Number(draft && draft.bomWireHidden) || 0,
-      bomTapeDiameter: Number(draft && draft.bomTapeDiameter) || 0,
-      bomTapeWidth: Number(draft && draft.bomTapeWidth) || 0,
-      bomTapeOverlap: Number(draft && draft.bomTapeOverlap) || 0,
+      copperPrice: numberOr(draft && draft.copperPrice, 0),
+      aluminumPrice: numberOr(draft && draft.aluminumPrice, 0),
+      directHours: numberOr(draft && draft.directHours, 0),
+      directRate: numberOr(draft && draft.directRate, 0),
+      manufacturingHours: numberOr(draft && draft.manufacturingHours, 0),
+      manufacturingRate: numberOr(draft && draft.manufacturingRate, 0),
+      packInner: numberOr(draft && draft.packInner, 0),
+      packFreight: numberOr(draft && draft.packFreight, 0),
+      packWarehouse: numberOr(draft && draft.packWarehouse, 0),
+      packOther: numberOr(draft && draft.packOther, 0),
+      bomWireDrawing: numberOr(draft && draft.bomWireDrawing, 0),
+      bomWireEat: numberOr(draft && draft.bomWireEat, 0),
+      bomWireHidden: numberOr(draft && draft.bomWireHidden, 0),
+      bomTapeDiameter: numberOr(draft && draft.bomTapeDiameter, 0),
+      bomTapeWidth: numberOr(draft && draft.bomTapeWidth, 0),
+      bomTapeOverlap: numberOr(draft && draft.bomTapeOverlap, 0),
       mix: normalizeMix((draft && draft.mix) || BASE.baselineMix),
-      volumes: Array.isArray(draft && draft.volumes) ? draft.volumes.map((value) => Math.max(0, Number(value) || 0)) : BASE.volumes.slice(),
-      asp: Array.isArray(draft && draft.asp) ? draft.asp.map((value) => Number(value) || 0) : BASE.asp.slice(),
+      volumes: Array.isArray(draft && draft.volumes) ? draft.volumes.map((value) => Math.max(0, numberOr(value, 0))) : BASE.volumes.slice(),
+      asp: Array.isArray(draft && draft.asp) ? draft.asp.map((value) => numberOr(value, 0)) : BASE.asp.slice(),
       connectorPricing: draft && draft.connectorPricing ? { ...draft.connectorPricing } : {},
     };
 
@@ -1130,9 +1131,9 @@
     const aluminumFactor = BASE.aluminumPrice > 0 ? 1 + ((d.aluminumPrice - BASE.aluminumPrice) / BASE.aluminumPrice) * ms.aluminum : 1;
     const connectorFactor = connectorScenario.factor || conn.factor;
     const laborBaselinePerSet = quoteLaborSnapshot
-      ? (Number(quoteLaborSnapshot.directLaborPerSet) || 0) + (Number(quoteLaborSnapshot.manufacturingPerSet) || 0)
-      : (Number(BASE.baseDirectHours) || 0) * (Number(BASE.baseDirectRate) || 0) + (Number(BASE.baseMfgHours) || 0) * (Number(BASE.baseMfgRate) || 0);
-    const packagingBaselinePerSet = Number(quotePackagingSnapshot && quotePackagingSnapshot.packTotal) || Number(BASE.basePackagingPerSet) || 0;
+      ? numberOr(quoteLaborSnapshot.directLaborPerSet, 0) + numberOr(quoteLaborSnapshot.manufacturingPerSet, 0)
+      : numberOr(BASE.baseDirectHours, 0) * numberOr(BASE.baseDirectRate, 0) + numberOr(BASE.baseMfgHours, 0) * numberOr(BASE.baseMfgRate, 0);
+    const packagingBaselinePerSet = numberOr(quotePackagingSnapshot && quotePackagingSnapshot.packTotal, 0) || numberOr(BASE.basePackagingPerSet, 0);
     const currentLaborPerSet = d.directHours * d.directRate + d.manufacturingHours * d.manufacturingRate;
     const currentPackagingPerSet = d.packInner + d.packFreight + d.packWarehouse + d.packOther;
     const annualDropRate = Math.max(0, numberOr(annualDrop.annualRate, 0));

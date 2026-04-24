@@ -1,514 +1,695 @@
-/**
- * 场景对比页 — 增强版
- * 并排对比 2~4 个场景的成本 KPI，全维度差异分析 + 线束级明细
- */
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
-  Typography,
-  Spin,
+  Banner,
   Button,
-  Tag,
-  Space,
-  Table,
-  Empty,
+  Card,
   Checkbox,
+  Empty,
   Select,
+  Space,
+  Spin,
+  Table,
+  Tag,
+  Typography,
 } from '@douyinfe/semi-ui';
 import { IconArrowLeft } from '@douyinfe/semi-icons';
-import { db } from '@/data/db';
-import type { ScenarioRecord, HarnessRecord } from '@/data/db';
-import { computeHarnessCost } from '@/engine/harness_costing';
-import type { HarnessInput, HarnessResult } from '@/types/harness';
+import { db, type HarnessRecord, type ScenarioRecord } from '@/data/db';
+import { requireScenarioConfig } from '@/data/scenarioGuards';
 import ScenarioSelector from '@/components/ScenarioSelector';
+import {
+  applyInstallationRatiosToHarnessRecords,
+  resolveScenarioVehicleConfigs,
+} from '@/engine/configuration_model';
+import { computeChangePricing } from '@/engine/change_pricing';
+import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
+import {
+  deepCompareScenarios,
+  type ComparisonDimension,
+  type ScenarioCompareInput,
+} from '@/engine/scenario_deep_compare';
+import {
+  buildDecisionSummary,
+  type CostFactor,
+} from '@/engine/shapley_attribution';
+import type { HarnessResult, ProjectHarnessResult } from '@/types/harness';
+import type { VersionRecord } from '@/types/version';
 
 const { Title, Text } = Typography;
 
-/* ── extracted styles ── */
-const S: Record<string, React.CSSProperties> = {
-  spin: { display: 'flex', justifyContent: 'center', padding: 60 },
-  header: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 },
-  title: { margin: 0 },
-  flex1: { flex: 1 },
-  sectionTitle: { margin: '24px 0 12px' },
-  chipRow: { marginBottom: 16 },
-  tagMl: { marginLeft: 4 },
-  toggleRow: { marginTop: 24 },
-};
-
-/* ── helpers ── */
-function safeNum(v: unknown): number {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
+interface ScenarioLoadError {
+  scenarioId: string;
+  scenarioName: string;
+  message: string;
 }
-
-function fmtCny(v: number): string {
-  return '¥' + v.toFixed(2);
-}
-
-function fmtPct(v: number): string {
-  return (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
-}
-
-function deltaStyle(v: number): React.CSSProperties {
-  const color =
-    v > 0
-      ? 'var(--semi-color-danger)'
-      : v < 0
-        ? 'var(--semi-color-success)'
-        : 'inherit';
-  return { color, fontWeight: 600 };
-}
-
-/* ── KPI definitions ── */
-const KPI_KEYS = [
-  { key: 'vehicleCost', label: '整车成本', unit: 'cny' },
-  { key: 'materialCost', label: '材料成本', unit: 'cny' },
-  { key: 'directLabor', label: '直接人工', unit: 'cny' },
-  { key: 'manufacturingOverhead', label: '制造费用', unit: 'cny' },
-  { key: 'processingCost', label: '加工费', unit: 'cny' },
-  { key: 'packagingCost', label: '包装运输', unit: 'cny' },
-  { key: 'exFactoryPrice', label: '出厂价', unit: 'cny' },
-  { key: 'deliveredPrice', label: '含税交付价', unit: 'cny' },
-  { key: 'profitAmount', label: '利润额', unit: 'cny' },
-  { key: 'profitRate', label: '利润率', unit: 'pct' },
-  { key: 'harnessCount', label: '线束数量', unit: 'count' },
-  { key: 'bomItemCount', label: 'BOM 零件数', unit: 'count' },
-] as const;
 
 interface ScenarioBundle {
   scenario: ScenarioRecord;
+  latestVersion: VersionRecord | null;
   harnesses: HarnessRecord[];
   results: HarnessResult[];
-  kpi: Record<string, number>;
+  projectResult: ProjectHarnessResult;
+  compareInput: ScenarioCompareInput;
 }
 
-function buildKpi(
-  results: HarnessResult[],
-  harnesses: HarnessRecord[],
-): Record<string, number> {
-  let totalVehicle = 0;
-  let totalMaterial = 0;
-  let totalLabor = 0;
-  let totalMfg = 0;
-  let totalProc = 0;
-  let totalPkg = 0;
-  let totalExFactory = 0;
-  let totalDelivered = 0;
-  let totalProfit = 0;
+interface DimensionTableRow {
+  key: string;
+  label: string;
+  category: ComparisonDimension['category'];
+  baseValue: number | string | null;
+  compareValue: number | string | null;
+  delta: number | null;
+  deltaPercent: number | null;
+}
 
-  results.forEach((r) => {
-    const rr = r as any;
-    totalVehicle += safeNum(rr.vehicleCost ?? r.vehicleRatio);
-    totalMaterial += safeNum(r.materialCost);
-    totalLabor += safeNum(r.directLabor);
-    totalMfg += safeNum(rr.manufacturingOverhead ?? r.manufacturing);
-    totalProc += safeNum(rr.processingCost ?? r.laborPlusMfg);
-    totalPkg += safeNum(rr.packagingCost ?? r.packSubtotal);
-    totalExFactory += safeNum(r.exFactoryPrice);
-    totalDelivered += safeNum(r.deliveredPrice);
-    totalProfit += safeNum(rr.profitAmount ?? r.profit);
-  });
+interface HarnessImpactRow {
+  harnessId: string;
+  harnessName: string;
+  reason: string;
+  baselineContribution: number;
+  compareContribution: number;
+  deltaContribution: number;
+  ratioDelta: number;
+}
 
+function safeNumber(value: unknown): number {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+}
+
+function formatCurrency(value: number | null | undefined): string {
+  if (value == null) return '-';
+  return `¥${value.toFixed(2)}`;
+}
+
+function formatPercent(value: number | null | undefined): string {
+  if (value == null) return '-';
+  return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
+}
+
+function formatValue(key: string, value: number | string | null): string {
+  if (value == null) return '-';
+  if (typeof value === 'string') return value;
+  if (key === 'marginRate' || key === 'recoveryRate') return `${value.toFixed(2)}%`;
+  if (key === 'remainingMonths' || key === 'totalHarnesses') return value.toFixed(0);
+  return formatCurrency(value);
+}
+
+function formatDelta(key: string, delta: number | null, deltaPercent: number | null): string {
+  if (delta == null) return '-';
+  if (key === 'marginRate' || key === 'recoveryRate') {
+    return `${delta >= 0 ? '+' : ''}${delta.toFixed(2)} pp`;
+  }
+  if (key === 'remainingMonths' || key === 'totalHarnesses') {
+    return `${delta >= 0 ? '+' : ''}${delta.toFixed(0)}`;
+  }
+  const percent = deltaPercent == null ? '' : ` (${formatPercent(deltaPercent)})`;
+  return `${delta >= 0 ? '+' : ''}${formatCurrency(delta)}${percent}`;
+}
+
+function buildCostBreakdown(projectResult: ProjectHarnessResult): ScenarioCompareInput['costBreakdown'] {
   return {
-    vehicleCost: totalVehicle,
-    materialCost: totalMaterial,
-    directLabor: totalLabor,
-    manufacturingOverhead: totalMfg,
-    processingCost: totalProc,
-    packagingCost: totalPkg,
-    exFactoryPrice: totalExFactory,
-    deliveredPrice: totalDelivered,
-    profitAmount: totalProfit,
-    profitRate:
-      totalExFactory !== 0
-        ? (totalProfit / totalExFactory) * 100
-        : 0,
-    harnessCount: harnesses.length,
-    bomItemCount: harnesses.reduce(
-      (acc, h) => acc + ((h.input as any)?.bom?.length || 0),
-      0,
-    ),
+    materialCost: projectResult.weightedMaterial,
+    laborCost: projectResult.weightedLabor,
+    overheadCost: projectResult.weightedMfg,
+    packagingCost: projectResult.weightedPack + projectResult.weightedFreight,
+    managementFee: projectResult.weightedMgmtFee,
+    scrapCost: projectResult.weightedWaste,
+    metalCost: projectResult.weightedCopperWeight + projectResult.weightedAluminumWeight,
+    nreCostPerSet: 0,
   };
 }
 
-/* ── component ── */
+function buildScenarioCompareInput(
+  scenario: ScenarioRecord,
+  latestVersion: VersionRecord | null,
+  projectResult: ProjectHarnessResult,
+): ScenarioCompareInput {
+  const totalVolume = safeNumber(scenario.config?.volumes?.reduce((sum, item) => sum + safeNumber(item.volume), 0));
+  const vehicleCost = projectResult.vehicleCost;
+  const weightedProfit = projectResult.weightedProfit;
+  const impliedPrice = vehicleCost > 0 ? vehicleCost : projectResult.weightedExFactory;
+
+  return {
+    scenarioId: scenario.id,
+    scenarioName: scenario.scenarioName,
+    status: scenario.status || scenario.scenarioType,
+    versionRef: latestVersion ? latestVersion.label : undefined,
+    bomVersionRef: latestVersion ? `v${latestVersion.versionNumber}` : undefined,
+    kpis: {
+      totalCostPerSet: vehicleCost,
+      sellingPricePerSet: impliedPrice,
+      marginRate: impliedPrice > 0 ? (weightedProfit / impliedPrice) * 100 : 0,
+      lifecycleProfit: weightedProfit * totalVolume,
+      vehicleCostPerSet: vehicleCost,
+      totalHarnesses: projectResult.harnessCount,
+    },
+    costBreakdown: buildCostBreakdown(projectResult),
+  };
+}
+
+function buildComparisonFactors(
+  base: ProjectHarnessResult,
+  compare: ProjectHarnessResult,
+): CostFactor[] {
+  return [
+    {
+      id: 'material',
+      name: '材料成本',
+      category: 'material',
+      baseValue: base.weightedMaterial,
+      currentValue: compare.weightedMaterial,
+      delta: compare.weightedMaterial - base.weightedMaterial,
+      deltaPercent: base.weightedMaterial === 0 ? 0 : ((compare.weightedMaterial - base.weightedMaterial) / Math.abs(base.weightedMaterial)) * 100,
+    },
+    {
+      id: 'labor',
+      name: '人工成本',
+      category: 'labor',
+      baseValue: base.weightedLabor,
+      currentValue: compare.weightedLabor,
+      delta: compare.weightedLabor - base.weightedLabor,
+      deltaPercent: base.weightedLabor === 0 ? 0 : ((compare.weightedLabor - base.weightedLabor) / Math.abs(base.weightedLabor)) * 100,
+    },
+    {
+      id: 'overhead',
+      name: '制造费用',
+      category: 'overhead',
+      baseValue: base.weightedMfg,
+      currentValue: compare.weightedMfg,
+      delta: compare.weightedMfg - base.weightedMfg,
+      deltaPercent: base.weightedMfg === 0 ? 0 : ((compare.weightedMfg - base.weightedMfg) / Math.abs(base.weightedMfg)) * 100,
+    },
+    {
+      id: 'packaging',
+      name: '包装物流',
+      category: 'packaging',
+      baseValue: base.weightedPack + base.weightedFreight,
+      currentValue: compare.weightedPack + compare.weightedFreight,
+      delta: (compare.weightedPack + compare.weightedFreight) - (base.weightedPack + base.weightedFreight),
+      deltaPercent: (base.weightedPack + base.weightedFreight) === 0 ? 0 : (((compare.weightedPack + compare.weightedFreight) - (base.weightedPack + base.weightedFreight)) / Math.abs(base.weightedPack + base.weightedFreight)) * 100,
+    },
+    {
+      id: 'management',
+      name: '管理费',
+      category: 'management',
+      baseValue: base.weightedMgmtFee,
+      currentValue: compare.weightedMgmtFee,
+      delta: compare.weightedMgmtFee - base.weightedMgmtFee,
+      deltaPercent: base.weightedMgmtFee === 0 ? 0 : ((compare.weightedMgmtFee - base.weightedMgmtFee) / Math.abs(base.weightedMgmtFee)) * 100,
+    },
+    {
+      id: 'scrap',
+      name: '废品成本',
+      category: 'scrap',
+      baseValue: base.weightedWaste,
+      currentValue: compare.weightedWaste,
+      delta: compare.weightedWaste - base.weightedWaste,
+      deltaPercent: base.weightedWaste === 0 ? 0 : ((compare.weightedWaste - base.weightedWaste) / Math.abs(base.weightedWaste)) * 100,
+    },
+    {
+      id: 'metal',
+      name: '金属重量',
+      category: 'metal',
+      baseValue: base.weightedCopperWeight + base.weightedAluminumWeight,
+      currentValue: compare.weightedCopperWeight + compare.weightedAluminumWeight,
+      delta: (compare.weightedCopperWeight + compare.weightedAluminumWeight) - (base.weightedCopperWeight + base.weightedAluminumWeight),
+      deltaPercent: (base.weightedCopperWeight + base.weightedAluminumWeight) === 0 ? 0 : (((compare.weightedCopperWeight + compare.weightedAluminumWeight) - (base.weightedCopperWeight + base.weightedAluminumWeight)) / Math.abs(base.weightedCopperWeight + base.weightedAluminumWeight)) * 100,
+    },
+  ];
+}
+
+function describeDetailedType(value: string): string {
+  if (value.includes('config_ratio')) return '配置/装车比变化';
+  if (value.includes('material')) return 'BOM/材料变化';
+  if (value.includes('hours')) return '工时变化';
+  if (value.includes('packaging')) return '包装物流变化';
+  if (value === 'add') return '新增线束';
+  if (value === 'remove') return '取消线束';
+  return '综合变化';
+}
+
+function buildReasonSummary(
+  changePricingResult: ReturnType<typeof computeChangePricing>,
+  insightTitles: string[],
+): string[] {
+  const topHarnessReasons = [...changePricingResult.changes]
+    .sort((left, right) => Math.abs((right.weightedDeltaPrice ?? right.delta.deliveredPrice)) - Math.abs((left.weightedDeltaPrice ?? left.delta.deliveredPrice)))
+    .slice(0, 3)
+    .map((item) => {
+      const delta = item.weightedDeltaPrice ?? item.delta.deliveredPrice;
+      const direction = delta >= 0 ? '上升' : '下降';
+      return `${item.harnessName || item.harnessId} 单车贡献${direction} ${formatCurrency(Math.abs(delta))}，主因：${describeDetailedType(item.detailedType)}`;
+    });
+
+  return [...insightTitles.slice(0, 3), ...topHarnessReasons];
+}
+
 export default function ScenarioComparePage() {
   const { id: projectId } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
-  const [allScenarios, setAllScenarios] = useState<ScenarioRecord[]>(
-    [],
-  );
+  const [allScenarios, setAllScenarios] = useState<ScenarioRecord[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bundles, setBundles] = useState<ScenarioBundle[]>([]);
+  const [loadErrors, setLoadErrors] = useState<ScenarioLoadError[]>([]);
   const [showHarnessDetail, setShowHarnessDetail] = useState(false);
+  const [focusCompareId, setFocusCompareId] = useState<string | null>(null);
+  const [onlyDifferences, setOnlyDifferences] = useState(true);
 
-  /* load all scenarios for project */
   useEffect(() => {
     if (!projectId) return;
-    (async () => {
-      const all = await db.scenarios
-        .where('projectId')
-        .equals(projectId)
-        .toArray();
-      setAllScenarios(all);
-      if (selectedIds.length === 0 && all.length >= 2) {
-        const baseline = all.find((s) => s.isBaseline);
-        const others = all.filter((s) => !s.isBaseline);
-        if (baseline && others.length > 0) {
-          setSelectedIds([baseline.id!, others[0]!.id!]);
-        } else {
-          setSelectedIds(all.slice(0, 2).map((s) => s.id!));
+    void (async () => {
+      const scenarios = await db.scenarios.where('projectId').equals(projectId).toArray();
+      scenarios.sort((left, right) => left.scenarioCode.localeCompare(right.scenarioCode));
+      setAllScenarios(scenarios);
+      if (selectedIds.length === 0 && scenarios.length >= 2) {
+        const baseline = scenarios.find((item) => item.isBaseline) ?? scenarios[0] ?? null;
+        const firstCompare = scenarios.find((item) => item.id !== baseline?.id) ?? null;
+        if (baseline && firstCompare) {
+          setSelectedIds([baseline.id, firstCompare.id]);
         }
       }
     })();
-  }, [projectId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [projectId, selectedIds.length]);
 
-  /* compute bundles for selected scenarios */
   useEffect(() => {
-    if (selectedIds.length === 0) return;
+    if (!projectId || selectedIds.length === 0) return;
     setLoading(true);
-    (async () => {
-      try {
-        const result: ScenarioBundle[] = [];
-        for (const sId of selectedIds) {
-          const scenario = await db.scenarios.get(sId);
-          if (!scenario) continue;
-          const harnesses = await db.harnesses
-            .where('scenarioId')
-            .equals(sId)
-            .toArray();
-          const results: HarnessResult[] = [];
-          harnesses.forEach((h) => {
-            try {
-              results.push(
-                computeHarnessCost(
-                  h.input as HarnessInput,
-                  scenario.config?.costRates || {},
-                  scenario.config?.metalPrices || {},
-                ),
-              );
-            } catch {
-              /* skip */
-            }
+    void (async () => {
+      const nextBundles: ScenarioBundle[] = [];
+      const nextErrors: ScenarioLoadError[] = [];
+
+      for (const scenarioId of selectedIds) {
+        const scenario = await db.scenarios.get(scenarioId);
+        if (!scenario) {
+          nextErrors.push({
+            scenarioId,
+            scenarioName: scenarioId,
+            message: '场景不存在，无法纳入比较。',
           });
-          result.push({
-            scenario,
+          continue;
+        }
+
+        try {
+          const config = requireScenarioConfig(scenario, 'ScenarioComparePage');
+          const harnesses = await db.harnesses.where('scenarioId').equals(scenarioId).toArray();
+          const versions = await db.versions.where('scenarioId').equals(scenarioId).toArray();
+          versions.sort((left, right) => right.versionNumber - left.versionNumber);
+          const latestVersion = versions[0] ?? null;
+          const vehicleConfigs = resolveScenarioVehicleConfigs({
+            vehicleConfigs: scenario.vehicleConfigs,
+            configSkus: scenario.configSkus,
+            harnessConfigMappings: scenario.harnessConfigMappings,
+          });
+          const normalizedHarnesses = applyInstallationRatiosToHarnessRecords(
             harnesses,
+            vehicleConfigs,
+            scenario.harnessConfigMappings ?? [],
+          );
+
+          const scenarioErrors: string[] = [];
+          const results: HarnessResult[] = [];
+          for (const harness of normalizedHarnesses) {
+            try {
+              results.push(computeHarnessCost(harness.input, config.costRates, config.metalPrices));
+            } catch (error) {
+              scenarioErrors.push(
+                `${harness.harnessId}: ${error instanceof Error ? error.message : String(error)}`,
+              );
+            }
+          }
+
+          if (scenarioErrors.length > 0) {
+            throw new Error(
+              `场景 ${scenario.scenarioName} 存在 ${scenarioErrors.length} 条线束计算失败：${scenarioErrors.slice(0, 3).join('；')}`,
+            );
+          }
+
+          const projectResult = computeProjectFromHarnesses(results);
+          nextBundles.push({
+            scenario,
+            latestVersion,
+            harnesses: normalizedHarnesses,
             results,
-            kpi: buildKpi(results, harnesses),
+            projectResult,
+            compareInput: buildScenarioCompareInput(scenario, latestVersion, projectResult),
+          });
+        } catch (error) {
+          nextErrors.push({
+            scenarioId: scenario.id,
+            scenarioName: scenario.scenarioName,
+            message: error instanceof Error ? error.message : String(error),
           });
         }
-        setBundles(result);
-      } finally {
-        setLoading(false);
       }
+
+      setBundles(nextBundles);
+      setLoadErrors(nextErrors);
+      setLoading(false);
     })();
-  }, [selectedIds]);
+  }, [projectId, selectedIds]);
 
-  /* ── KPI comparison table columns ── */
-  const kpiColumns = useMemo(() => {
-    const cols: any[] = [
-      {
-        title: '指标',
-        dataIndex: 'label',
-        width: 140,
-        fixed: 'left' as const,
-      },
-    ];
-    bundles.forEach((b, i) => {
-      const isBase = i === 0;
-      cols.push({
-        title: (
-          <span>
-            {b.scenario.scenarioName}
-            {b.scenario.isBaseline && (
-              <Tag size="small" color="blue" style={S.tagMl}>
-                基准
-              </Tag>
-            )}
-            {isBase && (
-              <Tag size="small" color="green" style={S.tagMl}>
-                基线
-              </Tag>
-            )}
-          </span>
-        ),
-        dataIndex: 'v' + i,
-        width: 140,
-      });
-      if (!isBase) {
-        const baseName =
-          bundles[0]?.scenario.scenarioName || '基线';
-        cols.push({
-          title: 'Δ vs ' + baseName,
-          dataIndex: 'd' + i,
-          width: 150,
-          render: (v: string, row: any) => {
-            const dn = row['dn' + i];
-            if (row.unit === 'count') return v || '-';
-            return <span style={deltaStyle(dn)}>{v}</span>;
-          },
-        });
+  useEffect(() => {
+    if (bundles.length < 2) {
+      setFocusCompareId(null);
+      return;
+    }
+    const nextDefault = bundles[1]?.scenario.id ?? null;
+    setFocusCompareId((current) => {
+      if (current && bundles.some((item) => item.scenario.id === current && item.scenario.id !== bundles[0]?.scenario.id)) {
+        return current;
       }
-    });
-    return cols;
-  }, [bundles]);
-
-  /* ── KPI comparison table data ── */
-  const kpiData = useMemo(() => {
-    return KPI_KEYS.map((k) => {
-      const row: any = { key: k.key, label: k.label, unit: k.unit };
-      bundles.forEach((b, i) => {
-        const val = safeNum(b.kpi[k.key]);
-        if (k.unit === 'pct') {
-          row['v' + i] = val.toFixed(1) + '%';
-        } else if (k.unit === 'count') {
-          row['v' + i] = String(val);
-        } else {
-          row['v' + i] = fmtCny(val);
-        }
-
-        if (i > 0) {
-          const baseVal = safeNum(bundles[0]?.kpi[k.key]);
-          const delta = val - baseVal;
-          row['dn' + i] = delta;
-          if (k.unit === 'pct') {
-            row['d' + i] =
-              (delta >= 0 ? '+' : '') +
-              delta.toFixed(1) +
-              'pp';
-          } else if (k.unit === 'count') {
-            row['d' + i] =
-              (delta >= 0 ? '+' : '') + String(delta);
-          } else {
-            const pctDelta =
-              baseVal !== 0 ? (delta / baseVal) * 100 : 0;
-            row['d' + i] =
-              (delta >= 0 ? '+' : '') +
-              fmtCny(delta) +
-              ' (' +
-              fmtPct(pctDelta) +
-              ')';
-          }
-        }
-      });
-      return row;
+      return nextDefault;
     });
   }, [bundles]);
 
-  /* ── per-harness breakdown columns ── */
-  const harnessColumns = useMemo(() => {
-    const cols: any[] = [
-      {
-        title: '线束号',
-        dataIndex: 'harnessId',
-        width: 120,
-        fixed: 'left' as const,
-      },
-      {
-        title: '线束名',
-        dataIndex: 'harnessName',
-        width: 140,
-        ellipsis: true,
-      },
-    ];
-    bundles.forEach((b, i) => {
-      cols.push({
-        title: b.scenario.scenarioName + ' 总价',
-        dataIndex: 'total' + i,
-        width: 120,
-        render: (v: number | null) =>
-          v != null ? fmtCny(v) : '-',
-      });
-      if (i > 0) {
-        cols.push({
-          title: 'Δ',
-          dataIndex: 'delta' + i,
-          width: 110,
-          render: (v: number | null) => {
-            if (v == null) return '-';
-            return (
-              <span style={deltaStyle(v)}>
-                {v >= 0 ? '+' : ''}
-                {fmtCny(v)}
-              </span>
-            );
-          },
-          sorter: (a: any, b: any) =>
-            (a['delta' + i] || 0) - (b['delta' + i] || 0),
-        });
-      }
-    });
-    return cols;
-  }, [bundles]);
-
-  /* ── per-harness breakdown data ── */
-  const harnessData = useMemo(() => {
-    const allIds = new Set<string>();
-    const maps: Map<
-      string,
-      { name: string; total: number }
-    >[] = bundles.map((b) => {
-      const m = new Map<
-        string,
-        { name: string; total: number }
-      >();
-      b.harnesses.forEach((h, idx) => {
-        const r = b.results[idx];
-        const total = safeNum(
-          r?.deliveredPrice ?? r?.exFactoryPrice,
-        );
-        m.set(h.harnessId, {
-          name: h.harnessName || h.harnessId,
-          total,
-        });
-        allIds.add(h.harnessId);
-      });
-      return m;
-    });
-
-    return Array.from(allIds).map((hId) => {
-      const firstName =
-        maps[0]?.get(hId)?.name ||
-        maps.find((m) => m.has(hId))?.get(hId)?.name ||
-        hId;
-      const row: any = { harnessId: hId, harnessName: firstName };
-      maps.forEach((m, i) => {
-        const entry = m.get(hId);
-        row['total' + i] = entry?.total ?? null;
-        if (i > 0) {
-          const base = maps[0]?.get(hId)?.total;
-          row['delta' + i] =
-            base != null && entry?.total != null
-              ? entry.total - base
-              : null;
-        }
-      });
-      return row;
-    });
-  }, [bundles]);
-
-  const availableToAdd = allScenarios.filter(
-    (s) => !selectedIds.includes(s.id!),
+  const baselineBundle = bundles[0] ?? null;
+  const compareCandidates = useMemo(
+    () => bundles.slice(1),
+    [bundles],
+  );
+  const focusBundle = useMemo(
+    () => compareCandidates.find((item) => item.scenario.id === focusCompareId) ?? compareCandidates[0] ?? null,
+    [compareCandidates, focusCompareId],
   );
 
-  const kpiScrollX = { x: 700 };
-  const harnessScrollX = { x: 800 };
+  const deepCompareResult = useMemo(
+    () => (bundles.length >= 2 ? deepCompareScenarios(bundles.map((item) => item.compareInput)) : null),
+    [bundles],
+  );
+
+  const changePricingResult = useMemo(() => {
+    if (!baselineBundle || !focusBundle) return null;
+    return computeChangePricing(
+      baselineBundle.projectResult,
+      focusBundle.projectResult,
+        'scenario_compare',
+        {
+          annualVolumes: focusBundle.scenario.config?.volumes?.map((item) => safeNumber(item.volume)) ?? [],
+          lifecycleYears: focusBundle.scenario.lifecycleYears,
+        },
+      );
+  }, [baselineBundle, focusBundle]);
+
+  const decisionSummary = useMemo(() => {
+    if (!baselineBundle || !focusBundle) return null;
+    return buildDecisionSummary(
+      buildComparisonFactors(baselineBundle.projectResult, focusBundle.projectResult),
+    );
+  }, [baselineBundle, focusBundle]);
+
+  const reasonSummary = useMemo(() => {
+    if (!changePricingResult || !decisionSummary) return [];
+    return buildReasonSummary(
+      changePricingResult,
+      decisionSummary.insights.map((item) => `${item.title}: ${item.description}`),
+    );
+  }, [changePricingResult, decisionSummary]);
+
+  const dimensionRows = useMemo<DimensionTableRow[]>(() => {
+    if (!deepCompareResult || !baselineBundle || !focusBundle) return [];
+    return deepCompareResult.dimensions
+      .map((dimension) => {
+        const baseValue = dimension.values.find((item) => item.scenarioId === baselineBundle.scenario.id)?.value ?? null;
+        const compareValue = dimension.values.find((item) => item.scenarioId === focusBundle.scenario.id)?.value ?? null;
+        const deltaRecord = dimension.deltas.find((item) => item.toId === focusBundle.scenario.id) ?? null;
+        return {
+          key: dimension.key,
+          label: dimension.label,
+          category: dimension.category,
+          baseValue,
+          compareValue,
+          delta: deltaRecord?.delta ?? null,
+          deltaPercent: deltaRecord?.deltaPercent ?? null,
+        };
+      })
+      .filter((row) => !onlyDifferences || (row.delta != null && Math.abs(row.delta) > 0.0001));
+  }, [baselineBundle, compareCandidates.length, deepCompareResult, focusBundle, onlyDifferences]);
+
+  const harnessImpactRows = useMemo<HarnessImpactRow[]>(() => {
+    if (!changePricingResult) return [];
+    return [...changePricingResult.changes]
+      .map((item) => ({
+        harnessId: item.harnessId,
+        harnessName: item.harnessName,
+        reason: describeDetailedType(item.detailedType),
+        baselineContribution: item.beforeWeightedPrice ?? safeNumber(item.before?.deliveredPrice),
+        compareContribution: item.afterWeightedPrice ?? safeNumber(item.after?.deliveredPrice),
+        deltaContribution: item.weightedDeltaPrice ?? item.delta.deliveredPrice,
+        ratioDelta: item.installationRatioDelta ?? item.ratioDelta ?? 0,
+      }))
+      .sort((left, right) => Math.abs(right.deltaContribution) - Math.abs(left.deltaContribution));
+  }, [changePricingResult]);
+
+  const scenarioChips = useMemo(
+    () => bundles.map((item, index) => ({
+      id: item.scenario.id,
+      label: item.scenario.scenarioName,
+      color: (index === 0 ? 'blue' : item.scenario.id === focusBundle?.scenario.id ? 'green' : 'cyan') as 'blue' | 'green' | 'cyan',
+    })),
+    [bundles, focusBundle?.scenario.id],
+  );
+
+  const availableToAdd = useMemo(
+    () => allScenarios.filter((item) => !selectedIds.includes(item.id)),
+    [allScenarios, selectedIds],
+  );
+
+  const comparisonSummary = useMemo(() => {
+    if (!baselineBundle || !focusBundle || !changePricingResult) return null;
+    const baseProfit = baselineBundle.projectResult.weightedProfit;
+    const compareProfit = focusBundle.projectResult.weightedProfit;
+    return {
+      totalDelta: changePricingResult.summary.totalDelta,
+      deltaPercent: changePricingResult.summary.deltaPercent,
+      affectedCount: changePricingResult.summary.affectedCount,
+      profitDelta: compareProfit - baseProfit,
+    };
+  }, [baselineBundle, changePricingResult, focusBundle]);
 
   return (
-    <div className="page-container">
+    <div className="page-container" data-testid="scenario-compare-page">
       <ScenarioSelector />
-      <div style={S.header}>
-        <Button
-          icon={<IconArrowLeft />}
-          theme="borderless"
-          onClick={() => navigate(-1)}
-        />
-        <div style={S.flex1}>
-          <Title heading={4} style={S.title}>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+        <Button icon={<IconArrowLeft />} theme="borderless" onClick={() => navigate(-1)} />
+        <div style={{ flex: 1 }}>
+          <Title heading={4} style={{ margin: 0 }}>
             场景对比分析
           </Title>
           <Text type="secondary">
-            已选 {selectedIds.length} 个场景
-            {bundles.length > 0 &&
-              ' · 基线: ' + bundles[0]?.scenario.scenarioName}
+            统一按场景配置模型、安装比例和线束加权贡献进行对比，不再静默跳过失败线束。
           </Text>
         </div>
         <Space>
-          {availableToAdd.length > 0 &&
-            selectedIds.length < 4 && (
-              <Select
-                placeholder="添加场景…"
-                value={undefined}
-                onChange={(v) => {
-                  if (v)
-                    setSelectedIds([...selectedIds, v as string]);
-                }}
-                optionList={availableToAdd.map((s) => ({
-                  label: s.scenarioName,
-                  value: s.id!,
-                }))}
-              />
-            )}
+          {availableToAdd.length > 0 && selectedIds.length < 4 ? (
+            <Select
+              placeholder="添加场景"
+              value={undefined}
+              optionList={availableToAdd.map((item) => ({ label: item.scenarioName, value: item.id }))}
+              onChange={(value) => {
+                if (value) setSelectedIds((current) => [...current, value as string]);
+              }}
+            />
+          ) : null}
         </Space>
       </div>
 
-      {/* Scenario chips */}
-      <Space style={S.chipRow} wrap>
-        {bundles.map((b, i) => (
+      {loadErrors.length > 0 ? (
+        <Banner
+          type="warning"
+          style={{ marginBottom: 16 }}
+          description={loadErrors.map((item) => `${item.scenarioName}: ${item.message}`).join(' | ')}
+        />
+      ) : null}
+
+      <Space wrap style={{ marginBottom: 16 }}>
+        {scenarioChips.map((item) => (
           <Tag
-            key={b.scenario.id}
+            key={item.id}
+            color={item.color}
             size="large"
-            color={i === 0 ? 'blue' : 'cyan'}
             closable={selectedIds.length > 2}
-            onClose={() =>
-              setSelectedIds(
-                selectedIds.filter((id) => id !== b.scenario.id),
-              )
-            }
+            onClose={() => setSelectedIds((current) => current.filter((scenarioId) => scenarioId !== item.id))}
           >
-            {b.scenario.scenarioName}
-            {b.scenario.isBaseline ? ' (基准)' : ''}
+            {item.label}
           </Tag>
         ))}
       </Space>
 
       {loading ? (
-        <Spin size="large" style={S.spin} />
-      ) : bundles.length < 2 ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}>
+          <Spin size="large" />
+        </div>
+      ) : bundles.length < 2 || !baselineBundle || !focusBundle ? (
         <Empty
-          title="至少选择 2 个场景"
-          description="请添加场景进行对比分析"
+          title="至少需要两个可计算场景"
+          description="请先补齐场景配置、BOM 和线束数据，或移除当前无法计算的场景。"
         />
       ) : (
         <>
-          {/* KPI Comparison Table */}
-          <Title heading={5} style={S.sectionTitle}>
-            KPI 指标对比
-          </Title>
-          <Table
-            rowKey="key"
-            columns={kpiColumns}
-            dataSource={kpiData}
-            pagination={false}
-            scroll={kpiScrollX}
-            size="small"
-          />
+          <Card style={{ marginBottom: 16 }}>
+            <Space wrap align="center" style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Space wrap>
+                <Tag color="blue">基准场景：{baselineBundle.scenario.scenarioName}</Tag>
+                <Select
+                  value={focusBundle.scenario.id}
+                  style={{ minWidth: 260 }}
+                  optionList={compareCandidates.map((item) => ({
+                    value: item.scenario.id,
+                    label: item.scenario.scenarioName,
+                  }))}
+                  onChange={(value) => setFocusCompareId((value as string) || null)}
+                />
+              </Space>
+              <Checkbox checked={onlyDifferences} onChange={(event) => setOnlyDifferences(Boolean(event.target.checked))}>
+                仅显示有差异项
+              </Checkbox>
+            </Space>
+          </Card>
 
-          {/* Toggle harness detail */}
-          <div style={S.toggleRow}>
-            <Checkbox
-              checked={showHarnessDetail}
-              onChange={(e) =>
-                setShowHarnessDetail(!!e.target.checked)
-              }
-            >
-              显示线束级明细
-            </Checkbox>
+          {comparisonSummary ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 16 }}>
+              <Card bodyStyle={{ padding: 16 }}>
+                <Text type="tertiary">单车成本变化</Text>
+                <Title heading={4}>{formatCurrency(comparisonSummary.totalDelta)}</Title>
+              </Card>
+              <Card bodyStyle={{ padding: 16 }}>
+                <Text type="tertiary">变化比例</Text>
+                <Title heading={4}>{formatPercent(comparisonSummary.deltaPercent)}</Title>
+              </Card>
+              <Card bodyStyle={{ padding: 16 }}>
+                <Text type="tertiary">利润变化</Text>
+                <Title heading={4}>{formatCurrency(comparisonSummary.profitDelta)}</Title>
+              </Card>
+              <Card bodyStyle={{ padding: 16 }}>
+                <Text type="tertiary">受影响线束</Text>
+                <Title heading={4}>{comparisonSummary.affectedCount}</Title>
+              </Card>
+            </div>
+          ) : null}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 16, marginBottom: 16 }}>
+            <Card title="多维度差异" headerLine={false}>
+              <Table
+                rowKey="key"
+                pagination={false}
+                dataSource={dimensionRows}
+                columns={[
+                  { title: '维度', dataIndex: 'label', key: 'label', width: 180 },
+                  { title: '分类', dataIndex: 'category', key: 'category', width: 100, render: (value: string) => <Tag>{value}</Tag> },
+                  {
+                    title: baselineBundle.scenario.scenarioName,
+                    dataIndex: 'baseValue',
+                    key: 'baseValue',
+                    render: (_value: unknown, record: DimensionTableRow) => formatValue(record.key, record.baseValue),
+                  },
+                  {
+                    title: focusBundle.scenario.scenarioName,
+                    dataIndex: 'compareValue',
+                    key: 'compareValue',
+                    render: (_value: unknown, record: DimensionTableRow) => formatValue(record.key, record.compareValue),
+                  },
+                  {
+                    title: '差异',
+                    dataIndex: 'delta',
+                    key: 'delta',
+                    render: (_value: unknown, record: DimensionTableRow) => (
+                      <span style={{ color: (record.delta ?? 0) > 0 ? 'var(--semi-color-danger)' : (record.delta ?? 0) < 0 ? 'var(--semi-color-success)' : 'inherit', fontWeight: 600 }}>
+                        {formatDelta(record.key, record.delta, record.deltaPercent)}
+                      </span>
+                    ),
+                  },
+                ]}
+              />
+            </Card>
+
+            <Card title="变化原因摘要" headerLine={false}>
+              <Space vertical align="start" style={{ width: '100%' }}>
+                {reasonSummary.length === 0 ? (
+                  <Text type="tertiary">当前没有可展示的原因摘要。</Text>
+                ) : (
+                  reasonSummary.map((item) => (
+                    <div key={item} style={{ paddingBottom: 8, borderBottom: '1px solid var(--semi-color-border)' }}>
+                      <Text>{item}</Text>
+                    </div>
+                  ))
+                )}
+              </Space>
+            </Card>
           </div>
 
-          {showHarnessDetail && (
-            <>
-              <Title heading={5} style={S.sectionTitle}>
-                线束级对比
-              </Title>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 16, marginBottom: 16 }}>
+            <Card title="主驱动因子" headerLine={false}>
               <Table
-                rowKey="harnessId"
-                columns={harnessColumns}
-                dataSource={harnessData}
-                pagination={
-                  harnessData.length > 30
-                    ? { pageSize: 30 }
-                    : false
-                }
-                scroll={harnessScrollX}
-                size="small"
+                rowKey="factorId"
+                pagination={false}
+                dataSource={decisionSummary?.shapleyResults ?? []}
+                columns={[
+                  { title: '因子', dataIndex: 'factorName', key: 'factorName' },
+                  { title: '分类', dataIndex: 'category', key: 'category', render: (value: string) => <Tag>{value}</Tag> },
+                  { title: '贡献值', dataIndex: 'contribution', key: 'contribution', align: 'right', render: (value: number) => formatCurrency(value) },
+                  { title: '贡献率', dataIndex: 'contributionRate', key: 'contributionRate', align: 'right', render: (value: number) => formatPercent(value) },
+                ]}
               />
-            </>
-          )}
+            </Card>
+
+            <Card title="管理建议" headerLine={false}>
+              <Space vertical align="start" style={{ width: '100%' }}>
+                {decisionSummary?.insights?.length ? (
+                  decisionSummary.insights.map((item) => (
+                    <Card key={item.title} bodyStyle={{ padding: 12 }} style={{ width: '100%' }}>
+                      <Space vertical align="start" style={{ width: '100%' }}>
+                        <Tag color={item.type === 'risk' ? 'red' : item.type === 'opportunity' ? 'green' : item.type === 'action' ? 'orange' : 'grey'}>
+                          {item.type}
+                        </Tag>
+                        <Text strong>{item.title}</Text>
+                        <Text type="secondary">{item.description}</Text>
+                        <Text size="small" type="tertiary">{item.suggestedAction}</Text>
+                      </Space>
+                    </Card>
+                  ))
+                ) : (
+                  <Text type="tertiary">暂无管理建议。</Text>
+                )}
+              </Space>
+            </Card>
+          </div>
+
+          <Card title="线束级贡献变化" headerLine={false}>
+            <Table
+              rowKey="harnessId"
+              dataSource={showHarnessDetail ? harnessImpactRows : harnessImpactRows.slice(0, 10)}
+              pagination={false}
+              columns={[
+                { title: '线束号', dataIndex: 'harnessId', key: 'harnessId', width: 140 },
+                { title: '线束名称', dataIndex: 'harnessName', key: 'harnessName', width: 180 },
+                { title: '变化原因', dataIndex: 'reason', key: 'reason', width: 150 },
+                { title: '基准贡献', dataIndex: 'baselineContribution', key: 'baselineContribution', align: 'right', render: (value: number) => formatCurrency(value) },
+                { title: '对比贡献', dataIndex: 'compareContribution', key: 'compareContribution', align: 'right', render: (value: number) => formatCurrency(value) },
+                {
+                  title: '贡献差异',
+                  dataIndex: 'deltaContribution',
+                  key: 'deltaContribution',
+                  align: 'right',
+                  render: (value: number) => (
+                    <span style={{ color: value > 0 ? 'var(--semi-color-danger)' : value < 0 ? 'var(--semi-color-success)' : 'inherit', fontWeight: 600 }}>
+                      {formatCurrency(value)}
+                    </span>
+                  ),
+                },
+                { title: '比例变化', dataIndex: 'ratioDelta', key: 'ratioDelta', align: 'right', render: (value: number) => `${value >= 0 ? '+' : ''}${(value * 100).toFixed(2)}%` },
+              ]}
+            />
+
+            <div style={{ marginTop: 12 }}>
+              <Checkbox checked={showHarnessDetail} onChange={(event) => setShowHarnessDetail(Boolean(event.target.checked))}>
+                显示全部线束变化
+              </Checkbox>
+            </div>
+          </Card>
         </>
       )}
     </div>

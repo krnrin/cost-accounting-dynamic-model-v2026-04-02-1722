@@ -8,7 +8,9 @@
  * Original monolith: 57 KB / ~1 400 lines.
  * After split: ~120 lines (this file) + 10 focused modules.
  */
+import { useEffect } from 'react';
 import { Spin, Empty, Row } from '@douyinfe/semi-ui';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import {
   KpiSection,
@@ -25,6 +27,23 @@ import '@/components/dashboard/dashboard.css';
 
 export default function DashboardPage() {
   const d = useDashboardData();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (!d.setupBlocker || !d.id || !d.sid) {
+      return;
+    }
+
+    if (location.pathname.endsWith('/config')) {
+      return;
+    }
+
+    navigate(`/project/${d.id}/s/${d.sid}/config`, {
+      replace: true,
+      state: { setupNotice: d.setupBlocker.message },
+    });
+  }, [d.id, d.setupBlocker, d.sid, location.pathname, navigate]);
 
   if (d.loading) {
     return (
@@ -36,6 +55,10 @@ export default function DashboardPage() {
 
   if (!d.project) {
     return <Empty description="未找到项目" />;
+  }
+
+  if (d.setupBlocker) {
+    return <Empty description={d.setupBlocker.title} />;
   }
 
   return (

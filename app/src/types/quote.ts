@@ -29,6 +29,11 @@ export interface ChangeItem {
   before: HarnessResult | null;
   after: HarnessResult | null;
   delta: CostDelta;
+  beforeWeightedPrice?: number;
+  afterWeightedPrice?: number;
+  weightedDeltaPrice?: number;
+  ratioDelta?: number;
+  installationRatioDelta?: number;
 }
 
 /** 成本差异逐项 */

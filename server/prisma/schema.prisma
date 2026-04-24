@@ -63,6 +63,11 @@ model Scenario {
   lifecycleYears      Int
   volume              Int              @default(0)
   installRatio        Float            @default(1)
+  config              String           @default("{}")
+  vehicleConfigs      String           @default("[]")
+  configSkus          String           @default("[]")
+  harnessConfigMappings String         @default("[]")
+  vehicleConfigMeta   String           @default("{}")
   rateSnapshot        String           @default("{}")
   rateSnapshotVersion String?
   bomVersionRef       String?
@@ -97,7 +102,8 @@ model Harness {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@unique([projectId, harnessId])
+  @@unique([projectId, scenarioId, harnessId])
+  @@index([projectId, scenarioId])
 }
 
 model Quote {

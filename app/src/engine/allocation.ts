@@ -1,6 +1,6 @@
 import type { AllocationDriver, AllocationConfig } from '@/types/project';
 import type { HarnessResult } from '@/types/harness';
-import { numberOr, safeArray } from './shared_utils';
+import { numberOr, resolveEffectiveRatio, safeArray } from './shared_utils';
 
 /** 默认分摊配置 */
 export const DEFAULT_ALLOCATION: AllocationConfig = {
@@ -46,7 +46,7 @@ export function computeAllocationWeights(
       values = items.map(h => numberOr(h.materialCost, 0));
       break;
     case 'volume':
-      values = items.map(h => numberOr(h.vehicleRatio, 0));
+      values = items.map(h => resolveEffectiveRatio((h as any).installationRatio, h.vehicleRatio));
       break;
     default:
       return items.map(() => 1 / n);

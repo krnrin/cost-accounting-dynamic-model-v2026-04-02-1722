@@ -19,6 +19,10 @@
 (function (global) {
   'use strict';
 
+  // P0#1: 防御性解构 — 提供内联 fallback
+  const U = global.G281SharedUtils || {};
+  const numberOr = U.numberOr || function (v, fb) { var n = Number(v); return Number.isFinite(n) ? n : fb; };
+
   /**
    * 单料号进度价追踪
    * @param {Object} params
@@ -33,10 +37,10 @@
    * @returns {Object} 追踪结果
    */
   function trackPartProgress(params) {
-    const agreedPrice = Number(params?.agreedPrice) || 0;
-    const batchPrice = Number(params?.batchPrice) || 0;
-    const quotePrice = Number(params?.quotePrice) || null;
-    const quantity = Number(params?.quantity) || 0;
+    const agreedPrice = numberOr(params?.agreedPrice, 0);
+    const batchPrice = numberOr(params?.batchPrice, 0);
+    const quotePrice = numberOr(params?.quotePrice, null);
+    const quantity = numberOr(params?.quantity, 0);
 
     const gap = batchPrice - agreedPrice;
     const gapPct = agreedPrice !== 0 ? gap / agreedPrice : (gap !== 0 ? Infinity : 0);
@@ -167,4 +171,4 @@
     module.exports = api;
   }
   global.G281ProgressPriceTracker = api;
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

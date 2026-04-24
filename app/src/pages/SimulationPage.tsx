@@ -25,14 +25,25 @@ import echarts from '@/lib/echarts';
 import { db } from '@/data/db';
 import type { HarnessRecord, ProjectRecord, ScenarioRecord } from '@/data/db';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
+import {
+  applyInstallationRatiosToHarnessRecords,
+  resolveScenarioVehicleConfigs,
+} from '@/engine/configuration_model';
 import { compareFactoryCosts } from '@/engine/factory_comparison';
 import type { FactoryComparisonResult } from '@/engine/factory_comparison';
 import { computeProjectAnnualizedCost } from '@/engine/annualized_cost';
+import {
+  PRESET_LAYERS,
+  applySimulationLayers,
+  generateLayerOverrides,
+  type SimulationLayer,
+} from '@/engine/simulation_layers';
 import type { HarnessInput } from '@/types/harness';
 import type { EquipmentConfig, FactoryConfig } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { usePermission } from '@/hooks/usePermission';
+import { applyParamBoundaryRules } from '@/lib/paramBoundaryUi';
 import ScenarioSelector from '@/components/ScenarioSelector';
 import {
   createSimulationTask,
@@ -56,7 +67,7 @@ export default function SimulationPage() {
   const { id, sid } = useParams<{ id: string; sid: string }>();
   const navigate = useNavigate();
   const { setCurrentProject } = useProjectStore();
-  const { can } = usePermission();
+  const { can, role } = usePermission();
   const { factories: settingsFactories } = useSettingsStore();
 
   const [project, setProject] = useState<ProjectRecord | null>(null);
@@ -77,6 +88,7 @@ export default function SimulationPage() {
   const [runTaskId, setRunTaskId] = useState<string | null>(null);
   const [convertTaskId, setConvertTaskId] = useState<string | null>(null);
   const [summaryText, setSummaryText] = useState<string | null>(null);
+  const [layers, setLayers] = useState<SimulationLayer[]>([]);
 
   useEffect(() => {
     if (!id || !sid) return;
@@ -92,6 +104,12 @@ export default function SimulationPage() {
         setScenario(scenarioData);
         setCurrentProject(projectData.id, projectData.meta.projectName);
         setDropRate(scenarioData.config.annualDropRate || 0);
+        setLayers(
+          (scenarioData.simulationLayers && scenarioData.simulationLayers.length > 0
+            ? scenarioData.simulationLayers
+            : PRESET_LAYERS
+          ).map((layer) => ({ ...layer })),
+        );
 
         const harnessData = await db.harnesses.where('scenarioId').equals(sid).toArray();
         setHarnesses(harnessData);
@@ -123,29 +141,59 @@ export default function SimulationPage() {
     void refreshSavedSimulations();
   }, [sid]);
 
+  const effectiveHarnesses = useMemo(
+    () => (
+      scenario
+        ? applyInstallationRatiosToHarnessRecords(
+          harnesses,
+          resolveScenarioVehicleConfigs(scenario),
+          scenario.harnessConfigMappings ?? [],
+        )
+        : harnesses
+    ),
+    [scenario, harnesses],
+  );
+
   const baselineResults = useMemo(() => {
-    if (!scenario || harnesses.length === 0) return null;
-    const results = harnesses.map((item) => computeHarnessCost(item.input, scenario.config.costRates, scenario.config.metalPrices));
+    if (!scenario || effectiveHarnesses.length === 0) return null;
+    const results = effectiveHarnesses.map((item) => computeHarnessCost(item.input, scenario.config.costRates, scenario.config.metalPrices));
     return computeProjectFromHarnesses(results);
-  }, [scenario, harnesses]);
+  }, [scenario, effectiveHarnesses]);
+
+  const resolvedLayers = useMemo(() => {
+    if (!scenario) return [];
+    return layers.map((layer) => ({
+      ...layer,
+      overrides: generateLayerOverrides(layer, scenario.config.costRates, scenario.config.metalPrices),
+    }));
+  }, [layers, scenario]);
+
+  const layeredParameters = useMemo(() => {
+    if (!scenario) return null;
+    return applySimulationLayers(
+      scenario.config.costRates,
+      scenario.config.metalPrices,
+      resolvedLayers,
+    );
+  }, [resolvedLayers, scenario]);
 
   const simulatedResults = useMemo(() => {
-    if (!scenario || harnesses.length === 0) return null;
+    if (!scenario || !layeredParameters || effectiveHarnesses.length === 0) return null;
     const simMetalPrices = {
-      copper: scenario.config.metalPrices.copper * (1 + copperAdj / 100),
-      aluminum: scenario.config.metalPrices.aluminum * (1 + aluminumAdj / 100),
+      copper: layeredParameters.metalPrices.copper * (1 + copperAdj / 100),
+      aluminum: layeredParameters.metalPrices.aluminum * (1 + aluminumAdj / 100),
     };
     const hoursFactor = 1 + hoursAdj / 100;
-    const results = harnesses.map((item) => {
+    const results = effectiveHarnesses.map((item) => {
       const simInput: HarnessInput = {
         ...item.input,
         frontHours: item.input.frontHours * hoursFactor,
         backHours: item.input.backHours * hoursFactor,
       };
-      return computeHarnessCost(simInput, scenario.config.costRates, simMetalPrices);
+      return computeHarnessCost(simInput, layeredParameters.costRates, simMetalPrices);
     });
     return computeProjectFromHarnesses(results);
-  }, [scenario, harnesses, copperAdj, aluminumAdj, hoursAdj]);
+  }, [scenario, effectiveHarnesses, copperAdj, aluminumAdj, hoursAdj, layeredParameters]);
 
   const volumeSchedule = scenario?.config?.volumes ?? [];
   const baseVolume = volumeSchedule[0]?.volume ?? 100000;
@@ -159,9 +207,9 @@ export default function SimulationPage() {
   }, [scenario, settingsFactories]);
 
   const factoryComparison = useMemo<FactoryComparisonResult[]>(() => {
-    if (!scenario || harnesses.length === 0 || activeFactories.length === 0) return [];
-    return harnesses.map((item) => compareFactoryCosts(item.input, activeFactories, scenario.config.metalPrices));
-  }, [scenario, harnesses, activeFactories]);
+    if (!scenario || effectiveHarnesses.length === 0 || activeFactories.length === 0) return [];
+    return effectiveHarnesses.map((item) => compareFactoryCosts(item.input, activeFactories, scenario.config.metalPrices));
+  }, [scenario, effectiveHarnesses, activeFactories]);
 
   const annualizedResult = useMemo(() => {
     if (!scenario || !baselineResults) return null;
@@ -193,11 +241,47 @@ export default function SimulationPage() {
     if (!id || !sid) return;
     setSaveLoading(true);
     try {
+      const baseCopper = layeredParameters?.metalPrices.copper ?? scenario?.config.metalPrices.copper ?? 0;
+      const baseAluminum = layeredParameters?.metalPrices.aluminum ?? scenario?.config.metalPrices.aluminum ?? 0;
+      const boundary = applyParamBoundaryRules({
+        copper: baseCopper * (1 + copperAdj / 100),
+        aluminum: baseAluminum * (1 + aluminumAdj / 100),
+        annualDropRate: dropRate,
+      }, role);
+
+      boundary.messages.forEach((message) => {
+        if (message.level === 'error') {
+          Toast.error(message.text);
+        } else if (message.level === 'warning') {
+          Toast.warning(message.text);
+        } else {
+          Toast.info(message.text);
+        }
+      });
+      if (!boundary.valid) {
+        return;
+      }
+
+      const nextCopper = boundary.sanitized.copper ?? (baseCopper * (1 + copperAdj / 100));
+      const nextAluminum = boundary.sanitized.aluminum ?? (baseAluminum * (1 + aluminumAdj / 100));
+      const nextCopperAdj = baseCopper > 0 ? ((nextCopper / baseCopper) - 1) * 100 : copperAdj;
+      const nextAluminumAdj = baseAluminum > 0 ? ((nextAluminum / baseAluminum) - 1) * 100 : aluminumAdj;
+      const nextDropRate = boundary.sanitized.annualDropRate ?? dropRate;
+      setCopperAdj(nextCopperAdj);
+      setAluminumAdj(nextAluminumAdj);
+      setDropRate(nextDropRate);
+
       const created = await createSimulationTask(sid, {
         projectId: id,
         name: taskName.trim() || '默认仿真',
         baselineScenarioId: sid,
-        parameterSnapshot: { copperAdj, aluminumAdj, volumeAdj, dropRate, hoursAdj },
+        parameterSnapshot: {
+          copperAdj: nextCopperAdj,
+          aluminumAdj: nextAluminumAdj,
+          volumeAdj,
+          dropRate: nextDropRate,
+          hoursAdj,
+        },
       });
       await refreshSavedSimulations();
       applyTask(created);
@@ -245,6 +329,36 @@ export default function SimulationPage() {
     setVolumeAdj(0);
     setDropRate(scenario?.config.annualDropRate || 0);
     setHoursAdj(0);
+  };
+
+  const toggleLayer = (layerId: string) => {
+    setLayers((current) => current.map((layer) => (
+      layer.id === layerId ? { ...layer, enabled: !layer.enabled } : layer
+    )));
+  };
+
+  const moveLayer = (layerId: string, direction: -1 | 1) => {
+    setLayers((current) => {
+      const sorted = [...current].sort((a, b) => a.order - b.order);
+      const index = sorted.findIndex((layer) => layer.id === layerId);
+      const targetIndex = index + direction;
+      if (index < 0 || targetIndex < 0 || targetIndex >= sorted.length) {
+        return current;
+      }
+
+      const next = [...sorted];
+      [next[index], next[targetIndex]] = [next[targetIndex]!, next[index]!];
+      return next.map((layer, position) => ({ ...layer, order: position + 1 }));
+    });
+  };
+
+  const saveLayers = async () => {
+    if (!sid) return;
+    await db.scenarios.update(sid, {
+      simulationLayers: layers,
+      updatedAt: new Date().toISOString(),
+    });
+    Toast.success('仿真分层已保存到当前场景');
   };
 
   const handleExport = () => {
@@ -376,6 +490,40 @@ export default function SimulationPage() {
           <Text>{summaryText}</Text>
         </Card>
       )}
+
+      <Card className="glass-card" title="仿真分层" style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 12, flexWrap: 'wrap' }}>
+          <Text type="tertiary">分层结果会先覆盖场景费率/金属价格，再叠加右侧 slider 参数。当前激活 {resolvedLayers.filter((layer) => layer.enabled).length} 层。</Text>
+          <Button icon={<IconSave />} onClick={saveLayers} disabled={!can('simulation')}>
+            保存分层到场景
+          </Button>
+        </div>
+        <Table
+          pagination={false}
+          size="small"
+          rowKey="id"
+          dataSource={[...layers].sort((a, b) => a.order - b.order)}
+          columns={[
+            { title: '顺序', dataIndex: 'order', width: 80 },
+            { title: '名称', dataIndex: 'name' },
+            { title: '类型', dataIndex: 'type', width: 120 },
+            { title: '启用', dataIndex: 'enabled', width: 90, render: (value: boolean) => value ? '是' : '否' },
+            {
+              title: '操作',
+              width: 220,
+              render: (_: unknown, record: SimulationLayer) => (
+                <Space>
+                  <Button size="small" onClick={() => toggleLayer(record.id)}>
+                    {record.enabled ? '停用' : '启用'}
+                  </Button>
+                  <Button size="small" onClick={() => moveLayer(record.id, -1)}>上移</Button>
+                  <Button size="small" onClick={() => moveLayer(record.id, 1)}>下移</Button>
+                </Space>
+              ),
+            },
+          ]}
+        />
+      </Card>
 
       <Card className="glass-card" title="已保存仿真" style={{ marginBottom: 16 }}>
         {savedSimulations.length === 0 ? (

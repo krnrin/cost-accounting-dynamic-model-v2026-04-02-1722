@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Typography, 
@@ -20,11 +20,14 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import ReactECharts from 'echarts-for-react/lib/core';
 import echarts from '@/lib/echarts';
 
-import { db, type ScenarioRecord } from '@/data/db';
+import { db } from '@/data/db';
+import { requireScenarioConfig } from '@/data/scenarioGuards';
+import { ensureScenarioWorkspaceHydrated } from '@/data/serverScenarioSync';
 import { computeHarnessCost } from '@/engine/harness_costing';
 import type { HarnessResult } from '@/types/harness';
 import { usePermission } from '@/hooks/usePermission';
 import { RoleGuard } from '@/components/RoleGuard';
+import BomCostPreview from '@/components/BomCostPreview';
 import { UniverSheet } from '@/components/UniverSheet';
 import ScenarioSelector from '@/components/ScenarioSelector';
 
@@ -35,29 +38,73 @@ export default function HarnessDetailPage() {
   const { id, sid, harnessId } = useParams<{ id: string; sid: string; harnessId: string }>();
   const navigate = useNavigate();
   const { can } = usePermission();
+  const [hydrationReady, setHydrationReady] = useState(!sid);
+  const [hydrationError, setHydrationError] = useState<string | null>(null);
 
-  const [scenario, setScenario] = useState<ScenarioRecord | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!id || !sid) {
+      setHydrationReady(true);
+      setHydrationError(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setHydrationReady(false);
+    setHydrationError(null);
+
+    void ensureScenarioWorkspaceHydrated(id, sid)
+      .then(() => {
+        if (cancelled) return;
+        setHydrationReady(true);
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        setHydrationError(error instanceof Error ? error.message : '场景工作区加载失败');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, sid]);
 
   // 1. Data Loading
   const data = useLiveQuery(async () => {
-    if (!id || !harnessId) return null;
+    if (!id || !harnessId || !hydrationReady) return null;
     const project = await db.projects.get(id);
-    const harness = await db.harnesses.where({ projectId: id, harnessId: harnessId }).first();
-    const sc = sid ? await db.scenarios.get(sid) : null;
-    setScenario(sc ?? null);
-    return { project, harness };
-  }, [id, sid, harnessId]);
+    const scenario = sid ? await db.scenarios.get(sid) : null;
+    const harness = sid
+      ? await db.harnesses.where('[scenarioId+harnessId]').equals([sid, harnessId]).first()
+      : await db.harnesses.where({ projectId: id, harnessId: harnessId }).first();
+    return { project, scenario, harness };
+  }, [id, sid, harnessId, hydrationReady]);
 
   // 2. Cost Computation
-  const result: HarnessResult | null = useMemo(() => {
-    if (!scenario || !data?.harness) return null;
-    const { harness } = data;
-    return computeHarnessCost(
-      harness.input,
-      scenario.config.costRates,
-      scenario.config.metalPrices
-    );
-  }, [data, scenario]);
+  const { result, detailError } = useMemo((): { result: HarnessResult | null; detailError: string | null } => {
+    if (!data) return { result: null, detailError: null };
+    if (!data.project) return { result: null, detailError: '项目不存在' };
+    if (!data.scenario) return { result: null, detailError: '场景不存在或未绑定' };
+    if (!data.harness) return { result: null, detailError: '线束不存在' };
+
+    try {
+      const config = requireScenarioConfig(data.scenario, 'HarnessDetailPage');
+      return {
+        result: computeHarnessCost(
+          data.harness.input,
+          config.costRates,
+          config.metalPrices,
+        ),
+        detailError: null,
+      };
+    } catch (error) {
+      return {
+        result: null,
+        detailError: error instanceof Error ? error.message : '线束明细计算失败',
+      };
+    }
+  }, [data]);
 
   // 2.5 BOM data conversion for UniverSheet
   const bomSheetData = useMemo(() => {
@@ -99,6 +146,23 @@ export default function HarnessDetailPage() {
     return [header, ...rows];
   }, [data]);
 
+  if (!hydrationReady && !hydrationError) {
+    return (
+      <div style={{ padding: 100, textAlign: 'center' }}>
+        <Spin size="large" tip="正在加载场景工作区..." />
+      </div>
+    );
+  }
+
+  if (hydrationError) {
+    return (
+      <div style={{ padding: 100 }}>
+        <Empty description={hydrationError} />
+        <Button onClick={() => navigate(id ? `/project/${id}` : '/')}>返回项目</Button>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
       <div style={{ padding: 100, textAlign: 'center' }}>
@@ -107,10 +171,10 @@ export default function HarnessDetailPage() {
     );
   }
 
-  if (!data.project || !data.harness || !result) {
+  if (!data?.project || !data?.harness || !result || detailError) {
     return (
       <div style={{ padding: 100 }}>
-        <Empty description="未找到该线束或项目信息" />
+        <Empty description={detailError || '未找到该线束或项目信息'} />
         <Button onClick={() => navigate(`/project/${id}/s/${sid}`)}>返回项目</Button>
       </div>
     );
@@ -122,21 +186,22 @@ export default function HarnessDetailPage() {
     if (!data?.harness) return;
     const original = data.harness;
     const newId = crypto.randomUUID();
+    const newHarnessId = `${original.harnessId}-copy-${Date.now().toString(36)}`;
     const copied = {
       ...original,
       id: newId,
-      harnessId: newId,
+      harnessId: newHarnessId,
       harnessName: (original.harnessName || '') + ' (副本)',
       input: {
         ...original.input,
-        harnessId: newId,
+        harnessId: newHarnessId,
         harnessName: (original.input.harnessName || '') + ' (副本)',
       },
       updatedAt: new Date().toISOString()
     };
     await db.harnesses.add(copied);
     Toast.success('复制成功');
-    navigate(`/project/${id}/s/${sid}/harness/${newId}`);
+    navigate(`/project/${id}/s/${sid}/harness/${newHarnessId}`);
   };
 
 
@@ -305,6 +370,14 @@ export default function HarnessDetailPage() {
       </div>
 
       <Content>
+        <Card
+          title="BOM 成本预览"
+          headerStyle={{ borderBottom: '1px solid var(--border)' }}
+          style={{ marginBottom: 24, backgroundColor: 'var(--semi-color-bg-1)' }}
+        >
+          <BomCostPreview harnessName={res.harnessName} result={res} />
+        </Card>
+
         {/* Section 2: Cost Summary Cards */}
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           {summaryCards.map((card, idx) => (

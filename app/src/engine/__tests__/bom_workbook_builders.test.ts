@@ -5,6 +5,8 @@ import {
   buildBomSheetRows,
   buildKskBomRows,
   buildSecondaryMaterialRows,
+  bomRowsToSheetData,
+  bomSheetDataToBomItems,
 } from '@/engine/bom_workbook_builders';
 
 describe('bom_workbook_builders', () => {
@@ -62,5 +64,24 @@ describe('bom_workbook_builders', () => {
     expect(secondary).toHaveLength(1);
     expect(secondary[0]?.partNo).toBe('CON-001');
     expect(secondary[0]?.sourceBomRowKey).toBe('H1::bom::1::CON-001');
+  });
+
+  it('returns empty rows when BOM input is missing', () => {
+    expect(buildBomSheetRows('H1', 'Harness 1', undefined)).toEqual([]);
+    expect(buildAssemblyPartRows('H1', 'Harness 1', null)).toEqual([]);
+    expect(buildSecondaryMaterialRows('H1', 'Harness 1', undefined)).toEqual([]);
+    expect(buildKskBomRows('H1', 'Harness 1', null)).toEqual([]);
+  });
+
+  it('round-trips wire metal fields through BOM sheet data', () => {
+    const rows = buildBomSheetRows('H1', 'Harness 1', [wire]);
+    const sheetData = bomRowsToSheetData(rows);
+    const restored = bomSheetDataToBomItems(sheetData);
+
+    expect(restored).toHaveLength(1);
+    expect(restored[0]?.itemCategory).toBe('wire');
+    expect((restored[0] as WireItem).copperWeightPerUnit).toBeCloseTo(0.12, 6);
+    expect((restored[0] as WireItem).aluminumWeightPerUnit).toBeCloseTo(0, 6);
+    expect((restored[0] as WireItem).nonMetalCostPerUnit).toBeCloseTo(0.03, 6);
   });
 });

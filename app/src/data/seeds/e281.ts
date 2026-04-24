@@ -1,6 +1,8 @@
-import { db, type ProjectRecord, type HarnessRecord, type ScenarioRecord } from '../db';
-import type { VehicleConfig } from '@/types/harness';
-import type { CustomerQuoteSnapshot } from '@/types/project';
+﻿import { db, type ProjectRecord, type HarnessRecord, type ScenarioRecord } from '../db';
+import type { OnetimeCostRecord, TrackingItemRecord } from '../db';
+import type { ConfigSku, HarnessConfigMapping, VehicleConfig } from '@/types/harness';
+import type { CustomerQuoteSnapshot, ProjectConfig } from '@/types/project';
+import { buildVehicleConfigsFromSkus } from '@/engine/configuration_model';
 import { E281_BOM_DATA } from './e281_bom';
 
 export const E281_CUSTOMER_QUOTE_SNAPSHOTS: Record<string, CustomerQuoteSnapshot> = {
@@ -34,10 +36,10 @@ export const E281_FINAL_QUOTE_ONETIME_COSTS = {
 export const E281_HARNESS_SEED_DATA = [
   {
     harnessId: '6608491523',
-    name: '直流母线总成',
+    name: '鐩存祦姣嶇嚎鎬绘垚',
     ratio: 0.525,
     configType: 'S' as const,
-    functionalSlot: '直流母线',
+    functionalSlot: '鐩存祦姣嶇嚎',
     frontHours: 0.236596919607843,
     backHours: 0.137432146078431,
     innerPack: 1.94245,
@@ -50,10 +52,10 @@ export const E281_HARNESS_SEED_DATA = [
   },
   {
     harnessId: '6608491524',
-    name: '直流母线总成',
-    ratio: 0.105,
+    name: '鐩存祦姣嶇嚎鎬绘垚',
+    ratio: 0.15,
     configType: 'S' as const,
-    functionalSlot: '直流母线',
+    functionalSlot: '鐩存祦姣嶇嚎',
     frontHours: 0.236596919607843,
     backHours: 0.136765479411765,
     innerPack: 1.94245,
@@ -66,10 +68,10 @@ export const E281_HARNESS_SEED_DATA = [
   },
   {
     harnessId: '6608442962',
-    name: '直流母线总成',
+    name: '鐩存祦姣嶇嚎鎬绘垚',
     ratio: 0.07,
     configType: 'S' as const,
-    functionalSlot: '直流母线',
+    functionalSlot: '鐩存祦姣嶇嚎',
     frontHours: 0.250208947385621,
     backHours: 0.14279838496732,
     innerPack: 1.94245,
@@ -82,10 +84,10 @@ export const E281_HARNESS_SEED_DATA = [
   },
   {
     harnessId: '6608442964',
-    name: '电动压缩机线束总成',
+    name: '鐢靛姩鍘嬬缉鏈虹嚎鏉熸€绘垚',
     ratio: 0.595,
     configType: 'S' as const,
-    functionalSlot: '电动压缩机线束',
+    functionalSlot: 'electric-compressor-harness',
     frontHours: 0.140286274509804,
     backHours: 0.106822625816993,
     innerPack: 0.3940068,
@@ -98,10 +100,10 @@ export const E281_HARNESS_SEED_DATA = [
   },
   {
     harnessId: '6608442963',
-    name: '电动压缩机线束总成',
+    name: '鐢靛姩鍘嬬缉鏈虹嚎鏉熸€绘垚',
     ratio: 0.03,
     configType: 'O' as const,
-    functionalSlot: '电动压缩机线束',
+    functionalSlot: 'electric-compressor-harness',
     frontHours: 0.367048529411765,
     backHours: 0.157781895751634,
     innerPack: 0.5225085,
@@ -114,10 +116,10 @@ export const E281_HARNESS_SEED_DATA = [
   },
   {
     harnessId: '6608516992',
-    name: '电动压缩机线束总成',
+    name: '鐢靛姩鍘嬬缉鏈虹嚎鏉熸€绘垚',
     ratio: 0.225,
     configType: 'O' as const,
-    functionalSlot: '电动压缩机线束',
+    functionalSlot: 'electric-compressor-harness',
     frontHours: 0.367048529411765,
     backHours: 0.157568006862745,
     innerPack: 0.5225085,
@@ -130,10 +132,10 @@ export const E281_HARNESS_SEED_DATA = [
   },
   {
     harnessId: '6608519100',
-    name: '电动压缩机线束总成',
-    ratio: 0.105,
+    name: '鐢靛姩鍘嬬缉鏈虹嚎鏉熸€绘垚',
+    ratio: 0.15,
     configType: 'S' as const,
-    functionalSlot: '电动压缩机线束',
+    functionalSlot: 'electric-compressor-harness',
     frontHours: 0.144339052287582,
     backHours: 0.110730531372549,
     innerPack: 0.3940068,
@@ -146,10 +148,10 @@ export const E281_HARNESS_SEED_DATA = [
   },
   {
     harnessId: '6608442966',
-    name: '组合式充电插座线束总成',
+    name: '缁勫悎寮忓厖鐢垫彃搴х嚎鏉熸€绘垚',
     ratio: 0.525,
     configType: 'S' as const,
-    functionalSlot: '充电插座线束',
+    functionalSlot: '鍏呯數鎻掑骇绾挎潫',
     frontHours: 0.662618457679739,
     backHours: 0.388884354411765,
     innerPack: 4.094525,
@@ -162,10 +164,10 @@ export const E281_HARNESS_SEED_DATA = [
   },
   {
     harnessId: '6608442965',
-    name: '组合式充电插座线束总成',
-    ratio: 0.105,
+    name: '缁勫悎寮忓厖鐢垫彃搴х嚎鏉熸€绘垚',
+    ratio: 0.15,
     configType: 'S' as const,
-    functionalSlot: '充电插座线束',
+    functionalSlot: '鍏呯數鎻掑骇绾挎潫',
     frontHours: 0.662618457679739,
     backHours: 0.387328798856209,
     innerPack: 4.094525,
@@ -178,10 +180,10 @@ export const E281_HARNESS_SEED_DATA = [
   },
   {
     harnessId: '6608507680',
-    name: '组合式充电插座线束总成',
+    name: '缁勫悎寮忓厖鐢垫彃搴х嚎鏉熸€绘垚',
     ratio: 0.07,
     configType: 'S' as const,
-    functionalSlot: '充电插座线束',
+    functionalSlot: '鍏呯數鎻掑骇绾挎潫',
     frontHours: 0.682147315522876,
     backHours: 0.391284354411765,
     innerPack: 4.094525,
@@ -194,10 +196,10 @@ export const E281_HARNESS_SEED_DATA = [
   },
   {
     harnessId: '6608544875',
-    name: '前驱直流母线总成',
-    ratio: 0.105,
+    name: '鍓嶉┍鐩存祦姣嶇嚎鎬绘垚',
+    ratio: 0,
     configType: 'S' as const,
-    functionalSlot: '前驱直流母线',
+    functionalSlot: '鍓嶉┍鐩存祦姣嶇嚎',
     frontHours: 0.254106038071895,
     backHours: 0.147942401633987,
     innerPack: 1.94245,
@@ -212,48 +214,133 @@ export const E281_HARNESS_SEED_DATA = [
 
 /**
  * Seed E281 project using data from:
- *   BOM: E281项目 报价BOM V01-11.3.xlsx
- *   报价: 吉利E281高压财务可行性分析-1125-客户目标价 - V001.xlsx
+ *   BOM: E281椤圭洰 鎶ヤ环BOM V01-11.3.xlsx
+ *   鎶ヤ环: 鍚夊埄E281楂樺帇璐㈠姟鍙鎬у垎鏋?1125-瀹㈡埛鐩爣浠?- V001.xlsx
  */
-export const E281_VEHICLE_CONFIGS: VehicleConfig[] = [
+export const E281_CONFIG_SKUS: ConfigSku[] = [
   {
-    configId: 'cfg-520-qihang',
-    configName: '520启航版',
-    salesRatio: 0.525,
-    harnessIds: ['6608491523', '6608442964', '6608442966'],
+    skuId: 'cm010',
+    cmCode: 'CM010',
+    skuName: 'Qihang',
+    mixRatio: 0.1,
+    drivetrain: 'rwd',
+    ptcAvailable: true,
+    ptcOptionalRatio: 0.3,
   },
   {
-    configId: 'cfg-520-pro',
-    configName: '520Pro',
-    salesRatio: 0.105,
-    harnessIds: ['6608491524', '6608519100', '6608442965'],
+    skuId: 'cm015',
+    cmCode: 'CM015',
+    skuName: 'Tansuo',
+    mixRatio: 0.4,
+    drivetrain: 'rwd',
+    ptcAvailable: true,
+    ptcOptionalRatio: 0.3,
   },
   {
-    configId: 'cfg-524-no-ptc',
-    configName: '52.4(无PTC)',
-    salesRatio: 0.225,
-    harnessIds: ['6608442962', '6608516992', '6608507680'],
+    skuId: 'cm020',
+    cmCode: 'CM020',
+    skuName: 'Yuanhang',
+    mixRatio: 0.35,
+    drivetrain: 'rwd',
+    ptcAvailable: true,
+    ptcOptionalRatio: 0.3,
   },
   {
-    configId: 'cfg-524-ptc',
-    configName: '52.4(带PTC)',
-    salesRatio: 0.04,
-    harnessIds: ['6608442962', '6608442963', '6608507680'],
-  },
-  {
-    configId: 'cfg-front-drive',
-    configName: '前驱版',
-    salesRatio: 0.105,
-    harnessIds: ['6608544875', '6608519100', '6608442965'],
+    skuId: 'cm030',
+    cmCode: 'CM030',
+    skuName: 'Starship',
+    mixRatio: 0.15,
+    drivetrain: 'rwd',
+    ptcAvailable: false,
+    ptcOptionalRatio: 0,
+    note: 'Audit confirmed no optional PTC slice for CM030.',
   },
 ];
 
-export async function seedE281Project(): Promise<string> {
-  const projectId = 'e281-quote';
-  const scenarioId = 'e281-scn-001';
-  const now = new Date().toISOString();
+export const E281_HARNESS_CONFIG_MAPPINGS: HarnessConfigMapping[] = [
+  { harnessId: '6608442962', skuId: 'cm010', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608442963', skuId: 'cm010', sliceType: 'optional', installationRatio: 1 },
+  { harnessId: '6608442964', skuId: 'cm010', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608507680', skuId: 'cm010', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608491523', skuId: 'cm015', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608442964', skuId: 'cm015', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608442966', skuId: 'cm015', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608516992', skuId: 'cm015', sliceType: 'optional', installationRatio: 1 },
+  { harnessId: '6608491523', skuId: 'cm020', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608442964', skuId: 'cm020', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608442966', skuId: 'cm020', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608516992', skuId: 'cm020', sliceType: 'optional', installationRatio: 1 },
+  { harnessId: '6608491524', skuId: 'cm030', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608519100', skuId: 'cm030', sliceType: 'standard', installationRatio: 1 },
+  { harnessId: '6608442965', skuId: 'cm030', sliceType: 'standard', installationRatio: 1 },
+];
 
-  const projectConfig = {
+export const E281_VEHICLE_CONFIGS: VehicleConfig[] = buildVehicleConfigsFromSkus(
+  E281_CONFIG_SKUS,
+  E281_HARNESS_CONFIG_MAPPINGS,
+);
+
+export interface ImportE281BaselineOptions {
+  projectId: string;
+  scenarioId: string;
+  overwriteProjectMeta?: boolean;
+}
+
+export interface ImportE281BaselineResult {
+  harnessCount: number;
+  onetimeCostCount: number;
+  configCount: number;
+}
+
+export interface E281BaselineImportPayload {
+  overwriteProjectMeta: boolean;
+  project: {
+    meta: Pick<ProjectRecord['meta'], 'projectCode' | 'projectName' | 'customer' | 'platform' | 'lifecycleYears' | 'status'>;
+    config: ProjectConfig;
+  };
+  scenario: {
+    lifecycleYears: number;
+    config: ProjectConfig;
+    note: string;
+    vehicleConfigMeta: NonNullable<ScenarioRecord['vehicleConfigMeta']>;
+    configSkus: ConfigSku[];
+    harnessConfigMappings: HarnessConfigMapping[];
+    vehicleConfigs: VehicleConfig[];
+  };
+  harnesses: Array<{
+    harnessId: string;
+    harnessName: string;
+    input: HarnessRecord['input'];
+    result?: HarnessRecord['result'];
+    eopYear: number | null;
+  }>;
+  allocationRows: Array<{
+    harnessId: string;
+    harnessName: string;
+    vehicleRatio: number;
+    toolingCost: number;
+    testingCost: number;
+    rndCost: number;
+    allocBase: number;
+    paymentMode: 'amortized' | 'lumpsum' | 'mixed';
+    cumProduced: number;
+  }>;
+  trackingItems: Array<{
+    trackingType: 'agreed_price' | 'progress_price' | 'allocation_recovery' | 'residual' | 'exception';
+    title: string;
+    sourceRef?: string;
+    currentStatus?: 'pending' | 'in_progress' | 'to_confirm' | 'completed' | 'closed';
+    severity?: 'low' | 'medium' | 'high' | 'critical';
+    owner?: string;
+    plannedAction?: string;
+    actualResult?: string;
+    closeReason?: string;
+    warningRef?: string;
+  }>;
+}
+
+function createE281ProjectConfig(): ProjectConfig {
+  return {
     costRates: {
       laborRate: 35,
       mfgRate: 46.69,
@@ -286,14 +373,14 @@ export async function seedE281Project(): Promise<string> {
     annualDropRate: 0.02,
     rebate: {
       totalAmount: 10000000,
-      label: 'QS返点',
+      label: 'QS杩旂偣',
       yearDistribution: [10000000, 0, 0, 0, 0, 0],
     },
     customerQuoteSnapshots: E281_CUSTOMER_QUOTE_SNAPSHOTS,
     factories: [
       {
         factoryId: 'KS',
-        factoryName: '昆山工厂',
+        factoryName: '鏄嗗北宸ュ巶',
         costRates: {
           laborRate: 35,
           mfgRate: 52.2753446503895,
@@ -303,54 +390,57 @@ export async function seedE281Project(): Promise<string> {
         },
         efficiencyFactor: 1,
         isBase: true,
-        remark: '来自《运营工时费报价基准》报价版运营成本工时费（不包含折旧）基准。',
+        remark: 'From operating labor-hour quotation baseline.',
       },
     ],
   };
+}
 
-  const project: ProjectRecord = {
+function createE281ProjectRecord(projectId: string, now: string): ProjectRecord {
+  return {
     id: projectId,
     meta: {
       projectCode: 'E281',
-      projectName: '吉利E281高压线束',
-      customer: '吉利汽车',
+      projectName: '鍚夊埄E281楂樺帇绾挎潫',
+      customer: '鍚夊埄姹借溅',
       platform: 'E281',
       lifecycleYears: 6,
       createdAt: now,
       updatedAt: now,
       status: 'quoted',
     },
-    config: projectConfig,
+    config: createE281ProjectConfig(),
   };
+}
 
-  await db.projects.put(project);
-
-  // 创建基准场景
-  const scenario: ScenarioRecord = {
+function createE281ScenarioRecord(projectId: string, scenarioId: string, now: string): ScenarioRecord {
+  return {
     id: scenarioId,
     projectId,
     scenarioCode: 'SCN-001',
-    scenarioName: '最后一轮报价',
+    scenarioName: 'Final quote baseline',
     scenarioType: 'final_quote',
     parentScenarioId: null,
     isBaseline: true,
     lifecycleYears: 6,
-    config: projectConfig,
-    note: 'E281 初始报价基准',
+    config: createE281ProjectConfig(),
+    note: 'E281 鍒濆鎶ヤ环鍩哄噯',
     vehicleConfigMeta: {
       publishState: 'sales_published',
       engineerPublishedAt: now,
       salesPublishedAt: now,
     },
+    configSkus: E281_CONFIG_SKUS,
+    harnessConfigMappings: E281_HARNESS_CONFIG_MAPPINGS,
     vehicleConfigs: E281_VEHICLE_CONFIGS,
     createdAt: now,
     updatedAt: now,
   };
+}
 
-  await db.scenarios.put(scenario);
-
-  const harnessRecords: HarnessRecord[] = E281_HARNESS_SEED_DATA.map((seed) => ({
-    id: `e281-${seed.harnessId}`,
+function createE281HarnessRecords(projectId: string, scenarioId: string, now: string): HarnessRecord[] {
+  return E281_HARNESS_SEED_DATA.map((seed) => ({
+    id: `${scenarioId}-${seed.harnessId}`,
     projectId,
     scenarioId,
     harnessId: seed.harnessId,
@@ -386,45 +476,229 @@ export async function seedE281Project(): Promise<string> {
     } as any,
     result: undefined,
   }));
+}
 
-  await db.harnesses.bulkPut(harnessRecords);
-
-  await db.onetimeCosts.bulkPut(
-    E281_HARNESS_SEED_DATA.map((seed) => ({
-      id: `${scenarioId}::${seed.harnessId}`,
-      projectId,
-      scenarioId,
+function createE281OnetimeCosts(projectId: string, scenarioId: string, now: string): OnetimeCostRecord[] {
+  return E281_HARNESS_SEED_DATA.map((seed) => ({
+    id: `${scenarioId}::${seed.harnessId}`,
+    projectId,
+    scenarioId,
+    harnessId: seed.harnessId,
+    harnessName: seed.name,
+    vehicleRatio: seed.ratio,
+    input: {
       harnessId: seed.harnessId,
       harnessName: seed.name,
       vehicleRatio: seed.ratio,
-      input: {
-        harnessId: seed.harnessId,
-        harnessName: seed.name,
-        vehicleRatio: seed.ratio,
-        ...E281_FINAL_QUOTE_ONETIME_COSTS[seed.harnessId as keyof typeof E281_FINAL_QUOTE_ONETIME_COSTS],
-        paymentMode: 'amortized' as const,
-      },
+      ...E281_FINAL_QUOTE_ONETIME_COSTS[seed.harnessId as keyof typeof E281_FINAL_QUOTE_ONETIME_COSTS],
+      paymentMode: 'amortized' as const,
+    },
+    updatedAt: now,
+  }));
+}
+
+function createE281TrackingItems(projectId: string, scenarioId: string, now: string): TrackingItemRecord[] {
+  return [
+    {
+      id: `${scenarioId}-track-001`,
+      projectId,
+      scenarioId,
+      category: 'anomaly',
+      source: 'manual',
+      severity: 'warning',
+      title: 'BOM gap: connector 1-2509498-1 missing from quote costing',
+      description: 'Part 1-2509498-1 exists in development BOM for harness 6608516992 but is missing from the quote-costing KSK BOM.',
+      harnessId: '6608516992',
+      harnessName: '鐢靛姩鍘嬬缉鏈虹嚎鏉熸€绘垚',
+      partNo: '1-2509498-1',
+      partName: '杩炴帴鍣ㄦ€绘垚',
+      costImpact: 17,
+      status: 'open',
+      priority: 'high',
+      createdAt: now,
       updatedAt: now,
+    },
+  ];
+}
+
+export function buildE281BaselineImportPayload(
+  overwriteProjectMeta = true,
+): E281BaselineImportPayload {
+  const now = new Date().toISOString();
+  const project = createE281ProjectRecord('template-project', now);
+  const scenario = createE281ScenarioRecord('template-project', 'template-scenario', now);
+  const harnessRecords = createE281HarnessRecords('template-project', 'template-scenario', now);
+  const onetimeCosts = createE281OnetimeCosts('template-project', 'template-scenario', now);
+
+  return {
+    overwriteProjectMeta,
+    project: {
+      meta: {
+        projectCode: project.meta.projectCode,
+        projectName: project.meta.projectName,
+        customer: project.meta.customer,
+        platform: project.meta.platform,
+        lifecycleYears: project.meta.lifecycleYears,
+        status: project.meta.status,
+      },
+      config: project.config ?? createE281ProjectConfig(),
+    },
+    scenario: {
+      lifecycleYears: scenario.lifecycleYears,
+      config: scenario.config,
+      note: scenario.note,
+      vehicleConfigMeta: scenario.vehicleConfigMeta ?? { publishState: 'draft' },
+      configSkus: scenario.configSkus ?? [],
+      harnessConfigMappings: scenario.harnessConfigMappings ?? [],
+      vehicleConfigs: scenario.vehicleConfigs ?? [],
+    },
+    harnesses: harnessRecords.map((record) => ({
+      harnessId: record.harnessId,
+      harnessName: record.harnessName,
+      input: record.input,
+      result: record.result,
+      eopYear: record.eopYear,
     })),
+    allocationRows: onetimeCosts.map((record) => ({
+      harnessId: record.harnessId,
+      harnessName: record.harnessName,
+      vehicleRatio: record.vehicleRatio,
+      toolingCost: Number(record.input.toolingCost || 0),
+      testingCost: Number(record.input.testingCost || 0),
+      rndCost: Number(record.input.rndCost || 0),
+      allocBase: Math.max(1, Number(record.input.allocBase || 1)),
+      paymentMode: record.input.paymentMode ?? 'amortized',
+      cumProduced: 0,
+    })),
+    trackingItems: [
+      {
+        trackingType: 'exception',
+        title: 'BOM gap: connector 1-2509498-1 missing from quote costing',
+        sourceRef: 'baseline:e281:6608516992',
+        currentStatus: 'pending',
+        severity: 'high',
+        plannedAction: 'Verify missing connector 1-2509498-1 between development BOM and quote-costing KSK BOM.',
+        actualResult: 'Part 1-2509498-1 exists in development BOM for harness 6608516992 but is missing from the quote-costing KSK BOM.',
+        warningRef: 'e281-bom-gap-6608516992',
+      },
+    ],
+  };
+}
+
+export async function importE281BaselineIntoScenario({
+  projectId,
+  scenarioId,
+  overwriteProjectMeta = true,
+}: ImportE281BaselineOptions): Promise<ImportE281BaselineResult> {
+  const [project, scenario] = await Promise.all([
+    db.projects.get(projectId),
+    db.scenarios.get(scenarioId),
+  ]);
+
+  if (!project) {
+    throw new Error(`project ${projectId} not found`);
+  }
+  if (!scenario) {
+    throw new Error(`scenario ${scenarioId} not found`);
+  }
+
+  const now = new Date().toISOString();
+  const seededProject = createE281ProjectRecord(projectId, now);
+  const seededScenario = createE281ScenarioRecord(projectId, scenarioId, now);
+  const harnessRecords = createE281HarnessRecords(projectId, scenarioId, now);
+  const onetimeCosts = createE281OnetimeCosts(projectId, scenarioId, now);
+  const trackingItems = createE281TrackingItems(projectId, scenarioId, now);
+
+  await db.transaction(
+    'rw',
+    [
+      db.projects,
+      db.scenarios,
+      db.harnesses,
+      db.onetimeCosts,
+      db.allocTrackers,
+      db.trackingItems,
+      db.changeEvents,
+      db.changeOrders,
+    ],
+    async () => {
+      await db.projects.put({
+        ...project,
+        meta: overwriteProjectMeta
+          ? {
+              ...project.meta,
+              ...seededProject.meta,
+              createdAt: project.meta.createdAt || seededProject.meta.createdAt,
+              updatedAt: now,
+            }
+          : {
+              ...project.meta,
+              lifecycleYears: seededProject.meta.lifecycleYears,
+              updatedAt: now,
+            },
+        config: seededProject.config,
+      });
+
+      await db.scenarios.put({
+        ...scenario,
+        lifecycleYears: seededScenario.lifecycleYears,
+        config: seededScenario.config,
+        note: seededScenario.note,
+        vehicleConfigMeta: seededScenario.vehicleConfigMeta,
+        configSkus: seededScenario.configSkus,
+        harnessConfigMappings: seededScenario.harnessConfigMappings,
+        vehicleConfigs: seededScenario.vehicleConfigs,
+        updatedAt: now,
+      });
+
+      await db.harnesses.where('scenarioId').equals(scenarioId).delete();
+      await db.onetimeCosts.where('scenarioId').equals(scenarioId).delete();
+      await db.allocTrackers.where('scenarioId').equals(scenarioId).delete();
+      await db.changeEvents.where('scenarioId').equals(scenarioId).delete();
+      await db.changeOrders.where('scenarioId').equals(scenarioId).delete();
+
+      const existingTrackingIds = (await db.trackingItems.toArray())
+        .filter((item) => item.projectId === projectId && item.scenarioId === scenarioId)
+        .map((item) => item.id);
+      if (existingTrackingIds.length > 0) {
+        await db.trackingItems.bulkDelete(existingTrackingIds);
+      }
+
+      await db.harnesses.bulkPut(harnessRecords);
+      await db.onetimeCosts.bulkPut(onetimeCosts);
+      await db.trackingItems.bulkPut(trackingItems);
+    },
   );
 
-  // Seed 已知 BOM 差异跟踪项
-  await db.trackingItems.put({
-    id: 'e281-track-001',
-    projectId,
-    category: 'anomaly',
-    title: 'BOM差异：1-2509498-1 连接器总成未纳入报价核算',
-    description: '零件 1-2509498-1（连接器总成，¥17.00/SET×1）存在于开发BOM（6608516992）中，但在报价核算 KSK BOM 明细中缺失。开发与财务 BOM 衔接问题。',
-    harnessId: '6608516992',
-    harnessName: '电动压缩机线束总成',
-    partNo: '1-2509498-1',
-    partName: '连接器总成',
-    costImpact: 17.00,
-    status: 'open',
-    priority: 'high',
-    createdAt: now,
-    updatedAt: now,
-  });
+  return {
+    harnessCount: harnessRecords.length,
+    onetimeCostCount: onetimeCosts.length,
+    configCount: seededScenario.vehicleConfigs?.length ?? 0,
+  };
+}
+
+export async function seedE281Project(): Promise<string> {
+  const projectId = 'e281-quote';
+  const scenarioId = 'e281-scn-001';
+  const now = new Date().toISOString();
+
+  const project = createE281ProjectRecord(projectId, now);
+  const scenario = createE281ScenarioRecord(projectId, scenarioId, now);
+  const harnessRecords = createE281HarnessRecords(projectId, scenarioId, now);
+  const onetimeCosts = createE281OnetimeCosts(projectId, scenarioId, now);
+  const trackingItems = createE281TrackingItems(projectId, scenarioId, now);
+
+  await db.transaction(
+    'rw',
+    [db.projects, db.scenarios, db.harnesses, db.onetimeCosts, db.trackingItems],
+    async () => {
+      await db.projects.put(project);
+      await db.scenarios.put(scenario);
+      await db.harnesses.bulkPut(harnessRecords);
+      await db.onetimeCosts.bulkPut(onetimeCosts);
+      await db.trackingItems.bulkPut(trackingItems);
+    },
+  );
 
   return projectId;
 }

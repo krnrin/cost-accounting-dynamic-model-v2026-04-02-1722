@@ -24,7 +24,7 @@ import {
   FinancialBenchmark, 
   PricingContext 
 } from '@/types/financial_schema';
-import { numberOr, safeArray } from './shared_utils';
+import { numberOr, resolveEffectiveRatio, safeArray } from './shared_utils';
 import { detectPrecisionLevel, estimateByCoefficients, LEVEL1_COEFFICIENTS } from './precision';
 
 /** 内部实绩核算默认费率 (基准 / K3) */
@@ -454,6 +454,7 @@ export function computeHarnessCostBySchema(
   } = input;
 
   const processHours = frontHours + backHours || (input as any).processHours || 0;
+  const installationRatio = resolveEffectiveRatio(input.installationRatio, vehicleRatio);
   if (!rates) throw new Error('computeHarnessCostBySchema: rates required');
   const currentRates = rates;
 
@@ -540,6 +541,7 @@ export function computeHarnessCostBySchema(
     harnessId,
     harnessName,
     vehicleRatio,
+    installationRatio,
     items: computedItems,
     exFactoryPrice,
     deliveredPrice: exFactoryPrice + addonTotal,
@@ -579,6 +581,7 @@ export function computeInternalHarnessCost(
 
   const rates = internalRates || INTERNAL_DEFAULTS;
   const processHours = frontHours + backHours || (input as any).processHours || 0;
+  const installationRatio = resolveEffectiveRatio(input.installationRatio, vehicleRatio);
 
   // 1. 材料成本
   let materialCost = 0;
@@ -656,6 +659,7 @@ export function computeInternalHarnessCost(
     harnessId,
     harnessName,
     vehicleRatio,
+    installationRatio,
     materialCost,
     directLabor,
     indirectLabor,
@@ -723,7 +727,7 @@ export function computeInternalProjectFromHarnesses(results: InternalHarnessResu
 
   const deviations: string[] = [];
   for (const h of harnesses) {
-    const ratio = numberOr(h.vehicleRatio, 0);
+    const ratio = resolveEffectiveRatio(h.installationRatio, h.vehicleRatio);
     summary.vehicleCost += h.internalCost * ratio;
     summary.weightedMaterial += h.materialCost * ratio;
     summary.weightedDirectLabor += h.directLabor * ratio;
@@ -759,6 +763,7 @@ export function mapInternalToHarnessResult(result: InternalHarnessResult): Harne
     harnessId: result.harnessId,
     harnessName: result.harnessName,
     vehicleRatio: result.vehicleRatio,
+    installationRatio: result.installationRatio,
     copperWeight: result.copperWeight,
     aluminumWeight: result.aluminumWeight,
     processHours: result.processHours,
@@ -815,9 +820,9 @@ export function mapInternalProjectToProjectHarnessResult(results: InternalHarnes
     weightedExFactory: internal.vehicleCost - internal.weightedPack,
     weightedPack: internal.weightedPack,
     weightedFreight: 0,
-    weightedCopperWeight: harnesses.reduce((s, h) => s + h.copperWeight * h.vehicleRatio, 0),
-    weightedAluminumWeight: harnesses.reduce((s, h) => s + h.aluminumWeight * h.vehicleRatio, 0),
-    weightedProcessHours: harnesses.reduce((s, h) => s + h.processHours * h.vehicleRatio, 0),
+    weightedCopperWeight: harnesses.reduce((s, h) => s + h.copperWeight * resolveEffectiveRatio(h.installationRatio, h.vehicleRatio), 0),
+    weightedAluminumWeight: harnesses.reduce((s, h) => s + h.aluminumWeight * resolveEffectiveRatio(h.installationRatio, h.vehicleRatio), 0),
+    weightedProcessHours: harnesses.reduce((s, h) => s + h.processHours * resolveEffectiveRatio(h.installationRatio, h.vehicleRatio), 0),
   };
 }
 
@@ -831,7 +836,7 @@ export function computeHarnessCost(
   metalPrices: MetalPrices,
   wireCatalog: Map<string, any> | null = null
 ): HarnessResult {
-  const sr = computeHarnessCostBySchema(input, { name: 'default', version: '1.0', items: [] }, metalPrices, wireCatalog, rates);
+  const sr = computeHarnessCostBySchema(input, DEFAULT_COST_STRUCTURE, metalPrices, wireCatalog, rates);
   return schemaResultToHarnessResult(sr, input, rates, detectPrecisionLevel(input));
 }
 
@@ -899,7 +904,7 @@ export function computeHarnessCostAdaptive(
     if (refPrice <= 0) {
       // 无参考价也无任何数据 — 使用 Schema 引擎返回零值结果
       return schemaResultToHarnessResult(
-        computeHarnessCostBySchema(input, { name: 'fallback', version: '1.0', items: [] }, metalPrices, wireCatalog, rates),
+        computeHarnessCostBySchema(input, DEFAULT_COST_STRUCTURE, metalPrices, wireCatalog, rates),
         input,
         rates,
         level,
@@ -912,6 +917,7 @@ export function computeHarnessCostAdaptive(
       harnessId: input.harnessId || '',
       harnessName: input.harnessName || '',
       vehicleRatio: input.vehicleRatio || 0,
+      installationRatio: resolveEffectiveRatio(input.installationRatio, input.vehicleRatio),
       copperWeight: 0,
       aluminumWeight: 0,
       processHours: 0,
@@ -955,7 +961,7 @@ export function computeHarnessCostAdaptive(
 
   // 标准硬编码模式 → 使用 Schema 引擎 (Level 2/3 共用同一代码, Level 2 走 materialCost fallback)
   return schemaResultToHarnessResult(
-    computeHarnessCostBySchema(input, { name: 'default', version: '1.0', items: [] }, metalPrices, wireCatalog, rates),
+    computeHarnessCostBySchema(input, DEFAULT_COST_STRUCTURE, metalPrices, wireCatalog, rates),
     input,
     rates,
     level,
@@ -984,6 +990,7 @@ function schemaResultToHarnessResult(
     harnessId: sr.harnessId,
     harnessName: sr.harnessName,
     vehicleRatio: sr.vehicleRatio,
+    installationRatio: resolveEffectiveRatio(sr.installationRatio, sr.vehicleRatio),
     copperWeight: sr.copperWeight,
     aluminumWeight: sr.aluminumWeight,
     processHours: sr.processHours,
@@ -1047,7 +1054,7 @@ export function computeProjectFromHarnesses(harnessResults: HarnessResult[]): Pr
   };
 
   for (const h of harnesses) {
-    const ratio = numberOr(h.vehicleRatio, 0);
+    const ratio = resolveEffectiveRatio(h.installationRatio, h.vehicleRatio);
 
     summary.vehicleCost += numberOr(h.deliveredPrice, 0) * ratio;
     summary.weightedMaterial += numberOr(h.materialCost, 0) * ratio;

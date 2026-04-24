@@ -1,33 +1,37 @@
-import { useLocation, useParams, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Breadcrumb as SemiBreadcrumb } from '@douyinfe/semi-ui';
 import { IconHome } from '@douyinfe/semi-icons';
-import { useProjectStore } from '@/store/projectStore';
 import { useLiveQuery } from 'dexie-react-hooks';
+
 import { db } from '@/data/db';
+import { useProjectStore } from '@/store/projectStore';
 
 export default function Breadcrumb() {
   const location = useLocation();
-  const params = useParams();
   const navigate = useNavigate();
-  const { projectName: storeProjectName, currentProjectId } = useProjectStore();
+  const params = useParams();
+  const { currentProjectId, projectName: storeProjectName } = useProjectStore();
 
-  // Fetch project name if not in store or mismatch
   const projectData = useLiveQuery(async () => {
-    if (params.id) {
-      return await db.projects.get(params.id);
+    if (!params.id) {
+      return null;
     }
-    return null;
+    return db.projects.get(params.id);
   }, [params.id]);
 
-  const projectName = (params.id === currentProjectId ? storeProjectName : projectData?.meta.projectName) || '项目详情';
+  const projectName = (
+    params.id === currentProjectId
+      ? storeProjectName
+      : projectData?.meta?.projectName || projectData?.meta?.projectCode
+  ) || '项目详情';
 
-  const pathnames = location.pathname.split('/').filter((x) => x);
+  const pathnames = location.pathname.split('/').filter(Boolean);
+  if (pathnames.length === 0) {
+    return null;
+  }
 
-  if (pathnames.length === 0) return null;
+  const breadcrumbItems: Array<{ name: string; onClick?: () => void }> = [];
 
-  const breadcrumbItems = [];
-
-  // Always add "Home" or "Project List" as the first item if not already at root
   if (pathnames[0] === 'manager') {
     breadcrumbItems.push({
       name: '管理仪表盘',
@@ -69,7 +73,7 @@ export default function Breadcrumb() {
       } else if (pathnames.includes('harness')) {
         const harnessId = params.harnessId;
         if (pathnames.includes('edit')) {
-           breadcrumbItems.push({
+          breadcrumbItems.push({
             name: '线束编辑',
             onClick: () => navigate(`/project/${params.id}/harness/${harnessId}/edit`),
           });
@@ -79,9 +83,7 @@ export default function Breadcrumb() {
             onClick: () => navigate(`/project/${params.id}/harness/${harnessId}`),
           });
           if (harnessId && harnessId !== 'new') {
-             breadcrumbItems.push({
-              name: harnessId,
-            });
+            breadcrumbItems.push({ name: harnessId });
           }
         }
       } else if (pathnames.includes('quote')) {
@@ -108,7 +110,7 @@ export default function Breadcrumb() {
       <SemiBreadcrumb>
         {breadcrumbItems.map((item, index) => (
           <SemiBreadcrumb.Item
-            key={index}
+            key={`${item.name}-${index}`}
             icon={index === 0 && pathnames[0] === 'project' ? <IconHome /> : undefined}
             onClick={item.onClick}
             style={{ cursor: item.onClick ? 'pointer' : 'default' }}

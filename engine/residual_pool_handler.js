@@ -18,6 +18,9 @@
 (function (global) {
   'use strict';
 
+  const U = global.G281SharedUtils || {};
+  const numberOr = U.numberOr || function (v, fb) { var n = Number(v); return Number.isFinite(n) ? n : fb; };
+
   const STAGNANT_STATUS = {
     CANDIDATE: 'candidate',      // 候选（刚检测到未匹配）
     CONFIRMED: 'confirmed',      // 已确认呆滞（人工确认有库存）
@@ -52,7 +55,7 @@
               partName: row.left.partName || '',
               itemCategory: group.itemCategory || '',
               endGroup: group.endGroup || '',
-              qty: Number(row.left.qty) || 0,
+              qty: numberOr(row.left.qty, 0),
               unit: row.left.unit || '',
               supplier: row.left.supplier || '',
               // 保留完整导线信息以防切换回来
@@ -95,8 +98,8 @@
 
     if (updated.hasStock) {
       updated.stagnantStatus = STAGNANT_STATUS.CONFIRMED;
-      updated.stockQty = Number(confirmation?.stockQty) || 0;
-      updated.stockValue = Number(confirmation?.stockValue) || 0;
+      updated.stockQty = numberOr(confirmation?.stockQty, 0);
+      updated.stockValue = numberOr(confirmation?.stockValue, 0);
     } else {
       updated.stagnantStatus = STAGNANT_STATUS.NO_STOCK;
     }
@@ -193,7 +196,7 @@
       restoredCount: items.filter(i => i.stagnantStatus === STAGNANT_STATUS.RESTORED).length,
       totalStockValue: items
         .filter(i => i.stagnantStatus === STAGNANT_STATUS.CONFIRMED)
-        .reduce((s, i) => s + (Number(i.stockValue) || 0), 0),
+        .reduce((s, i) => s + numberOr(i.stockValue, 0), 0),
     };
   }
 
@@ -216,4 +219,4 @@
     module.exports = api;
   }
   global.G281ResidualPoolHandler = api;
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

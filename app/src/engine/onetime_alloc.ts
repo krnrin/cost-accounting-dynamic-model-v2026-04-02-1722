@@ -1,3 +1,5 @@
+import { resolveEffectiveRatio } from './shared_utils';
+
 /**
  * 一次性费用分摊引擎 (One-time Cost Amortization Engine)
  * 
@@ -24,6 +26,7 @@ export interface OnetimeAllocationParticipant {
   harnessId: string;
   harnessName: string;
   vehicleRatio: number;
+  installationRatio?: number;
   quantity: number;
   latestCumulativeVolume?: number;
 }
@@ -52,6 +55,7 @@ export interface OnetimeCostInput {
   harnessName: string;
   /** 装车比 (0~1) */
   vehicleRatio: number;
+  installationRatio?: number;
   /** 工装费用 (元) — 新制 */
   toolingCost: number;
   /** 试验费用 (元) — 新制 */
@@ -74,6 +78,7 @@ export interface OnetimeCostAllocation {
   harnessName: string;
   /** 装车比 */
   vehicleRatio: number;
+  installationRatio: number;
 
   /** 工装总费用 */
   toolingCost: number;
@@ -112,6 +117,7 @@ export interface AllocRecoveryTracker {
   harnessName: string;
   /** 装车比 */
   vehicleRatio: number;
+  installationRatio: number;
   /** 分摊基数 */
   allocBase: number;
 
@@ -259,7 +265,7 @@ export function simulateRecoveryTimelineFromItems(
   for (let y = 1; y <= years; y++) {
     const cumProducedMap: Record<string, number> = {};
     for (const alloc of allocSummary.allocations) {
-      cumProducedMap[alloc.harnessId] = annualCapacity * alloc.vehicleRatio * y;
+      cumProducedMap[alloc.harnessId] = annualCapacity * alloc.installationRatio * y;
     }
     timeline.push(computeProjectRecovery(allocSummary.allocations, cumProducedMap, annualCapacity, lifecycleYears, matrixContext));
   }
@@ -302,7 +308,17 @@ export interface ProjectRecoverySummary {
   /** 总未回收金额 */
   totalRemaining: number;
   /** 需要调价提醒的线束列表 */
-  priceAdjustmentAlerts: string[];
+  priceAdjustmentAlerts: AllocationRecoveryAlert[];
+}
+
+export interface AllocationRecoveryAlert {
+  harnessId: string;
+  harnessName: string;
+  severity: 'info' | 'warning' | 'critical';
+  message: string;
+  recoveredAmount: number;
+  remainingAmount: number;
+  needsPriceAdjustment: boolean;
 }
 
 // ═══════════════════════════════════════════
@@ -313,6 +329,7 @@ export function computeHarnessAllocationFromItems(
   harnessId: string,
   harnessName: string,
   vehicleRatio: number,
+  installationRatio: number | undefined,
   items: OnetimeCostItem[],
 ): OnetimeCostAllocation {
   const relevant = items.filter((item) =>
@@ -340,6 +357,7 @@ export function computeHarnessAllocationFromItems(
     harnessId,
     harnessName,
     vehicleRatio,
+    installationRatio,
     toolingCost,
     testingCost,
     rndCost,
@@ -350,24 +368,37 @@ export function computeHarnessAllocationFromItems(
 }
 
 export function computeProjectAllocFromItems(items: OnetimeCostItem[]): ProjectAllocSummary {
-  const harnessMap = new Map<string, { harnessName: string; vehicleRatio: number }>();
+  const harnessMap = new Map<string, { harnessName: string; vehicleRatio: number; installationRatio?: number }>();
   for (const item of items) {
     for (const p of item.participants) {
       if (p.quantity > 0 && !harnessMap.has(p.harnessId)) {
-        harnessMap.set(p.harnessId, { harnessName: p.harnessName, vehicleRatio: p.vehicleRatio });
+        harnessMap.set(p.harnessId, {
+          harnessName: p.harnessName,
+          vehicleRatio: p.vehicleRatio,
+          installationRatio: resolveEffectiveRatio(p.installationRatio, p.vehicleRatio),
+        });
       }
     }
   }
 
   const allocations = Array.from(harnessMap.entries()).map(([harnessId, meta]) =>
-    computeHarnessAllocationFromItems(harnessId, meta.harnessName, meta.vehicleRatio, items),
+    computeHarnessAllocationFromItems(
+      harnessId,
+      meta.harnessName,
+      meta.vehicleRatio,
+      meta.installationRatio,
+      items,
+    ),
   );
 
   const participating = allocations.filter(a => a.participates);
   const totalTooling = allocations.reduce((sum, a) => sum + a.toolingCost, 0);
   const totalTesting = allocations.reduce((sum, a) => sum + a.testingCost, 0);
   const totalRnd = allocations.reduce((sum, a) => sum + (a.rndCost ?? 0), 0);
-  const weightedAllocPerVehicle = allocations.reduce((sum, a) => sum + a.totalPerUnit * a.vehicleRatio, 0);
+  const weightedAllocPerVehicle = allocations.reduce(
+    (sum, a) => sum + a.totalPerUnit * a.installationRatio,
+    0,
+  );
 
   return {
     allocations,
@@ -403,6 +434,7 @@ export function computeOnetimeAlloc(input: OnetimeCostInput): OnetimeCostAllocat
   // lumpsum: 一次性付清，不参与分摊
   const participates = totalOnetimeCost > 0 && paymentMode !== 'lumpsum';
   const allocBase = input.allocBase || 50000;
+  const installationRatio = resolveEffectiveRatio(input.installationRatio, input.vehicleRatio);
 
   const toolingPerUnit = allocBase > 0 ? input.toolingCost / allocBase : 0;
   const testingPerUnit = allocBase > 0 ? input.testingCost / allocBase : 0;
@@ -413,6 +445,7 @@ export function computeOnetimeAlloc(input: OnetimeCostInput): OnetimeCostAllocat
     harnessId: input.harnessId,
     harnessName: input.harnessName,
     vehicleRatio: input.vehicleRatio,
+    installationRatio,
     toolingCost: input.toolingCost,
     testingCost: input.testingCost,
     rndCost,
@@ -451,6 +484,7 @@ export function computeAllocRecovery(
       harnessId: alloc.harnessId,
       harnessName: alloc.harnessName,
       vehicleRatio: alloc.vehicleRatio,
+      installationRatio: alloc.installationRatio,
       allocBase: alloc.allocBase,
       cumProduced: 0,
       recoveryProgress: 1,
@@ -476,7 +510,7 @@ export function computeAllocRecovery(
 
   // 估算回收完成年份
   // 每年该线束产量 = annualCapacity × vehicleRatio
-  const annualProduction = annualCapacity * alloc.vehicleRatio;
+  const annualProduction = annualCapacity * alloc.installationRatio;
   let estimatedRecoveryYear: number | null = null;
   if (annualProduction > 0 && !fullyRecovered) {
     const remainingUnits = alloc.allocBase - cumProduced;
@@ -496,6 +530,7 @@ export function computeAllocRecovery(
     harnessId: alloc.harnessId,
     harnessName: alloc.harnessName,
     vehicleRatio: alloc.vehicleRatio,
+    installationRatio: alloc.installationRatio,
     allocBase: alloc.allocBase,
     cumProduced,
     recoveryProgress: progress,
@@ -530,7 +565,7 @@ export function computeProjectAlloc(inputs: OnetimeCostInput[]): ProjectAllocSum
 
   // 加权分摊 = Σ(单根分摊 × 装车比)
   const weightedAllocPerVehicle = allocations.reduce(
-    (sum, a) => sum + a.totalPerUnit * a.vehicleRatio,
+    (sum, a) => sum + a.totalPerUnit * a.installationRatio,
     0
   );
 
@@ -581,8 +616,18 @@ export function computeProjectRecovery(
   const overallRecoveryProgress = totalAmount > 0 ? totalRecovered / totalAmount : 1;
 
   const priceAdjustmentAlerts = participatingTrackers
-    .filter(t => t.needsPriceAdjustment)
-    .map(t => t.harnessId);
+    .filter((tracker) => tracker.needsPriceAdjustment)
+    .map<AllocationRecoveryAlert>((tracker) => ({
+      harnessId: tracker.harnessId,
+      harnessName: tracker.harnessName,
+      severity: tracker.status === 'overdue' ? 'critical' : 'warning',
+      message: tracker.remainingAmount > 0
+        ? `${tracker.harnessName || tracker.harnessId} completed recovery with outstanding adjustments`
+        : `${tracker.harnessName || tracker.harnessId} completed recovery and should be repriced`,
+      recoveredAmount: tracker.recoveredAmount,
+      remainingAmount: tracker.remainingAmount,
+      needsPriceAdjustment: tracker.needsPriceAdjustment,
+    }));
 
   return {
     trackers,
@@ -614,7 +659,7 @@ export function simulateRecoveryTimeline(
     const cumProducedMap: Record<string, number> = {};
     for (const a of allocations) {
       // 累计产量 = 年产能 × 装车比 × 年数
-      cumProducedMap[a.harnessId] = annualCapacity * a.vehicleRatio * y;
+      cumProducedMap[a.harnessId] = annualCapacity * a.installationRatio * y;
     }
     timeline.push(computeProjectRecovery(allocations, cumProducedMap, annualCapacity));
   }

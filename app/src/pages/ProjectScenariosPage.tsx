@@ -4,33 +4,20 @@ import { Typography, Spin, Button, Table, Tag, Toast, Space, Card, Modal, Input,
 import { IconPlus, IconArrowLeft } from '@douyinfe/semi-icons';
 import { apiClient } from '@/lib/apiClient';
 import { db } from '@/data/db';
-import type { ProjectRecord, ScenarioType as LocalScenarioType } from '@/data/db';
+import type { ProjectRecord } from '@/data/db';
 import { useProjectStore } from '@/store/projectStore';
 import { fetchSettingsHistory } from '@/lib/settingsApi';
 import { isEditable, getAvailableTransitions } from '@/engine/scenario_lifecycle';
+import {
+  toLocalProjectRecord,
+  toLocalScenarioRecord,
+  type RemoteProjectRecord,
+  type RemoteScenarioRecord,
+} from '@/data/serverScenarioSync';
 
-interface ScenarioItem {
-  id: string;
-  projectId: string;
-  type: ScenarioType;
-  name: string;
-  status: string;
-  lifecycleYears: number;
-  volume: number;
-  installRatio: number;
-  rateSnapshot: Record<string, unknown>;
-  rateSnapshotVersion?: string | null;
-  bomVersionRef?: string | null;
-  quoteParamSnapshot: Record<string, unknown>;
-  sourceScenarioId?: string | null;
-  compareBaselineId?: string | null;
-  notes?: string | null;
-  createdBy?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+interface ScenarioItem extends RemoteScenarioRecord {}
 
-type ScenarioType = 'initial_quote' | 'fixed_point' | 'change' | 'annual_drop';
+type ScenarioType = 'initial_quote' | 'fixed_point' | 'change' | 'annual_drop' | 'final_quote';
 
 interface ScenarioFormState {
   type: ScenarioType;
@@ -70,7 +57,7 @@ const STATUS_COLORS: Record<string, 'blue' | 'green' | 'red' | 'cyan' | 'grey' |
   released: 'green',
 };
 
-const SCENARIO_TYPE_LABELS: Record<ScenarioType, string> = {
+const SCENARIO_TYPE_LABELS: Record<string, string> = {
   initial_quote: '初始报价',
   fixed_point: '定点',
   change: '设变',
@@ -102,49 +89,6 @@ export function normalizeScenarioPayload(form: ScenarioFormState) {
     sourceScenarioId: form.sourceScenarioId || undefined,
     compareBaselineId: form.compareBaselineId || undefined,
     notes: form.notes.trim() || undefined,
-  };
-}
-
-function mapScenarioTypeToLocal(type: ScenarioType): LocalScenarioType {
-  switch (type) {
-    case 'fixed_point':
-      return 'customer_award';
-    case 'change':
-      return 'ecn';
-    default:
-      return type;
-  }
-}
-
-function toLocalScenarioRecord(item: ScenarioItem) {
-  return {
-    id: item.id,
-    projectId: item.projectId,
-    scenarioCode: item.id,
-    scenarioName: item.name,
-    scenarioType: mapScenarioTypeToLocal(item.type),
-    parentScenarioId: item.sourceScenarioId ?? null,
-    isBaseline: !item.sourceScenarioId,
-    lifecycleYears: item.lifecycleYears,
-    config: {
-      costRates: {
-        laborRate: 35,
-        mfgRate: 46.69,
-        wasteRate: 0.01,
-        mgmtRate: 0.06,
-        profitRate: 0.056627,
-        ...(item.rateSnapshot ?? {}),
-      },
-      metalPrices: {
-        copper: 0,
-        aluminum: 0,
-      },
-      volumes: [{ year: 1, volume: item.volume }],
-      annualDropRate: 0,
-    },
-    note: item.notes ?? '',
-    createdAt: item.createdAt,
-    updatedAt: item.updatedAt,
   };
 }
 
@@ -186,30 +130,9 @@ export default function ProjectScenariosPage() {
       return localProject;
     }
 
-    const remoteProject = await apiClient<{
-      id: string;
-      projectCode: string;
-      projectName: string;
-      customer: string;
-      platform?: string | null;
-      status: ProjectRecord['meta']['status'];
-      createdAt: string;
-      updatedAt: string;
-    }>(`/projects/${id}`);
+    const remoteProject = await apiClient<RemoteProjectRecord>(`/projects/${id}`);
 
-    localProject = {
-      id: remoteProject.id,
-      meta: {
-        id: remoteProject.id,
-        projectCode: remoteProject.projectCode,
-        projectName: remoteProject.projectName,
-        customer: remoteProject.customer,
-        platform: remoteProject.platform ?? undefined,
-        status: remoteProject.status,
-        createdAt: remoteProject.createdAt,
-        updatedAt: remoteProject.updatedAt,
-      },
-    } as ProjectRecord;
+    localProject = toLocalProjectRecord(remoteProject);
 
     await db.projects.put(localProject);
     return localProject;
@@ -219,7 +142,20 @@ export default function ProjectScenariosPage() {
     if (!id) return;
     const data = await apiClient<ScenarioItem[]>(`/projects/${id}/scenarios`);
     setScenarios(data.sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
-    await db.scenarios.bulkPut(data.map(toLocalScenarioRecord));
+    const project = await db.projects.get(id);
+    await db.scenarios.bulkPut(data.map((item) => toLocalScenarioRecord(item, project ? {
+      id: project.id,
+      projectCode: project.meta.projectCode,
+      projectName: project.meta.projectName,
+      customer: project.meta.customer,
+      platform: project.meta.platform ?? null,
+      status: project.meta.status,
+      costRates: project.config?.costRates,
+      metalPrices: project.config?.metalPrices,
+      volumes: project.config?.volumes,
+      createdAt: project.meta.createdAt,
+      updatedAt: project.meta.updatedAt,
+    } : undefined)));
   };
 
   const loadSettingsVersions = async () => {
@@ -468,11 +404,11 @@ export default function ProjectScenariosPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div>
           <Text style={{ display: 'block', marginBottom: 6 }}>场景名称</Text>
-          <Input value={form.name} onChange={(value) => updateForm('name', value)} placeholder="例如：客户定点 / ECN 设变" />
+          <Input data-testid="scenario-name-input" value={form.name} onChange={(value) => updateForm('name', value)} placeholder="例如：客户定点 / ECN 设变" />
         </div>
         <div>
           <Text style={{ display: 'block', marginBottom: 6 }}>场景类型</Text>
-          <Select value={form.type} onChange={(value) => updateForm('type', value as ScenarioType)} style={{ width: '100%' }}>
+          <Select data-testid="scenario-type-select" value={form.type} onChange={(value) => updateForm('type', value as ScenarioType)} style={{ width: '100%' }}>
             {SCENARIO_TYPE_OPTIONS.map((option) => (
               <Select.Option key={option.value} value={option.value}>{option.label}</Select.Option>
             ))}
@@ -540,7 +476,7 @@ export default function ProjectScenariosPage() {
   );
 
   return (
-    <div className="page-container">
+    <div className="page-container" data-testid="project-scenarios-page">
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, padding: '16px 0' }}>
         <Button icon={<IconArrowLeft />} aria-label="返回" theme="borderless" onClick={() => navigate(`/project/${id}`)} />
         <div>
@@ -552,7 +488,7 @@ export default function ProjectScenariosPage() {
       <Card className="glass-card" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <Title heading={5} style={{ margin: 0 }}>场景列表</Title>
-          <Button icon={<IconPlus />} theme="light" onClick={openCreateModal}>新建场景</Button>
+          <Button data-testid="create-scenario-button" icon={<IconPlus />} theme="light" onClick={openCreateModal}>新建场景</Button>
         </div>
         <Table columns={columns} dataSource={scenarios} rowKey="id" pagination={false} />
       </Card>

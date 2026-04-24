@@ -6,6 +6,7 @@ import type {
   KskBomRow,
   SecondaryMaterialRow,
 } from '@/types/bomWorkbook';
+import { getSafeBom } from '@/lib/harnessInputDefaults';
 
 export const BOM_HEADERS = [
   'No.',
@@ -21,6 +22,9 @@ export const BOM_HEADERS = [
   'Category',
   'Unit Price',
   'Amount',
+  'Copper Weight / Unit',
+  'Aluminum Weight / Unit',
+  'Non-metal Cost / Unit',
 ] as const;
 
 export const ASSEMBLY_PARTS_HEADERS = [
@@ -90,9 +94,9 @@ function buildRowKey(harnessId: string, bucket: string, seqNo: number, partNo: s
 export function buildBomSheetRows(
   harnessId: string,
   harnessName: string,
-  bom: Array<BomItem | WireItem>
+  bom: Array<BomItem | WireItem> | null | undefined
 ): BomSheetRow[] {
-  return bom.map((item, index) => {
+  return getSafeBom(bom).map((item, index) => {
     const wire = asWireItem(item);
     const seqNo = index + 1;
     return {
@@ -123,9 +127,9 @@ export function buildBomSheetRows(
 export function buildAssemblyPartRows(
   harnessId: string,
   harnessName: string,
-  bom: Array<BomItem | WireItem>
+  bom: Array<BomItem | WireItem> | null | undefined
 ): AssemblyPartRow[] {
-  return bom.map((item, index) => {
+  return getSafeBom(bom).map((item, index) => {
     const seqNo = index + 1;
     const sourceBomRowKey = buildRowKey(harnessId, 'bom', seqNo, item.partNo);
     return {
@@ -151,10 +155,9 @@ export function buildAssemblyPartRows(
 export function buildSecondaryMaterialRows(
   harnessId: string,
   harnessName: string,
-  bom: Array<BomItem | WireItem>
+  bom: Array<BomItem | WireItem> | null | undefined
 ): SecondaryMaterialRow[] {
-  return bom
-    .filter(item => item.itemCategory !== 'wire')
+  return getSafeBom(bom)
     .map((item, index) => {
       const seqNo = index + 1;
       const sourceBomRowKey = buildRowKey(harnessId, 'bom', seqNo, item.partNo);
@@ -185,9 +188,9 @@ export function buildSecondaryMaterialRows(
 export function buildKskBomRows(
   harnessId: string,
   harnessName: string,
-  bom: Array<BomItem | WireItem>
+  bom: Array<BomItem | WireItem> | null | undefined
 ): KskBomRow[] {
-  return bom.map((item, index) => {
+  return getSafeBom(bom).map((item, index) => {
     const seqNo = index + 1;
     const sourceBomRowKey = buildRowKey(harnessId, 'bom', seqNo, item.partNo);
     return {
@@ -227,8 +230,54 @@ export function bomRowsToSheetData(rows: BomSheetRow[]): Array<Array<string | nu
       row.itemCategory,
       row.unitPrice,
       row.amount,
+      row.copperWeightPerUnit || 0,
+      row.aluminumWeightPerUnit || 0,
+      row.nonMetalCostPerUnit || 0,
     ]),
   ];
+}
+
+export function bomSheetDataToBomItems(
+  data: (string | number | null)[][],
+  previousBom: Array<BomItem | WireItem> = [],
+): Array<BomItem | WireItem> {
+  return data
+    .slice(1)
+    .filter((row) => String(row[2] || '').trim().length > 0)
+    .map((row, index) => {
+      const itemCategory = String(row[10] || 'other');
+      const qty = Number(row[7] || 0);
+      const unitPrice = Number(row[11] || 0);
+      const semiFlag = String(row[4] || '').toUpperCase();
+      const previousItem = previousBom[index];
+      const previousWire = previousItem?.itemCategory === 'wire' ? previousItem as WireItem : null;
+
+      const base: BomItem = {
+        partNo: String(row[2] || ''),
+        partName: String(row[3] || ''),
+        itemCategory: itemCategory as BomItem['itemCategory'],
+        spec: String(row[6] || ''),
+        unit: String(row[8] || ''),
+        qty,
+        unitPrice,
+        amount: Number((qty * unitPrice).toFixed(4)),
+        functionText: String(row[1] || ''),
+        sapNo: String(row[5] || ''),
+        supplier: String(row[9] || ''),
+        isSemiFinished: semiFlag === 'Y' || semiFlag === '是',
+      };
+
+      if (itemCategory === 'wire') {
+        return {
+          ...base,
+          copperWeightPerUnit: Number(row[13] ?? previousWire?.copperWeightPerUnit ?? 0) || 0,
+          aluminumWeightPerUnit: Number(row[14] ?? previousWire?.aluminumWeightPerUnit ?? 0) || 0,
+          nonMetalCostPerUnit: Number(row[15] ?? previousWire?.nonMetalCostPerUnit ?? 0) || 0,
+        } as WireItem;
+      }
+
+      return base;
+    });
 }
 
 export function assemblyRowsToSheetData(rows: AssemblyPartRow[]): Array<Array<string | number | null>> {

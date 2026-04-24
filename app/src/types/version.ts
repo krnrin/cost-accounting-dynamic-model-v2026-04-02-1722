@@ -1,6 +1,14 @@
 export type VersionStatus = 'draft' | 'bom_ready' | 'reviewed' | 'locked' | 'published' | 'archived';
 
 export interface VersionSnapshot {
+  scenario?: {
+    id: string;
+    scenarioCode: string;
+    scenarioName: string;
+    configSkus?: import('./harness').ConfigSku[];
+    harnessConfigMappings?: import('./harness').HarnessConfigMapping[];
+    vehicleConfigs?: import('./harness').VehicleConfig[];
+  };
   harnesses: Array<{
     harnessId: string;
     harnessName: string;
@@ -18,6 +26,7 @@ export interface VersionSnapshot {
 export interface VersionRecord {
   id: string;
   projectId: string;
+  scenarioId?: string;
   versionNumber: number;
   label: string;
   status: VersionStatus;
@@ -25,6 +34,25 @@ export interface VersionRecord {
   createdBy?: string;
   createdAt: string;
   notes?: string;
+  parentVersionId?: string;
+  snapshotRefs?: {
+    quoteSnapshotIds?: string[];
+    settingsSnapshotIds?: string[];
+  };
+  lockInfo?: {
+    locked: boolean;
+    lockedAt?: string;
+    lockedBy?: string;
+    reason?: string;
+  };
+  approvalInfo?: {
+    status: 'not_submitted' | 'pending' | 'approved' | 'rejected';
+    submittedAt?: string;
+    submittedBy?: string;
+    reviewedAt?: string;
+    reviewedBy?: string;
+    comment?: string;
+  };
 }
 
 export interface VersionDiffItem {

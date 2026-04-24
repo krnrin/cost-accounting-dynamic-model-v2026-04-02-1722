@@ -6,7 +6,10 @@ import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { Toast } from '@douyinfe/semi-ui';
 import { db } from '@/data/db';
-import { applyE281ScenarioFallback } from '@/data/e281Fallback';
+import {
+  hasScenarioVehicleConfigModel,
+  requireScenarioConfig,
+} from '@/data/scenarioGuards';
 import type { ProjectRecord, ScenarioRecord } from '@/data/db';
 import {
   computeInternalHarnessCost,
@@ -24,6 +27,10 @@ import { useProjectStore } from '@/store/projectStore';
 import { useAllocStore } from '@/store/allocStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { computeMetalAlerts } from '@/engine/metal_alert';
+import {
+  applyInstallationRatiosToHarnessRecords,
+  resolveScenarioVehicleConfigs,
+} from '@/engine/configuration_model';
 
 /* ------------------------------------------------------------------ */
 /*  Exported helper types                                              */
@@ -93,6 +100,12 @@ export interface HarnessTableRow {
   laborRatio: number;
 }
 
+export interface DashboardSetupBlocker {
+  kind: 'vehicle_config_missing';
+  title: string;
+  message: string;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Hook                                                               */
 /* ------------------------------------------------------------------ */
@@ -107,6 +120,7 @@ export function useDashboardData() {
   const [harnesses, setHarnesses] = useState<ProjectHarnessResult | null>(null);
   const [internalProject, setInternalProject] = useState<InternalProjectResult | null>(null);
   const [internalHarnesses, setInternalHarnesses] = useState<InternalHarnessResult[]>([]);
+  const [setupBlocker, setSetupBlocker] = useState<DashboardSetupBlocker | null>(null);
   const [mode, setMode] = useState<'customer' | 'internal'>('internal');
   const [showMultiImport, setShowMultiImport] = useState(false);
   const [showMohDetail, setShowMohDetail] = useState(false);
@@ -143,6 +157,7 @@ export function useDashboardData() {
   const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
+    setSetupBlocker(null);
     try {
       const p = await db.projects.get(id);
       if (!p) return;
@@ -150,18 +165,51 @@ export function useDashboardData() {
       setCurrentProject(p.id, p.meta?.projectName || p.id);
 
       const rawScenario = sid ? await db.scenarios.get(sid) : null;
-      const sc = rawScenario ? applyE281ScenarioFallback(rawScenario) : null;
+      if (rawScenario) {
+        requireScenarioConfig(rawScenario, '仪表盘加载');
+      }
+      const sc = rawScenario ?? null;
       setScenario(sc ?? null);
       if (sc) setCurrentScenario(sc.id, sc.scenarioName);
+
+      if (sc && !hasScenarioVehicleConfigModel(sc)) {
+        setHarnesses(null);
+        setInternalProject(null);
+        setInternalHarnesses([]);
+        setSetupBlocker({
+          kind: 'vehicle_config_missing',
+          title: '请先录入车型配置',
+          message: '当前场景还没有车型配置模型，请先到配置矩阵录入车型配置、线束关系和销售比例。',
+        });
+        return;
+      }
 
       const hRecords = sid
         ? await db.harnesses.where('scenarioId').equals(sid).toArray()
         : await db.harnesses.where('projectId').equals(id).toArray();
+      if (sc && hRecords.length === 0) {
+        setHarnesses(null);
+        setInternalProject(null);
+        setInternalHarnesses([]);
+        setSetupBlocker({
+          kind: 'vehicle_config_missing',
+          title: '请先录入车型配置',
+          message: '当前场景还没有线束和车型配置关系，请先到配置矩阵录入车型配置、线束关系和销售比例。',
+        });
+        return;
+      }
+      const effectiveRecords = sc
+        ? applyInstallationRatiosToHarnessRecords(
+          hRecords,
+          resolveScenarioVehicleConfigs(sc),
+          sc.harnessConfigMappings ?? [],
+        )
+        : hRecords;
 
-      const metalPrices = sc?.config?.metalPrices ?? { copper: 68400, aluminum: 18200 };
+      const metalPrices = sc?.config?.metalPrices ?? defaultMetalPrices;
       const internalRates = sc?.config?.internalRates ?? INTERNAL_DEFAULTS;
 
-      const internalResults: InternalHarnessResult[] = hRecords.map((rec) =>
+      const internalResults: InternalHarnessResult[] = effectiveRecords.map((rec) =>
         computeInternalHarnessCost(rec.input, internalRates, metalPrices),
       );
       const intProjResult = computeInternalProjectFromHarnesses(internalResults);
@@ -180,7 +228,7 @@ export function useDashboardData() {
     } finally {
       setLoading(false);
     }
-  }, [id, sid, setCurrentProject, setCurrentScenario, loadProjectAlloc, loadScenarioAlloc]);
+  }, [id, sid, setCurrentProject, setCurrentScenario, loadProjectAlloc, loadScenarioAlloc, defaultMetalPrices]);
 
   useEffect(() => {
     loadData();
@@ -315,8 +363,7 @@ export function useDashboardData() {
       rebateLabel: rebate?.label || '返点',
       hasRebate: (rebate?.totalAmount || 0) > 0,
     };
-    // FIX #26: added recoverySummary, customerVehicleCost, allocPerVehicle to deps
-  }, [project, scenario, summary, internalProject, allocSummary, recoverySummary, customerVehicleCost, allocPerVehicle]);
+  }, [project, scenario, summary, internalProject, customerVehicleCost, allocPerVehicle]);
 
   // ---- harness profit table rows -----------------------------------
   const harnessTableData: HarnessTableRow[] = useMemo(() => {
@@ -398,6 +445,7 @@ export function useDashboardData() {
     summary,
     internalSummary,
     internalHarnesses,
+    setupBlocker,
     // UI toggles
     mode,
     setMode,

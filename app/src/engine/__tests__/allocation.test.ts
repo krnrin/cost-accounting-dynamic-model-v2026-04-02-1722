@@ -71,6 +71,18 @@ describe('allocation engine', () => {
       expect(weights).toEqual([0.5, 0.25, 0.25]);
     });
 
+    it('should prefer installationRatio for volume allocation', () => {
+      const harnesses = [
+        { ...mockHarnesses[0], vehicleRatio: 0.9, installationRatio: 0.6 },
+        { ...mockHarnesses[1], vehicleRatio: 0.05, installationRatio: 0.3 },
+        { ...mockHarnesses[2], vehicleRatio: 0.05, installationRatio: 0.1 },
+      ] as HarnessResult[];
+      const weights = computeAllocationWeights(harnesses, 'volume');
+      expect(weights[0]).toBeCloseTo(0.6);
+      expect(weights[1]).toBeCloseTo(0.3);
+      expect(weights[2]).toBeCloseTo(0.1);
+    });
+
     it('should handle zero total and return equal weights', () => {
       const zeroHarnesses = mockHarnesses.map(h => ({ ...h, processHours: 0 }));
       const weights = computeAllocationWeights(zeroHarnesses as any, 'hours');

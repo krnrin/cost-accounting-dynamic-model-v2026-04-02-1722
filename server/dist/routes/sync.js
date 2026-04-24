@@ -46,6 +46,7 @@ router.post('/push', authMiddleware, async (req, res, next) => {
                         const data = {
                             id: entityId,
                             projectId: payload.projectId,
+                            scenarioId: payload.scenarioId || null,
                             harnessId: payload.harnessId || entityId,
                             harnessName: payload.harnessName || 'Unnamed',
                             input: toJson(payload.input),

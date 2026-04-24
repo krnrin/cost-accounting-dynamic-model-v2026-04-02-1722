@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Automotive high-voltage harness cost accounting workbench \u2014 offline-first PWA",
+  "description": "Automotive high-voltage harness cost accounting workbench — offline-first PWA",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "verify:e281": "npx tsx scripts/generate_e281_verification_reports.ts"
   },
   "dependencies": {
     "@douyinfe/semi-icons": "^2.73.0",
@@ -29,7 +30,6 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.5.0",
-    "xlsx": "^0.18.5",
     "zustand": "^5.0.3"
   },
   "devDependencies": {
@@ -55,6 +55,7 @@
     "vite": "^6.2.0",
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^3.1.0",
-    "workbox-window": "^7.3.0"
+    "workbox-window": "^7.3.0",
+    "xlsx": "^0.18.5"
   }
 }

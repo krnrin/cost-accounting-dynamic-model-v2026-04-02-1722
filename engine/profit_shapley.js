@@ -67,6 +67,8 @@
   // Issue #10: 委托给 G281Shared（通过 global 安全引用，避免裸变量 ReferenceError）
   const clonePlain = (global.G281Shared && global.G281Shared.clonePlain)
     || function (value, fallback) { try { return JSON.parse(JSON.stringify(value)); } catch (e) { return fallback; } };
+  const U = global.G281SharedUtils || {};
+  const numberOr = U.numberOr || function (v, fb) { var n = Number(v); return Number.isFinite(n) ? n : fb; };
 
   function factorialTable(size) {
     const values = [1];
@@ -158,7 +160,7 @@
       state,
       draft,
       model,
-      margin: Number(model?.margin) || 0,
+      margin: numberOr(model?.margin, 0),
     };
     cache.set(mask, result);
     return result;
@@ -253,7 +255,7 @@
     defaultBaselineState: {
       bom: 'freeze',
       metal: 'quote',
-      connector: 'batch',
+      connector: 'quote',
       labor: 'base',
       equipment: 'base',
       packaging: 'base',

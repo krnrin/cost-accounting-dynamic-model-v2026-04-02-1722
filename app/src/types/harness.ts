@@ -103,6 +103,8 @@ export interface HarnessInput {
   harnessName: string;
   /** 装车比 (0~1) */
   vehicleRatio: number;
+  /** 推算安装占比，优先由配置映射生成；未提供时等同 vehicleRatio */
+  installationRatio?: number;
   /** BOM 物料清单 */
   bom: (BomItem | WireItem)[];
   /** 前工序工时 (小时) */
@@ -151,6 +153,8 @@ export interface HarnessResult {
   harnessName: string;
   /** 装车比 */
   vehicleRatio: number;
+  /** 推算安装占比，项目加权/分摊优先使用该值 */
+  installationRatio?: number;
   /** 铜重合计 (kg) */
   copperWeight: number;
   /** 铝重合计 (kg) */
@@ -254,6 +258,7 @@ export interface InternalHarnessResult {
   harnessId: string;
   harnessName: string;
   vehicleRatio: number;
+  installationRatio?: number;
   materialCost: number;        // 与客户报价相同
   directLabor: number;         // 直接人工 (元)
   
@@ -362,6 +367,7 @@ export interface SchemaComputeResult {
   harnessId: string;
   harnessName: string;
   vehicleRatio: number;
+  installationRatio?: number;
   /** 各成本项计算值 */
   items: Record<string, number>;
   /** 出厂价 */
@@ -396,6 +402,27 @@ export interface PrecisionMeta {
 /** 车型配置发布状态 */
 export type ConfigPublishState = 'draft' | 'engineer_published' | 'sales_published';
 
+export type ConfigSliceType = 'standard' | 'optional';
+
+export interface ConfigSku {
+  skuId: string;
+  cmCode: string;
+  skuName: string;
+  mixRatio: number;
+  drivetrain: 'rwd' | 'fwd' | 'awd';
+  ptcAvailable: boolean;
+  ptcOptionalRatio: number;
+  note?: string;
+}
+
+export interface HarnessConfigMapping {
+  harnessId: string;
+  skuId: string;
+  sliceType: ConfigSliceType | 'all';
+  installationRatio: number;
+  note?: string;
+}
+
 /** 车型配置 */
 export interface VehicleConfig {
   /** 配置ID (如 'cfg-520-qihang') */
@@ -406,6 +433,14 @@ export interface VehicleConfig {
   salesRatio: number;
   /** 该配置装配的线束ID列表 */
   harnessIds: string[];
+  skuId?: string;
+  cmCode?: string;
+  sliceType?: ConfigSliceType;
+  ptcInstalled?: boolean;
+  ptcAvailable?: boolean;
+  mixRatio?: number;
+  ptcOptionalRatio?: number;
+  drivetrain?: 'rwd' | 'fwd' | 'awd';
   /** 备注 */
   note?: string;
 }

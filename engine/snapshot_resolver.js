@@ -32,7 +32,7 @@
     const summaryKey = kind === 'quote' ? 'quoteSummary' : 'fixedSummary';
     const amount = Number(validation && validation.comparisons && validation.comparisons[scopeId]
       && validation.comparisons[scopeId][summaryKey] && validation.comparisons[scopeId][summaryKey].totalNewAmount);
-    return Number.isFinite(amount) ? amount : (Number(fallback) || 0);
+    return Number.isFinite(amount) ? amount : numberOr(fallback, 0);
   }
 
   // ── BOM 版本快照 ────────────────────────────
@@ -58,22 +58,22 @@
       equipment: validationCapitalAmount(runtime && runtime.capitalValidation, 'equipment', 'quote', base && base.capital && base.capital.equipment),
       tooling: validationCapitalAmount(runtime && runtime.capitalValidation, 'tooling', 'quote', base && base.capital && base.capital.tooling),
       fixtures: validationCapitalAmount(runtime && runtime.capitalValidation, 'fixtures', 'quote', base && base.capital && base.capital.fixtures),
-      rnd: Number(base && base.capital && base.capital.rnd) || 0,
+      rnd: numberOr(base && base.capital && base.capital.rnd, 0),
       sourceKind: 'quote',
     };
     const fixedSnapshot = {
       equipment: validationCapitalAmount(runtime && runtime.capitalValidation, 'equipment', 'fixed', base && base.capital && base.capital.equipment),
       tooling: validationCapitalAmount(runtime && runtime.capitalValidation, 'tooling', 'fixed', base && base.capital && base.capital.tooling),
       fixtures: validationCapitalAmount(runtime && runtime.capitalValidation, 'fixtures', 'fixed', base && base.capital && base.capital.fixtures),
-      rnd: Number(base && base.capital && base.capital.rnd) || 0,
+      rnd: numberOr(base && base.capital && base.capital.rnd, 0),
       sourceKind: 'fixed',
     };
     const option = base && base.versions && base.versions.equipment ? base.versions.equipment[versionKey] || {} : {};
     const hasExplicitCapital = ['equipment', 'tooling', 'fixtures', 'rnd'].some((k) =>
       option && option[k] !== undefined && option[k] !== null && option[k] !== '');
     if (hasExplicitCapital) {
-      return { equipment: Number(option.equipment) || 0, tooling: Number(option.tooling) || 0,
-               fixtures: Number(option.fixtures) || 0, rnd: Number(option.rnd) || 0, sourceKind: 'custom' };
+      return { equipment: numberOr(option.equipment, 0), tooling: numberOr(option.tooling, 0),
+               fixtures: numberOr(option.fixtures, 0), rnd: numberOr(option.rnd, 0), sourceKind: 'custom' };
     }
     if (versionKey === 'base') return quoteSnapshot;
     if (versionKey === 'shared') return fixedSnapshot;

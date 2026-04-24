@@ -28,8 +28,8 @@ export function MultiDirectionNoticeBar({ currentSheetType, localDetection, inco
             <span className="text-amber-900 font-medium">本表({SHEET_LABELS[currentSheetType]})已修改：{localDetection.summary}</span>
           </div>
           <div className="flex gap-2">
-            <button className="px-3 py-1 rounded bg-amber-500 text-white text-xs" onClick={() => onOpenOutboundCascade(localDetection)}>联动到其他表 →</button>
-            <button className="text-xs text-gray-500" onClick={onDismissLocal}>稍后</button>
+            <button data-testid="workbook-open-cascade" className="px-3 py-1 rounded bg-amber-500 text-white text-xs" onClick={() => onOpenOutboundCascade(localDetection)}>联动到其他表 →</button>
+            <button data-testid="workbook-dismiss-local-change" className="text-xs text-gray-500" onClick={onDismissLocal}>稍后</button>
           </div>
         </div>
       )}
@@ -41,8 +41,8 @@ export function MultiDirectionNoticeBar({ currentSheetType, localDetection, inco
             <span className="px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700">影响本表 {target.affectedRowIndices.length} 行</span>
           </div>
           <div className="flex gap-2">
-            <button className="px-3 py-1 rounded bg-blue-500 text-white text-xs" onClick={() => onOpenInboundSync(event, target)}>查看 & 确认同步</button>
-            <button className="text-xs text-gray-500" onClick={() => onDismissIncoming(event.eventId)}>忽略</button>
+            <button data-testid="workbook-open-inbound-sync" className="px-3 py-1 rounded bg-blue-500 text-white text-xs" onClick={() => onOpenInboundSync(event, target)}>查看 & 确认同步</button>
+            <button data-testid="workbook-dismiss-incoming-change" className="text-xs text-gray-500" onClick={() => onDismissIncoming(event.eventId)}>忽略</button>
           </div>
         </div>
       ))}

@@ -82,6 +82,8 @@ export interface UniverSheetProps {
   height?: number | string;
   /** Container width */
   width?: number | string;
+  minRowCount?: number;
+  minColumnCount?: number;
   /** Data change callback — returns 2D array of active sheet */
   onChange?: (data: (string | number | null)[][], sheetId?: string) => void;
   /** Cell click callback */
@@ -90,7 +92,18 @@ export interface UniverSheetProps {
   onActiveSheetChange?: (sheetId: string) => void;
   /** Custom className */
   className?: string;
+  /** Optional test id for E2E selectors */
+  testId?: string;
+  /** Optional aria label for the wrapper */
+  ariaLabel?: string;
 }
+
+type UniverTestApi = {
+  setActiveSheet: (sheetId: string) => void;
+  getActiveSheetId: () => string | undefined;
+  listSheetIds: () => string[];
+  replaceSheetData: (sheetId: string, data: (string | number | null)[][]) => void;
+};
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -135,10 +148,14 @@ export default function UniverSheet({
   hideGridlines = false,
   height = 400,
   width = '100%',
+  minRowCount,
+  minColumnCount,
   onChange,
   onCellClick,
   onActiveSheetChange,
   className,
+  testId,
+  ariaLabel,
 }: UniverSheetProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const univerRef = useRef<any>(null);
@@ -202,13 +219,67 @@ export default function UniverSheet({
 
     // Build workbook data — rawCellData, multi-sheet, or single-sheet
     const workbookData = rawCellData
-      ? buildRawCellDataWorkbook(rawCellData, columnWidths, freezeRows, hideHeaders, hideGridlines)
+      ? buildRawCellDataWorkbook(rawCellData, columnWidths, freezeRows, hideHeaders, hideGridlines, minRowCount, minColumnCount)
       : sheets && sheets.length > 0
-        ? buildMultiSheetWorkbook(sheets)
-        : buildSingleSheetWorkbook(data, columns, columnWidths, freezeRows, hideHeaders, hideGridlines);
+        ? buildMultiSheetWorkbook(sheets, minRowCount, minColumnCount)
+        : buildSingleSheetWorkbook(data, columns, columnWidths, freezeRows, hideHeaders, hideGridlines, minRowCount, minColumnCount);
 
     const workbook = univerAPI.createUniverSheet(workbookData);
     workbookRef.current = workbook;
+
+    if (testId) {
+      const globalWindow = window as Window & {
+        __UNIVER_TEST_API__?: Record<string, UniverTestApi>;
+      };
+      globalWindow.__UNIVER_TEST_API__ = globalWindow.__UNIVER_TEST_API__ || {};
+      globalWindow.__UNIVER_TEST_API__[testId] = {
+        setActiveSheet: (sheetId: string) => {
+          univerAPI.executeCommand('sheet.command.set-worksheet-active', {
+            unitId: workbookData.id,
+            subUnitId: sheetId,
+          });
+          onActiveSheetChangeRef.current?.(sheetId);
+        },
+        getActiveSheetId: () => {
+          const activeWorkbook = univerAPI.getActiveWorkbook();
+          const activeSheet = activeWorkbook?.getActiveSheet() as { getSheetId?: () => string } | undefined;
+          return activeSheet?.getSheetId?.();
+        },
+        listSheetIds: () => Object.keys((workbookData as { sheets?: Record<string, unknown> }).sheets || {}),
+        replaceSheetData: (sheetId: string, data: (string | number | null)[][]) => {
+          const activeWorkbook = univerAPI.getActiveWorkbook();
+          const targetSheet = activeWorkbook?.getSheetBySheetId(sheetId) ?? activeWorkbook?.getActiveSheet();
+          if (!targetSheet) {
+            throw new Error(`Unable to resolve Univer sheet: ${sheetId}`);
+          }
+
+          const rowCount = Math.max(data.length, 1);
+          const colCount = Math.max(data.reduce((max, row) => Math.max(max, row.length), 0), 1);
+          if (typeof targetSheet.getMaxRows === 'function' && typeof targetSheet.setRowCount === 'function') {
+            const currentRowCount = targetSheet.getMaxRows();
+            if (currentRowCount < rowCount) {
+              targetSheet.setRowCount(rowCount);
+            }
+          }
+          if (typeof targetSheet.getMaxColumns === 'function' && typeof targetSheet.setColumnCount === 'function') {
+            const currentColumnCount = targetSheet.getMaxColumns();
+            if (currentColumnCount < colCount) {
+              targetSheet.setColumnCount(colCount);
+            }
+          }
+
+          const normalized = Array.from({ length: rowCount }, (_, rowIndex) =>
+            Array.from({ length: colCount }, (_, colIndex) => {
+              const cell = data[rowIndex]?.[colIndex];
+              return cell === undefined ? null : cell;
+            })
+          );
+
+          targetSheet.getRange(0, 0, rowCount, colCount).setValues(normalized as any);
+          debouncedOnChange(normalized, sheetId);
+        },
+      };
+    }
 
     if (readOnly && typeof (workbook as any).setEditable === 'function') {
       (workbook as any).setEditable(false);
@@ -263,8 +334,16 @@ export default function UniverSheet({
           const activeSheet = activeWorkbook?.getActiveSheet();
           if (activeSheet) {
             const s = activeSheet as any;
-            const rowCount = typeof s.getRowCount === 'function' ? s.getRowCount() : 100;
-            const colCount = typeof s.getColumnCount === 'function' ? s.getColumnCount() : 20;
+            const rowCount = typeof s.getMaxRows === 'function'
+              ? s.getMaxRows()
+              : typeof s.getRowCount === 'function'
+                ? s.getRowCount()
+                : 100;
+            const colCount = typeof s.getMaxColumns === 'function'
+              ? s.getMaxColumns()
+              : typeof s.getColumnCount === 'function'
+                ? s.getColumnCount()
+                : 20;
             const range = activeSheet.getRange(0, 0, rowCount, colCount);
             const values = range.getValues();
             const simpleValues = (values as any[][]).map(row =>
@@ -278,6 +357,14 @@ export default function UniverSheet({
     }
 
     return () => {
+      if (testId) {
+        const globalWindow = window as Window & {
+          __UNIVER_TEST_API__?: Record<string, UniverTestApi>;
+        };
+        if (globalWindow.__UNIVER_TEST_API__) {
+          delete globalWindow.__UNIVER_TEST_API__[testId];
+        }
+      }
       if (cellClickDisposable) cellClickDisposable.dispose();
       if (disposable) disposable.dispose();
       univerAPI.dispose();
@@ -296,6 +383,8 @@ export default function UniverSheet({
     <div
       ref={containerRef}
       className={className}
+      data-testid={testId}
+      aria-label={ariaLabel}
       style={{
         height, width,
         background: 'transparent',
@@ -315,6 +404,8 @@ function buildSheetData(
   freeze: number = 1,
   hideHeaders: boolean = false,
   hideGridlines: boolean = false,
+  minRows?: number,
+  minCols?: number,
 ) {
   const cellData: Record<number, Record<number, any>> = {};
   displayData.forEach((row, ri) => {
@@ -335,14 +426,14 @@ function buildSheetData(
   }
 
   const rowData: Record<number, { h: number }> = {};
-  for (let i = 0; i < freeze; i++) {
-    rowData[i] = { h: 28 };
+  for (let i = 0; i < displayData.length; i += 1) {
+    rowData[i] = { h: i < freeze ? 36 : 34 };
   }
 
   return {
     cellData,
-    rowCount: Math.max(displayData.length, 50),
-    columnCount: Math.max(displayData[0]?.length || 0, 20),
+    rowCount: Math.max(displayData.length, minRows ?? displayData.length, 1),
+    columnCount: Math.max(displayData[0]?.length || 0, minCols ?? (displayData[0]?.length || 0), 1),
     columnData,
     rowData,
     showGridlines: hideGridlines ? 0 : 1,
@@ -358,12 +449,14 @@ function buildSingleSheetWorkbook(
   freezeRows: number = 1,
   hideHeaders: boolean = false,
   hideGridlines: boolean = false,
+  minRows?: number,
+  minCols?: number,
 ) {
   let displayData: (string | number | null)[][] = [];
   if (data && data.length > 0) displayData = data;
   else if (columns && columns.length > 0) displayData = [columns];
 
-  const sheetPayload = buildSheetData(displayData, columnWidths, freezeRows, hideHeaders, hideGridlines);
+  const sheetPayload = buildSheetData(displayData, columnWidths, freezeRows, hideHeaders, hideGridlines, minRows, minCols);
   return {
     id: 'workbook-01',
     styles: WORKBOOK_STYLES,
@@ -378,6 +471,8 @@ function buildRawCellDataWorkbook(
   freezeRows: number = 1,
   hideHeaders: boolean = false,
   hideGridlines: boolean = false,
+  minRows?: number,
+  minCols?: number,
 ) {
   const rowKeys = Object.keys(cellData).map(Number);
   const maxRow = rowKeys.length > 0 ? Math.max(...rowKeys) + 1 : 1;
@@ -393,8 +488,8 @@ function buildRawCellDataWorkbook(
   }
 
   const rowData: Record<number, { h: number }> = {};
-  for (let i = 0; i < freezeRows; i++) {
-    rowData[i] = { h: 28 };
+  for (let i = 0; i < Math.max(maxRow, minRows ?? maxRow, 1); i += 1) {
+    rowData[i] = { h: i < freezeRows ? 36 : 34 };
   }
 
   return {
@@ -404,8 +499,8 @@ function buildRawCellDataWorkbook(
         id: 'sheet-raw',
         name: 'Sheet',
         cellData,
-        rowCount: Math.max(maxRow, 20),
-        columnCount: Math.max(maxCol, 10),
+        rowCount: Math.max(maxRow, minRows ?? maxRow, 1),
+        columnCount: Math.max(maxCol, minCols ?? maxCol, 1),
         columnData,
         rowData,
         showGridlines: hideGridlines ? 0 : 0,
@@ -417,12 +512,12 @@ function buildRawCellDataWorkbook(
   };
 }
 
-function buildMultiSheetWorkbook(sheets: SheetDef[]) {
+function buildMultiSheetWorkbook(sheets: SheetDef[], minRows?: number, minCols?: number) {
   const sheetsMap: Record<string, any> = {};
   const sheetOrder: string[] = [];
 
   sheets.forEach(s => {
-    const payload = buildSheetData(s.data, s.columnWidths, s.freezeRows ?? 1);
+    const payload = buildSheetData(s.data, s.columnWidths, s.freezeRows ?? 1, false, false, minRows, minCols);
     sheetsMap[s.id] = { id: s.id, name: s.name, ...payload };
     sheetOrder.push(s.id);
   });

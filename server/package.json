@@ -17,7 +17,8 @@
     "db:deploy": "prisma migrate deploy",
     "db:init": "tsx src/lib/dbInit.ts",
     "db:reset": "prisma migrate reset --force && prisma db seed",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "healthcheck": "node scripts/healthcheck.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

@@ -150,7 +150,7 @@
 
   "costElements": [ { "id": "connector", "name": "连接器", "hasProtocolPrice": true, "hasMaterialCalc": false }, { "id": "wire", "name": "导线", "hasProtocolPrice": false, "hasMaterialCalc": true }, { "id": "terminal", "name": "端子", "hasProtocolPrice": true, "hasMaterialCalc": false }, { "id": "ipt_terminal", "name": "IPT端子", "hasProtocolPrice": true, "hasMaterialCalc": false }, { "id": "tape_tube", "name": "胶带套管", "hasProtocolPrice": false, "hasMaterialCalc": false }, { "id": "bracket_rubber", "name": "支架橡胶", "hasProtocolPrice": false, "hasMaterialCalc": false } ],
   "nreCostTypes": ["模具", "检具", "研发", "样品", "认证"],
-  "stateDefaults": { "bom": "freeze", "metal": "quote", "connector": "quote", "labor": "base", "equipment": "base", "packaging": "base", "sales": "quote", "mix": "quote", "annualDrop": "quote", "oneTimeCustomer": "quote", "rebate": "quote", "vave": "none" },
+  "stateDefaults": { "bom": "freeze", "metal": "quote", "connector": "quote", "labor": "base", "equipment": "base", "packaging": "base", "sales": "quote", "mix": "quote", "configSheet": "quote", "annualDrop": "quote", "oneTimeCustomer": "quote", "rebate": "quote", "vave": "none" },
   "storageKeyPrefix": "g281",
   "globalNamespacePrefix": "G281",
   "changeHistory": []

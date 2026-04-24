@@ -310,7 +310,15 @@ describe('allocStore matrix-first state', () => {
       result.current.recompute(120000);
     });
 
-    expect(result.current.recoverySummary?.priceAdjustmentAlerts).toEqual(['H011']);
+    expect(result.current.recoverySummary?.priceAdjustmentAlerts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          harnessId: 'H011',
+          harnessName: 'H011',
+          needsPriceAdjustment: true,
+        }),
+      ]),
+    );
     expect(result.current.recoverySummary?.trackers[0]?.needsPriceAdjustment).toBe(true);
     expect(result.current.recoverySummary?.trackers[0]?.status).toBe('recovered');
   });

@@ -144,7 +144,11 @@ async function loadQuoteBundle(quoteId) {
         throw err;
     }
     const harness = quote.harnessId
-        ? await prisma.harness.findFirst({ where: { projectId: quote.projectId, harnessId: quote.harnessId } })
+        ? await prisma.harness.findFirst({
+            where: quote.scenarioId
+                ? { scenarioId: quote.scenarioId, harnessId: quote.harnessId }
+                : { projectId: quote.projectId, harnessId: quote.harnessId },
+        })
         : null;
     const scenario = quote.scenarioId
         ? await prisma.scenario.findUnique({ where: { id: quote.scenarioId } })

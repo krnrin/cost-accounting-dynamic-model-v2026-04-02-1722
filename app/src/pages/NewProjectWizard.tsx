@@ -1,32 +1,24 @@
-/**
- * NewProjectWizard — 4-step project creation wizard (Issue #31)
- *
- * Flow: Basic Info → Volume Plan → Confirm & Create
- *
- * Uses apiClient for backend project creation, then creates a baseline
- * scenario in Dexie and navigates to the project dashboard.
- */
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import {
-  Steps,
+  Banner,
   Button,
-  Typography,
-  Toast,
   Card,
+  Descriptions,
   Input,
   InputNumber,
   Space,
-  Descriptions,
-  Banner,
+  Steps,
+  Toast,
+  Typography,
 } from '@douyinfe/semi-ui';
 import { IconArrowLeft, IconArrowRight, IconTick } from '@douyinfe/semi-icons';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '@/lib/apiClient';
-import { db } from '@/data/db';
-import type { ProjectRecord, ScenarioRecord } from '@/data/db';
-import type { VolumeSchedule, ProjectConfig } from '@/types/project';
-import { useProjectStore } from '@/store/projectStore';
 import type { CSSProperties } from 'react';
+
+import { db, type ProjectRecord, type ScenarioRecord } from '@/data/db';
+import { apiClient } from '@/lib/apiClient';
+import { useProjectStore } from '@/store/projectStore';
+import type { ProjectConfig, VolumeSchedule } from '@/types/project';
 
 const { Title, Text } = Typography;
 
@@ -46,6 +38,34 @@ interface WizardData {
 interface StepDef {
   title: string;
   description: string;
+}
+
+interface CreatedProjectResponse {
+  id: string;
+  projectCode: string;
+  projectName: string;
+  customer: string;
+  platform?: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface CreatedScenarioResponse {
+  id: string;
+  projectId: string;
+  type: 'initial_quote' | 'fixed_point' | 'change' | 'annual_drop';
+  name: string;
+  status?: string;
+  lifecycleYears: number;
+  config?: ProjectConfig;
+  vehicleConfigs?: ScenarioRecord['vehicleConfigs'];
+  configSkus?: ScenarioRecord['configSkus'];
+  harnessConfigMappings?: ScenarioRecord['harnessConfigMappings'];
+  vehicleConfigMeta?: ScenarioRecord['vehicleConfigMeta'];
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 const STEPS: StepDef[] = [
@@ -72,9 +92,25 @@ const DEFAULT_PROJECT_CONFIG: ProjectConfig = {
 
 const BASIC_PLACEHOLDERS = {
   projectCode: '如 E281',
-  projectName: '如 E281高压线束包',
+  projectName: '如 吉利E281高压线束',
   customer: '如 吉利汽车',
   platform: '如 SEA架构',
+};
+
+const SETUP_NOTICE = '项目已创建，请先在配置矩阵中录入车型配置、线束关系和销售占比。';
+
+const S: Record<string, CSSProperties> = {
+  root: { maxWidth: 860, margin: '0 auto', padding: '24px 16px' },
+  steps: { marginBottom: 32 },
+  card: { marginBottom: 16 },
+  field: { marginBottom: 16 },
+  label: { display: 'block', marginBottom: 4, fontWeight: 500 },
+  row: { display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 },
+  yearTag: { minWidth: 60, textAlign: 'center' },
+  volInput: { flex: 1 },
+  remarkInput: { flex: 2 },
+  footer: { marginTop: 32, display: 'flex', justifyContent: 'space-between' },
+  summarySection: { marginBottom: 16 },
 };
 
 function makeDefaultVolumes(years: number): VolumeSchedule[] {
@@ -106,58 +142,84 @@ function buildApiPayload(data: WizardData) {
   };
 }
 
-function buildProjectRecordConfig(data: WizardData): ProjectConfig {
-  return buildProjectConfig(data.volumes.filter((v) => v.volume > 0));
+function buildScenarioCreatePayload(data: WizardData) {
+  const volumes = data.volumes.filter((v) => v.volume > 0);
+  const volume = volumes.reduce((sum, item) => sum + item.volume, 0);
+  const config = buildProjectConfig(volumes);
+
+  return {
+    type: 'initial_quote' as const,
+    name: '初始报价',
+    status: 'draft',
+    lifecycleYears: data.basic.lifecycleYears,
+    volume,
+    installRatio: 1,
+    config,
+    vehicleConfigs: [],
+    configSkus: [],
+    harnessConfigMappings: [],
+    vehicleConfigMeta: {},
+    notes: '项目创建时自动生成的基准场景',
+  };
 }
 
-function buildScenarioConfig(data: WizardData): ProjectConfig {
-  return buildProjectConfig(data.volumes.filter((v) => v.volume > 0));
+function buildProjectRecord(created: CreatedProjectResponse, data: WizardData): ProjectRecord {
+  return {
+    id: created.id,
+    meta: {
+      id: created.id,
+      projectCode: created.projectCode,
+      projectName: created.projectName,
+      customer: created.customer,
+      platform: created.platform,
+      lifecycleYears: data.basic.lifecycleYears,
+      status: 'draft',
+      createdAt: created.createdAt,
+      updatedAt: created.updatedAt,
+    },
+    config: buildProjectConfig(data.volumes.filter((v) => v.volume > 0)),
+  };
 }
 
-function renderVolumeValue(v: VolumeSchedule) {
-  return v.volume.toLocaleString() + ' 台' + (v.remark ? ' (' + v.remark + ')' : '');
-}
-
-function renderSetupNotice() {
-  return '创建后将自动生成基准场景 (SCN-001 初始报价)，系统默认费率与金属基准请在“设置”中维护。';
-}
-
-function renderProjectScopeHint() {
-  return '项目创建只录入项目基础信息与生命周期产量，客户模板中的费率/金属价不在此处维护。';
-}
-
-function renderConfirmHint() {
-  return '客户模板费率、利润率和铜铝基准价不在项目创建时录入，避免混淆内部核算与客户报价口径。';
+function buildLocalScenarioRecord(createdScenario: CreatedScenarioResponse, fallbackConfig: ProjectConfig): ScenarioRecord {
+  return {
+    id: createdScenario.id,
+    projectId: createdScenario.projectId,
+    scenarioCode: 'SCN-001',
+    scenarioName: createdScenario.name,
+    scenarioType: 'initial_quote',
+    parentScenarioId: null,
+    isBaseline: true,
+    lifecycleYears: createdScenario.lifecycleYears,
+    config: createdScenario.config ?? fallbackConfig,
+    note: createdScenario.notes ?? '',
+    vehicleConfigs: createdScenario.vehicleConfigs,
+    configSkus: createdScenario.configSkus,
+    harnessConfigMappings: createdScenario.harnessConfigMappings,
+    vehicleConfigMeta: createdScenario.vehicleConfigMeta,
+    status: (createdScenario.status as ScenarioRecord['status']) ?? 'draft',
+    createdAt: createdScenario.createdAt,
+    updatedAt: createdScenario.updatedAt,
+  };
 }
 
 function buildCreateFailureMessage(error: unknown) {
-  return '创建失败: ' + (error as Error).message;
+  return `创建失败: ${(error as Error).message}`;
 }
 
-function buildProjectPath(projectId: string, scenarioId: string) {
-  return '/project/' + projectId + '/s/' + scenarioId;
+function buildScenarioConfigPath(projectId: string, scenarioId: string) {
+  return `/project/${projectId}/s/${scenarioId}/config`;
 }
 
-const S: Record<string, CSSProperties> = {
-  root: { maxWidth: 860, margin: '0 auto', padding: '24px 16px' },
-  steps: { marginBottom: 32 },
-  card: { marginBottom: 16 },
-  field: { marginBottom: 16 },
-  label: { display: 'block', marginBottom: 4, fontWeight: 500 },
-  row: { display: 'flex', gap: 12, alignItems: 'center', marginBottom: 8 },
-  yearTag: { minWidth: 60, textAlign: 'center' as const },
-  volInput: { flex: 1 },
-  remarkInput: { flex: 2 },
-  footer: { marginTop: 32, display: 'flex', justifyContent: 'space-between' },
-  summarySection: { marginBottom: 16 },
-};
+function renderVolumeValue(item: VolumeSchedule) {
+  return `${item.volume.toLocaleString()} 台${item.remark ? ` (${item.remark})` : ''}`;
+}
 
 export default function NewProjectWizard() {
   const navigate = useNavigate();
   const { setCurrentProject } = useProjectStore();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-
   const [data, setData] = useState<WizardData>({
     basic: {
       projectCode: '',
@@ -170,16 +232,15 @@ export default function NewProjectWizard() {
   });
 
   const totalVolume = data.volumes.reduce((sum, item) => sum + item.volume, 0);
-  const filteredVolumes = data.volumes.filter((v) => v.volume > 0);
+  const filteredVolumes = data.volumes.filter((item) => item.volume > 0);
 
   const updateBasic = useCallback((patch: Partial<BasicInfo>) => {
     setData((prev) => {
       const next = { ...prev, basic: { ...prev.basic, ...patch } };
       if (patch.lifecycleYears && patch.lifecycleYears !== prev.basic.lifecycleYears) {
-        const old = prev.volumes;
-        next.volumes = Array.from({ length: patch.lifecycleYears }, (_, i) => (
-          old[i] || { year: i + 1, volume: 0, remark: '' }
-        ));
+        next.volumes = Array.from({ length: patch.lifecycleYears }, (_, i) => {
+          return prev.volumes[i] || { year: i + 1, volume: 0, remark: '' };
+        });
       }
       return next;
     });
@@ -199,9 +260,11 @@ export default function NewProjectWizard() {
       if (!data.basic.projectName.trim()) return '请填写项目名称';
       if (!data.basic.customer.trim()) return '请填写客户名称';
     }
+
     if (currentStep === 1 && totalVolume <= 0) {
       return '至少填写一年的产量';
     }
+
     return null;
   };
 
@@ -214,61 +277,38 @@ export default function NewProjectWizard() {
     setStep((current) => Math.min(current + 1, STEPS.length - 1));
   };
 
-  const handlePrev = () => setStep((current) => Math.max(current - 1, 0));
+  const handlePrev = () => {
+    setStep((current) => Math.max(current - 1, 0));
+  };
 
   const handleCreate = async () => {
     try {
       setSubmitting(true);
 
-      const created = await apiClient<{
-        id: string;
-        projectCode: string;
-        projectName: string;
-        customer: string;
-        platform?: string;
-        status: string;
-        createdAt: string;
-        updatedAt: string;
-      }>('/projects', { method: 'POST', body: buildApiPayload(data) });
+      const createdProject = await apiClient<CreatedProjectResponse>('/projects', {
+        method: 'POST',
+        body: buildApiPayload(data),
+      });
 
-      const projectRecord: ProjectRecord = {
-        id: created.id,
-        meta: {
-          id: created.id,
-          projectCode: created.projectCode,
-          projectName: created.projectName,
-          customer: created.customer,
-          platform: created.platform,
-          status: 'draft',
-          createdAt: created.createdAt,
-          updatedAt: created.updatedAt,
+      const scenarioPayload = buildScenarioCreatePayload(data);
+      const createdScenario = await apiClient<CreatedScenarioResponse>(
+        `/projects/${createdProject.id}/scenarios`,
+        {
+          method: 'POST',
+          body: scenarioPayload,
         },
-        config: buildProjectRecordConfig(data),
-      };
-      await db.projects.put(projectRecord);
+      );
 
-      const scenarioId = crypto.randomUUID();
-      const now = new Date().toISOString();
-      const scenario: ScenarioRecord = {
-        id: scenarioId,
-        projectId: created.id,
-        scenarioCode: 'SCN-001',
-        scenarioName: '初始报价',
-        scenarioType: 'initial_quote',
-        parentScenarioId: null,
-        isBaseline: true,
-        lifecycleYears: data.basic.lifecycleYears,
-        config: buildScenarioConfig(data),
-        note: '项目创建时自动生成的基准场景',
-        status: 'draft',
-        createdAt: now,
-        updatedAt: now,
-      };
-      await db.scenarios.put(scenario);
+      await db.projects.put(buildProjectRecord(createdProject, data));
+      await db.scenarios.put(buildLocalScenarioRecord(createdScenario, scenarioPayload.config));
 
-      setCurrentProject(created.id, created.projectName);
+      setCurrentProject(createdProject.id, createdProject.projectName);
       Toast.success('项目创建成功');
-      navigate(buildProjectPath(created.id, scenarioId));
+      navigate(buildScenarioConfigPath(createdProject.id, createdScenario.id), {
+        state: {
+          setupNotice: SETUP_NOTICE,
+        },
+      });
     } catch (error) {
       Toast.error(buildCreateFailureMessage(error));
     } finally {
@@ -277,11 +317,11 @@ export default function NewProjectWizard() {
   };
 
   return (
-    <div style={S.root}>
-      <Title heading={3}>🆕 新建项目</Title>
+    <div style={S.root} data-testid="new-project-wizard">
+      <Title heading={3}>新建项目</Title>
       <Steps current={step} style={S.steps}>
-        {STEPS.map((item, index) => (
-          <Steps.Step key={index} title={item.title} description={item.description} />
+        {STEPS.map((item) => (
+          <Steps.Step key={item.title} title={item.title} description={item.description} />
         ))}
       </Steps>
 
@@ -290,38 +330,47 @@ export default function NewProjectWizard() {
           <div style={S.field}>
             <Text style={S.label}>项目编号 *</Text>
             <Input
+              data-testid="wizard-project-code"
               value={data.basic.projectCode}
               placeholder={BASIC_PLACEHOLDERS.projectCode}
               onChange={(value) => updateBasic({ projectCode: value })}
             />
           </div>
+
           <div style={S.field}>
             <Text style={S.label}>项目名称 *</Text>
             <Input
+              data-testid="wizard-project-name"
               value={data.basic.projectName}
               placeholder={BASIC_PLACEHOLDERS.projectName}
               onChange={(value) => updateBasic({ projectName: value })}
             />
           </div>
+
           <div style={S.field}>
             <Text style={S.label}>客户名称 *</Text>
             <Input
+              data-testid="wizard-customer"
               value={data.basic.customer}
               placeholder={BASIC_PLACEHOLDERS.customer}
               onChange={(value) => updateBasic({ customer: value })}
             />
           </div>
+
           <div style={S.field}>
             <Text style={S.label}>平台/车型</Text>
             <Input
+              data-testid="wizard-platform"
               value={data.basic.platform}
               placeholder={BASIC_PLACEHOLDERS.platform}
               onChange={(value) => updateBasic({ platform: value })}
             />
           </div>
+
           <div style={S.field}>
             <Text style={S.label}>生命周期 (年)</Text>
             <InputNumber
+              data-testid="wizard-lifecycle-years"
               value={data.basic.lifecycleYears}
               min={1}
               max={15}
@@ -333,12 +382,22 @@ export default function NewProjectWizard() {
 
       {step === 1 && (
         <Card style={S.card} title="年度产量规划">
-          <Banner type="info" description="填写项目生命周期内每年的计划产量（台），用于分摊回收计算。" style={S.field} />
-          <Banner type="warning" description={renderProjectScopeHint()} style={S.field} />
+          <Banner
+            type="info"
+            description="填写项目生命周期内每年的计划产量（台），用于分摊回收计算。"
+            style={S.field}
+          />
+          <Banner
+            type="warning"
+            description="项目创建只录入项目基础信息与生命周期产量，客户模板中的费率和金属价不在此处维护。"
+            style={S.field}
+          />
+
           {data.volumes.map((item, index) => (
-            <div key={index} style={S.row}>
-              <Text style={S.yearTag}>第{item.year}年</Text>
+            <div key={item.year} style={S.row}>
+              <Text style={S.yearTag}>{`第${item.year}年`}</Text>
               <InputNumber
+                data-testid={`wizard-volume-year-${item.year}`}
                 style={S.volInput}
                 value={item.volume}
                 min={0}
@@ -349,6 +408,7 @@ export default function NewProjectWizard() {
                 onChange={(value) => updateVolume(index, { volume: Number(value) || 0 })}
               />
               <Input
+                data-testid={`wizard-volume-remark-${item.year}`}
                 style={S.remarkInput}
                 value={item.remark || ''}
                 placeholder="备注"
@@ -356,13 +416,19 @@ export default function NewProjectWizard() {
               />
             </div>
           ))}
-          <Text type="tertiary">生命周期总产量: {totalVolume.toLocaleString()} 台</Text>
+
+          <Text type="tertiary">{`生命周期总产量: ${totalVolume.toLocaleString()} 台`}</Text>
         </Card>
       )}
 
       {step === 2 && (
         <Card style={S.card} title="确认项目配置">
-          <Banner type="warning" description="项目创建阶段不录入客户模板成本参数，内部核算基线由系统设置统一维护。" style={S.field} />
+          <Banner
+            type="warning"
+            description="项目创建阶段不录入客户模板成本参数，内部核算基线由系统设置统一维护。"
+            style={S.field}
+          />
+
           <div style={S.summarySection}>
             <Title heading={6}>基本信息</Title>
             <Descriptions
@@ -371,20 +437,32 @@ export default function NewProjectWizard() {
                 { key: '项目名称', value: data.basic.projectName },
                 { key: '客户', value: data.basic.customer },
                 { key: '平台', value: data.basic.platform || '-' },
-                { key: '生命周期', value: data.basic.lifecycleYears + ' 年' },
+                { key: '生命周期', value: `${data.basic.lifecycleYears} 年` },
               ]}
             />
           </div>
+
           <div style={S.summarySection}>
             <Title heading={6}>产量规划</Title>
             <Descriptions
               data={filteredVolumes
-                .map((item) => ({ key: '第' + item.year + '年', value: renderVolumeValue(item) }))
-                .concat([{ key: '总产量', value: totalVolume.toLocaleString() + ' 台' }])}
+                .map((item) => ({
+                  key: `第${item.year}年`,
+                  value: renderVolumeValue(item),
+                }))
+                .concat([{ key: '总产量', value: `${totalVolume.toLocaleString()} 台` }])}
             />
           </div>
-          <Banner type="warning" description={renderConfirmHint()} style={S.field} />
-          <Banner type="success" description={renderSetupNotice()} />
+
+          <Banner
+            type="warning"
+            description="客户模板费率、利润率和铜铝基准价不在项目创建时录入，避免混淆内部核算与客户报价口径。"
+            style={S.field}
+          />
+          <Banner
+            type="success"
+            description="创建后将自动生成基准场景（SCN-001 初始报价），后续直接进入配置矩阵录入车型配置。"
+          />
         </Card>
       )}
 
@@ -394,18 +472,19 @@ export default function NewProjectWizard() {
             返回列表
           </Button>
           {step > 0 && (
-            <Button icon={<IconArrowLeft />} onClick={handlePrev}>
+            <Button data-testid="wizard-prev" icon={<IconArrowLeft />} onClick={handlePrev}>
               上一步
             </Button>
           )}
         </Space>
+
         {step < STEPS.length - 1 ? (
-          <Button type="primary" theme="solid" icon={<IconArrowRight />} iconPosition="right" onClick={handleNext}>
+          <Button data-testid="wizard-next" type="primary" theme="solid" icon={<IconArrowRight />} iconPosition="right" onClick={handleNext}>
             下一步
           </Button>
         ) : (
-          <Button type="primary" theme="solid" icon={<IconTick />} loading={submitting} onClick={handleCreate}>
-            ✅ 确认创建项目
+          <Button data-testid="wizard-create" type="primary" theme="solid" icon={<IconTick />} loading={submitting} onClick={handleCreate}>
+            确认创建项目
           </Button>
         )}
       </div>

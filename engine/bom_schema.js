@@ -1,9 +1,12 @@
 (function (global) {
   'use strict';
 
+  const U = global.G281SharedUtils || {};
+  const numberOr = U.numberOr || function (v, fb) { var n = Number(v); return Number.isFinite(n) ? n : fb; };
+
   const DEFAULT_PROJECT = 'default-bom';
   const columnToLabel = (column) => {
-    let next = Number(column) || 1;
+    let next = numberOr(column, 1);
     let label = '';
     while (next > 0) {
       const offset = (next - 1) % 26;

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { db } from '@/data/db';
 import type { OnetimeCostRecord } from '@/data/db';
-import { getScenarioOnetimeCostFallback } from '@/utils/e281Fallback';
+import { requireScenarioOnetimeCosts, requireScenarioRecord } from '@/data/scenarioGuards';
 import {
   computeProjectAllocFromItems,
   computeProjectRecovery,
@@ -25,8 +25,11 @@ import {
   type ScenarioAllocationParticipant,
   type ScenarioAllocationSyncRow,
 } from '@/lib/allocationApi';
+import { resolveEffectiveRatio } from '@/engine/shared_utils';
 
-export interface ScenarioAllocRow extends ScenarioAllocationSyncRow {}
+export interface ScenarioAllocRow extends ScenarioAllocationSyncRow {
+  installationRatio?: number;
+}
 
 export interface ScenarioFeeItem extends ScenarioAllocationFeeItem {}
 
@@ -73,18 +76,24 @@ function createEmptySummary() {
   };
 }
 
-function buildFallbackRows(_scenarioId: string, scenario: any): ScenarioAllocRow[] {
-  return getScenarioOnetimeCostFallback(scenario).map((record) => ({
-    harnessId: record.harnessId,
-    harnessName: record.harnessName,
-    vehicleRatio: record.vehicleRatio,
-    toolingCost: record.input.toolingCost,
-    testingCost: record.input.testingCost,
-    rndCost: record.input.rndCost ?? 0,
-    allocBase: record.input.allocBase,
-    paymentMode: record.input.paymentMode ?? 'amortized',
-    cumProduced: 0,
-  }));
+function buildScenarioRowsFromCosts(
+  costRecords: OnetimeCostRecord[],
+  cumProducedByHarnessId: Map<string, number> = new Map(),
+): ScenarioAllocRow[] {
+  return costRecords
+    .map((record) => ({
+      harnessId: record.harnessId,
+      harnessName: record.harnessName,
+      vehicleRatio: record.vehicleRatio,
+      installationRatio: resolveEffectiveRatio(record.installationRatio, record.input.installationRatio ?? record.vehicleRatio),
+      toolingCost: Number(record.input.toolingCost || 0),
+      testingCost: Number(record.input.testingCost || 0),
+      rndCost: Number(record.input.rndCost || 0),
+      allocBase: Math.max(1, Number(record.input.allocBase || 1)),
+      paymentMode: record.input.paymentMode ?? 'amortized',
+      cumProduced: Math.max(0, Number(cumProducedByHarnessId.get(record.harnessId) || 0)),
+    }))
+    .sort((a, b) => a.harnessId.localeCompare(b.harnessId));
 }
 
 function aggregateScenarioRows(items: ScenarioAllocationItem[]): ScenarioAllocRow[] {
@@ -95,6 +104,7 @@ function aggregateScenarioRows(items: ScenarioAllocationItem[]): ScenarioAllocRo
       harnessId: item.harnessId,
       harnessName: item.harnessId,
       vehicleRatio: Number(item.latestInstallRatioSnapshot || 1) || 1,
+      installationRatio: Number(item.latestInstallRatioSnapshot || 1) || 1,
       toolingCost: 0,
       testingCost: 0,
       rndCost: 0,
@@ -106,6 +116,7 @@ function aggregateScenarioRows(items: ScenarioAllocationItem[]): ScenarioAllocRo
     current.allocBase = Math.max(current.allocBase, Number(item.baselineVolume || current.allocBase));
     current.paymentMode = normalizePaymentMode(item.allocationBasis) || current.paymentMode;
     current.vehicleRatio = Number(item.latestInstallRatioSnapshot || current.vehicleRatio || 1) || 1;
+    current.installationRatio = resolveEffectiveRatio(item.latestInstallRatioSnapshot, current.installationRatio ?? current.vehicleRatio);
     current.cumProduced = Math.max(current.cumProduced, Number(item.latestCumulativeVolume || 0));
 
     if (item.expenseType === 'tooling') {
@@ -127,6 +138,7 @@ function toOnetimeCostInputs(rows: ScenarioAllocRow[]): OnetimeCostInput[] {
     harnessId: row.harnessId,
     harnessName: row.harnessName,
     vehicleRatio: row.vehicleRatio,
+    installationRatio: resolveEffectiveRatio(row.installationRatio, row.vehicleRatio),
     toolingCost: Number(row.toolingCost || 0),
     testingCost: Number(row.testingCost || 0),
     rndCost: Number(row.rndCost || 0),
@@ -159,6 +171,7 @@ function toOnetimeCostItems(feeItems: ScenarioFeeItem[]): OnetimeCostItem[] {
       harnessId: participant.harnessId,
       harnessName: participant.harnessName,
       vehicleRatio: Number(participant.vehicleRatio || 0),
+      installationRatio: resolveEffectiveRatio(participant.latestInstallRatioSnapshot, participant.vehicleRatio),
       quantity: Number(participant.quantity || 0),
       latestCumulativeVolume: Math.max(0, Number(participant.latestCumulativeVolume || 0)),
     })),
@@ -185,6 +198,7 @@ function toFeeItemRows(feeItems: ScenarioFeeItem[]): ScenarioAllocRow[] {
         harnessId: participant.harnessId,
         harnessName: participant.harnessName,
         vehicleRatio: Number(participant.vehicleRatio || 0),
+        installationRatio: resolveEffectiveRatio(participant.latestInstallRatioSnapshot, participant.vehicleRatio),
         toolingCost: 0,
         testingCost: 0,
         rndCost: 0,
@@ -196,6 +210,7 @@ function toFeeItemRows(feeItems: ScenarioFeeItem[]): ScenarioAllocRow[] {
       const amount = Number(feeItem.unitPrice || 0) * Number(participant.quantity || 0);
       current.harnessName = participant.harnessName || current.harnessName;
       current.vehicleRatio = Number(participant.vehicleRatio || current.vehicleRatio || 0);
+      current.installationRatio = resolveEffectiveRatio(participant.latestInstallRatioSnapshot, current.installationRatio ?? current.vehicleRatio);
       current.allocBase = Math.max(current.allocBase, Number(feeItem.allocBase || current.allocBase || 1));
       current.paymentMode = feeItem.paymentMode ?? current.paymentMode;
       current.cumProduced = Math.max(current.cumProduced, Number(participant.latestCumulativeVolume || 0));
@@ -228,6 +243,7 @@ function mergeHarnessIntoFeeItems(
     harnessId: input.harnessId,
     harnessName: input.harnessName,
     vehicleRatio: input.vehicleRatio,
+    latestInstallRatioSnapshot: resolveEffectiveRatio(input.installationRatio, input.vehicleRatio),
     latestCumulativeVolume: Math.max(0, Number(currentCumProduced || 0)),
   };
 
@@ -277,10 +293,12 @@ function toCostRecords(projectId: string, scenarioId: string, rows: ScenarioAllo
     harnessId: row.harnessId,
     harnessName: row.harnessName,
     vehicleRatio: row.vehicleRatio,
+    installationRatio: resolveEffectiveRatio(row.installationRatio, row.vehicleRatio),
     input: {
       harnessId: row.harnessId,
       harnessName: row.harnessName,
       vehicleRatio: row.vehicleRatio,
+      installationRatio: resolveEffectiveRatio(row.installationRatio, row.vehicleRatio),
       toolingCost: row.toolingCost,
       testingCost: row.testingCost,
       rndCost: row.rndCost,
@@ -309,6 +327,7 @@ async function buildStateFromRows(
         harnessId: row.harnessId,
         harnessName: row.harnessName,
         vehicleRatio: row.vehicleRatio,
+        installationRatio: resolveEffectiveRatio(row.installationRatio, row.vehicleRatio),
         toolingCost: Number(row.toolingCost || 0),
         testingCost: Number(row.testingCost || 0),
         rndCost: Number(row.rndCost || 0),
@@ -347,20 +366,32 @@ async function buildStateFromRows(
   };
 }
 
-async function buildLocalFallbackState(projectId: string, scenarioId: string) {
-  const scenario = await db.scenarios.get(scenarioId);
-  const rows = buildFallbackRows(scenarioId, scenario);
+async function buildLocalScenarioState(projectId: string, scenarioId: string) {
+  const scenario = requireScenarioRecord(
+    await db.scenarios.get(scenarioId),
+    'Allocation load',
+  );
+  const storedCosts = requireScenarioOnetimeCosts(
+    await db.onetimeCosts.where('scenarioId').equals(scenarioId).toArray(),
+    scenarioId,
+  );
+  const trackers = await db.allocTrackers.where('scenarioId').equals(scenarioId).toArray();
+  const cumProducedByHarnessId = new Map(
+    trackers.map((tracker) => [tracker.harnessId, Math.max(0, Number(tracker.cumProduced || 0))]),
+  );
+  const rows = buildScenarioRowsFromCosts(storedCosts, cumProducedByHarnessId);
   const feeItems = rows.flatMap((row) => mergeHarnessIntoFeeItems([], {
     harnessId: row.harnessId,
     harnessName: row.harnessName,
     vehicleRatio: row.vehicleRatio,
+    installationRatio: resolveEffectiveRatio(row.installationRatio, row.vehicleRatio),
     toolingCost: row.toolingCost,
     testingCost: row.testingCost,
     rndCost: row.rndCost,
     allocBase: row.allocBase,
     paymentMode: row.paymentMode,
   }, row.cumProduced));
-  return buildStateFromRows(projectId, scenarioId, rows, [], feeItems);
+  return buildStateFromRows(projectId || scenario.projectId, scenarioId, rows, [], feeItems);
 }
 
 async function persistFeeItems(projectId: string, scenarioId: string, feeItems: ScenarioFeeItem[]) {
@@ -388,7 +419,10 @@ async function persistFeeItems(projectId: string, scenarioId: string, feeItems: 
         quantity: Number(participant.quantity || 0),
         allocationItemId: participant.allocationItemId,
         latestCumulativeVolume: Math.max(0, Number(participant.latestCumulativeVolume || 0)),
-        latestInstallRatioSnapshot: Number(participant.latestInstallRatioSnapshot || 0),
+        latestInstallRatioSnapshot: resolveEffectiveRatio(
+          participant.latestInstallRatioSnapshot,
+          participant.vehicleRatio,
+        ),
         latestRecoveryPeriod: participant.latestRecoveryPeriod ?? null,
       })),
     })),
@@ -432,12 +466,21 @@ export const useAllocStore = create<AllocState>()(
         set({ loading: true });
         try {
           const remoteItems = await fetchScenarioAllocations(scenarioId);
-          const scenario = await db.scenarios.get(scenarioId);
-          const projectId = remoteItems[0]?.projectId || scenario?.projectId || '';
-          const feeItems = remoteItems.length > 0 ? mapAllocationItemsToFeeItems(remoteItems) : [];
+          const scenario = requireScenarioRecord(
+            await db.scenarios.get(scenarioId),
+            'Allocation load',
+          );
+          const projectId = remoteItems[0]?.projectId || scenario.projectId || '';
+          if (remoteItems.length === 0) {
+            const localState = await buildLocalScenarioState(projectId, scenarioId);
+            set({ ...localState, loading: false });
+            return;
+          }
+
+          const feeItems = mapAllocationItemsToFeeItems(remoteItems);
           const rows = feeItems.length > 0
             ? toFeeItemRows(feeItems)
-            : buildFallbackRows(scenarioId, scenario);
+            : aggregateScenarioRows(remoteItems);
           const nextState = await buildStateFromRows(projectId, scenarioId, rows, remoteItems, feeItems);
           set({ ...nextState, loading: false });
         } catch (error) {
@@ -445,11 +488,12 @@ export const useAllocStore = create<AllocState>()(
           try {
             const scenario = await db.scenarios.get(scenarioId);
             const projectId = scenario?.projectId || '';
-            const fallbackState = await buildLocalFallbackState(projectId, scenarioId);
-            set({ ...fallbackState, loading: false });
-          } catch (fallbackError) {
-            console.error('Failed to build local allocation fallback:', fallbackError);
+            const localState = await buildLocalScenarioState(projectId, scenarioId);
+            set({ ...localState, loading: false });
+          } catch (localError) {
+            console.error('Failed to load local allocation state:', localError);
             set({ ...createEmptySummary(), loading: false });
+            throw localError;
           }
         }
       },
@@ -567,6 +611,7 @@ export const useAllocStore = create<AllocState>()(
           harnessId: input.harnessId,
           harnessName: input.harnessName,
           vehicleRatio: input.vehicleRatio,
+          installationRatio: resolveEffectiveRatio(input.installationRatio, input.vehicleRatio),
           toolingCost: input.toolingCost,
           testingCost: input.testingCost,
           rndCost: input.rndCost ?? 0,
@@ -595,6 +640,7 @@ export const useAllocStore = create<AllocState>()(
             harnessId: input.harnessId,
             harnessName: input.harnessName,
             vehicleRatio: input.vehicleRatio,
+            installationRatio: resolveEffectiveRatio(input.installationRatio, input.vehicleRatio),
             toolingCost: input.toolingCost,
             testingCost: input.testingCost,
             rndCost: input.rndCost ?? 0,

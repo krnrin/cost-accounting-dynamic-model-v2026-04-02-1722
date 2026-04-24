@@ -22,6 +22,7 @@ import TrackingPage from '@/pages/TrackingPage';
 import AlertsPage from '@/pages/AlertsPage';
 import ProfilePage from '@/pages/ProfilePage';
 import VersionManager from '@/pages/VersionManager';
+import EngineerWorkbench from '@/pages/EngineerWorkbench';
 import NotFoundPage from '@/pages/NotFoundPage';
 import ProjectDashboardOverviewPage from '@/pages/ProjectDashboardOverviewPage';
 import ProjectScenariosPage from '@/pages/ProjectScenariosPage';
@@ -81,9 +82,11 @@ export default function App() {
           <Route path="/project/:id/s/:sid/harness/:harnessId" element={<HarnessDetailPage />} />
           <Route path="/project/:id/s/:sid/quote" element={<QuotePage />} />
           <Route path="/project/:id/s/:sid/gap" element={<GapAnalysisPage />} />
+          <Route path="/project/:id/s/:sid/versions" element={<VersionManager />} />
           <Route path="/project/:id/s/:sid/simulation" element={<SimulationPage />} />
           <Route path="/project/:id/s/:sid/annual-drop" element={<AnnualDropPage />} />
           <Route path="/project/:id/s/:sid/alloc" element={<AllocManagerPage />} />
+          <Route path="/project/:id/s/:sid/workbench" element={<EngineerWorkbench />} />
           <Route path="/project/:id/s/:sid/change-engine" element={<ChangeEnginePage />} />
           <Route path="/project/:id/s/:sid/tracking" element={<TrackingPage />} />
           <Route path="/project/:id/s/:sid/config" element={<ConfigMatrixPage />} />

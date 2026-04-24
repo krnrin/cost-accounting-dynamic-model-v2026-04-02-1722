@@ -27,9 +27,13 @@ import {
 } from '@douyinfe/semi-ui';
 import { IconArrowLeft, IconRefresh } from '@douyinfe/semi-icons';
 import { db } from '@/data/db';
-import { applyE281ScenarioFallback } from '@/data/e281Fallback';
+import { requireScenarioConfig } from '@/data/scenarioGuards';
 import type { HarnessRecord, ProjectRecord, ScenarioRecord } from '@/data/db';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
+import {
+  applyInstallationRatiosToHarnessRecords,
+  resolveScenarioVehicleConfigs,
+} from '@/engine/configuration_model';
 import { useInternalMetalStore, SOURCE_LABELS } from '@/store/internalMetalStore';
 import { InternalMetalSourceSwitch } from '@/components/InternalMetalSourceSwitch';
 import { GapSnapshotManager } from '@/components/GapSnapshotManager';
@@ -63,10 +67,10 @@ export default function GapAnalysisPage() {
         if (!p) { Toast.error('项目不存在'); return; }
         const s = await db.scenarios.get(sid);
         if (!s) { Toast.error('场景不存在'); return; }
-        const scenarioWithFallback = applyE281ScenarioFallback(s);
+        requireScenarioConfig(s, 'Gap 分析加载');
         const h = await db.harnesses.where('scenarioId').equals(sid).toArray();
         setProject(p);
-        setScenario(scenarioWithFallback);
+        setScenario(s);
         setHarnesses(h);
       } catch (err) {
         console.error(err);
@@ -78,13 +82,26 @@ export default function GapAnalysisPage() {
     loadData();
   }, [projectId, sid]);
 
+  const effectiveHarnesses = useMemo(
+    () => (
+      scenario
+        ? applyInstallationRatiosToHarnessRecords(
+          harnesses,
+          resolveScenarioVehicleConfigs(scenario),
+          scenario.harnessConfigMappings ?? [],
+        )
+        : harnesses
+    ),
+    [scenario, harnesses],
+  );
+
   // ── 报价侧结果（使用客户协议金属价格，即 scenario.config.metalPrices）──
   const quoteResults = useMemo(() => {
     if (!scenario) return [];
-    return harnesses.map((h) =>
+    return effectiveHarnesses.map((h) =>
       computeHarnessCost(h.input, scenario.config.costRates, scenario.config.metalPrices)
     );
-  }, [scenario, harnesses]);
+  }, [scenario, effectiveHarnesses]);
 
   const quoteProject = useMemo(() => computeProjectFromHarnesses(quoteResults), [quoteResults]);
 
@@ -97,10 +114,10 @@ export default function GapAnalysisPage() {
       copper: activePrice.copper,
       aluminum: activePrice.aluminum,
     };
-    return harnesses.map((h) =>
+    return effectiveHarnesses.map((h) =>
       computeHarnessCost(h.input, scenario.config.costRates, internalMetalPrices)
     );
-  }, [scenario, harnesses, activeSource, getActivePrice]);
+  }, [scenario, effectiveHarnesses, activeSource, getActivePrice]);
 
   const internalProject = useMemo(() => computeProjectFromHarnesses(internalResults), [internalResults]);
 

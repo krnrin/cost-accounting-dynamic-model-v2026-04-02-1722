@@ -4,6 +4,7 @@
  */
 
 import type { MetalPrices } from '@/types/project';
+import { resolveEffectiveRatio } from './shared_utils';
 
 export interface RunningPriceRecord {
   id: string;
@@ -11,14 +12,19 @@ export interface RunningPriceRecord {
   scenarioId: string;
   quoteDeliveredPrice: number;
   quoteMetalPrices: MetalPrices;
+  quoteOnetimeAddon: number;
+  recurringQuotePrice: number;
   currentDeliveredPrice: number;
   currentMetalPrices: MetalPrices;
   metalAdjustment: number;
   annualDropAdjustment: number;
+  activeOnetimeAddon: number;
+  onetimeRecovered: boolean;
   otherAdjustments: Array<{ reason: string; amount: number }>;
   runningPrice: number;
   calculatedAt: string;
   year: number;
+  installationRatio: number;
 }
 
 export function computeRunningPrice(params: {
@@ -29,11 +35,21 @@ export function computeRunningPrice(params: {
   aluminumWeightKg: number;
   annualDropRate: number;
   yearsSinceQuote: number;
+  quoteOnetimeAddon?: number;
+  currentOnetimeAddon?: number;
+  onetimeRecovered?: boolean;
+  onetimeRecoveryProgress?: number;
+  installationRatio?: number;
   otherAdjustments?: Array<{ reason: string; amount: number }>;
 }): RunningPriceRecord {
   const {
     quoteDeliveredPrice, quoteMetalPrices, currentMetalPrices,
     copperWeightKg, aluminumWeightKg, annualDropRate, yearsSinceQuote,
+    quoteOnetimeAddon = 0,
+    currentOnetimeAddon,
+    onetimeRecovered,
+    onetimeRecoveryProgress,
+    installationRatio,
     otherAdjustments = [],
   } = params;
 
@@ -41,12 +57,16 @@ export function computeRunningPrice(params: {
   const aluminumDelta = (currentMetalPrices.aluminum - quoteMetalPrices.aluminum) / 1000 * aluminumWeightKg;
   const metalAdjustment = copperDelta + aluminumDelta;
 
+  const resolvedOnetimeRecovered = onetimeRecovered ?? (onetimeRecoveryProgress !== undefined && onetimeRecoveryProgress >= 1);
+  const recurringQuotePrice = quoteDeliveredPrice - quoteOnetimeAddon;
+  const activeOnetimeAddon = resolvedOnetimeRecovered ? 0 : (currentOnetimeAddon ?? quoteOnetimeAddon);
+
   const dropMultiplier = Math.pow(1 - annualDropRate, yearsSinceQuote);
-  const priceAfterDrop = quoteDeliveredPrice * dropMultiplier;
-  const annualDropAdjustment = priceAfterDrop - quoteDeliveredPrice;
+  const priceAfterDrop = recurringQuotePrice * dropMultiplier;
+  const annualDropAdjustment = priceAfterDrop - recurringQuotePrice;
 
   const otherTotal = otherAdjustments.reduce((sum, adj) => sum + adj.amount, 0);
-  const runningPrice = quoteDeliveredPrice + metalAdjustment + annualDropAdjustment + otherTotal;
+  const runningPrice = recurringQuotePrice + metalAdjustment + annualDropAdjustment + activeOnetimeAddon + otherTotal;
 
   return {
     id: `rp-${Date.now()}`,
@@ -54,14 +74,19 @@ export function computeRunningPrice(params: {
     scenarioId: '',
     quoteDeliveredPrice,
     quoteMetalPrices,
+    quoteOnetimeAddon,
+    recurringQuotePrice,
     currentDeliveredPrice: runningPrice,
     currentMetalPrices,
     metalAdjustment,
     annualDropAdjustment,
+    activeOnetimeAddon,
+    onetimeRecovered: resolvedOnetimeRecovered,
     otherAdjustments,
     runningPrice: Math.max(0, runningPrice),
     calculatedAt: new Date().toISOString(),
     year: new Date().getFullYear() + yearsSinceQuote,
+    installationRatio: resolveEffectiveRatio(installationRatio, 0),
   };
 }
 
@@ -73,6 +98,11 @@ export function computeLifecycleRunningPrices(params: {
   aluminumWeightKg: number;
   annualDropRate: number;
   lifecycleYears: number;
+  quoteOnetimeAddon?: number;
+  currentOnetimeAddon?: number;
+  onetimeRecovered?: boolean;
+  onetimeRecoveryProgress?: number;
+  installationRatio?: number;
 }): RunningPriceRecord[] {
   const records: RunningPriceRecord[] = [];
   for (let y = 0; y < params.lifecycleYears; y++) {
@@ -89,4 +119,11 @@ export function computeLifecycleRunningPrices(params: {
     records.push(record);
   }
   return records;
+}
+
+export function computeWeightedRunningPrice(records: RunningPriceRecord[]): number {
+  return records.reduce(
+    (sum, record) => sum + record.runningPrice * resolveEffectiveRatio(record.installationRatio, 0),
+    0,
+  );
 }

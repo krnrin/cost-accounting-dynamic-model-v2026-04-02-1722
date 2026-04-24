@@ -23,6 +23,7 @@ import ReactECharts from 'echarts-for-react/lib/core';
 import echarts from '@/lib/echarts';
 import { db } from '@/data/db';
 import type { ProjectRecord, ScenarioRecord } from '@/data/db';
+import { ensureScenarioWorkspaceHydrated } from '@/data/serverScenarioSync';
 import { useAllocStore, type ScenarioFeeItem } from '@/store/allocStore';
 import {
   computeProjectAllocFromItems,
@@ -153,7 +154,7 @@ function toPreviewItems(feeItems: ScenarioFeeItem[], cumProducedMap: Record<stri
   }));
 }
 
-function buildFallbackFeeItemsFromRows(
+export function buildFallbackFeeItemsFromRows(
   rows: Array<{
     harnessId: string;
     harnessName: string;
@@ -168,6 +169,8 @@ function buildFallbackFeeItemsFromRows(
   projectId: string,
   scenarioId: string,
 ): ScenarioFeeItem[] {
+  throw new Error('当前场景缺少真实一次性费用矩阵，已禁止从旧分摊行伪造 feeItems。请先维护费用矩阵后再进入分摊页。');
+
   const feeItems: ScenarioFeeItem[] = [];
 
   rows.forEach((row) => {
@@ -223,6 +226,7 @@ export default function AllocManagerPage() {
   const [editFeeItems, setEditFeeItems] = useState<ScenarioFeeItem[]>([]);
   const [cumProducedMap, setCumProducedMap] = useState<Record<string, number>>({});
   const [saving, setSaving] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   const {
     loadProjectAlloc,
@@ -235,7 +239,12 @@ export default function AllocManagerPage() {
   const loadData = useCallback(async () => {
     if (!projectId) return;
     setLoading(true);
+    setPageError(null);
     try {
+      if (sid) {
+        await ensureScenarioWorkspaceHydrated(projectId, sid);
+      }
+
       const p = await db.projects.get(projectId);
       if (!p) return;
       setProject(p);
@@ -266,19 +275,20 @@ export default function AllocManagerPage() {
           return [harness.harnessId, Math.max(0, Number(persisted?.cumProduced || 0))];
         }),
       );
-      const normalizedFeeItems = storeState.feeItems.length > 0
+      const hasRealFeeMatrix = storeState.feeItems.length > 0;
+      const normalizedFeeItems = hasRealFeeMatrix
         ? normalizeEditableFeeItems(storeState.feeItems, nextHarnesses, nextCumProducedMap)
-        : normalizeEditableFeeItems(
-          buildFallbackFeeItemsFromRows(persistedRows, projectId, sid ?? ''),
-          nextHarnesses,
-          nextCumProducedMap,
-        );
+        : [];
 
       setHarnesses(nextHarnesses);
       setCumProducedMap(nextCumProducedMap);
       setEditFeeItems(normalizedFeeItems);
+      if (!hasRealFeeMatrix) {
+        setPageError('当前场景缺少真实一次性费用矩阵。请先录入费用项，系统不会再从旧分摊行伪造 feeItems。');
+      }
     } catch (err) {
       console.error('AllocManager load error:', err);
+      setPageError(err instanceof Error ? err.message : String(err));
       Toast.error('加载失败: ' + (err instanceof Error ? err.message : String(err)));
     } finally {
       setLoading(false);
@@ -606,6 +616,16 @@ export default function AllocManagerPage() {
     return <Empty description="未找到项目" />;
   }
 
+  if (pageError && harnesses.length === 0) {
+    return (
+      <div style={{ maxWidth: 1400, margin: '0 auto', paddingBottom: 64 }}>
+        <ScenarioSelector />
+        <Banner type="danger" description={pageError} style={{ marginBottom: 16 }} />
+        <Empty description="请补齐一次性费用矩阵后重试" />
+      </div>
+    );
+  }
+
   if (harnesses.length === 0) {
     return (
       <div style={{ maxWidth: 1400, margin: '0 auto', paddingBottom: 64 }}>
@@ -624,14 +644,18 @@ export default function AllocManagerPage() {
   const weightedAlloc = summary?.weightedAllocPerVehicle ?? 0;
 
   return (
-    <div style={{ maxWidth: 1400, margin: '0 auto', paddingBottom: 64 }}>
+    <div style={{ maxWidth: 1400, margin: '0 auto', paddingBottom: 64 }} data-testid="alloc-manager-page">
       <ScenarioSelector />
+
+      {pageError ? (
+        <Banner type="danger" description={pageError} style={{ marginBottom: 16 }} />
+      ) : null}
 
       {recoverySummary && recoverySummary.priceAdjustmentAlerts.length > 0 && (
         <Banner
           type="warning"
           icon={<IconAlertTriangle />}
-          description={`以下线束分摊已回收完毕，建议调整报价：${recoverySummary.priceAdjustmentAlerts.join(', ')}`}
+          description={`以下线束分摊已回收完毕，建议调整报价：${recoverySummary.priceAdjustmentAlerts.map((alert) => alert.harnessName || alert.harnessId).join(', ')}`}
           style={{ marginBottom: 16 }}
         />
       )}
@@ -721,14 +745,15 @@ export default function AllocManagerPage() {
                 <Text style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                   共 {editFeeItems.length} 项 · 合计 ¥{matrixGrandTotal.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </Text>
-                <Button onClick={addFeeItem}>新增费用项</Button>
-                <Button icon={<IconRefresh />} onClick={loadData}>刷新</Button>
-                <Button type="primary" icon={<IconSave />} loading={saving} onClick={handleSave}>
+                <Button data-testid="alloc-add-fee-item" onClick={addFeeItem}>新增费用项</Button>
+                <Button data-testid="alloc-refresh" icon={<IconRefresh />} onClick={loadData}>刷新</Button>
+                <Button data-testid="alloc-save-matrix" type="primary" icon={<IconSave />} loading={saving} onClick={handleSave}>
                   保存矩阵
                 </Button>
               </Space>
             </div>
             <Table
+              data-testid="alloc-fee-matrix-table"
               pagination={false}
               size="small"
               scroll={{ x: Math.max(1600, 980 + harnesses.length * 170) }}
@@ -751,6 +776,7 @@ export default function AllocManagerPage() {
               </Text>
             </div>
             <Table
+              data-testid="alloc-cum-produced-table"
               pagination={false}
               size="small"
               columns={[

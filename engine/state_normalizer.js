@@ -198,7 +198,7 @@
   }
 
   // ── 连接器场景 ────────────────────────────
-  const connectorBaseCostDefault = (base) => Number(base && base.baseMaterial) * 0.24 || 0;
+  const connectorBaseCostDefault = (base) => numberOr(base && base.baseMaterial, 0) * 0.24;
   const connectorVersionKey = (versions, key, fallback) => (key && versions[key] ? key : fallback);
   const specialConnectorStages = {
     progress: { label: '进度价', note: '已达成部分按定点版执行，未达成部分按报价版执行。' },
@@ -249,7 +249,7 @@
   function buildConnectorScenario(base, versions, defaultKey, draftPricing, protocolStatus) {
     const portfolio = base && base.connectorPortfolio ? base.connectorPortfolio : {};
     const items = Array.isArray(portfolio.items) ? portfolio.items : [];
-    const baseCostPerSet = Number(portfolio.baseCostPerSet) || connectorBaseCostDefault(base);
+    const baseCostPerSet = numberOr(portfolio.baseCostPerSet, 0) || connectorBaseCostDefault(base);
     const pricing = normalizeConnectorPricing(draftPricing, items, versions);
     if (!items.length || !baseCostPerSet) {
       return { items: [], pricing, factor: versions[defaultKey] ? versions[defaultKey].factor : 1,
@@ -259,8 +259,8 @@
     const stageCounts = { quote: 0, fixed: 0, progress: 0 };
     let totalBaseCost = 0, totalCurrentCost = 0, overrideCount = 0, followCount = 0;
     const connectorItems = items.map((item) => {
-      const share = Number(item.share) || 0;
-      const baseCost = Number(item.baseCost) || baseCostPerSet * share;
+      const share = numberOr(item.share, 0);
+      const baseCost = numberOr(item.baseCost, baseCostPerSet * share);
       const progressMeta = buildConnectorProgressMeta(protocolStatus, item.id, versions);
       const rawExplicitKey = pricing[item.id] || '';
       const explicitKey = rawExplicitKey && rawExplicitKey !== defaultKey ? rawExplicitKey : '';
@@ -303,11 +303,11 @@
       if (row.action === '替换') acc.replaceCount += 1;
       else if (row.action === '新增') acc.addCount += 1;
       else if (row.action === '取消') acc.cancelCount += 1;
-      acc.obsoleteQty += Number(row.obsoleteQty) || 0;
-      acc.obsoleteValue += Number(row.obsoleteValue) || 0;
-      acc.equipmentDelta += Number(row.equipmentDelta) || 0;
-      acc.laborDelta += Number(row.laborDelta) || 0;
-      acc.packagingDelta += Number(row.packagingDelta) || 0;
+      acc.obsoleteQty += numberOr(row.obsoleteQty, 0);
+      acc.obsoleteValue += numberOr(row.obsoleteValue, 0);
+      acc.equipmentDelta += numberOr(row.equipmentDelta, 0);
+      acc.laborDelta += numberOr(row.laborDelta, 0);
+      acc.packagingDelta += numberOr(row.packagingDelta, 0);
       (row.configs || []).forEach((cfg) => acc.configs.add(cfg));
       return acc;
     }, { replaceCount: 0, addCount: 0, cancelCount: 0, obsoleteQty: 0, obsoleteValue: 0,

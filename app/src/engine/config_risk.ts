@@ -1,8 +1,9 @@
 /**
  * 配置风险检测引擎 — 从线束标配/选配属性自动识别配置拆分不充分
  */
-import type { HarnessInput, HarnessRelation, VehicleConfig } from '@/types/harness';
+import type { HarnessConfigMapping, HarnessInput, HarnessRelation, VehicleConfig } from '@/types/harness';
 import type { TrackingItemRecord } from '@/data/db';
+import { computeHarnessInstallationRatios } from './configuration_model';
 
 /** 配置风险检测结果 */
 export interface ConfigRiskItem {
@@ -94,6 +95,7 @@ export function detectConfigRisks(harnesses: HarnessInput[]): ConfigRiskItem[] {
 export function detectVehicleConfigRisks(
   vehicleConfigs: VehicleConfig[],
   harnesses: HarnessInput[],
+  harnessConfigMappings: HarnessConfigMapping[] = [],
 ): ConfigRiskItem[] {
   const risks: ConfigRiskItem[] = [];
   if (!vehicleConfigs.length) return risks;
@@ -110,12 +112,7 @@ export function detectVehicleConfigRisks(
   }
 
   // CFG-007: 推算装车比与手动 vehicleRatio 不一致
-  const ratioMap = new Map<string, number>();
-  for (const cfg of vehicleConfigs) {
-    for (const hid of cfg.harnessIds) {
-      ratioMap.set(hid, (ratioMap.get(hid) || 0) + cfg.salesRatio);
-    }
-  }
+  const ratioMap = computeHarnessInstallationRatios(vehicleConfigs, harnessConfigMappings);
   for (const h of harnesses) {
     const inferred = ratioMap.get(h.harnessId) || 0;
     if (inferred > 0 && Math.abs(inferred - h.vehicleRatio) > 0.005) {

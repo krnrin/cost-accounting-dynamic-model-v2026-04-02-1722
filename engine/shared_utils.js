@@ -8,6 +8,8 @@
   'use strict';
 
   // ── 常量 ──────────────────────────────────────
+  const APPROX_EPSILON = 1e-6;
+  const PERCENT_EPSILON = 1e-4;
   const FINANCIAL_VERSION_KEYS = new Set(['quote', 'fixed']);
 
   const STATE_FINANCIAL_VERSION_MAP = {
@@ -19,6 +21,7 @@
     equipment: { base: 'quote', shared: 'fixed' },
     packaging: { base: 'quote', optimize: 'fixed' },
     mix: { quote: 'quote', fixed: 'fixed' },
+    configSheet: { quote: 'quote', fixed: 'fixed' },
   };
 
   // ── Issue #10: 委托给 G281Shared ──────────────
@@ -30,16 +33,16 @@
 
   // ── 本模块独有 ────────────────────────────────
   const weighted = (shares, indexes) =>
-    shares.reduce((sum, value, index) => sum + (Number(value) || 0) / 100 * indexes[index], 0);
+    shares.reduce((sum, value, index) => sum + numberOr(value, 0) / 100 * indexes[index], 0);
 
   const normalizeMix = (values) => {
-    const series = values.map((v) => Math.max(0, Number(v) || 0));
+    const series = values.map((v) => Math.max(0, numberOr(v, 0)));
     const total = series.reduce((s, v) => s + v, 0) || 1;
     return series.map((v) => v / total * 100);
   };
 
   function approxEqual(left, right, epsilon) {
-    return Math.abs(numberOr(left, 0) - numberOr(right, 0)) <= (epsilon || 1e-6);
+    return Math.abs(numberOr(left, 0) - numberOr(right, 0)) <= (epsilon || APPROX_EPSILON);
   }
 
   function arraysClose(left, right, epsilon) {
@@ -51,6 +54,8 @@
 
   // ── 导出 ──────────────────────────────────────
   const api = {
+    APPROX_EPSILON,
+    PERCENT_EPSILON,
     FINANCIAL_VERSION_KEYS,
     STATE_FINANCIAL_VERSION_MAP,
     clamp,

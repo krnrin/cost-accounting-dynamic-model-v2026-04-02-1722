@@ -15,8 +15,9 @@ export const projectRepo = {
     await db.projects.update(id, patch);
   },
   async remove(id: string): Promise<void> {
-    await db.transaction('rw', [db.projects, db.harnesses, db.quotes, db.versions, db.importLogs, db.onetimeCosts, db.allocTrackers, db.trackingItems], async () => {
+    await db.transaction('rw', [db.projects, db.scenarios, db.harnesses, db.quotes, db.versions, db.importLogs, db.onetimeCosts, db.allocTrackers, db.trackingItems, db.changeEvents, db.changeOrders], async () => {
       await db.projects.delete(id);
+      await db.scenarios.where('projectId').equals(id).delete();
       await db.harnesses.where('projectId').equals(id).delete();
       await db.quotes.where('projectId').equals(id).delete();
       await db.versions.where('projectId').equals(id).delete();
@@ -24,6 +25,8 @@ export const projectRepo = {
       await db.onetimeCosts.where('projectId').equals(id).delete();
       await db.allocTrackers.where('projectId').equals(id).delete();
       await db.trackingItems.where('projectId').equals(id).delete();
+      await db.changeEvents.where('projectId').equals(id).delete();
+      await db.changeOrders.where('projectId').equals(id).delete();
     });
   },
 };

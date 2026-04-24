@@ -44,6 +44,23 @@ export const numberOr = (value: any, fallback: number): number => {
 };
 
 /**
+ * 优先使用 installationRatio；未提供时回退到 vehicleRatio。
+ * 0 是合法值，不能被当成“未提供”。
+ */
+export const resolveEffectiveRatio = (
+  installationRatio: any,
+  vehicleRatio: any,
+): number => {
+  if (installationRatio !== undefined && installationRatio !== null) {
+    const primary = Number(installationRatio);
+    if (Number.isFinite(primary)) {
+      return primary;
+    }
+  }
+  return numberOr(vehicleRatio, 0);
+};
+
+/**
  * 确保返回一个数组，如果输入不是数组则返回空数组
  */
 export const safeArray = <T = any>(value: any): T[] =>

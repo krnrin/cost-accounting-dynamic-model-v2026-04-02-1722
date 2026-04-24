@@ -191,7 +191,7 @@ describe('computeProjectAlloc', () => {
       },
     ];
 
-    const single = computeHarnessAllocationFromItems('A', 'A线束', 1, items);
+    const single = computeHarnessAllocationFromItems('A', 'A线束', 1, 1, items);
     expect(single.toolingCost).toBe(8400);
     expect(single.testingCost).toBe(10000);
     expect(single.rndCost).toBe(6000);
@@ -214,16 +214,30 @@ describe('computeProjectAlloc', () => {
 
 describe('simulateRecoveryTimeline', () => {
   it('simulates multi-year recovery', () => {
-    const alloc = computeOnetimeAlloc(makeInput({ vehicleRatio: 1.0 }));
+    const alloc = computeOnetimeAlloc(makeInput({ vehicleRatio: 1.0, installationRatio: 0.4 }));
     const timeline = simulateRecoveryTimeline([alloc], 20000, 3);
     expect(timeline).toHaveLength(3);
-    // Year 1: 20000 produced, progress = 20000/50000 = 0.4
-    expect(timeline[0].overallRecoveryProgress).toBeCloseTo(0.4);
-    // Year 2: 40000 produced, progress = 0.8
-    expect(timeline[1].overallRecoveryProgress).toBeCloseTo(0.8);
-    // Year 3: 60000 produced, capped at 1.0
-    expect(timeline[2].overallRecoveryProgress).toBe(1);
-    expect(timeline[2].fullyRecoveredCount).toBe(1);
+    // Year 1: 8000 produced, progress = 8000/50000 = 0.16
+    expect(timeline[0].overallRecoveryProgress).toBeCloseTo(0.16);
+    // Year 2: 16000 produced, progress = 0.32
+    expect(timeline[1].overallRecoveryProgress).toBeCloseTo(0.32);
+    // Year 3: 24000 produced, still not fully recovered
+    expect(timeline[2].overallRecoveryProgress).toBeCloseTo(0.48);
+    expect(timeline[2].fullyRecoveredCount).toBe(0);
+  });
+
+  it('uses installationRatio for weighted one-time allocation and recovery estimate', () => {
+    const summary = computeProjectAlloc([
+      makeInput({ harnessId: 'A', vehicleRatio: 1, installationRatio: 0.6, toolingCost: 60000, testingCost: 0 }),
+      makeInput({ harnessId: 'B', vehicleRatio: 0.2, installationRatio: 0.1, toolingCost: 40000, testingCost: 0 }),
+    ]);
+
+    expect(summary.weightedAllocPerVehicle).toBeCloseTo((60000 / 50000) * 0.6 + (40000 / 50000) * 0.1);
+
+    const trackerA = computeAllocRecovery(summary.allocations[0]!, 0, 100000);
+    const trackerB = computeAllocRecovery(summary.allocations[1]!, 0, 100000);
+    expect(trackerA.estimatedRecoveryYear).toBe(1);
+    expect(trackerB.estimatedRecoveryYear).toBe(5);
   });
 
   it('validates E281 matrix fee items against project tooling投入和试验费基准', () => {
@@ -297,7 +311,14 @@ describe('simulateRecoveryTimeline', () => {
     const recovered = recovery.trackers.find((tracker) => tracker.harnessId === 'A');
     const overdue = recovery.trackers.find((tracker) => tracker.harnessId === 'B');
 
-    expect(recovery.priceAdjustmentAlerts).toContain('A');
+    expect(recovery.priceAdjustmentAlerts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          harnessId: 'A',
+          needsPriceAdjustment: true,
+        }),
+      ]),
+    );
     expect(recovered?.needsPriceAdjustment).toBe(true);
     expect(recovered?.status).toBe('recovered');
     expect(overdue?.status).toBe('overdue');

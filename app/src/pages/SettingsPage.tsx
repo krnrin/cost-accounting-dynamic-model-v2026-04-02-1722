@@ -15,6 +15,8 @@ import type { InternalCostRates } from '@/types/project';
 import { REFERENCE_FACTORIES } from '@/engine/factory_comparison';
 import { DEFAULT_CLASSIFICATION_RULES, DEFAULT_COST_STRUCTURE, getSelectedFactoryId } from '@/engine/harness_costing';
 import { RoleGuard } from '@/components/RoleGuard';
+import { applyParamBoundaryRules } from '@/lib/paramBoundaryUi';
+import { useAuthStore } from '@/store/authStore';
 import {
   fetchSettingsCategory,
   fetchSettingsHistory,
@@ -196,6 +198,55 @@ function useSettingsSync() {
   const saveAll = async () => {
     setSaving(true);
     try {
+      const role = useAuthStore.getState().user?.role;
+      const boundary = applyParamBoundaryRules({
+        laborRate: store.defaultCostRates.laborRate,
+        mfgRate: store.defaultCostRates.mfgRate,
+        wasteRate: store.defaultCostRates.wasteRate,
+        mgmtRate: store.defaultCostRates.mgmtRate,
+        profitRate: store.defaultCostRates.profitRate,
+        copper: store.defaultMetalPrices.copper,
+        aluminum: store.defaultMetalPrices.aluminum,
+        annualDropRate: store.defaultAnnualDropRate,
+      }, role);
+
+      if (boundary.sanitized.laborRate !== store.defaultCostRates.laborRate
+        || boundary.sanitized.mfgRate !== store.defaultCostRates.mfgRate
+        || boundary.sanitized.wasteRate !== store.defaultCostRates.wasteRate
+        || boundary.sanitized.mgmtRate !== store.defaultCostRates.mgmtRate
+        || boundary.sanitized.profitRate !== store.defaultCostRates.profitRate) {
+        store.updateCostRates({
+          laborRate: boundary.sanitized.laborRate ?? store.defaultCostRates.laborRate,
+          mfgRate: boundary.sanitized.mfgRate ?? store.defaultCostRates.mfgRate,
+          wasteRate: boundary.sanitized.wasteRate ?? store.defaultCostRates.wasteRate,
+          mgmtRate: boundary.sanitized.mgmtRate ?? store.defaultCostRates.mgmtRate,
+          profitRate: boundary.sanitized.profitRate ?? store.defaultCostRates.profitRate,
+        });
+      }
+      if (boundary.sanitized.copper !== store.defaultMetalPrices.copper
+        || boundary.sanitized.aluminum !== store.defaultMetalPrices.aluminum) {
+        store.updateMetalPrices({
+          copper: boundary.sanitized.copper ?? store.defaultMetalPrices.copper,
+          aluminum: boundary.sanitized.aluminum ?? store.defaultMetalPrices.aluminum,
+        });
+      }
+      if (boundary.sanitized.annualDropRate !== store.defaultAnnualDropRate) {
+        store.setDefaultAnnualDropRate(boundary.sanitized.annualDropRate ?? store.defaultAnnualDropRate);
+      }
+
+      boundary.messages.forEach((message) => {
+        if (message.level === 'error') {
+          Toast.error(message.text);
+        } else if (message.level === 'warning') {
+          Toast.warning(message.text);
+        } else {
+          Toast.info(message.text);
+        }
+      });
+      if (!boundary.valid) {
+        return;
+      }
+
       await Promise.all([
         updateSetting(SETTINGS_CATEGORY_MAP.costStructure, 'defaultCostRates', store.defaultCostRates),
         updateSetting(SETTINGS_CATEGORY_MAP.costStructure, 'defaultMetalPrices', store.defaultMetalPrices),

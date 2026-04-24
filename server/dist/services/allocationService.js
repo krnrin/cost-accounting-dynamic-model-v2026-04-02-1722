@@ -177,6 +177,80 @@ async function deleteScenarioAllocationsWithClient(client, scenarioId) {
         where: { scenarioId },
     });
 }
+async function bulkSyncHarnessRowsWithClient(client, projectId, scenarioId, rows) {
+    const existingItems = await client.allocationItem.findMany({
+        where: { scenarioId },
+    });
+    const existingItemMap = new Map(existingItems.map((item) => [`${item.harnessId}:${item.expenseType}`, item]));
+    const incomingHarnessIds = new Set(rows.map((row) => row.harnessId));
+    const staleItems = existingItems.filter((item) => !incomingHarnessIds.has(item.harnessId));
+    if (staleItems.length > 0) {
+        await client.recoveryRecord.deleteMany({
+            where: { allocationItemId: { in: staleItems.map((item) => item.id) } },
+        });
+        await client.allocationItem.deleteMany({
+            where: { id: { in: staleItems.map((item) => item.id) } },
+        });
+        for (const item of staleItems) {
+            existingItemMap.delete(`${item.harnessId}:${item.expenseType}`);
+        }
+    }
+    for (const row of rows) {
+        const activeItems = [];
+        for (const spec of SYNC_EXPENSE_SPECS) {
+            const key = `${row.harnessId}:${spec.expenseType}`;
+            const existingItem = existingItemMap.get(key);
+            const totalAmount = Number(row[spec.amountField] || 0);
+            if (totalAmount <= 0) {
+                if (existingItem) {
+                    await client.recoveryRecord.deleteMany({
+                        where: { allocationItemId: existingItem.id },
+                    });
+                    await client.allocationItem.delete({
+                        where: { id: existingItem.id },
+                    });
+                    existingItemMap.delete(key);
+                }
+                continue;
+            }
+            const normalized = normalizeAllocation({
+                ...existingItem,
+                projectId,
+                scenarioId,
+                harnessId: row.harnessId,
+                expenseType: spec.expenseType,
+                expenseName: existingItem?.expenseName ?? spec.expenseName,
+                totalAmount,
+                allocationBasis: row.paymentMode ?? existingItem?.allocationBasis ?? 'amortized',
+                baselineVolume: Math.max(1, Number(row.allocBase || existingItem?.baselineVolume || 1)),
+                plannedRecovery: totalAmount,
+                burdenSide: existingItem?.burdenSide ?? 'supplier',
+                pricingEffect: existingItem?.pricingEffect ?? resolvePricingEffect(row.paymentMode),
+                recoveryCompletionBehavior: existingItem?.recoveryCompletionBehavior ?? 'notify_only',
+                priceAdjustReminder: existingItem?.priceAdjustReminder ?? false,
+                targetRecoveryDate: existingItem?.targetRecoveryDate ?? null,
+                completedAt: existingItem?.completedAt ?? null,
+                status: existingItem?.status ?? 'pending',
+                sourceVersionId: existingItem?.sourceVersionId ?? null,
+            });
+            const saved = existingItem
+                ? await client.allocationItem.update({
+                    where: { id: existingItem.id },
+                    data: normalized,
+                })
+                : await client.allocationItem.create({
+                    data: normalized,
+                });
+            existingItemMap.set(key, saved);
+            activeItems.push(saved);
+        }
+        for (const activeItem of activeItems) {
+            const syncedItem = await syncLatestRecoverySnapshot(client, activeItem, Number(row.cumProduced || 0), Number(row.vehicleRatio || 1));
+            existingItemMap.set(`${syncedItem.harnessId}:${syncedItem.expenseType}`, syncedItem);
+        }
+    }
+    return listByScenarioWithClient(client, scenarioId);
+}
 export class AllocationService {
     static async listByScenario(scenarioId, burdenSide) {
         return listByScenarioWithClient(prisma, scenarioId, burdenSide);
@@ -200,80 +274,7 @@ export class AllocationService {
         return prisma.allocationItem.update({ where: { id }, data: normalized });
     }
     static async bulkSyncHarnessRows(projectId, scenarioId, rows) {
-        return prisma.$transaction(async (tx) => {
-            const existingItems = await tx.allocationItem.findMany({
-                where: { scenarioId },
-            });
-            const existingItemMap = new Map(existingItems.map((item) => [`${item.harnessId}:${item.expenseType}`, item]));
-            const incomingHarnessIds = new Set(rows.map((row) => row.harnessId));
-            const staleItems = existingItems.filter((item) => !incomingHarnessIds.has(item.harnessId));
-            if (staleItems.length > 0) {
-                await tx.recoveryRecord.deleteMany({
-                    where: { allocationItemId: { in: staleItems.map((item) => item.id) } },
-                });
-                await tx.allocationItem.deleteMany({
-                    where: { id: { in: staleItems.map((item) => item.id) } },
-                });
-                for (const item of staleItems) {
-                    existingItemMap.delete(`${item.harnessId}:${item.expenseType}`);
-                }
-            }
-            for (const row of rows) {
-                const activeItems = [];
-                for (const spec of SYNC_EXPENSE_SPECS) {
-                    const key = `${row.harnessId}:${spec.expenseType}`;
-                    const existingItem = existingItemMap.get(key);
-                    const totalAmount = Number(row[spec.amountField] || 0);
-                    if (totalAmount <= 0) {
-                        if (existingItem) {
-                            await tx.recoveryRecord.deleteMany({
-                                where: { allocationItemId: existingItem.id },
-                            });
-                            await tx.allocationItem.delete({
-                                where: { id: existingItem.id },
-                            });
-                            existingItemMap.delete(key);
-                        }
-                        continue;
-                    }
-                    const normalized = normalizeAllocation({
-                        ...existingItem,
-                        projectId,
-                        scenarioId,
-                        harnessId: row.harnessId,
-                        expenseType: spec.expenseType,
-                        expenseName: existingItem?.expenseName ?? spec.expenseName,
-                        totalAmount,
-                        allocationBasis: row.paymentMode ?? existingItem?.allocationBasis ?? 'amortized',
-                        baselineVolume: Math.max(1, Number(row.allocBase || existingItem?.baselineVolume || 1)),
-                        plannedRecovery: totalAmount,
-                        burdenSide: existingItem?.burdenSide ?? 'supplier',
-                        pricingEffect: existingItem?.pricingEffect ?? resolvePricingEffect(row.paymentMode),
-                        recoveryCompletionBehavior: existingItem?.recoveryCompletionBehavior ?? 'notify_only',
-                        priceAdjustReminder: existingItem?.priceAdjustReminder ?? false,
-                        targetRecoveryDate: existingItem?.targetRecoveryDate ?? null,
-                        completedAt: existingItem?.completedAt ?? null,
-                        status: existingItem?.status ?? 'pending',
-                        sourceVersionId: existingItem?.sourceVersionId ?? null,
-                    });
-                    const saved = existingItem
-                        ? await tx.allocationItem.update({
-                            where: { id: existingItem.id },
-                            data: normalized,
-                        })
-                        : await tx.allocationItem.create({
-                            data: normalized,
-                        });
-                    existingItemMap.set(key, saved);
-                    activeItems.push(saved);
-                }
-                for (const activeItem of activeItems) {
-                    const syncedItem = await syncLatestRecoverySnapshot(tx, activeItem, Number(row.cumProduced || 0), Number(row.vehicleRatio || 1));
-                    existingItemMap.set(`${syncedItem.harnessId}:${syncedItem.expenseType}`, syncedItem);
-                }
-            }
-            return listByScenarioWithClient(tx, scenarioId);
-        });
+        return prisma.$transaction((tx) => bulkSyncHarnessRowsWithClient(tx, projectId, scenarioId, rows));
     }
     // --- Clone & Delete (from phase12 delta) ---
     static async cloneScenarioAllocations(sourceScenarioId, targetScenarioId) {
@@ -287,5 +288,8 @@ export class AllocationService {
     }
     static async deleteScenarioAllocationsWithClient(client, scenarioId) {
         return deleteScenarioAllocationsWithClient(client, scenarioId);
+    }
+    static async bulkSyncHarnessRowsWithClient(client, projectId, scenarioId, rows) {
+        return bulkSyncHarnessRowsWithClient(client, projectId, scenarioId, rows);
     }
 }

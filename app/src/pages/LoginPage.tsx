@@ -151,6 +151,7 @@ export default function LoginPage() {
               >
                 <Form.Input
                   field="email"
+                  data-testid="login-email"
                   label="工作邮箱"
                   className="glass-input"
                   placeholder="your@company.com"
@@ -158,6 +159,7 @@ export default function LoginPage() {
                 />
                 <Form.Input
                   field="password"
+                  data-testid="login-password"
                   label="访问密码"
                   mode="password"
                   className="glass-input"
@@ -172,6 +174,7 @@ export default function LoginPage() {
                   size="large"
                   loading={loading}
                   style={mt16Style}
+                  data-testid="login-submit"
                 >
                   验证身份并进入
                 </Button>

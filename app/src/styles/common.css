@@ -100,9 +100,10 @@
 /* -- Config Matrix Dot Toggle -- */
 .config-matrix {
   width: 100%;
+  min-width: 920px;
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 12px;
+  font-size: 13px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -110,7 +111,7 @@
 }
 .config-matrix th,
 .config-matrix td {
-  padding: 6px 8px;
+  padding: 8px 10px;
   text-align: center;
   vertical-align: middle;
   border-bottom: 1px solid var(--border);
@@ -142,8 +143,8 @@ body[theme-mode='light'] .config-matrix td.fixed-col {
 }
 .dot-cell {
   cursor: pointer;
-  width: 48px;
-  height: 36px;
+  width: 56px;
+  height: 40px;
   text-align: center;
   vertical-align: middle;
   transition: background 0.15s;
@@ -175,12 +176,12 @@ body[theme-mode='light'] .config-matrix td.fixed-col {
 }
 /* Sales ratio row */
 .config-matrix .ratio-input {
-  width: 56px;
+  width: 82px;
   text-align: center;
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 2px 4px;
-  font-size: 12px;
+  padding: 4px 6px;
+  font-size: 13px;
   font-family: 'JetBrains Mono', monospace;
   background: rgba(8, 18, 34, 0.52);
   color: var(--text-primary);
@@ -192,4 +193,60 @@ body[theme-mode='light'] .config-matrix .ratio-input {
   outline: none;
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.15);
+}
+
+.univer-sheet-soft {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.58), rgba(248, 250, 252, 0.46));
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.config-entry-sheet-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding-bottom: 6px;
+}
+
+.univer-sheet-entry {
+  min-width: 100%;
+}
+
+.config-entry-sheet-wrap::-webkit-scrollbar {
+  height: 10px;
+}
+
+.config-entry-sheet-wrap::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.08);
+  border-radius: 999px;
+}
+
+.config-entry-sheet-wrap::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.22);
+  border-radius: 999px;
+}
+
+.config-entry-sheet-wrap::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.38);
+}
+
+.univer-sheet-soft *::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.univer-sheet-soft *::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.12);
+  border-radius: 999px;
+}
+
+.univer-sheet-soft *::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.32);
+  border-radius: 999px;
+}
+
+.univer-sheet-soft *::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.46);
 }

@@ -4,7 +4,15 @@ import { BomService } from './bomService.js';
 import { VersionService } from './extraServices.js';
 import { SettingsService } from './settingsService.js';
 import { AllocationService } from './allocationService.js';
-const JSON_FIELDS = ['rateSnapshot', 'quoteParamSnapshot'];
+const JSON_FIELDS = [
+    'config',
+    'vehicleConfigs',
+    'configSkus',
+    'harnessConfigMappings',
+    'vehicleConfigMeta',
+    'rateSnapshot',
+    'quoteParamSnapshot',
+];
 async function buildRateSnapshotFromVersion(version, fallbackRateSnapshot = {}) {
     const snapshotRows = await SettingsService.snapshot(version);
     const costStructure = snapshotRows.filter((row) => row.sourceCategory === 'cost_structure');
@@ -85,6 +93,11 @@ async function buildClonePayload(source) {
         lifecycleYears: scenario.lifecycleYears,
         volume: scenario.volume,
         installRatio: scenario.installRatio,
+        config: scenario.config,
+        vehicleConfigs: scenario.vehicleConfigs,
+        configSkus: scenario.configSkus,
+        harnessConfigMappings: scenario.harnessConfigMappings,
+        vehicleConfigMeta: scenario.vehicleConfigMeta,
         rateSnapshot: scenario.rateSnapshot,
         rateSnapshotVersion: scenario.rateSnapshotVersion,
         bomVersionRef: scenario.bomVersionRef,
@@ -105,6 +118,11 @@ async function buildComparisonItem(item) {
         lifecycleYears: hydrated.lifecycleYears,
         volume: hydrated.volume,
         installRatio: hydrated.installRatio,
+        config: hydrated.config,
+        vehicleConfigs: hydrated.vehicleConfigs,
+        configSkus: hydrated.configSkus,
+        harnessConfigMappings: hydrated.harnessConfigMappings,
+        vehicleConfigMeta: hydrated.vehicleConfigMeta,
         rateSnapshot: hydrated.rateSnapshot,
         rateSnapshotVersion: hydrated.rateSnapshotVersion,
         bomVersionRef: hydrated.bomVersionRef,
@@ -122,6 +140,11 @@ async function buildScenarioSummary(item) {
         lifecycleYears: scenario.lifecycleYears,
         volume: scenario.volume,
         installRatio: scenario.installRatio,
+        config: scenario.config,
+        vehicleConfigs: scenario.vehicleConfigs,
+        configSkus: scenario.configSkus,
+        harnessConfigMappings: scenario.harnessConfigMappings,
+        vehicleConfigMeta: scenario.vehicleConfigMeta,
         rateSnapshot: scenario.rateSnapshot,
         rateSnapshotVersion: scenario.rateSnapshotVersion,
         bomVersionRef: scenario.bomVersionRef,
@@ -160,6 +183,11 @@ async function buildScenarioVersionSnapshot(id) {
             lifecycleYears: hydratedScenario.lifecycleYears,
             volume: hydratedScenario.volume,
             installRatio: hydratedScenario.installRatio,
+            config: hydratedScenario.config,
+            vehicleConfigs: hydratedScenario.vehicleConfigs,
+            configSkus: hydratedScenario.configSkus,
+            harnessConfigMappings: hydratedScenario.harnessConfigMappings,
+            vehicleConfigMeta: hydratedScenario.vehicleConfigMeta,
             rateSnapshot: hydratedScenario.rateSnapshot,
             bomVersionRef: hydratedScenario.bomVersionRef,
             quoteParamSnapshot: hydratedScenario.quoteParamSnapshot,

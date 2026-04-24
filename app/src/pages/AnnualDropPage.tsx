@@ -19,10 +19,17 @@ import ReactECharts from 'echarts-for-react/lib/core';
 import echarts from '@/lib/echarts';
 import { db } from '@/data/db';
 import type { ProjectRecord, ScenarioRecord } from '@/data/db';
+import { ensureScenarioWorkspaceHydrated } from '@/data/serverScenarioSync';
 import { useProjectStore } from '@/store/projectStore';
 import { computeHarnessCost, computeProjectFromHarnesses, computeInternalHarnessCost, computeInternalProjectFromHarnesses, INTERNAL_DEFAULTS } from '@/engine/harness_costing';
+import {
+  applyInstallationRatiosToHarnessRecords,
+  resolveScenarioVehicleConfigs,
+} from '@/engine/configuration_model';
 import { exportAnnualDropExcel } from '@/engine/excel_export';
 import type { HarnessResult, ProjectHarnessResult } from '@/types/harness';
+import { computeProjectAlloc, computeProjectRecovery } from '@/engine/onetime_alloc';
+import { computeRunningPrice } from '@/engine/running_price';
 import ScenarioSelector from '@/components/ScenarioSelector';
 import AlertBanner from '@/components/AlertBanner';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -84,6 +91,8 @@ export default function AnnualDropPage() {
   const [savingAnnualDrop, setSavingAnnualDrop] = useState(false);
   const [editingAnnualDropId, setEditingAnnualDropId] = useState<string | null>(null);
   const [impactSummary, setImpactSummary] = useState<string | null>(null);
+  const [weightedOnetimeAddon, setWeightedOnetimeAddon] = useState(0);
+  const [onetimeRecoveryProgress, setOnetimeRecoveryProgress] = useState(0);
 
   useEffect(() => {
     if (!id || !sid) return;
@@ -91,6 +100,7 @@ export default function AnnualDropPage() {
     const loadData = async () => {
       setLoading(true);
       try {
+        await ensureScenarioWorkspaceHydrated(id, sid);
         const projectData = await db.projects.get(id);
         const scenarioData = await db.scenarios.get(sid);
         if (!projectData || !scenarioData) return;
@@ -99,19 +109,46 @@ export default function AnnualDropPage() {
         setScenario(scenarioData);
         setCurrentProject(projectData.id, projectData.meta.projectName);
 
-        const harnessRecords = await db.harnesses.where('scenarioId').equals(sid).toArray();
-        const results = harnessRecords.map((record) =>
+        const [harnessRecords, onetimeCosts, allocTrackers] = await Promise.all([
+          db.harnesses.where('scenarioId').equals(sid).toArray(),
+          db.onetimeCosts.where('scenarioId').equals(sid).toArray(),
+          db.allocTrackers.where('scenarioId').equals(sid).toArray(),
+        ]);
+        const effectiveRecords = applyInstallationRatiosToHarnessRecords(
+          harnessRecords,
+          resolveScenarioVehicleConfigs(scenarioData),
+          scenarioData.harnessConfigMappings ?? [],
+        );
+        const results = effectiveRecords.map((record) =>
           computeHarnessCost(record.input, scenarioData.config.costRates, scenarioData.config.metalPrices),
         );
         setHarnessResults(results);
         setSummary(computeProjectFromHarnesses(results));
 
         const internalRates = scenarioData.config.internalRates || INTERNAL_DEFAULTS;
-        const internalResults = harnessRecords.map((record) =>
+        const internalResults = effectiveRecords.map((record) =>
           computeInternalHarnessCost(record.input, internalRates, scenarioData.config.metalPrices),
         );
         const internalProject = computeInternalProjectFromHarnesses(internalResults);
         setInternalVehicleCost(internalProject.vehicleCost);
+
+        if (onetimeCosts.length > 0) {
+          const allocSummary = computeProjectAlloc(onetimeCosts.map((record) => record.input));
+          const cumProducedMap = Object.fromEntries(
+            allocTrackers.map((tracker) => [tracker.harnessId, tracker.cumProduced]),
+          );
+          const recovery = computeProjectRecovery(
+            allocSummary.allocations,
+            cumProducedMap,
+            scenarioData.config.volumes?.[0]?.volume ?? 100000,
+            scenarioData.lifecycleYears,
+          );
+          setWeightedOnetimeAddon(allocSummary.weightedAllocPerVehicle);
+          setOnetimeRecoveryProgress(recovery.overallRecoveryProgress);
+        } else {
+          setWeightedOnetimeAddon(0);
+          setOnetimeRecoveryProgress(0);
+        }
 
         const years = scenarioData.lifecycleYears || 6;
         const defaultRate = scenarioData.config.annualDropRate || 0.03;
@@ -163,6 +200,36 @@ export default function AnnualDropPage() {
 
     return rows;
   }, [annualDropRates, baseDeliveredPrice]);
+
+  const runningPriceData = useMemo(() => {
+    if (!scenario || !summary) return [];
+
+    return annualDropData.map((row) => {
+      const record = computeRunningPrice({
+        quoteDeliveredPrice: baseDeliveredPrice,
+        quoteMetalPrices: scenario.config.metalPrices,
+        currentMetalPrices: scenario.config.metalPrices,
+        copperWeightKg: summary.weightedCopperWeight,
+        aluminumWeightKg: summary.weightedAluminumWeight,
+        annualDropRate: row.year === 1 ? 0 : (annualDropRates[row.year - 1] || 0) / 100,
+        yearsSinceQuote: row.year - 1,
+        quoteOnetimeAddon: weightedOnetimeAddon,
+        currentOnetimeAddon: weightedOnetimeAddon * (1 - onetimeRecoveryProgress),
+        onetimeRecoveryProgress,
+        installationRatio: 1,
+      });
+
+      return {
+        year: row.year,
+        runningPrice: record.runningPrice,
+        recurringQuotePrice: record.recurringQuotePrice,
+        metalAdjustment: record.metalAdjustment,
+        annualDropAdjustment: record.annualDropAdjustment,
+        activeOnetimeAddon: record.activeOnetimeAddon,
+        onetimeRecovered: record.onetimeRecovered,
+      };
+    });
+  }, [annualDropData, annualDropRates, baseDeliveredPrice, onetimeRecoveryProgress, scenario, summary, weightedOnetimeAddon]);
 
   const handleRateChange = (year: number, value: number) => {
     setAnnualDropRates((current) => {
@@ -332,7 +399,7 @@ export default function AnnualDropPage() {
   }
 
   return (
-    <div style={{ padding: '0 24px 24px' }}>
+    <div style={{ padding: '0 24px 24px' }} data-testid="annual-drop-page">
       <ScenarioSelector />
 
       <div style={{ margin: '16px 0' }}>
@@ -346,7 +413,7 @@ export default function AnnualDropPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
         <Title heading={3} style={{ margin: 0 }}>年降管理</Title>
         <Space>
-          <Button icon={<IconSave />} loading={savingAnnualDrop} onClick={handleSaveAnnualDrop}>保存年降记录</Button>
+          <Button data-testid="annual-drop-save" icon={<IconSave />} loading={savingAnnualDrop} onClick={handleSaveAnnualDrop}>保存年降记录</Button>
           <Button icon={<IconHistogram />} theme="light">经营预警</Button>
           <Button icon={<IconDownload />} onClick={handleExport}>导出 Excel</Button>
         </Space>
@@ -407,6 +474,43 @@ export default function AnnualDropPage() {
           <Card className="glass-card" style={{ marginTop: 16 }}>
             <ReactECharts echarts={echarts} option={chartOption} style={{ height: 360 }} theme="" />
           </Card>
+        </TabPane>
+        <TabPane tab="运行价" itemKey="runningPrice">
+          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 16, marginTop: 16 }}>
+            <Card className="glass-card" title="运行价测算">
+              <Table
+                data-testid="running-price-table"
+                rowKey="year"
+                pagination={false}
+                size="small"
+                dataSource={runningPriceData}
+                columns={[
+                  { title: '年度', dataIndex: 'year', width: 80 },
+                  { title: '运行价', dataIndex: 'runningPrice', render: (value: number) => formatCurrency(value) },
+                  { title: '年降调整', dataIndex: 'annualDropAdjustment', render: (value: number) => formatCurrency(value) },
+                  { title: '金属联动', dataIndex: 'metalAdjustment', render: (value: number) => formatCurrency(value) },
+                  { title: '有效一次性 addon', dataIndex: 'activeOnetimeAddon', render: (value: number) => formatCurrency(value) },
+                  { title: '一次性费用已回收', dataIndex: 'onetimeRecovered', render: (value: boolean) => value ? '是' : '否' },
+                ]}
+              />
+            </Card>
+            <Card className="glass-card" title="运行价说明">
+              <Space vertical align="start">
+                <div>
+                  <Text type="tertiary">报价一次性 addon</Text>
+                  <Title heading={4} style={{ margin: '8px 0 0' }}>{formatCurrency(weightedOnetimeAddon)}</Title>
+                </div>
+                <div>
+                  <Text type="tertiary">一次性费用回收进度</Text>
+                  <Title heading={4} style={{ margin: '8px 0 0' }}>{(onetimeRecoveryProgress * 100).toFixed(2)}%</Title>
+                </div>
+                <div>
+                  <Text type="tertiary">当前预计运行价</Text>
+                  <Title heading={4} style={{ margin: '8px 0 0' }}>{formatCurrency(runningPriceData[0]?.runningPrice ?? 0)}</Title>
+                </div>
+              </Space>
+            </Card>
+          </div>
         </TabPane>
       </Tabs>
     </div>

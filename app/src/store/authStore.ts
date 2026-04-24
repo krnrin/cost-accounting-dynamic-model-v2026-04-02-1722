@@ -54,14 +54,14 @@ interface AuthState {
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
-/** DEV mode login timeout (ms) — fail fast to offline fallback */
+/** DEV mode login timeout (ms) */
 const DEV_LOGIN_TIMEOUT_MS = 2000;
 
 async function syncProfileIntoState(
   set: (partial: Partial<AuthState>) => void,
   token: string,
   authSource: 'local' | 'feishu',
-  extra?: Partial<AuthState>
+  extra?: Partial<AuthState>,
 ) {
   syncService.setToken(token);
   set({
@@ -101,7 +101,7 @@ export const useAuthStore = create<AuthState>()(
         authSource: null,
 
         login: async (email, password) => {
-          // In DEV mode, use AbortController to timeout quickly when backend is unreachable
+          // In DEV mode, fail fast when backend is unreachable instead of logging in offline.
           const controller = import.meta.env.DEV ? new AbortController() : undefined;
           const timer = controller
             ? setTimeout(() => controller.abort(), DEV_LOGIN_TIMEOUT_MS)
@@ -122,26 +122,12 @@ export const useAuthStore = create<AuthState>()(
             }
             const { data } = await res.json();
             await syncProfileIntoState(set, data.token, 'local');
-          } catch (e: any) {
+          } catch (e: unknown) {
             if (timer) clearTimeout(timer);
-
-            if (import.meta.env.DEV) {
-              console.warn('[DEV] Backend unreachable or timeout, using offline login');
-              const devUser: AuthUser = {
-                id: 'dev-admin',
-                email: email || 'admin@harness.dev',
-                name: 'Admin (离线)',
-                role: 'ADMIN',
-              };
-              set({
-                user: devUser,
-                token: 'dev-offline-token',
-                isAuthenticated: true,
-                authSource: 'local',
-              });
-              return;
+            if (e instanceof DOMException && e.name === 'AbortError') {
+              throw new Error('登录超时：后端未响应，请确认本地服务已启动');
             }
-            throw e;
+            throw e instanceof Error ? e : new Error('登录失败');
           }
         },
 
@@ -194,7 +180,7 @@ export const useAuthStore = create<AuthState>()(
               await get().feishuLogin(code);
               return true;
             } catch (err) {
-              console.error('飞书免登失败:', err);
+              console.error('椋炰功鍏嶇櫥澶辫触:', err);
               return false;
             }
           }
@@ -232,7 +218,7 @@ export const useAuthStore = create<AuthState>()(
 
         logout: async () => {
           try {
-            if (get().token && get().token !== 'dev-offline-token') {
+            if (get().token) {
               await logoutRequest();
             }
           } catch {
@@ -269,8 +255,8 @@ export const useAuthStore = create<AuthState>()(
           feishuTokenExpiresAt: state.feishuTokenExpiresAt,
           authSource: state.authSource,
         }),
-      }
+      },
     ),
-    { name: 'auth-store' }
-  )
+    { name: 'auth-store' },
+  ),
 );

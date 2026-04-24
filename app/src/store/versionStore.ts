@@ -1,55 +1,180 @@
-/**
- * 版本快照 Zustand Store
- * 管理报价版本的 CRUD、状态流转和对比
- */
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { db } from '@/data/db';
-import type { VersionRecord, VersionSnapshot, VersionStatus } from '@/types/version';
-import { validateTransition } from '@/types/version';
+import { requireScenarioConfig, requireScenarioRecord } from '@/data/scenarioGuards';
+import {
+  applyInstallationRatiosToHarnessInputs,
+  resolveScenarioVehicleConfigs,
+} from '@/engine/configuration_model';
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
-import { computeChangePricing, buildChangeComparisonTable } from '@/engine/change_pricing';
+import { buildChangeComparisonTable, computeChangePricing } from '@/engine/change_pricing';
 import { computeVersionDiff } from '@/engine/version_diff';
 import type { ChangePricingResult } from '@/types/quote';
-import type { VersionDiff } from '@/types/version';
+import type { HarnessRecord, ScenarioRecord } from '@/data/db';
+import type { VersionDiff, VersionRecord, VersionSnapshot, VersionStatus } from '@/types/version';
+import { validateTransition } from '@/types/version';
+
+interface CreateSnapshotOptions {
+  projectId: string;
+  scenarioId: string;
+  label?: string;
+  notes?: string;
+  parentVersionId?: string;
+  createdBy?: string;
+}
+
+interface ApprovalOptions {
+  userId?: string;
+  comment?: string;
+}
+
+interface LockOptions {
+  userId?: string;
+  reason?: string;
+}
 
 interface VersionState {
-  /** 当前项目的所有版本 */
+  projectId: string | null;
+  scenarioId: string | null;
   versions: VersionRecord[];
-  /** 加载状态 */
   loading: boolean;
-  /** 当前选中的基准版本 ID */
   baseVersionId: string | null;
-  /** 当前选中的变更版本 ID */
   compareVersionId: string | null;
-  /** 对比结果 */
   changePricingResult: ChangePricingResult | null;
-  /** 版本 diff 结果 */
   versionDiffResult: VersionDiff | null;
-  /** 对比表格数据 */
   comparisonTable: ReturnType<typeof buildChangeComparisonTable> | null;
 
-  /** 加载项目的所有版本 */
-  loadVersions: (projectId: string) => Promise<void>;
-  /** 创建当前数据的快照 */
-  createSnapshot: (projectId: string, label?: string, notes?: string) => Promise<VersionRecord>;
-  /** 删除版本（仅 draft 可删） */
+  loadVersions: (projectId: string, scenarioId?: string | null) => Promise<void>;
+  createSnapshot: (options: CreateSnapshotOptions) => Promise<VersionRecord>;
   deleteVersion: (versionId: string) => Promise<void>;
-  /** 更新版本状态 */
-  updateStatus: (versionId: string, newStatus: VersionStatus) => Promise<void>;
-  /** 更新版本标签和备注 */
   updateLabel: (versionId: string, label: string, notes?: string) => Promise<void>;
-  /** 设置对比版本 */
+  updateStatus: (versionId: string, status: VersionStatus) => Promise<void>;
+  lockVersion: (versionId: string, options?: LockOptions) => Promise<void>;
+  unlockVersion: (versionId: string, options?: LockOptions) => Promise<void>;
+  submitApproval: (versionId: string, options?: ApprovalOptions) => Promise<void>;
+  approveVersion: (versionId: string, options?: ApprovalOptions) => Promise<void>;
+  rejectVersion: (versionId: string, options?: ApprovalOptions) => Promise<void>;
+  restoreSnapshot: (versionId: string) => Promise<void>;
   setCompareVersions: (baseId: string | null, compareId: string | null) => void;
-  /** 执行版本对比 */
   runComparison: () => Promise<void>;
-  /** 清空状态 */
   clear: () => void;
+}
+
+function cloneSnapshotInput<T>(value: T): T {
+  return structuredClone(value);
+}
+
+function buildSnapshotScenarioMeta(
+  scenario: Pick<ScenarioRecord, 'id' | 'scenarioCode' | 'scenarioName' | 'configSkus' | 'harnessConfigMappings' | 'vehicleConfigs'>,
+): NonNullable<VersionSnapshot['scenario']> {
+  return {
+    id: scenario.id,
+    scenarioCode: scenario.scenarioCode,
+    scenarioName: scenario.scenarioName,
+    configSkus: cloneSnapshotInput(scenario.configSkus),
+    harnessConfigMappings: cloneSnapshotInput(scenario.harnessConfigMappings),
+    vehicleConfigs: cloneSnapshotInput(scenario.vehicleConfigs),
+  };
+}
+
+function computeSnapshotProjectResult(snapshot: Pick<VersionSnapshot, 'scenario' | 'harnesses' | 'config'>) {
+  const vehicleConfigs = resolveScenarioVehicleConfigs({
+    vehicleConfigs: snapshot.scenario?.vehicleConfigs,
+    configSkus: snapshot.scenario?.configSkus,
+    harnessConfigMappings: snapshot.scenario?.harnessConfigMappings,
+  });
+  const inputs = applyInstallationRatiosToHarnessInputs(
+    snapshot.harnesses.map((record) => cloneSnapshotInput(record.input)),
+    vehicleConfigs,
+    snapshot.scenario?.harnessConfigMappings ?? [],
+  );
+  const results = inputs.map((input) =>
+    computeHarnessCost(input, snapshot.config.costRates, snapshot.config.metalPrices),
+  );
+  return computeProjectFromHarnesses(results);
+}
+
+function buildSnapshotFromScenario(
+  scenario: Pick<ScenarioRecord, 'id' | 'scenarioCode' | 'scenarioName' | 'config' | 'configSkus' | 'harnessConfigMappings' | 'vehicleConfigs'>,
+  harnesses: HarnessRecord[],
+): VersionSnapshot {
+  const scenarioConfig = requireScenarioConfig(scenario, 'buildSnapshotFromScenario');
+  const orderedHarnesses = [...harnesses].sort((left, right) => left.harnessId.localeCompare(right.harnessId));
+  const snapshot: VersionSnapshot = {
+    scenario: buildSnapshotScenarioMeta(scenario),
+    harnesses: orderedHarnesses.map((record) => ({
+      harnessId: record.harnessId,
+      harnessName: record.harnessName,
+      input: cloneSnapshotInput(record.input),
+    })),
+    config: cloneSnapshotInput(scenarioConfig),
+    summary: {
+      vehicleCost: 0,
+      totalMaterial: 0,
+      totalLabor: 0,
+      harnessCount: orderedHarnesses.length,
+    },
+  };
+  const summary = computeSnapshotProjectResult(snapshot);
+
+  return {
+    ...snapshot,
+    summary: {
+      vehicleCost: summary.vehicleCost,
+      totalMaterial: summary.weightedMaterial,
+      totalLabor: summary.weightedLabor,
+      harnessCount: summary.harnessCount,
+    },
+  };
+}
+
+async function createVersionSnapshot(options: CreateSnapshotOptions): Promise<VersionRecord> {
+  const scenario = requireScenarioRecord(
+    await db.scenarios.get(options.scenarioId),
+    'createSnapshot',
+  );
+  if (scenario.projectId !== options.projectId) {
+    throw new Error('version snapshot project/scenario mismatch');
+  }
+
+  const harnesses = await db.harnesses.where('scenarioId').equals(options.scenarioId).sortBy('harnessId');
+  const versions = await db.versions.where('scenarioId').equals(options.scenarioId).toArray();
+  const nextVersionNumber = versions.reduce((max, item) => Math.max(max, item.versionNumber), 0) + 1;
+  const snapshot = buildSnapshotFromScenario(scenario, harnesses);
+
+  const now = new Date().toISOString();
+  const record: VersionRecord = {
+    id: crypto.randomUUID(),
+    projectId: options.projectId,
+    scenarioId: options.scenarioId,
+    versionNumber: nextVersionNumber,
+    label: (options.label || `v${nextVersionNumber}`).trim(),
+    status: 'draft',
+    snapshot,
+    createdBy: options.createdBy || 'local-user',
+    createdAt: now,
+    notes: options.notes?.trim() || undefined,
+    parentVersionId: options.parentVersionId,
+    lockInfo: { locked: false },
+    approvalInfo: { status: 'not_submitted' },
+  };
+
+  await db.versions.put(record);
+  return record;
+}
+
+async function reloadVersions(projectId: string, scenarioId?: string | null): Promise<VersionRecord[]> {
+  const query = scenarioId
+    ? await db.versions.where('scenarioId').equals(scenarioId).toArray()
+    : await db.versions.where('projectId').equals(projectId).toArray();
+  return query.sort((left, right) => right.versionNumber - left.versionNumber);
 }
 
 export const useVersionStore = create<VersionState>()(
   devtools(
     (set, get) => ({
+      projectId: null,
+      scenarioId: null,
       versions: [],
       loading: false,
       baseVersionId: null,
@@ -58,131 +183,232 @@ export const useVersionStore = create<VersionState>()(
       versionDiffResult: null,
       comparisonTable: null,
 
-      loadVersions: async (projectId: string) => {
+      loadVersions: async (projectId, scenarioId = null) => {
         set({ loading: true });
         try {
-          const records = await db.versions
-            .where('projectId')
-            .equals(projectId)
-            .reverse()
-            .sortBy('versionNumber');
-          set({ versions: records, loading: false });
-        } catch (err) {
-          console.error('loadVersions error:', err);
+          const versions = await reloadVersions(projectId, scenarioId);
+          set((state) => ({
+            projectId,
+            scenarioId,
+            versions,
+            loading: false,
+            baseVersionId: state.baseVersionId && versions.some((item) => item.id === state.baseVersionId)
+              ? state.baseVersionId
+              : versions[1]?.id ?? null,
+            compareVersionId: state.compareVersionId && versions.some((item) => item.id === state.compareVersionId)
+              ? state.compareVersionId
+              : versions[0]?.id ?? null,
+          }));
+        } catch (error) {
+          console.error('loadVersions error:', error);
           set({ loading: false });
+          throw error;
         }
       },
 
-      createSnapshot: async (projectId: string, label?: string, notes?: string) => {
-        // 1. 读取当前项目数据
-        const project = await db.projects.get(projectId);
-        if (!project) throw new Error('项目不存在');
-
-        const harnessRecords = await db.harnesses
-          .where('projectId')
-          .equals(projectId)
-          .toArray();
-
-        // 2. 计算汇总
-        const harnessResults = harnessRecords.map(rec =>
-          computeHarnessCost(rec.input, project.config!.costRates, project.config!.metalPrices)
-        );
-        const projectResult = computeProjectFromHarnesses(harnessResults);
-
-        // 3. 构建快照
-        const snapshot: VersionSnapshot = {
-          harnesses: harnessRecords.map(rec => ({
-            harnessId: rec.harnessId,
-            harnessName: rec.harnessName,
-            input: JSON.parse(JSON.stringify(rec.input)), // deep clone
-          })),
-          config: JSON.parse(JSON.stringify(project.config!)),
-          summary: {
-            vehicleCost: projectResult.vehicleCost,
-            totalMaterial: projectResult.weightedMaterial,
-            totalLabor: projectResult.weightedLabor,
-            harnessCount: projectResult.harnessCount,
-          },
-        };
-
-        // 4. 确定版本号
-        const existingVersions = get().versions;
-        const maxVersionNum = existingVersions.reduce(
-          (max, v) => Math.max(max, v.versionNumber),
-          0
-        );
-        const newVersionNum = maxVersionNum + 1;
-
-        // 5. 创建记录
-        const record: VersionRecord = {
-          id: `${projectId}::v${newVersionNum}`,
-          projectId,
-          versionNumber: newVersionNum,
-          label: label || `v${newVersionNum}`,
-          status: 'draft' as VersionStatus,
-          snapshot,
-          createdAt: new Date().toISOString(),
-          notes: notes || undefined,
-        };
-
-        await db.versions.put(record);
-
-        // 6. 刷新列表
-        await get().loadVersions(projectId);
-
+      createSnapshot: async (options) => {
+        const record = await createVersionSnapshot(options);
+        await get().loadVersions(options.projectId, options.scenarioId);
         return record;
       },
 
-      deleteVersion: async (versionId: string) => {
+      deleteVersion: async (versionId) => {
         const record = await db.versions.get(versionId);
-        if (!record) throw new Error('版本不存在');
+        if (!record) {
+          throw new Error('版本不存在');
+        }
         if (record.status !== 'draft') {
-          throw new Error('仅「草稿」状态的版本可以删除');
+          throw new Error('仅草稿版本允许删除');
         }
+
         await db.versions.delete(versionId);
-
-        // 清空对比（如果删除的是对比版本）
-        const state = get();
-        if (state.baseVersionId === versionId || state.compareVersionId === versionId) {
-          set({
-            baseVersionId: null,
-            compareVersionId: null,
-            changePricingResult: null,
-            versionDiffResult: null,
-            comparisonTable: null,
-          });
-        }
-
-        await get().loadVersions(record.projectId);
+        await get().loadVersions(record.projectId, record.scenarioId ?? null);
       },
 
-      updateStatus: async (versionId: string, newStatus: VersionStatus) => {
+      updateLabel: async (versionId, label, notes) => {
         const record = await db.versions.get(versionId);
-        if (!record) throw new Error('版本不存在');
+        if (!record) {
+          throw new Error('版本不存在');
+        }
 
-        const validation = validateTransition(record.status, newStatus);
+        await db.versions.update(versionId, {
+          label: label.trim(),
+          notes: notes?.trim() || undefined,
+        });
+        await get().loadVersions(record.projectId, record.scenarioId ?? null);
+      },
+
+      updateStatus: async (versionId, status) => {
+        const record = await db.versions.get(versionId);
+        if (!record) {
+          throw new Error('版本不存在');
+        }
+        const validation = validateTransition(record.status, status);
         if (!validation.valid) {
-          throw new Error(validation.reason || '非法状态转换');
+          throw new Error(validation.reason || '非法版本状态流转');
         }
 
-        await db.versions.update(versionId, { status: newStatus });
-        await get().loadVersions(record.projectId);
+        await db.versions.update(versionId, { status });
+        await get().loadVersions(record.projectId, record.scenarioId ?? null);
       },
 
-      updateLabel: async (versionId: string, label: string, notes?: string) => {
+      lockVersion: async (versionId, options) => {
         const record = await db.versions.get(versionId);
-        if (!record) throw new Error('版本不存在');
-
-        const updates: Partial<VersionRecord> = { label };
-        if (notes !== undefined) updates.notes = notes;
-        await db.versions.update(versionId, updates);
-        await get().loadVersions(record.projectId);
+        if (!record) {
+          throw new Error('版本不存在');
+        }
+        const now = new Date().toISOString();
+        await db.versions.update(versionId, {
+          status: record.status === 'draft' ? 'locked' : record.status,
+          lockInfo: {
+            locked: true,
+            lockedAt: now,
+            lockedBy: options?.userId || 'local-user',
+            reason: options?.reason || record.lockInfo?.reason,
+          },
+        });
+        await get().loadVersions(record.projectId, record.scenarioId ?? null);
       },
 
-      setCompareVersions: (baseId: string | null, compareId: string | null) => {
+      unlockVersion: async (versionId, options) => {
+        const record = await db.versions.get(versionId);
+        if (!record) {
+          throw new Error('版本不存在');
+        }
+        await db.versions.update(versionId, {
+          status: record.status === 'locked' ? 'reviewed' : record.status,
+          lockInfo: {
+            locked: false,
+            lockedAt: record.lockInfo?.lockedAt,
+            lockedBy: options?.userId || record.lockInfo?.lockedBy,
+            reason: options?.reason || record.lockInfo?.reason,
+          },
+        });
+        await get().loadVersions(record.projectId, record.scenarioId ?? null);
+      },
+
+      submitApproval: async (versionId, options) => {
+        const record = await db.versions.get(versionId);
+        if (!record) {
+          throw new Error('版本不存在');
+        }
+        const now = new Date().toISOString();
+        await db.versions.update(versionId, {
+          approvalInfo: {
+            ...(record.approvalInfo ?? { status: 'not_submitted' }),
+            status: 'pending',
+            submittedAt: now,
+            submittedBy: options?.userId || 'local-user',
+            comment: options?.comment,
+          },
+        });
+        await get().loadVersions(record.projectId, record.scenarioId ?? null);
+      },
+
+      approveVersion: async (versionId, options) => {
+        const record = await db.versions.get(versionId);
+        if (!record) {
+          throw new Error('版本不存在');
+        }
+        const now = new Date().toISOString();
+        await db.versions.update(versionId, {
+          status: record.status === 'draft' ? 'reviewed' : record.status,
+          approvalInfo: {
+            ...(record.approvalInfo ?? { status: 'not_submitted' }),
+            status: 'approved',
+            reviewedAt: now,
+            reviewedBy: options?.userId || 'local-user',
+            comment: options?.comment,
+          },
+        });
+        await get().loadVersions(record.projectId, record.scenarioId ?? null);
+      },
+
+      rejectVersion: async (versionId, options) => {
+        const record = await db.versions.get(versionId);
+        if (!record) {
+          throw new Error('版本不存在');
+        }
+        const now = new Date().toISOString();
+        await db.versions.update(versionId, {
+          approvalInfo: {
+            ...(record.approvalInfo ?? { status: 'not_submitted' }),
+            status: 'rejected',
+            reviewedAt: now,
+            reviewedBy: options?.userId || 'local-user',
+            comment: options?.comment,
+          },
+        });
+        await get().loadVersions(record.projectId, record.scenarioId ?? null);
+      },
+
+      restoreSnapshot: async (versionId) => {
+        const record = await db.versions.get(versionId);
+        if (!record || !record.scenarioId) {
+          throw new Error('版本不存在或缺少场景绑定');
+        }
+
+        const scenario = requireScenarioRecord(
+          await db.scenarios.get(record.scenarioId),
+          'restoreSnapshot',
+        );
+        const config = cloneSnapshotInput(record.snapshot.config);
+        const now = new Date().toISOString();
+
+        await db.transaction('rw', [db.scenarios, db.harnesses], async () => {
+          await db.scenarios.update(scenario.id, {
+            config,
+            vehicleConfigs: cloneSnapshotInput(record.snapshot.scenario?.vehicleConfigs),
+            configSkus: cloneSnapshotInput(record.snapshot.scenario?.configSkus),
+            harnessConfigMappings: cloneSnapshotInput(record.snapshot.scenario?.harnessConfigMappings),
+            updatedAt: now,
+          });
+
+          const existingHarnesses = await db.harnesses.where('scenarioId').equals(scenario.id).toArray();
+          const existingByHarnessId = new Map(existingHarnesses.map((item) => [item.harnessId, item]));
+          const snapshotHarnessIds = new Set(record.snapshot.harnesses.map((item) => item.harnessId));
+
+          for (const harness of record.snapshot.harnesses) {
+            const result = computeHarnessCost(harness.input, config.costRates, config.metalPrices);
+            const current = existingByHarnessId.get(harness.harnessId);
+            if (current) {
+              await db.harnesses.update(current.id, {
+                harnessName: harness.harnessName,
+                input: cloneSnapshotInput(harness.input),
+                result,
+                updatedAt: now,
+              });
+              continue;
+            }
+
+            await db.harnesses.add({
+              id: crypto.randomUUID(),
+              projectId: record.projectId,
+              scenarioId: scenario.id,
+              harnessId: harness.harnessId,
+              harnessName: harness.harnessName,
+              input: cloneSnapshotInput(harness.input),
+              result,
+              eopYear: null,
+              updatedAt: now,
+            });
+          }
+
+          const obsoleteHarnessIds = existingHarnesses
+            .filter((item) => !snapshotHarnessIds.has(item.harnessId))
+            .map((item) => item.id);
+          if (obsoleteHarnessIds.length > 0) {
+            await db.harnesses.bulkDelete(obsoleteHarnessIds);
+          }
+        });
+
+        await get().loadVersions(record.projectId, record.scenarioId);
+      },
+
+      setCompareVersions: (baseVersionId, compareVersionId) => {
         set({
-          baseVersionId: baseId,
-          compareVersionId: compareId,
+          baseVersionId,
+          compareVersionId,
           changePricingResult: null,
           versionDiffResult: null,
           comparisonTable: null,
@@ -190,47 +416,40 @@ export const useVersionStore = create<VersionState>()(
       },
 
       runComparison: async () => {
-        const { baseVersionId, compareVersionId, versions } = get();
-        if (!baseVersionId || !compareVersionId) return;
-
-        const baseVersion = versions.find(v => v.id === baseVersionId);
-        const compareVersion = versions.find(v => v.id === compareVersionId);
-        if (!baseVersion || !compareVersion) return;
-
-        try {
-          // 1. 从快照重新计算项目结果
-          const baseResults = baseVersion.snapshot.harnesses.map(h =>
-            computeHarnessCost(h.input, baseVersion.snapshot.config.costRates, baseVersion.snapshot.config.metalPrices)
-          );
-          const baseProject = computeProjectFromHarnesses(baseResults);
-
-          const compareResults = compareVersion.snapshot.harnesses.map(h =>
-            computeHarnessCost(h.input, compareVersion.snapshot.config.costRates, compareVersion.snapshot.config.metalPrices)
-          );
-          const compareProject = computeProjectFromHarnesses(compareResults);
-
-          // 2. 计算变更报价
-          const changePricing = computeChangePricing(baseProject, compareProject, 'version_compare');
-
-          // 3. 计算版本 diff
-          const versionDiff = computeVersionDiff(baseVersion.snapshot, compareVersion.snapshot);
-
-          // 4. 构建对比表
-          const table = buildChangeComparisonTable(changePricing);
-
-          set({
-            changePricingResult: changePricing,
-            versionDiffResult: versionDiff,
-            comparisonTable: table,
-          });
-        } catch (err) {
-          console.error('runComparison error:', err);
+        const { versions, baseVersionId, compareVersionId } = get();
+        if (!baseVersionId || !compareVersionId) {
+          throw new Error('请先选择对比版本');
         }
+        if (baseVersionId === compareVersionId) {
+          throw new Error('基准版本和对比版本不能相同');
+        }
+
+        const baseVersion = versions.find((item) => item.id === baseVersionId);
+        const compareVersion = versions.find((item) => item.id === compareVersionId);
+        if (!baseVersion || !compareVersion) {
+          throw new Error('待对比版本不存在');
+        }
+
+        const baseProject = computeSnapshotProjectResult(baseVersion.snapshot);
+        const compareProject = computeSnapshotProjectResult(compareVersion.snapshot);
+        const changePricingResult = computeChangePricing(baseProject, compareProject, 'version_compare');
+        const versionDiffResult = computeVersionDiff(baseVersion.snapshot, compareVersion.snapshot);
+        versionDiffResult.beforeVersion = `v${baseVersion.versionNumber} (${baseVersion.label})`;
+        versionDiffResult.afterVersion = `v${compareVersion.versionNumber} (${compareVersion.label})`;
+
+        set({
+          changePricingResult,
+          versionDiffResult,
+          comparisonTable: buildChangeComparisonTable(changePricingResult),
+        });
       },
 
       clear: () => {
         set({
+          projectId: null,
+          scenarioId: null,
           versions: [],
+          loading: false,
           baseVersionId: null,
           compareVersionId: null,
           changePricingResult: null,
@@ -239,6 +458,6 @@ export const useVersionStore = create<VersionState>()(
         });
       },
     }),
-    { name: 'version-store' }
-  )
+    { name: 'version-store' },
+  ),
 );

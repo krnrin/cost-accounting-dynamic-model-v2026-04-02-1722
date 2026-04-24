@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 
-const appRoot = __dirname;
+const appRoot = process.cwd();
 
 export default defineConfig({
   root: appRoot,
@@ -13,11 +13,8 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    environmentMatchGlobs: [
-      ['src/**/*.component.test.{ts,tsx}', 'happy-dom'],
-      ['src/**/*.ui.test.{ts,tsx}', 'happy-dom'],
-    ],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
-    setupFiles: ['src/test/setup.ts'],
+    exclude: ['src/**/*.component.test.{ts,tsx}', 'src/**/*.ui.test.{ts,tsx}'],
+    setupFiles: ['./src/test/unit-setup.ts'],
   },
 });

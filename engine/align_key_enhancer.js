@@ -16,6 +16,9 @@
 (function (global) {
   'use strict';
 
+  const U = global.G281SharedUtils || {};
+  const numberOr = U.numberOr || function (v, fb) { var n = Number(v); return Number.isFinite(n) ? n : fb; };
+
   const SET_UNITS = new Set(['set', 'SET', 'Set', '套', '总成']);
 
   /**
@@ -156,9 +159,9 @@
   function normalizeSetQuantity(item) {
     if (isSetUnit(item)) {
       // set 物料的 qty 已经是整套口径，无需转换
-      return Number(item?.qty) || 0;
+      return numberOr(item?.qty, 0);
     }
-    return Number(item?.qty) || 0;
+    return numberOr(item?.qty, 0);
   }
 
   /**
@@ -173,8 +176,8 @@
 
     // 如果任一方为 set，delta 显示为 set 口径
     if (leftIsSet || rightIsSet) {
-      const leftQty = leftItem ? (Number(leftItem.qty) || 0) : 0;
-      const rightQty = rightItem ? (Number(rightItem.qty) || 0) : 0;
+      const leftQty = leftItem ? numberOr(leftItem.qty, 0) : 0;
+      const rightQty = rightItem ? numberOr(rightItem.qty, 0) : 0;
       const delta = rightQty - leftQty;
       const unit = 'set';
       return {
@@ -221,4 +224,4 @@
     module.exports = api;
   }
   global.G281AlignKeyEnhancer = api;
-})(typeof window !== 'undefined' ? window : globalThis);
+})(typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : this);

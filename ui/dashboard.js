@@ -2,7 +2,7 @@
 // 1. RUNTIME 初始化 & 全局变量
 // ═══════════════════════════════════════════
 
-﻿const RUNTIME = window.G281_RUNTIME || {};
+﻿const RUNTIME = (typeof globalThis !== 'undefined' ? globalThis : window).G281_RUNTIME || {};
 const urlParams = new URLSearchParams(window.location.search);
 const projectId = urlParams.get('projectId');
 if (projectId) {

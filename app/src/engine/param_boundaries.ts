@@ -25,6 +25,17 @@ export const PARAM_BOUNDARIES: ParamBoundary[] = [
   { field: 'annualDropRate', label: '年降率', min: 0, max: 0.10, onViolation: 'reject', requiredRole: 'admin' },
 ];
 
+const ROLE_RANK: Record<Role, number> = {
+  customer: 0,
+  viewer: 1,
+  cost_engineer: 2,
+  admin: 3,
+};
+
+function hasRequiredRole(role: Role, requiredRole: Role): boolean {
+  return ROLE_RANK[role] >= ROLE_RANK[requiredRole] || hasPermission(role, '*', 'write');
+}
+
 export interface BoundaryCheckResult {
   valid: boolean;
   violations: Array<{
@@ -66,7 +77,7 @@ export function checkParamBoundaries(
       violations.push(violation);
     }
 
-    if (!hasPermission(role, 'settings', 'write')) {
+    if (!hasRequiredRole(role, boundary.requiredRole)) {
       violations.push({
         field: boundary.field,
         label: boundary.label,
