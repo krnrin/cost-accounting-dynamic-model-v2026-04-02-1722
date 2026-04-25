@@ -5,11 +5,14 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
+// SECURITY: 'role' is intentionally NOT in this schema. Allowing clients to
+// pass role would let any anonymous registrant self-promote to ADMIN.
+// Role assignment must happen server-side (default: VIEWER) and elevation
+// must go through an authenticated admin endpoint.
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   name: z.string().min(2),
-  role: z.enum(['ADMIN', 'MANAGER', 'ENGINEER', 'VIEWER']).optional(),
 });
 
 const loginSchema = z.object({
