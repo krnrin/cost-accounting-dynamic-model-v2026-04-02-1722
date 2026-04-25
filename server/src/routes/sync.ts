@@ -1,12 +1,18 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
+import { requireRole } from '../middleware/rbac.js';
 import prisma from '../lib/prisma.js';
 import { toJson } from '../lib/json.js';
 
 const router = Router();
 
+// SECURITY: /push mutates server-side state. VIEWER role is read-only and
+// must NOT be allowed to push offline changes back. Restrict to roles
+// that can edit data: ADMIN, MANAGER, ENGINEER.
+const requireWriteRole = requireRole(['ADMIN', 'MANAGER', 'ENGINEER']);
+
 // POST /api/sync/push — receive local changes
-router.post('/push', authMiddleware, async (req, res, next) => {
+router.post('/push', authMiddleware, requireWriteRole, async (req, res, next) => {
   try {
     const { changes } = req.body;
     const userId = req.user!.id;
@@ -114,6 +120,7 @@ router.post('/push', authMiddleware, async (req, res, next) => {
 });
 
 // GET /api/sync/pull?since=ISO — return changes since timestamp
+// Note: read-only, so VIEWER may pull. authMiddleware only.
 router.get('/pull', authMiddleware, async (req, res, next) => {
   try {
     const { since } = req.query;
