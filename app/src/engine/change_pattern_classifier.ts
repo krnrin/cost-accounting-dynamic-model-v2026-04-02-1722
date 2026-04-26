@@ -1,4 +1,6 @@
 import type { BomItem } from '../types/harness';
+import { multiply, round, sum } from './precision';
+import { isAssemblyUnit, isComponentUnit, isLengthUnit } from './unit_constants';
 
 export type BomRowChangeType = 'added' | 'removed' | 'modified';
 
@@ -125,6 +127,18 @@ export interface CostImpact {
   amount: number;
   currency: string;
   description: string;
+}
+
+/** 当sheet有数据但无法按总成分组时抛出此错误 */
+export class BomGroupingMissingError extends Error {
+  constructor(
+    public sheetName: string,
+    public itemCount: number,
+    message?: string
+  ) {
+    super(message || `Sheet "${sheetName}" 有 ${itemCount} 条记录但无法按总成分组（缺少 assemblyNo/harnessNo/kskNo）`);
+    this.name = 'BomGroupingMissingError';
+  }
 }
 
 export interface CrossSheetValidationResult {
@@ -404,11 +418,12 @@ function classifyFixedLength(
     // 场景2: 一分多（分段定长）
     // 如：1M×1根 → 0.3M×3根
     if (candidates.length >= 2) {
-      const addHints = candidates.map(c => hints.get(c.partNo));
       const firstCandidate = candidates[0];
-      const allSamePartBase = firstCandidate && addHints.every(_h => {
-        const base = stripLengthSuffix(firstCandidate.partNo);
-        return stripLengthSuffix(firstCandidate.partNo) === base;
+      if (!firstCandidate) continue;
+
+      const baseRef = stripLengthSuffix(firstCandidate.partNo);
+      const allSamePartBase = candidates.every(c => {
+        return stripLengthSuffix(c.partNo) === baseRef;
       });
 
       // 检查是否都是PCS且数量总和接近原长度
@@ -514,8 +529,6 @@ function isSameSupplier(a?: string, b?: string): boolean {
 }
 
 function isSameUnitKind(a?: string, b?: string): boolean { return isAssemblyUnit(a) === isAssemblyUnit(b); }
-function isAssemblyUnit(unit?: string): boolean { const value = normalizeText(unit); return value === 'SET' || value === '套' || value === '组'; }
-function isComponentUnit(unit?: string): boolean { const value = normalizeText(unit); return ['PCS', '个', '根', '米', 'M', 'KG', '条'].includes(value); }
 function normalizeText(value?: string): string { return String(value ?? '').trim().toUpperCase(); }
 
 // ── 定长化识别辅助函数 ─────────────────────────────────────────────────────────
@@ -591,11 +604,25 @@ function extractLengthFromPartNo(partNo?: string): string | null {
   return null;
 }
 
-/** 从数量字段提取长度 */
-function extractLengthFromQty(qty?: string | number | boolean | null): string | null {
+/** 从数量字段提取长度（仅当单位是长度单位时） */
+function extractLengthFromQty(qty?: string | number | boolean | null, unit?: string): string | null {
   if (qty === undefined || qty === null || typeof qty === 'boolean') return null;
+
+  // 只有当单位是长度单位时才解释为长度
+  const normalizedUnit = normalizeText(unit);
+  if (!isLengthUnit(normalizedUnit)) return null;
+
   const val = Number(qty);
   if (Number.isNaN(val)) return null;
+
+  // 根据单位转换
+  if (normalizedUnit === 'CM' || normalizedUnit === '厘米') {
+    return val >= 100 ? `${(val / 100).toFixed(2)}m` : `${val}cm`;
+  }
+  if (normalizedUnit === 'MM' || normalizedUnit === '毫米') {
+    return val >= 1000 ? `${(val / 1000).toFixed(2)}m` : `${val}mm`;
+  }
+  // 默认为米
   return val >= 1 ? `${val}m` : `${(val * 100).toFixed(0)}cm`;
 }
 
@@ -636,9 +663,32 @@ export function validateCrossSheetConsistency(
       continue;
     }
 
-    // 按总成分组
-    const assemblyGroupsA = groupByAssembly(sheetA);
-    const assemblyGroupsB = groupByAssembly(sheetB);
+    // 按总成分组（启用空分组检测）
+    let assemblyGroupsA: Map<string, BomItem[]>;
+    let assemblyGroupsB: Map<string, BomItem[]>;
+
+    try {
+      assemblyGroupsA = groupByAssembly(sheetA, sheetAName, true);
+      assemblyGroupsB = groupByAssembly(sheetB, sheetBName, true);
+    } catch (err) {
+      if (err instanceof BomGroupingMissingError) {
+        // 记录分组失败警告，但不中断处理
+        console.warn(`[validateCrossSheetConsistency] ${err.message}`);
+        results.push({
+          assemblyNo: 'N/A',
+          assemblyName: `分组失败: ${err.sheetName}`,
+          issues: [],
+          summary: {
+            totalIssues: 0,
+            totalImpact: 0,
+            missingItems: 0,
+            priceMismatches: 0,
+          },
+        });
+        continue;
+      }
+      throw err;
+    }
 
     // 获取所有总成编号
     const allAssemblies = new Set([
@@ -684,8 +734,16 @@ export function validateCrossSheetConsistency(
 
 /**
  * 按总成编号分组物料
+ * @param items - BOM物料列表
+ * @param sheetName - sheet名称（用于错误报告）
+ * @param throwOnEmpty - 当sheet有数据但分组为空时是否抛出错误（默认false）
+ * @throws BomGroupingMissingError 当throwOnEmpty=true且无法分组时
  */
-function groupByAssembly(items: BomItem[]): Map<string, BomItem[]> {
+function groupByAssembly(
+  items: BomItem[],
+  sheetName?: string,
+  throwOnEmpty: boolean = false
+): Map<string, BomItem[]> {
   const groups = new Map<string, BomItem[]>();
 
   for (const item of items) {
@@ -698,6 +756,11 @@ function groupByAssembly(items: BomItem[]): Map<string, BomItem[]> {
       groups.set(key, []);
     }
     groups.get(key)!.push(item);
+  }
+
+  // 检测伪绿告警：sheet有数据但分组为空
+  if (throwOnEmpty && items.length > 0 && groups.size === 0 && sheetName) {
+    throw new BomGroupingMissingError(sheetName, items.length);
   }
 
   return groups;
@@ -761,12 +824,13 @@ function detectAssemblyInconsistencies(
       };
 
       // 计算置信度
-      const confidence = calculateCrossSheetConfidence(baseIssue, issues, itemsA, itemsB);
+      const { confidence, semanticInference } = calculateCrossSheetConfidence(baseIssue, itemsA, itemsB);
 
       issues.push({
         ...baseIssue,
         confidence,
-        recommendedAction: generateSemanticChangeDescription({ ...baseIssue, confidence }).action,
+        semanticInference,
+        recommendedAction: generateSemanticChangeDescription({ ...baseIssue, confidence, semanticInference }).action,
       });
       continue;
     }
@@ -797,12 +861,13 @@ function detectAssemblyInconsistencies(
           : { assemblySupplier: item.supplier },
       };
 
-      const confidence = calculateCrossSheetConfidence(baseIssue, issues, itemsA, itemsB);
+      const { confidence, semanticInference } = calculateCrossSheetConfidence(baseIssue, itemsA, itemsB);
 
       issues.push({
         ...baseIssue,
         confidence,
-        recommendedAction: generateSemanticChangeDescription({ ...baseIssue, confidence }).action,
+        semanticInference,
+        recommendedAction: generateSemanticChangeDescription({ ...baseIssue, confidence, semanticInference }).action,
       });
       continue;
     }
@@ -824,7 +889,7 @@ function detectAssemblyInconsistencies(
         recommendedAction: `核对 ${partNo} 数量：${sheetAName}=${qtyA}, ${sheetBName}=${qtyB}`,
       };
 
-      const confidence = calculateCrossSheetConfidence(baseIssue, issues, itemsA, itemsB);
+      const { confidence } = calculateCrossSheetConfidence(baseIssue, itemsA, itemsB);
 
       issues.push({ ...baseIssue, confidence });
     }
@@ -850,7 +915,7 @@ function detectAssemblyInconsistencies(
         recommendedAction: `统一 ${partNo} 单价：${sheetAName}=${priceA}, ${sheetBName}=${priceB}`,
       };
 
-      const confidence = calculateCrossSheetConfidence(baseIssue, issues, itemsA, itemsB);
+      const { confidence } = calculateCrossSheetConfidence(baseIssue, itemsA, itemsB);
 
       issues.push({ ...baseIssue, confidence });
     }
@@ -917,24 +982,26 @@ function getUnitPrice(item?: BomItem): number {
 }
 
 /**
- * 计算影响金额
+ * 计算影响金额（使用精确浮点计算）
  */
 function calculateImpact(items: BomItem[]): CostImpact {
-  const amount = items.reduce((sum, item) => {
+  const amounts = items.map(item => {
     const qty = Number(item.qty || item.quantity || 0);
     const price = Number(item.unitPrice || item.price || 0);
-    return sum + qty * price;
-  }, 0);
+    return multiply(qty, price);
+  });
+
+  const amount = sum(amounts);
 
   return {
-    amount: Number(amount.toFixed(4)),
+    amount: round(amount, 4),
     currency: 'CNY',
-    description: `涉及金额: ${amount.toFixed(2)}元`,
+    description: `涉及金额: ${round(amount, 2)}元`,
   };
 }
 
 /**
- * 计算价格差异影响
+ * 计算价格差异影响（使用精确浮点计算）
  */
 function calculatePriceImpact(item: BomItem | undefined, qtyDiff: number): CostImpact {
   if (!item) {
@@ -942,12 +1009,12 @@ function calculatePriceImpact(item: BomItem | undefined, qtyDiff: number): CostI
   }
 
   const price = Number(item.unitPrice || item.price || 0);
-  const amount = price * qtyDiff;
+  const amount = multiply(price, qtyDiff);
 
   return {
-    amount: Number(amount.toFixed(4)),
+    amount: round(amount, 4),
     currency: 'CNY',
-    description: `数量差异 ${qtyDiff} × 单价 ${price} = ${amount.toFixed(2)}元`,
+    description: `数量差异 ${qtyDiff} × 单价 ${price} = ${round(amount, 2)}元`,
   };
 }
 
@@ -1062,9 +1129,8 @@ export type UnitType = 'assembly' | 'component' | 'unknown';
 /** 获取单位类型 */
 export function getUnitType(unit?: string): UnitType {
   if (!unit) return 'unknown';
-  const u = normalizeText(unit);
-  if (['SET', '套', '组'].includes(u)) return 'assembly';
-  if (['个', '根', '米', '条', 'M', 'KG', 'PCS', '件'].includes(u)) return 'component';
+  if (isAssemblyUnit(unit)) return 'assembly';
+  if (isComponentUnit(unit)) return 'component';
   return 'unknown';
 }
 
@@ -1102,15 +1168,17 @@ export const PATTERN_DISPLAY: Record<ChangePattern | CrossSheetIssueType, { icon
  * 4. 金额影响显著 (+0.1)
  * 5. 有疑似替换物料 (+0.2)
  * 6. 基础分 0.5
+ *
+ * @returns confidence and optional semanticInference
  */
 export function calculateCrossSheetConfidence(
   issue: Omit<CrossSheetIssue, 'confidence'>,
-  _allIssues: CrossSheetIssue[],
   itemsInKsk: BomItem[],
   itemsInAssembly: BomItem[]
-): number {
+): { confidence: number; semanticInference?: CrossSheetIssue['semanticInference'] } {
   let score = 0.5; // 基础分
   const evidence: string[] = [];
+  let semanticInference: CrossSheetIssue['semanticInference'] | undefined;
 
   // 1. 单位类型检查
   if (issue.unitType) {
@@ -1149,7 +1217,7 @@ export function calculateCrossSheetConfidence(
     if (potentialReplace) {
       score += 0.2;
       evidence.push(`疑似替换为 ${potentialReplace.partNo}(${potentialReplace.partName})`);
-      issue.semanticInference = {
+      semanticInference = {
         likelyPattern: 'replace',
         relatedPartNo: potentialReplace.partNo,
         evidence,
@@ -1160,7 +1228,7 @@ export function calculateCrossSheetConfidence(
     if (potentialReplace) {
       score += 0.2;
       evidence.push(`疑似替换为 ${potentialReplace.partNo}(${potentialReplace.partName})`);
-      issue.semanticInference = {
+      semanticInference = {
         likelyPattern: 'replace',
         relatedPartNo: potentialReplace.partNo,
         evidence,
@@ -1178,18 +1246,23 @@ export function calculateCrossSheetConfidence(
   }
 
   // 确保在0.3-0.98范围内
-  return Math.min(0.98, Math.max(0.3, score));
+  return {
+    confidence: Math.min(0.98, Math.max(0.3, score)),
+    semanticInference,
+  };
 }
 
 /**
  * 查找疑似替换物料
- * 规则：同供应商 + 金额相近(±20%) + 同分类
+ * 规则：同供应商 + 单价相近(±20%) + 同分类
  */
 function findPotentialReplace(
   issue: Omit<CrossSheetIssue, 'confidence'>,
   candidates: BomItem[]
 ): BomItem | undefined {
-  if (!issue.supplierCheck?.kskSupplier) return undefined;
+  // 获取参考单价：优先使用 kskPrice 或 assemblyPrice
+  const refUnitPrice = issue.kskPrice ?? issue.assemblyPrice ?? 0;
+  if (!issue.supplierCheck?.kskSupplier && refUnitPrice === 0) return undefined;
 
   let bestMatch: BomItem | undefined;
   let bestScore = 0;
@@ -1200,21 +1273,17 @@ function findPotentialReplace(
     let score = 0;
 
     // 供应商匹配
-    if (candidate.supplier === issue.supplierCheck.kskSupplier) {
+    if (candidate.supplier === issue.supplierCheck?.kskSupplier) {
       score += 3;
     }
 
-    // 金额相近
-    if (issue.impact.amount > 0 && candidate.unitPrice) {
-      const priceRatio = candidate.unitPrice / issue.impact.amount;
+    // 单价相近（单价÷单价，维度正确）
+    const candidateUnitPrice = candidate.unitPrice ?? candidate.price ?? 0;
+    if (refUnitPrice > 0 && candidateUnitPrice > 0) {
+      const priceRatio = candidateUnitPrice / refUnitPrice;
       if (priceRatio >= 0.8 && priceRatio <= 1.2) {
         score += 2;
       }
-    }
-
-    // 分类相同
-    if (candidate.itemCategory && candidate.itemCategory === (issue.semanticInference?.likelyPattern as string)) {
-      score += 1;
     }
 
     // 名称相似

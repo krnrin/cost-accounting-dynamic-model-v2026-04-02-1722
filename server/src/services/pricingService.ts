@@ -419,4 +419,33 @@ export class PricingService {
       },
     });
   }
+
+  // [PR-040] DELETE methods for pricing resources
+  static async deleteConnector(projectId: string, recordId: string) {
+    const record = await prisma.connectorPricing.findUnique({ where: { id: recordId } });
+    if (!record) notFound('Connector pricing record not found');
+    assertProject(record.projectId, projectId, 'Connector pricing record not found in project');
+    await prisma.connectorPricing.delete({ where: { id: recordId } });
+  }
+
+  static async deleteWire(projectId: string, recordId: string) {
+    const record = await prisma.wirePricing.findUnique({ where: { id: recordId } });
+    if (!record) notFound('Wire pricing record not found');
+    assertProject(record.projectId, projectId, 'Wire pricing record not found in project');
+    await prisma.wirePricing.delete({ where: { id: recordId } });
+  }
+
+  static async deleteDevPart(projectId: string, recordId: string) {
+    const record = await prisma.devPartPricing.findUnique({ where: { id: recordId } });
+    if (!record) notFound('Dev part pricing record not found');
+    assertProject(record.projectId, projectId, 'Dev part pricing record not found in project');
+    await prisma.devPartPricing.delete({ where: { id: recordId } });
+  }
+
+  static async deleteAuxiliary(projectId: string, recordId: string) {
+    const record = await prisma.auxiliaryPricing.findUnique({ where: { id: recordId } });
+    if (!record) notFound('Auxiliary pricing record not found');
+    assertProject(record.projectId, projectId, 'Auxiliary pricing record not found in project');
+    await prisma.auxiliaryPricing.delete({ where: { id: recordId } });
+  }
 }

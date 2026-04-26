@@ -1,8 +1,11 @@
 /**
- * B7: 废料回收 → 到厂价联动调整
- * 
+ * B7-A: 废料回收 → 客户报价联动调整 (Model A)
+ *
  * 废料回收金额变动 → 自动调整材料净成本 → 逐级联动到出厂价/到厂价
- * 确保价格体系的一致性和自洽
+ * 用于客户报价场景，包含管理费和利润
+ *
+ * ⚠️ 注意：本模块用于客户报价 (Model A)
+ * 如需内部成本核算 (Model B)，请使用 recycle_to_internal_cost.ts
  */
 import type { WireItem, HarnessResult } from '@/types/harness';
 import type { CostRates } from '@/types/project';

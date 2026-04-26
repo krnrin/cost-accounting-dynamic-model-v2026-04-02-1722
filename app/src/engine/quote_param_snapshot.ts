@@ -221,6 +221,8 @@ export function compareQuoteVersions(
   for (const { key, label } of outputFields) {
     const bv = base.output[key];
     const cv = compare.output[key];
+    // Only output when value has changed (PR-079)
+    if (bv === cv) continue;
     const delta = cv - bv;
     outputDiffs.push({
       field: `output.${key}`,

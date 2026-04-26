@@ -15,7 +15,7 @@
  *
  * Issue: #96
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, Card, Collapsible, Descriptions, Empty, Spin, Table, Tag, Toast, Typography } from '@douyinfe/semi-ui';
 import { IconRefresh, IconChevronDown, IconChevronRight } from '@douyinfe/semi-icons';
 import { useCascadeImpact, type CascadeImpactResult } from '@/hooks/useCascadeImpact';
@@ -108,7 +108,7 @@ function ActionTable({ actions, title }: { actions: any[] | null; title: string 
         <Table
           columns={columns}
           dataSource={actions}
-          rowKey={(record: any) => record?.id || String(Math.random())}
+          rowKey={(record?: any, index?: number) => record?.id ?? `${record?.type ?? 'action'}-${record?.targetRow?.partNo ?? record?.targetRow?.id ?? index ?? 0}`}
           pagination={false}
           size="small"
         />
@@ -125,10 +125,14 @@ export default function CascadeImpactIntegration({
   autoCompute = false,
 }: CascadeImpactIntegrationProps) {
   const cascade = useCascadeImpact();
+  const requestIdRef = useRef(0);
 
   const handleCompute = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     try {
       const result = await cascade.computeAll(bomChanges, semanticChanges, sheetData);
+      // Discard stale callback
+      if (requestId !== requestIdRef.current) return;
       onImpactComputed?.(result);
       if (result.hasImpact) {
         Toast.info(`级联影响分析完成：${result.totalActions} 条操作`);
@@ -136,16 +140,19 @@ export default function CascadeImpactIntegration({
         Toast.info('未检测到级联影响');
       }
     } catch (err) {
+      // Discard stale callback
+      if (requestId !== requestIdRef.current) return;
       Toast.error(err instanceof Error ? err.message : '级联影响计算失败');
     }
   }, [bomChanges, semanticChanges, sheetData, cascade, onImpactComputed]);
 
-  // Auto-compute when deps change
+  // Auto-compute when deps change (with stable deps to prevent infinite loop)
   useEffect(() => {
     if (autoCompute && bomChanges && semanticChanges) {
       void handleCompute();
     }
-  }, [autoCompute, bomChanges, semanticChanges]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoCompute, bomChanges, semanticChanges, sheetData]);
 
   const result = cascade.result;
 

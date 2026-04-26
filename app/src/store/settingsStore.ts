@@ -14,7 +14,13 @@ import { DEFAULT_COST_STRUCTURE, DEFAULT_CLASSIFICATION_RULES, INTERNAL_FACTORY_
 import { DEFAULT_ALLOCATION } from '@/engine/allocation';
 import { LEVEL1_COEFFICIENTS } from '@/engine/precision';
 import { DEFAULT_PROJECT_FACTORY_ID } from '@/types/project';
-// REFERENCE_FACTORIES available from '@/engine/factory_comparison' for UI presets
+
+/**
+ * [成本核算数据原则] INTERNAL_FACTORY_RATES 仅作为初始值
+ *
+ * 用户首次使用时需要看到默认值结构，但生产环境必须配置真实费率。
+ * 实际计算时会校验配置是否存在，缺少真实费率时抛出错误。
+ */
 
 interface SettingsState {
   defaultCostRates: CostRates;
@@ -39,7 +45,7 @@ interface SettingsState {
   factories: FactoryConfig[];
   /** 当前选中的内部核算工厂 */
   selectedFactory: ProjectFactoryId;
-  /** 7工厂内部费率映射 */
+  /** 7工厂内部费率映射 [成本核算数据原则] 生产环境必须配置真实费率 */
   internalFactoryRates: Partial<InternalFactoryRatesMap>;
   /** 间接费用分摊配置 */
   allocationConfig: AllocationConfig;
@@ -110,6 +116,7 @@ export const useSettingsStore = create<SettingsState>()(
         useSchemaEngine: false,
         factories: [],
         selectedFactory: DEFAULT_PROJECT_FACTORY_ID,
+        // [成本核算数据原则] INTERNAL_FACTORY_RATES 仅作为初始值，生产环境必须配置真实费率
         internalFactoryRates: { ...INTERNAL_FACTORY_RATES },
         allocationConfig: { ...DEFAULT_ALLOCATION },
         bomClassificationRules: [...DEFAULT_CLASSIFICATION_RULES],
@@ -151,6 +158,7 @@ export const useSettingsStore = create<SettingsState>()(
         })),
         setSelectedFactory: (factoryId) => set({ selectedFactory: getSelectedFactoryId(factoryId) }),
         setInternalFactoryRates: (rates) => set({ internalFactoryRates: { ...INTERNAL_FACTORY_RATES, ...rates } }),
+        // [成本核算数据原则] 更新工厂费率时，必须确保配置真实数据
         updateInternalFactoryRate: (factoryId, patch) => set((state) => ({
           internalFactoryRates: {
             ...state.internalFactoryRates,

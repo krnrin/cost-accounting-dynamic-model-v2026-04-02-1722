@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
+import { requireRole } from '../middleware/rbac.js';
 import prisma from '../lib/prisma.js';
 import { toJson } from '../lib/json.js';
 
 const router = Router();
 
-// POST /api/sync/push — receive local changes
-router.post('/push', authMiddleware, async (req, res, next) => {
+// POST /api/sync/push — receive local changes (requires ENGINEER+ role)
+router.post('/push', authMiddleware, requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, res, next) => {
   try {
     const { changes } = req.body;
     const userId = req.user!.id;

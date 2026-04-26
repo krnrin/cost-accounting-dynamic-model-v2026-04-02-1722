@@ -66,9 +66,11 @@ export class BomService {
     };
   }
 
-  static async updateBomRow(projectId: string, rowId: string, patch: any) {
+  // [PR-038] 通过 rowId 反查 projectId，不再要求调用方传入
+  static async updateBomRow(rowId: string, patch: any) {
     const { harnessId, index } = parseBomRowId(rowId);
-    const harness = await prisma.harness.findFirst({ where: { projectId, harnessId } });
+    // [PR-038] 通过 harnessId 查找 harness，自动获取 projectId
+    const harness = await prisma.harness.findFirst({ where: { harnessId } });
     if (!harness) {
       const err: any = new Error('Harness not found');
       err.status = 404;
@@ -92,9 +94,11 @@ export class BomService {
     };
   }
 
-  static async deleteBomRow(projectId: string, rowId: string) {
+  // [PR-038] 通过 rowId 反查 projectId，不再要求调用方传入
+  static async deleteBomRow(rowId: string) {
     const { harnessId, index } = parseBomRowId(rowId);
-    const harness = await prisma.harness.findFirst({ where: { projectId, harnessId } });
+    // [PR-038] 通过 harnessId 查找 harness，自动获取 projectId
+    const harness = await prisma.harness.findFirst({ where: { harnessId } });
     if (!harness) {
       const err: any = new Error('Harness not found');
       err.status = 404;

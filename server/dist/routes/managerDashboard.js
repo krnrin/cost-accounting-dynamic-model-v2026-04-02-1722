@@ -1,8 +1,11 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middleware/auth.js';
+import { requireRole } from '../middleware/rbac.js'; // [PR-032]
 import { ManagerDashboardService } from '../services/managerDashboardService.js';
 const router = Router();
+// [PR-032] Manager Dashboard 需要 MANAGER 或 ADMIN 权限
 router.use(authMiddleware);
+router.use(requireRole(['ADMIN', 'MANAGER']));
 router.get('/', async (_req, res, next) => {
     try {
         const data = await ManagerDashboardService.getOverview();

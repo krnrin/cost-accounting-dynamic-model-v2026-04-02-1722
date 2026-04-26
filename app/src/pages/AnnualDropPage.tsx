@@ -21,7 +21,7 @@ import { db } from '@/data/db';
 import type { ProjectRecord, ScenarioRecord } from '@/data/db';
 import { ensureScenarioWorkspaceHydrated } from '@/data/serverScenarioSync';
 import { useProjectStore } from '@/store/projectStore';
-import { computeHarnessCost, computeProjectFromHarnesses, computeInternalHarnessCost, computeInternalProjectFromHarnesses, INTERNAL_DEFAULTS } from '@/engine/harness_costing';
+import { computeHarnessCost, computeProjectFromHarnesses, computeInternalHarnessCost, computeInternalProjectFromHarnesses } from '@/engine/harness_costing';
 import {
   applyInstallationRatiosToHarnessRecords,
   resolveScenarioVehicleConfigs,
@@ -125,7 +125,14 @@ export default function AnnualDropPage() {
         setHarnessResults(results);
         setSummary(computeProjectFromHarnesses(results));
 
-        const internalRates = scenarioData.config.internalRates || INTERNAL_DEFAULTS;
+        // [成本核算数据原则] 必须传入 internalRates，禁止回退
+        if (!scenarioData.config.internalRates) {
+          throw new Error(
+            '[成本核算] 场景缺少 internalRates 配置。' +
+            '请在系统设置中配置真实费率，禁止使用硬编码默认值。'
+          );
+        }
+        const internalRates = scenarioData.config.internalRates;
         const internalResults = effectiveRecords.map((record) =>
           computeInternalHarnessCost(record.input, internalRates, scenarioData.config.metalPrices),
         );

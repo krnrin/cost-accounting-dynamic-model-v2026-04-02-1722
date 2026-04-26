@@ -1,40 +1,27 @@
 /**
- * C7: 参数权限边界
- * 参数值范围校验 + 角色权限检查
+ * C7: 参数数值边界校验
+ * [PR-037] 角色权限检查已移至 param_permission.ts，此文件仅保留数值边界校验
  */
 
-import { hasPermission, type Role } from './rbac';
-
-export interface ParamBoundary {
+export interface NumericBoundary {
   field: string;
   label: string;
   min: number;
   max: number;
   onViolation: 'reject' | 'warn' | 'clamp';
-  requiredRole: Role;
 }
 
-export const PARAM_BOUNDARIES: ParamBoundary[] = [
-  { field: 'laborRate', label: '人工费率', min: 10, max: 200, onViolation: 'warn', requiredRole: 'cost_engineer' },
-  { field: 'mfgRate', label: '制造费率', min: 10, max: 300, onViolation: 'warn', requiredRole: 'cost_engineer' },
-  { field: 'wasteRate', label: '废品率', min: 0, max: 0.15, onViolation: 'reject', requiredRole: 'cost_engineer' },
-  { field: 'mgmtRate', label: '管理费率', min: 0, max: 0.25, onViolation: 'warn', requiredRole: 'cost_engineer' },
-  { field: 'profitRate', label: '利润率', min: 0, max: 0.10, onViolation: 'reject', requiredRole: 'admin' },
-  { field: 'copper', label: '铜价', min: 30000, max: 120000, onViolation: 'warn', requiredRole: 'cost_engineer' },
-  { field: 'aluminum', label: '铝价', min: 10000, max: 50000, onViolation: 'warn', requiredRole: 'cost_engineer' },
-  { field: 'annualDropRate', label: '年降率', min: 0, max: 0.10, onViolation: 'reject', requiredRole: 'admin' },
+// [PR-037] 移除 requiredRole 字段，角色权限由 param_permission.ts 统一管理
+export const NUMERIC_BOUNDARIES: NumericBoundary[] = [
+  { field: 'laborRate', label: '人工费率', min: 10, max: 200, onViolation: 'warn' },
+  { field: 'mfgRate', label: '制造费率', min: 10, max: 300, onViolation: 'warn' },
+  { field: 'wasteRate', label: '废品率', min: 0, max: 0.15, onViolation: 'reject' },
+  { field: 'mgmtRate', label: '管理费率', min: 0, max: 0.25, onViolation: 'warn' },
+  { field: 'profitRate', label: '利润率', min: 0, max: 0.10, onViolation: 'reject' },
+  { field: 'copper', label: '铜价', min: 30000, max: 120000, onViolation: 'warn' },
+  { field: 'aluminum', label: '铝价', min: 10000, max: 50000, onViolation: 'warn' },
+  { field: 'annualDropRate', label: '年降率', min: 0, max: 0.10, onViolation: 'reject' },
 ];
-
-const ROLE_RANK: Record<Role, number> = {
-  customer: 0,
-  viewer: 1,
-  cost_engineer: 2,
-  admin: 3,
-};
-
-function hasRequiredRole(role: Role, requiredRole: Role): boolean {
-  return ROLE_RANK[role] >= ROLE_RANK[requiredRole] || hasPermission(role, '*', 'write');
-}
 
 export interface BoundaryCheckResult {
   valid: boolean;
@@ -49,13 +36,16 @@ export interface BoundaryCheckResult {
   }>;
 }
 
-export function checkParamBoundaries(
-  params: Record<string, number>,
-  role: Role
+/**
+ * [PR-037] 纯数值边界校验（不含角色权限检查）
+ * 角色权限检查请使用 param_permission.ts 的 checkPermission()
+ */
+export function checkNumericBoundaries(
+  params: Record<string, number>
 ): BoundaryCheckResult {
   const violations: BoundaryCheckResult['violations'] = [];
 
-  for (const boundary of PARAM_BOUNDARIES) {
+  for (const boundary of NUMERIC_BOUNDARIES) {
     const value = params[boundary.field];
     if (value === undefined) continue;
 
@@ -76,17 +66,6 @@ export function checkParamBoundaries(
 
       violations.push(violation);
     }
-
-    if (!hasRequiredRole(role, boundary.requiredRole)) {
-      violations.push({
-        field: boundary.field,
-        label: boundary.label,
-        value,
-        min: boundary.min,
-        max: boundary.max,
-        action: 'rejected',
-      });
-    }
   }
 
   return {
@@ -94,3 +73,8 @@ export function checkParamBoundaries(
     violations,
   };
 }
+
+// [PR-037] 保留旧函数名作为别名，向后兼容
+export const checkParamBoundaries = checkNumericBoundaries;
+// [PR-037] 保留旧常量名作为别名，向后兼容
+export const PARAM_BOUNDARIES = NUMERIC_BOUNDARIES;

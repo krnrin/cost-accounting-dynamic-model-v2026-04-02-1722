@@ -106,9 +106,9 @@ scenarioBomRouter.get('/diff', async (req: Request, res: Response, next: NextFun
 
 bomRowRouter.put('/:rowId', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const projectId = String(req.body.projectId || req.query.projectId || '');
     const patch = bomRowSchema.partial().parse(req.body.patch || req.body);
-    const data = await BomService.updateBomRow(projectId, req.params.rowId as string, patch);
+    // [PR-038] 不再需要 projectId 参数，由 service 层反查
+    const data = await BomService.updateBomRow(req.params.rowId as string, patch);
     await AuditService.log({
       userId: req.user!.id,
       projectId: data.projectId,
@@ -129,8 +129,8 @@ bomRowRouter.put('/:rowId', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async
 
 bomRowRouter.delete('/:rowId', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const projectId = String(req.body.projectId || req.query.projectId || '');
-    const data = await BomService.deleteBomRow(projectId, req.params.rowId as string);
+    // [PR-038] 不再需要 projectId 参数，由 service 层反查
+    const data = await BomService.deleteBomRow(req.params.rowId as string);
     await AuditService.log({
       userId: req.user!.id,
       projectId: data.projectId,

@@ -5,6 +5,8 @@
  * This ensures that cached `result` in Dexie is always fresh,
  * so Dashboard / QuotePage / exports read consistent data.
  *
+ * [成本核算数据原则] 必须传入 internalRates，禁止回退到硬编码默认值
+ *
  * Usage:
  *   useHarnessSync(scenarioId);
  *   // Automatically watches scenario config + harness inputs
@@ -13,12 +15,14 @@
 import { useEffect, useRef } from 'react';
 import { db } from '@/data/db';
 import type { ScenarioRecord, HarnessRecord } from '@/data/db';
-import { computeInternalHarnessCost, INTERNAL_DEFAULTS, mapInternalToHarnessResult } from '@/engine/harness_costing';
+import { computeInternalHarnessCost, mapInternalToHarnessResult } from '@/engine/harness_costing';
 import type { HarnessResult } from '@/types/harness';
 
 /**
  * Recompute a single harness result from its input + scenario config.
  * Returns null if scenario is missing required config.
+ *
+ * [成本核算数据原则] 缺少 internalRates 时返回 null，禁止回退
  */
 export function recomputeResult(
   harness: HarnessRecord,
@@ -27,11 +31,15 @@ export function recomputeResult(
   if (!scenario.config?.metalPrices) {
     return null;
   }
+  if (!scenario.config?.internalRates) {
+    // [成本核算数据原则] 缺少费率配置时返回 null，禁止回退到硬编码
+    return null;
+  }
   try {
     return mapInternalToHarnessResult(
       computeInternalHarnessCost(
         harness.input,
-        scenario.config.internalRates ?? INTERNAL_DEFAULTS,
+        scenario.config.internalRates,
         scenario.config.metalPrices,
       ),
     );

@@ -34,8 +34,10 @@ export interface ConflictItem {
   entity: string;
   entityId: string;
   localVersion: any;
-  serverVersion: any;
+  serverVersion?: any;
+  remoteVersion?: any;  // [PR-009] 别名，兼容 syncEngine.ts
   resolvedAs?: 'local' | 'server';
+  message?: string;  // [PR-009] 冲突描述信息
 }
 
 export interface SyncPullResponse {

@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  email      String   @unique
-  password   String
-  name       String
-  role       String   @default("ENGINEER") // ADMIN, MANAGER, ENGINEER, VIEWER
-  feishuId   String?  @unique
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          String   @default("ENGINEER") // ADMIN, MANAGER, ENGINEER, VIEWER
+  feishuId      String?  @unique
+  tokenVersion  Int      @default(0) // [PR-003] JWT撤销机制：角色变更时递增
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   projects   Project[]
   auditLogs  AuditLog[]

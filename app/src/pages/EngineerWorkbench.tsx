@@ -18,7 +18,6 @@ import { IconBranch, IconExternalOpen, IconHistory, IconSetting } from '@douyinf
 import { db, type ChangeOrderRecord } from '@/data/db';
 import { requireScenarioConfig } from '@/data/scenarioGuards';
 import {
-  INTERNAL_DEFAULTS,
   computeHarnessCost,
   computeInternalHarnessCost,
   computeInternalProjectFromHarnesses,
@@ -83,10 +82,20 @@ export default function EngineerWorkbench() {
     const customerHarnesses = data.harnesses.map((record) =>
       tracedCustomer(record.input, config.costRates, config.metalPrices),
     );
+
+    // [成本核算数据原则] 必须传入 internalRates，禁止回退
+    if (!config.internalRates) {
+      throw new Error(
+        '[成本核算] EngineerWorkbench 缺少 internalRates 配置。' +
+        '请在系统设置中配置真实费率，禁止使用硬编码默认值。'
+      );
+    }
+    // 此时 internalRates 已确认存在
+    const internalRates = config.internalRates;
     const internalHarnesses = data.harnesses.map((record) =>
       tracedInternal(
         record.input,
-        config.internalRates || INTERNAL_DEFAULTS,
+        internalRates,
         config.metalPrices,
       ),
     );

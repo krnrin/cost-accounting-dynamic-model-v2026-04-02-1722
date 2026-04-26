@@ -113,9 +113,10 @@ function deltaPct(oldVal: number, newVal: number): number {
   return ((newVal - oldVal) / oldVal) * 100;
 }
 
-function severityFromAlert(alert: MetalAlertResult): 'info' | 'warning' | 'critical' {
-  if (alert.maxLevel === 'danger') return 'critical';
-  if (alert.maxLevel === 'warn') return 'warning';
+/** 根据单个item的level计算severity [PR-086] */
+export function severityFromLevel(level: 'normal' | 'warn' | 'danger'): 'info' | 'warning' | 'critical' {
+  if (level === 'danger') return 'critical';
+  if (level === 'warn') return 'warning';
   return 'info';
 }
 
@@ -188,17 +189,16 @@ export function generateAlertEvents(
   if (!scenarioImpact.alert.hasAlert) return [];
 
   const events: AlertEvent[] = [];
-  const severity = severityFromAlert(scenarioImpact.alert);
   const scenario = scenarioImpact.scenario;
 
-  // 为每个触发预警的金属生成一条事件
+  // 为每个触发预警的金属生成一条事件，severity根据item.level单独计算
   for (const item of scenarioImpact.alert.items) {
     if (item.level === 'normal') continue;
 
     events.push({
       id: generateId(),
       type: 'metal_price',
-      severity,
+      severity: severityFromLevel(item.level),
       title: `${item.label}${item.deltaPct > 0 ? '上涨' : '下跌'}预警 — ${scenario.projectName}/${scenario.scenarioName}`,
       message: item.message,
       projectId: scenario.projectId,

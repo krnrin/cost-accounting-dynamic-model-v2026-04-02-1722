@@ -82,20 +82,22 @@ export function parseMetalsApiResponse(
   if (!response.success || !response.rates) return null;
   
   // metals-api copper symbol: XCU (per troy oz in USD)
-  // metals-api aluminum symbol: XAL (per troy oz in USD)
+  // metals-api aluminum symbol: XAL (per metric ton in USD)
   const cuRatePerOz = response.rates['XCU'];
-  const alRatePerOz = response.rates['XAL'];
-  
-  if (!cuRatePerOz || !alRatePerOz) return null;
-  
-  // Convert: rate = 1/USD-per-oz → USD per oz = 1/rate
+  const alRatePerTon = response.rates['XAL'];
+
+  if (!cuRatePerOz || !alRatePerTon) return null;
+
+  // Copper: rate = 1/USD-per-oz → USD per oz = 1/rate
   // 1 troy oz = 31.1035g → 1 kg = 32.1507 troy oz
   const cuUsdPerOz = 1 / cuRatePerOz;
   const cuUsdPerKg = cuUsdPerOz * 32.1507;
   const cuCnyPerKg = cuUsdPerKg * usdToCny;
-  
-  const alUsdPerOz = 1 / alRatePerOz;
-  const alUsdPerKg = alUsdPerOz * 32.1507;
+
+  // Aluminum: rate = 1/USD-per-ton → USD per metric ton = 1/rate
+  // 1 metric ton = 1000 kg
+  const alUsdPerTon = 1 / alRatePerTon;
+  const alUsdPerKg = alUsdPerTon / 1000;
   const alCnyPerKg = alUsdPerKg * usdToCny;
   
   return {
@@ -256,29 +258,30 @@ export async function fetchMetalPrices(config: MetalApiConfig = {}): Promise<Met
 }
 
 async function fetchFromProvider(config: MetalApiConfig): Promise<MetalPriceData | null> {
-  const { apiKey, provider, baseCurrency = 'USD' } = config;
-  if (!apiKey) return null;
-  
+  const { provider, baseCurrency = 'USD' } = config;
+
+  // [PR-088] API密钥走后端代理，前端只持反向代理token
+  // 前端不再直接持有apiKey，而是通过后端代理路由获取数据
+  // 后端路由: /api/metal-prices/fetch
   let url: string;
-  
+
   switch (provider) {
     case 'metals-api':
-      url = `https://metals-api.com/api/latest?access_key=${apiKey}&base=${baseCurrency}&symbols=XCU,XAL`;
-      break;
     case 'commodities-api':
-      url = `https://commodities-api.com/api/latest?access_key=${apiKey}&base=${baseCurrency}&symbols=XCU,XAL`;
+      // 走后端代理，provider和baseCurrency作为查询参数
+      url = `/api/metal-prices/fetch?provider=${provider}&base=${baseCurrency}`;
       break;
     default:
       return null;
   }
-  
-  const response = await fetch(url, { 
+
+  const response = await fetch(url, {
     signal: AbortSignal.timeout(10000),
     headers: { 'Accept': 'application/json' },
   });
-  
+
   if (!response.ok) return null;
-  
+
   const json = await response.json() as MetalsApiResponse;
   return parseMetalsApiResponse(json);
 }

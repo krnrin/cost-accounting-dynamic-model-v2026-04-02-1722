@@ -315,7 +315,7 @@ function AlertCenterPage() {
       dataIndex: 'impactAmount',
       width: 130,
       align: 'right' as const,
-      render: (value: number) => <span className="consolas-font" style={{ fontWeight: 700 }}>楼{Number(value || 0).toFixed(2)}</span>,
+      render: (value: number) => <span className="consolas-font" style={{ fontWeight: 700 }}>¥{Number(value || 0).toFixed(2)}</span>,
     },
     {
       title: '发生时间',
@@ -491,7 +491,7 @@ function AlertCenterPage() {
             <div><Text strong>类别：</Text><Tag color="blue">{CATEGORY_LABELS[selectedEvent.category]}</Tag></div>
             <div><Text strong>严重度：</Text><Tag color={SEVERITY_META[selectedEvent.severity].color}>{SEVERITY_META[selectedEvent.severity].label}</Tag></div>
             <div><Text strong>状态：</Text><Tag color={EVENT_STATUS_META[selectedEvent.status].color}>{EVENT_STATUS_META[selectedEvent.status].label}</Tag></div>
-            <div><Text strong>影响金额：</Text><Text className="consolas-font">楼{selectedEvent.impactAmount.toFixed(2)}</Text></div>
+            <div><Text strong>影响金额：</Text><Text className="consolas-font">¥{selectedEvent.impactAmount.toFixed(2)}</Text></div>
             <div><Text strong>详情：</Text><Text>{selectedEvent.detail || '-'}</Text></div>
             <div><Text strong>来源对象：</Text><Text>{selectedEvent.sourceObjectType || '-'} {selectedEvent.sourceObjectId || ''}</Text></div>
             <div><Text strong>发生时间：</Text><Text>{formatDateTime(selectedEvent.occurredAt)}</Text></div>

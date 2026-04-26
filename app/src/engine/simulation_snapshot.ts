@@ -139,15 +139,16 @@ export function linkAnnualDropToScenario(
   };
 }
 
-/** Compute lifecycle cost with annual drops applied */
+/** Compute lifecycle cost with annual drops applied (compound) */
 export function computeLifecycleCostWithDrops(
   baseAnnualCosts: number[],
   drops: AnnualDropLink[],
 ): { adjustedCosts: number[]; totalSavings: number; totalLifecycleCost: number } {
   const adjustedCosts = baseAnnualCosts.map((cost, yearIdx) => {
     const yearDrops = drops.filter(d => d.year === yearIdx + 1);
-    const totalDropRate = yearDrops.reduce((sum, d) => sum + d.dropRate, 0);
-    return Math.round(cost * (1 - totalDropRate) * 100) / 100;
+    // 复利乘积: (1-a)(1-b)... 避免sum≥1时负成本
+    const compoundFactor = yearDrops.reduce((prod, d) => prod * (1 - d.dropRate), 1);
+    return Math.round(cost * compoundFactor * 100) / 100;
   });
 
   const totalBase = baseAnnualCosts.reduce((s, c) => s + c, 0);

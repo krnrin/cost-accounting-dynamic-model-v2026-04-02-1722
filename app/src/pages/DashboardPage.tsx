@@ -131,7 +131,6 @@ export default function DashboardPage() {
           id={d.id}
           sid={d.sid}
           project={d.project}
-          summary={d.summary}
           internalProject={d.internalSummary}
           harnessTableData={d.harnessTableData}
           showMohDetail={d.showMohDetail}

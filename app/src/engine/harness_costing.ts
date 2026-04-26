@@ -27,7 +27,11 @@ import {
 import { numberOr, resolveEffectiveRatio, safeArray } from './shared_utils';
 import { detectPrecisionLevel, estimateByCoefficients, LEVEL1_COEFFICIENTS } from './precision';
 
-/** 内部实绩核算默认费率 (基准 / K3) */
+/**
+ * [成本核算数据原则] 硬编码默认值仅供开发测试使用，生产环境必须配置真实费率
+ * @deprecated 生产环境禁止使用，必须通过 benchmark 参数传入真实费率配置
+ */
+/** @deprecated 仅供开发测试，生产环境必须配置真实费率 */
 export const INTERNAL_DEFAULTS: InternalCostRates = {
   laborRate: 28.58, // 以 Assembly 基准
   indirectLaborRate: 8.50,
@@ -39,6 +43,10 @@ export const INTERNAL_DEFAULTS: InternalCostRates = {
   materialWasteRate: 0.005, // 0.5% 基准
 };
 
+/**
+ * [成本核算数据原则] 硬编码工厂费率仅供开发测试使用，生产环境必须配置真实费率
+ * @deprecated 生产环境禁止使用，必须通过 benchmark 参数传入真实费率配置
+ */
 export const INTERNAL_FACTORY_RATES: Record<ProjectFactoryId, InternalCostRates> = {
   K1: {
     laborRate: 30.1,
@@ -112,10 +120,6 @@ function normalizeProjectFactoryId(factoryId?: string | null): ProjectFactoryId 
   return DEFAULT_PROJECT_FACTORY_ID;
 }
 
-function getDefaultInternalFactoryRates(factoryId?: string | null): InternalCostRates {
-  return INTERNAL_FACTORY_RATES[normalizeProjectFactoryId(factoryId)] ?? INTERNAL_DEFAULTS;
-}
-
 function mapBenchmarkFactoryToInternalRates(factory: FinancialBenchmark['factories'][string]): InternalCostRates {
   return {
     laborRate: factory.labor_rates.assembly,
@@ -159,7 +163,11 @@ function applySimulationAdjustments(
 }
 
 /**
- * 获取工厂内部实绩核算参数 (Dynamic Source of Truth)
+ * 获取工厂内部实绩核算参数
+ *
+ * [成本核算数据原则] 禁止回退到硬编码默认值
+ * - 必须通过 benchmark 参数传入真实费率配置
+ * - 缺少配置时抛出错误，而非静默使用硬编码值
  */
 export function getInternalFactoryRates(
   factoryId: string | undefined,
@@ -168,8 +176,13 @@ export function getInternalFactoryRates(
 ): InternalCostRates {
   const normalizedFactoryId = normalizeProjectFactoryId(factoryId);
   const factory = benchmark?.factories?.[normalizedFactoryId] ?? (factoryId ? benchmark?.factories?.[factoryId] : undefined);
+
   if (!factory) {
-    return getDefaultInternalFactoryRates(normalizedFactoryId);
+    throw new Error(
+      `[成本核算] 工厂 ${normalizedFactoryId} 缺少费率配置。` +
+      `请在系统设置中配置 internalFactoryRates，或通过 benchmark 参数传入真实费率数据。` +
+      `硬编码默认值仅供开发测试使用，生产环境禁止回退。`
+    );
   }
 
   return applySimulationAdjustments(mapBenchmarkFactoryToInternalRates(factory), factory, simulation);
@@ -571,15 +584,22 @@ export function computeInternalHarnessCost(
     bom = [],
     frontHours = 0,
     backHours = 0,
-    packaging: pack = { 
-      innerBoxCost: 0, outerBoxCost: 0, palletCost: 0, 
-      trayDividerCost: 0, bubbleWrapCost: 0, labelCost: 0, 
-      subtotal: 0 
+    packaging: pack = {
+      innerBoxCost: 0, outerBoxCost: 0, palletCost: 0,
+      trayDividerCost: 0, bubbleWrapCost: 0, labelCost: 0,
+      subtotal: 0
     },
     freight = { freight: 0, excessFreight: 0, shortHaul: 0, thirdPartyWarehouse: 0, storage: 0, subtotal: 0 },
   } = input;
 
-  const rates = internalRates || INTERNAL_DEFAULTS;
+  // [成本核算数据原则] 必须传入 internalRates，禁止回退到硬编码默认值
+  if (!internalRates) {
+    throw new Error(
+      '[成本核算] computeInternalHarnessCost 缺少 internalRates 参数。' +
+      '必须传入真实费率配置，禁止使用硬编码默认值。'
+    );
+  }
+  const rates = internalRates;
   const processHours = frontHours + backHours || (input as any).processHours || 0;
   const installationRatio = resolveEffectiveRatio(input.installationRatio, vehicleRatio);
 

@@ -1,12 +1,20 @@
 import { numberOr, safeArray } from './shared_utils';
 import type { HarnessResult } from '@/types/harness';
-import type { 
-  MetalContract, 
-  MetalDelta, 
-  MetalEscalationResult, 
+import type {
+  MetalContract,
+  MetalDelta,
+  MetalEscalationResult,
   MetalSensitivityMatrix
 } from '@/types/quote';
 import type { MetalPrices } from '@/types/project';
+
+/**
+ * [PR-095] 联动模式配置
+ * - 'alert_only': 仅报警，超过阈值时触发告警但不联动调价（当前默认行为，已确认）
+ * - 'excess_only': 仅超出阈值部分联动（已废弃）
+ * - 'full': 超出阈值后全额联动（已废弃）
+ */
+export type ThresholdMode = 'alert_only' | 'excess_only' | 'full';
 
 /**
  * 默认联动合同条款
@@ -20,28 +28,61 @@ export const DEFAULT_CONTRACT: MetalContract = {
 };
 
 /**
- * 应用联动阈值和比例
- * @returns {number} 生效的价格变化 (元/吨)
+ * [PR-095] 全局阈值模式配置（可由业务层设置）
+ * 业务确认：金属价格超过阈值时仅触发报警，不自动联动调价
  */
-export function checkThreshold(basePrice: number, newPrice: number, thresholdPercent: number, ratio: number): number {
+let globalThresholdMode: ThresholdMode = 'alert_only';
+
+export function setThresholdMode(mode: ThresholdMode): void {
+  globalThresholdMode = mode;
+}
+
+export function getThresholdMode(): ThresholdMode {
+  return globalThresholdMode;
+}
+
+/**
+ * 检查金属价格是否超出阈值
+ *
+ * [PR-095] 业务确认：仅报警，不联动调价
+ * - thresholdPercent = 0: 无阈值，不报警
+ * - thresholdPercent > 0: 超出阈值时返回报警信息，但联动金额始终为0
+ *
+ * @returns {exceeded: boolean, thresholdAmount: number, delta: number}
+ */
+export function checkThreshold(
+  basePrice: number,
+  newPrice: number,
+  thresholdPercent: number,
+  ratio: number
+): { exceeded: boolean; thresholdAmount: number; delta: number; effectiveDelta: number } {
   const threshold = numberOr(thresholdPercent, 0);
-  const escalationRatio = numberOr(ratio, 1.0);
   const delta = newPrice - basePrice;
 
   if (threshold <= 0) {
-    // 无阈值，全部联动
-    return delta * escalationRatio;
+    // 无阈值配置，不报警
+    return { exceeded: false, thresholdAmount: 0, delta, effectiveDelta: 0 };
   }
 
   const thresholdAmount = basePrice * threshold;
-  if (Math.abs(delta) <= thresholdAmount) {
-    return 0; // 在阈值范围内，不联动
-  }
+  const exceeded = Math.abs(delta) > thresholdAmount;
 
-  // 超出阈值部分联动
-  const sign = delta > 0 ? 1 : -1;
-  const excess = Math.abs(delta) - thresholdAmount;
-  return sign * excess * escalationRatio;
+  // [PR-095] 业务确认：仅报警，联动金额始终为0
+  // 如需启用联动，修改 globalThresholdMode 为 'excess_only' 或 'full'
+  let effectiveDelta = 0;
+
+  if (globalThresholdMode === 'excess_only' && exceeded) {
+    // 废弃：仅超出部分联动
+    const sign = delta > 0 ? 1 : -1;
+    const excess = Math.abs(delta) - thresholdAmount;
+    effectiveDelta = sign * excess * ratio;
+  } else if (globalThresholdMode === 'full' && exceeded) {
+    // 废弃：全额联动
+    effectiveDelta = delta * ratio;
+  }
+  // alert_only 模式下 effectiveDelta 始终为 0
+
+  return { exceeded, thresholdAmount, delta, effectiveDelta };
 }
 
 /**
@@ -51,13 +92,15 @@ export function checkThreshold(basePrice: number, newPrice: number, thresholdPer
  * @param baseMetal - 基准金属价格
  * @param newMetal  - 新金属价格
  * @param contract  - 联动合同条款
+ * @param rates - [PR-096] 公开的费率参数（替代私有 _params）
  * @returns 联动影响明细
  */
 export function computeMetalDelta(
-  harness: HarnessResult, 
-  baseMetal: Partial<MetalPrices>, 
-  newMetal: Partial<MetalPrices>, 
-  contract?: MetalContract
+  harness: HarnessResult,
+  baseMetal: Partial<MetalPrices>,
+  newMetal: Partial<MetalPrices>,
+  contract?: MetalContract,
+  rates?: { wasteRate?: number; mgmtRate?: number; profitRate?: number }
 ): MetalDelta {
   const ct = contract || DEFAULT_CONTRACT;
   const cuWeight = numberOr(harness.copperWeight, 0);   // kg
@@ -68,28 +111,34 @@ export function computeMetalDelta(
   const newCuPrice = numberOr(newMetal.copper, baseCuPrice);
   const newAlPrice = numberOr(newMetal.aluminum, baseAlPrice);
 
-  // 应用联动阈值和比例
-  const effectiveCuDelta = checkThreshold(baseCuPrice, newCuPrice, ct.thresholdPercent, ct.escalationRatio);
-  const effectiveAlDelta = checkThreshold(baseAlPrice, newAlPrice, ct.thresholdPercent, ct.escalationRatio);
+  // 检查阈值并获取报警信息
+  const cuThresholdCheck = checkThreshold(baseCuPrice, newCuPrice, ct.thresholdPercent, ct.escalationRatio);
+  const alThresholdCheck = checkThreshold(baseAlPrice, newAlPrice, ct.thresholdPercent, ct.escalationRatio);
+
+  // [PR-095] 业务确认：仅报警，联动金额始终为0（alert_only模式）
+  const effectiveCuDelta = cuThresholdCheck.effectiveDelta;
+  const effectiveAlDelta = alThresholdCheck.effectiveDelta;
 
   // 金属成本变化 (kg × 元/吨 ÷ 1000 = 元)
   const deltaCuCost = cuWeight * effectiveCuDelta / 1000;
   const deltaAlCost = alWeight * effectiveAlDelta / 1000;
   const deltaMaterialCost = deltaCuCost + deltaAlCost;
 
+  // [PR-096] 费率参数优先从公开参数读取，其次从 _params 兜底
+  const wasteRate = rates?.wasteRate ?? (harness._params?.wasteRate ?? 0.01);
+  const mgmtRate = rates?.mgmtRate ?? (harness._params?.mgmtRate ?? 0.06);
+  const profitRate = rates?.profitRate ?? (harness._params?.profitRate ?? 0.056627);
+
   // 联动: 废品率
-  const wasteRate = (harness._params && harness._params.wasteRate) || 0.01;
   const deltaWaste = deltaMaterialCost * wasteRate;
 
   // 联动: 管理费率
   // 金属联动场景下，仅材料差额参与管理费计算 — 金属价格变动不影响工时，
   // 因此管理费增量 = deltaMaterialCost × mgmtRate（与 harness_costing.ts 基数定义一致：
   // 管理费基数 = 材料 + 人工 + 制造，不含废品；此处人工和制造增量为 0）
-  const mgmtRate = (harness._params && harness._params.mgmtRate) || 0.06;
   const deltaMgmt = deltaMaterialCost * mgmtRate;
 
   // 联动: 利润率 — 利润基数含废品
-  const profitRate = (harness._params && harness._params.profitRate) || 0.056627;
   const deltaProfit = (deltaMaterialCost + deltaWaste + deltaMgmt) * profitRate;
 
   // 总到厂价变化 (包装/运输不受金属联动影响)
@@ -121,6 +170,16 @@ export function computeMetalDelta(
 
     // 加权影响
     weightedDelta: deltaDeliveredPrice * numberOr(harness.vehicleRatio, 0),
+
+    // [PR-095] 阈值报警信息
+    thresholdAlert: {
+      copperExceeded: cuThresholdCheck.exceeded,
+      aluminumExceeded: alThresholdCheck.exceeded,
+      copperThresholdAmount: cuThresholdCheck.thresholdAmount,
+      aluminumThresholdAmount: alThresholdCheck.thresholdAmount,
+      copperDelta: cuThresholdCheck.delta,
+      aluminumDelta: alThresholdCheck.delta,
+    },
   };
 }
 
@@ -175,6 +234,11 @@ export function computeMetalEscalation(
     };
   }
 
+  // [PR-095] 计算阈值报警汇总
+  const copperExceededCount = deltas.filter((d) => d.thresholdAlert?.copperExceeded).length;
+  const aluminumExceededCount = deltas.filter((d) => d.thresholdAlert?.aluminumExceeded).length;
+  const hasAnyExceeded = copperExceededCount > 0 || aluminumExceededCount > 0;
+
   return {
     metalPrices: {
       before: baseMetal,
@@ -192,6 +256,11 @@ export function computeMetalEscalation(
       totalAluminumWeight: deltas.reduce((s, d) => s + d.aluminumWeight, 0),
     },
     annualImpact: annualImpact,
+    thresholdAlertSummary: {
+      copperExceededCount,
+      aluminumExceededCount,
+      hasAnyExceeded,
+    },
   };
 }
 

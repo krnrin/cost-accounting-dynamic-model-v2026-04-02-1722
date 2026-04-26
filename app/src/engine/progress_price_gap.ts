@@ -18,12 +18,12 @@ export interface PriceGapRecord {
   currentPrice: number;
   /** 价差 = current - target */
   gap: number;
-  /** 价差率 */
+  /** 价差率 (targetPrice=0时为0) */
   gapRate: number;
   /** 加权价差 */
   weightedGap: number;
   /** 状态 */
-  status: 'within_target' | 'slight_over' | 'significant_over' | 'under_target';
+  status: 'no_target' | 'within_target' | 'slight_over' | 'significant_over' | 'under_target';
 }
 
 /** 项目级价差汇总 */
@@ -87,7 +87,10 @@ export function computePriceGapSummary(
     const weightedGap = gap * vehicleRatio;
 
     let status: PriceGapRecord['status'];
-    if (gapRate <= 0) {
+    // 目标价为0时无法判断是否达标
+    if (targetPrice === 0) {
+      status = 'no_target';
+    } else if (gapRate <= 0) {
       status = 'under_target';
       underTargetCount++;
     } else if (gapRate <= t.slightOverRate) {

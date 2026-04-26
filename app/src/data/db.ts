@@ -12,7 +12,16 @@ import type {
 import type { VersionRecord } from '../types/version';
 import type { OnetimeCostInput } from '../engine/onetime_alloc';
 import type { ChangeOrder } from '../engine/change_verification';
-import type { SimulationLayer } from '../engine/simulation_layers';
+// [PR-034] 删除 simulation_layers.ts，内联 SimulationLayer 类型
+/** 仿真分层类型 */
+export interface SimulationLayer {
+  id: string;
+  name: string;
+  type: 'metal_price' | 'cost_rate' | 'bom_qty' | 'volume' | 'custom';
+  overrides: Record<string, number>;
+  enabled: boolean;
+  order: number;
+}
 import type { PackagingScheme, PackagingLogisticsCost } from '../types/packaging';
 
 /** 场景类型 */
@@ -69,6 +78,10 @@ export interface ScenarioRecord {
   publishedBy?: string;
   archivedAt?: string;
   statusNote?: string;
+  /** [PR-101] 快照引用 — 冻结时自动创建的快照ID */
+  settingsSnapshotId?: string;
+  quoteSnapshotId?: string;
+  snapshotChainId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -325,10 +338,12 @@ export interface PackagingSchemeRecord {
 
 /** F10: 包装物流费用记录 */
 export interface PackagingLogisticsRecord {
-  /** 主键: `${projectId}::${harnessId}` */
+  /** 主键: `${projectId}::${harnessId}` 或 `${projectId}::${scenarioId}::${harnessId}` */
   id: string;
   /** 所属项目 */
   projectId: string;
+  /** 所属场景 (可选，用于多场景区分) */
+  scenarioId?: string;
   /** 线束零件号 */
   harnessId: string;
   /** 包装物流费用数据 */
@@ -357,6 +372,8 @@ class CostWorkbenchDB extends Dexie {
   metalPriceHistory!: Table<MetalPriceHistoryRecord, string>;
   packagingSchemes!: Table<PackagingSchemeRecord, string>;
   packagingLogistics!: Table<PackagingLogisticsRecord, string>;
+  // [PR-084] 编辑锁表，用于并发控制
+  editLocks!: Table<import('../engine/local_patch_overrides').EditLockRecord, number>;
 
   constructor() {
     super('CostWorkbenchDB');
@@ -486,6 +503,10 @@ class CostWorkbenchDB extends Dexie {
     this.version(13).stores({
       packagingSchemes: 'id, projectId, harnessId, [projectId+harnessId]',
       packagingLogistics: 'id, projectId, harnessId, [projectId+harnessId]',
+    });
+    // [PR-084] v14: 编辑锁表，用于并发控制
+    this.version(14).stores({
+      editLocks: '++id, scenarioId, userId, expiresAt, [scenarioId+userId]',
     });
   }
 }

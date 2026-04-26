@@ -1,7 +1,26 @@
 import type { VersionSnapshot, VersionDiff, VersionDiffItem } from '../types/version';
-import { computeInternalHarnessCost, INTERNAL_DEFAULTS, mapInternalToHarnessResult } from './harness_costing';
+import { computeInternalHarnessCost, mapInternalToHarnessResult } from './harness_costing';
 
-export function computeVersionDiff(before: VersionSnapshot, after: VersionSnapshot): VersionDiff {
+/**
+ * [成本核算数据原则] 必须传入 internalRates，禁止回退到硬编码默认值
+ */
+function requireInternalRates(config: { internalRates?: any }, context: string): any {
+  if (!config.internalRates) {
+    throw new Error(
+      `[成本核算] ${context} 缺少 internalRates 配置。` +
+      '必须传入真实费率配置，禁止使用硬编码默认值。'
+    );
+  }
+  return config.internalRates;
+}
+
+// [PR-036] 增加 beforeVersionId 和 afterVersionId 参数
+export function computeVersionDiff(
+  before: VersionSnapshot,
+  after: VersionSnapshot,
+  beforeVersionId?: string,
+  afterVersionId?: string
+): VersionDiff {
   const projectLevel: VersionDiffItem[] = [
     createDiffItem('vehicleCost', '单车成本', before.summary.vehicleCost, after.summary.vehicleCost),
     createDiffItem('totalMaterial', '材料成本', before.summary.totalMaterial, after.summary.totalMaterial),
@@ -18,8 +37,11 @@ export function computeVersionDiff(before: VersionSnapshot, after: VersionSnapsh
     const a = harnessMapAfter.get(harnessId);
     const harnessName = a?.harnessName || b?.harnessName || 'Unknown';
 
-    const resultBefore = b ? mapInternalToHarnessResult(computeInternalHarnessCost(b.input, before.config.internalRates ?? INTERNAL_DEFAULTS, before.config.metalPrices)) : null;
-    const resultAfter = a ? mapInternalToHarnessResult(computeInternalHarnessCost(a.input, after.config.internalRates ?? INTERNAL_DEFAULTS, after.config.metalPrices)) : null;
+    const beforeRates = b ? requireInternalRates(before.config, 'before 版本') : null;
+    const afterRates = a ? requireInternalRates(after.config, 'after 版本') : null;
+
+    const resultBefore = b ? mapInternalToHarnessResult(computeInternalHarnessCost(b.input, beforeRates, before.config.metalPrices)) : null;
+    const resultAfter = a ? mapInternalToHarnessResult(computeInternalHarnessCost(a.input, afterRates, after.config.metalPrices)) : null;
 
     const diffs: VersionDiffItem[] = [
       createDiffItem('deliveredPrice', '到厂价', resultBefore?.deliveredPrice || 0, resultAfter?.deliveredPrice || 0),
@@ -42,8 +64,10 @@ export function computeVersionDiff(before: VersionSnapshot, after: VersionSnapsh
   });
 
   return {
-    beforeVersion: '', 
-    afterVersion: '',
+    // [PR-036] 填充 beforeVersion/afterVersion 字段
+    // VersionSnapshot 没有 versionId 字段，使用传入的参数或空字符串
+    beforeVersion: beforeVersionId || '',
+    afterVersion: afterVersionId || '',
     projectLevel,
     harnessLevel,
   };

@@ -47,6 +47,21 @@ export interface CostParams {
   packTotal: number;
   /** Freight subtotal (元) */
   freightTotal: number;
+  // [PR-097] 扩展制造分项费率，与主引擎 harness_costing.ts 对齐
+  /** 设备折旧费率 (元/h) */
+  equipmentDepreciationRate?: number;
+  /** 厂房租金费率 (元/h) */
+  facilityRentRate?: number;
+  /** 能源费率 (元/h) */
+  energyRate?: number;
+  /** 维保费率 (元/h) */
+  maintenanceRate?: number;
+  /** 质量费率 (元/h) */
+  qualityRate?: number;
+  /** 其他制造费率 (元/h) */
+  otherMfgRate?: number;
+  /** 间接人工费率 (元/h) */
+  indirectLaborRate?: number;
 }
 
 /** Build the standard cost DAG */
@@ -70,7 +85,19 @@ export function buildCostDAG(): Map<CostNodeId, CostNode> {
     {
       id: 'manufacturing',
       dependencies: [],
-      compute: (_deps, params) => params.processHours * params.mfgRate,
+      // [PR-097] 支持分项费率：若分项费率存在则求和，否则使用简化版 mfgRate
+      compute: (_deps, params) => {
+        const hours = params.processHours;
+        const detailed = (params.equipmentDepreciationRate ?? 0) +
+          (params.facilityRentRate ?? 0) +
+          (params.energyRate ?? 0) +
+          (params.maintenanceRate ?? 0) +
+          (params.qualityRate ?? 0) +
+          (params.otherMfgRate ?? 0) +
+          (params.indirectLaborRate ?? 0);
+        // 若有分项费率则使用分项，否则使用简化版
+        return detailed > 0 ? hours * detailed : hours * params.mfgRate;
+      },
     },
     {
       id: 'mgmtFee',
@@ -114,7 +141,7 @@ export function buildCostDAG(): Map<CostNodeId, CostNode> {
 }
 
 /** Compute ALL nodes in topological order */
-export function computeAll(params: CostParams): Record<CostNodeId, number> {
+export function computeAll(params: CostParams): Record<CostNodeId, number> & { dagVersion: number } {
   const dag = buildCostDAG();
   const values: Record<string, number> = {} as any;
   const order = topoSort(dag);
@@ -122,7 +149,8 @@ export function computeAll(params: CostParams): Record<CostNodeId, number> {
     const node = dag.get(nodeId)!;
     values[nodeId] = node.compute(values as Record<CostNodeId, number>, params);
   }
-  return values as Record<CostNodeId, number>;
+  // [PR-098] 返回dagVersion用于校验计算结果版本一致性
+  return { ...values as Record<CostNodeId, number>, dagVersion: 1 };
 }
 
 /**
@@ -196,7 +224,7 @@ function findAffected(dag: Map<CostNodeId, CostNode>, changed: Set<CostNodeId>):
 function topoSort(dag: Map<CostNodeId, CostNode>): CostNodeId[] {
   const inDegree = new Map<CostNodeId, number>();
   const adjList = new Map<CostNodeId, CostNodeId[]>();
-  
+
   for (const [id, node] of dag) {
     inDegree.set(id, node.dependencies.length);
     for (const dep of node.dependencies) {
@@ -204,24 +232,31 @@ function topoSort(dag: Map<CostNodeId, CostNode>): CostNodeId[] {
       adjList.get(dep)!.push(id);
     }
   }
-  
+
+  // [PR-113] 使用稳定排序：按节点ID排序确保跨平台一致性
   const queue: CostNodeId[] = [];
   for (const [id, degree] of inDegree) {
     if (degree === 0) queue.push(id);
   }
-  
+  queue.sort(); // 稳定排序
+
   const sorted: CostNodeId[] = [];
   while (queue.length > 0) {
     const node = queue.shift()!;
     sorted.push(node);
     const children = adjList.get(node) || [];
+    // 收集新入度为0的节点并排序
+    const newReady: CostNodeId[] = [];
     for (const child of children) {
       const newDeg = (inDegree.get(child) || 1) - 1;
       inDegree.set(child, newDeg);
-      if (newDeg === 0) queue.push(child);
+      if (newDeg === 0) newReady.push(child);
     }
+    // [PR-113] 稳定排序后插入队列
+    newReady.sort();
+    queue.push(...newReady);
   }
-  
+
   return sorted;
 }
 

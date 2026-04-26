@@ -7,15 +7,16 @@ export const DEFAULT_ALLOCATION: AllocationConfig = {
   equipment: 'hours',
   rnd: 'revenue',
   indirectLabor: 'hours',
-  management: 'direct',  // 当前行为: 各线束独立计算，不做总额分配
+  management: 'direct',  // 特殊处理: 各线束独立计算，不做总额分配
 };
 
 /**
  * 计算各线束的分摊权重
- * 
+ *
  * @param harnesses - 各线束核算结果
  * @param driver - 分摊驱动因子
  * @returns 权重数组 (index 对应 harnesses 的 index)，和为 1
+ * @throws Error 当 driver='direct' 时，因为 direct 不支持归一化分摊
  */
 export function computeAllocationWeights(
   harnesses: HarnessResult[],
@@ -30,8 +31,13 @@ export function computeAllocationWeights(
   }
 
   if (driver === 'direct') {
-    // direct = 不分摊，每个线束的权重就是1 (特殊处理)
-    return items.map(() => 1);
+    // 'direct' 驱动因子表示"不分摊，各线束独立计算"
+    // 这意味着不能用于归一化权重计算，因为会导致总分摊 = 原总额 × N
+    // 调用方应该特殊处理 'direct' 情况，而不是调用此函数
+    throw new Error(
+      "[allocation] 'direct' driver cannot be used for normalized allocation weights. " +
+      "Caller should handle 'direct' case separately (e.g., use harness's own cost)."
+    );
   }
 
   let values: number[];

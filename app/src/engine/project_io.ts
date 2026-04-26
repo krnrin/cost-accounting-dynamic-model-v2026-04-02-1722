@@ -20,6 +20,67 @@ export interface ProjectPackage {
   quoteSnapshots?: QuoteSnapshotRecord[];
 }
 
+// [PR-105] v1→v2 迁移函数
+/** 将 v1 格式包迁移到 v2 格式 */
+export function migrateV1ToV2(pkg: ProjectPackage): ProjectPackage {
+  if (pkg.schemaVersion !== 1) {
+    // 已经是 v2 或更高，直接返回
+    return pkg;
+  }
+
+  // v1 → v2 迁移：
+  // - v1 没有 scenarios/versions/quoteSnapshots
+  // - v1 的 harnesses 没有 scenarioId
+  // - 创建默认 baseline scenario 并关联所有 harnesses
+
+  const now = new Date().toISOString();
+  const defaultScenarioId = crypto.randomUUID();
+
+  const migratedScenario: ScenarioRecord = {
+    id: defaultScenarioId,
+    projectId: pkg.project.id,
+    scenarioCode: 'SCN-001',
+    scenarioName: '初始报价',
+    scenarioType: 'initial_quote',
+    parentScenarioId: null,
+    isBaseline: true,
+    lifecycleYears: pkg.project.meta?.lifecycleYears ?? 6,
+    config: pkg.project.config ?? {
+      costRates: { mgmtRate: 0, profitRate: 0, wasteRate: 0, laborRate: 0, mfgRate: 0 },
+      metalPrices: { copper: 0, aluminum: 0 },
+      volumes: [],
+      annualDropRate: 0,
+    },
+    note: '从 v1 格式自动迁移',
+    status: 'draft',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const migratedHarnesses: HarnessRecord[] = pkg.harnesses.map(h => ({
+    ...h,
+    scenarioId: defaultScenarioId,
+    eopYear: null,
+  }));
+
+  const migratedQuotes: QuoteRecord[] = pkg.quotes.map(q => ({
+    ...q,
+    scenarioId: defaultScenarioId,
+  }));
+
+  return {
+    schemaVersion: 2,
+    exportedAt: pkg.exportedAt,
+    appVersion: pkg.appVersion,
+    project: pkg.project,
+    harnesses: migratedHarnesses,
+    quotes: migratedQuotes,
+    scenarios: [migratedScenario],
+    versions: [],
+    quoteSnapshots: [],
+  };
+}
+
 export async function exportProjectPackage(projectId: string): Promise<ProjectPackage> {
   const project = await db.projects.get(projectId);
   if (!project) {
@@ -85,15 +146,18 @@ export function validateProjectPackage(data: unknown): { valid: boolean; errors:
 }
 
 export async function importProjectPackage(pkg: ProjectPackage): Promise<string> {
+  // [PR-105] 自动迁移 v1 格式
+  const migratedPkg = pkg.schemaVersion === 1 ? migrateV1ToV2(pkg) : pkg;
+
   const newProjectId = crypto.randomUUID();
   const now = new Date().toISOString();
 
   const newProject: ProjectRecord = {
-    ...pkg.project,
+    ...migratedPkg.project,
     id: newProjectId,
     meta: {
-      ...pkg.project.meta,
-      projectName: `${pkg.project.meta.projectName} (导入)`,
+      ...migratedPkg.project.meta,
+      projectName: `${migratedPkg.project.meta.projectName} (导入)`,
       createdAt: now,
       updatedAt: now,
     },
@@ -101,7 +165,7 @@ export async function importProjectPackage(pkg: ProjectPackage): Promise<string>
 
   const scenarioIdMap = new Map<string, string>();
   const parentScenarioByNewId = new Map<string, string | null>();
-  const newScenarios: ScenarioRecord[] = (pkg.scenarios ?? []).map((scenario) => {
+  const newScenarios: ScenarioRecord[] = (migratedPkg.scenarios ?? []).map((scenario) => {
     const newScenarioId = crypto.randomUUID();
     scenarioIdMap.set(scenario.id, newScenarioId);
     parentScenarioByNewId.set(newScenarioId, scenario.parentScenarioId ?? null);
@@ -121,9 +185,32 @@ export async function importProjectPackage(pkg: ProjectPackage): Promise<string>
     scenario.parentScenarioId = oldParent ? scenarioIdMap.get(oldParent) ?? null : null;
   }
 
+  // [PR-106] 循环引用检测与修复
+  function detectCycle(
+    startId: string,
+    visited: Set<string> = new Set(),
+    path: string[] = []
+  ): string[] | null {
+    if (visited.has(startId)) {
+      return path.includes(startId) ? [...path, startId] : null;
+    }
+    visited.add(startId);
+    const parentId = newScenarios.find(s => s.id === startId)?.parentScenarioId;
+    if (!parentId) return null;
+    return detectCycle(parentId, visited, [...path, startId]);
+  }
+
+  for (const scenario of newScenarios) {
+    const cycle = detectCycle(scenario.id);
+    if (cycle) {
+      console.warn(`[PR-106] 检测到循环引用: ${cycle.join(' → ')}，已断开`);
+      scenario.parentScenarioId = null;
+    }
+  }
+
   const fallbackScenarioId = newScenarios.find((scenario) => scenario.isBaseline)?.id ?? null;
 
-  const newHarnesses: HarnessRecord[] = pkg.harnesses.map((harness) => ({
+  const newHarnesses: HarnessRecord[] = migratedPkg.harnesses.map((harness) => ({
     ...harness,
     id: crypto.randomUUID(),
     projectId: newProjectId,
@@ -133,7 +220,7 @@ export async function importProjectPackage(pkg: ProjectPackage): Promise<string>
     updatedAt: now,
   }));
 
-  const newQuotes: QuoteRecord[] = pkg.quotes.map((quote) => ({
+  const newQuotes: QuoteRecord[] = migratedPkg.quotes.map((quote) => ({
     ...quote,
     id: crypto.randomUUID(),
     projectId: newProjectId,
@@ -142,7 +229,7 @@ export async function importProjectPackage(pkg: ProjectPackage): Promise<string>
       : quote.scenarioId,
   }));
 
-  const newVersions: VersionRecord[] = (pkg.versions ?? []).map((version) => ({
+  const newVersions: VersionRecord[] = (migratedPkg.versions ?? []).map((version) => ({
     ...version,
     id: crypto.randomUUID(),
     projectId: newProjectId,
@@ -152,7 +239,7 @@ export async function importProjectPackage(pkg: ProjectPackage): Promise<string>
     createdAt: now,
   }));
 
-  const newQuoteSnapshots: QuoteSnapshotRecord[] = (pkg.quoteSnapshots ?? []).map((snapshot) => ({
+  const newQuoteSnapshots: QuoteSnapshotRecord[] = (migratedPkg.quoteSnapshots ?? []).map((snapshot) => ({
     ...snapshot,
     id: crypto.randomUUID(),
     projectId: newProjectId,
@@ -179,7 +266,14 @@ export async function importProjectPackage(pkg: ProjectPackage): Promise<string>
         await db.quoteSnapshots.bulkPut(newQuoteSnapshots);
       }
     },
-  );
+  ).catch((err: Error) => {
+    // [PR-107] 事务失败时提供友好错误信息
+    throw new Error(
+      `导入项目「${migratedPkg.project.meta.projectName}」失败：${err.message}\n` +
+      `已写入数据：项目ID=${newProjectId}\n` +
+      `请检查数据库状态或联系管理员。`
+    );
+  });
 
   return newProjectId;
 }

@@ -33,6 +33,8 @@ interface PackagingState {
   // ─── 通用状态 ───
   /** 加载中标志 */
   loading: boolean;
+  /** 错误信息 */
+  error: string | null;
   /** 当前项目ID */
   currentProjectId: string | null;
 
@@ -118,13 +120,17 @@ function computeLogisticsSummary(
   const grandTotal = totalPackaging + totalLogistics;
 
   // 计算按装车比加权后的单套费用
+  // 使用复合键 scenarioId::harnessId 避免跨场景覆盖
   let weightedPerUnit = 0;
   const vehicleRatioMap: Record<string, number> = {};
   for (const h of harnesses) {
-    vehicleRatioMap[h.harnessId] = h.input.vehicleRatio;
+    const key = h.scenarioId ? `${h.scenarioId}::${h.harnessId}` : h.harnessId;
+    vehicleRatioMap[key] = h.input.vehicleRatio;
   }
   for (const r of records) {
-    const ratio = vehicleRatioMap[r.harnessId] ?? 0;
+    // 尝试匹配复合键，回退到纯 harnessId
+    const compositeKey = r.scenarioId ? `${r.scenarioId}::${r.harnessId}` : r.harnessId;
+    const ratio = vehicleRatioMap[compositeKey] ?? vehicleRatioMap[r.harnessId] ?? 0;
     weightedPerUnit += r.cost.grandTotal * ratio;
   }
 
@@ -154,6 +160,7 @@ export const usePackagingStore = create<PackagingState>()(
       logisticsRecords: [],
       logisticsSummary: null,
       loading: false,
+      error: null,
       currentProjectId: null,
 
       // ─── 包装方案 Actions (F09) ───
@@ -184,7 +191,10 @@ export const usePackagingStore = create<PackagingState>()(
           scheme,
           updatedAt: now,
         };
-        await db.packagingSchemes.put(record);
+        // 使用事务确保原子性
+        await db.transaction('rw', [db.packagingSchemes], async () => {
+          await db.packagingSchemes.put(record);
+        });
         await get().loadPackagingSchemes(projectId);
       },
 
@@ -197,13 +207,19 @@ export const usePackagingStore = create<PackagingState>()(
           scheme,
           updatedAt: now,
         }));
-        await db.packagingSchemes.bulkPut(records);
+        // 使用事务确保原子性
+        await db.transaction('rw', [db.packagingSchemes], async () => {
+          await db.packagingSchemes.bulkPut(records);
+        });
         await get().loadPackagingSchemes(projectId);
       },
 
       deletePackagingScheme: async (projectId: string, harnessId: string) => {
         const id = `${projectId}::${harnessId}`;
-        await db.packagingSchemes.delete(id);
+        // 使用事务确保原子性
+        await db.transaction('rw', [db.packagingSchemes], async () => {
+          await db.packagingSchemes.delete(id);
+        });
         await get().loadPackagingSchemes(projectId);
       },
 
@@ -267,10 +283,12 @@ export const usePackagingStore = create<PackagingState>()(
           cost: fullCost,
           updatedAt: now,
         };
-        await db.packagingLogistics.put(record);
 
-        // 同步包装/运费到 harness.input
-        await syncLogisticsToHarness(projectId, cost.harnessId, fullCost);
+        // 使用事务确保原子性：同时更新包装物流记录和harness
+        await db.transaction('rw', [db.packagingLogistics, db.harnesses], async () => {
+          await db.packagingLogistics.put(record);
+          await syncLogisticsToHarnessInTx(projectId, cost.harnessId, fullCost);
+        });
 
         await get().loadPackagingLogistics(projectId);
       },
@@ -287,21 +305,26 @@ export const usePackagingStore = create<PackagingState>()(
             updatedAt: now,
           };
         });
-        await db.packagingLogistics.bulkPut(records);
 
-        // 同步包装/运费到 harness.input
-        for (let i = 0; i < costs.length; i++) {
-          const costItem = costs[i]!;
-          const recordItem = records[i]!;
-          await syncLogisticsToHarness(projectId, costItem.harnessId, recordItem.cost);
-        }
+        // 使用事务确保原子性
+        await db.transaction('rw', [db.packagingLogistics, db.harnesses], async () => {
+          await db.packagingLogistics.bulkPut(records);
+          for (let i = 0; i < costs.length; i++) {
+            const costItem = costs[i]!;
+            const recordItem = records[i]!;
+            await syncLogisticsToHarnessInTx(projectId, costItem.harnessId, recordItem.cost);
+          }
+        });
 
         await get().loadPackagingLogistics(projectId);
       },
 
       deletePackagingLogistics: async (projectId: string, harnessId: string) => {
         const id = `${projectId}::${harnessId}`;
-        await db.packagingLogistics.delete(id);
+        // 使用事务确保原子性
+        await db.transaction('rw', [db.packagingLogistics], async () => {
+          await db.packagingLogistics.delete(id);
+        });
         await get().loadPackagingLogistics(projectId);
       },
 
@@ -359,6 +382,7 @@ export const usePackagingStore = create<PackagingState>()(
           logisticsRecords: [],
           logisticsSummary: null,
           loading: false,
+          error: null,
           currentProjectId: null,
         });
       },
@@ -370,8 +394,25 @@ export const usePackagingStore = create<PackagingState>()(
 /**
  * 将包装物流费用同步到 harness.input.packaging / harness.input.freight
  * 打通断链#3：包装数据 → 成本计算引擎
+ *
+ * 注意：此函数在事务外使用，会单独开启事务
+ * [PR-053] 导出供外部模块使用
  */
-async function syncLogisticsToHarness(
+export async function syncLogisticsToHarness(
+  projectId: string,
+  harnessId: string,
+  cost: PackagingLogisticsCost
+): Promise<void> {
+  await db.transaction('rw', [db.harnesses], async () => {
+    await syncLogisticsToHarnessInTx(projectId, harnessId, cost);
+  });
+}
+
+/**
+ * 事务内版本的同步函数，不单独开启事务
+ * 必须在 db.transaction 回调内调用
+ */
+async function syncLogisticsToHarnessInTx(
   projectId: string,
   harnessId: string,
   cost: PackagingLogisticsCost

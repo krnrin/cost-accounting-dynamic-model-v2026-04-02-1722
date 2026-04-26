@@ -106,7 +106,7 @@ export default function SnapshotComparePanel({ scenarioId: _scenarioId }: Snapsh
             <Table
               dataSource={settingsDiffs}
               columns={settingsDiffColumns}
-              rowKey="field"
+              rowKey={(row?: SnapshotDiff) => `${row?.section ?? 'settings'}::${row?.field ?? 'unknown'}`}
               pagination={false}
               size="small"
               style={S.diffTable}
@@ -149,7 +149,7 @@ export default function SnapshotComparePanel({ scenarioId: _scenarioId }: Snapsh
                   { title: 'A', dataIndex: 'valueA', render: (v: unknown) => String(v) },
                   { title: 'B', dataIndex: 'valueB', render: (v: unknown) => String(v) },
                 ]}
-                rowKey="field"
+                rowKey={(row: any) => `${row.section ?? 'quote'}::${row.field}`}
                 pagination={false}
                 size="small"
               />

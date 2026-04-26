@@ -83,7 +83,8 @@ export function computeRunningPrice(params: {
     activeOnetimeAddon,
     onetimeRecovered: resolvedOnetimeRecovered,
     otherAdjustments,
-    runningPrice: Math.max(0, runningPrice),
+    // [PR-035] 移除 Math.max(0, ...) 静默截断，让负值穿透到上游业务校验
+    runningPrice,
     calculatedAt: new Date().toISOString(),
     year: new Date().getFullYear() + yearsSinceQuote,
     installationRatio: resolveEffectiveRatio(installationRatio, 0),

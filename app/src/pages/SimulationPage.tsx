@@ -32,12 +32,70 @@ import {
 import { compareFactoryCosts } from '@/engine/factory_comparison';
 import type { FactoryComparisonResult } from '@/engine/factory_comparison';
 import { computeProjectAnnualizedCost } from '@/engine/annualized_cost';
-import {
-  PRESET_LAYERS,
-  applySimulationLayers,
-  generateLayerOverrides,
-  type SimulationLayer,
-} from '@/engine/simulation_layers';
+
+// [PR-034] 删除 simulation_layers.ts，功能内联到此文件
+
+// [PR-034] 内联 SimulationLayer 类型
+interface SimulationLayer {
+  id: string;
+  name: string;
+  type: 'metal_price' | 'cost_rate' | 'bom_qty' | 'volume' | 'custom';
+  overrides: Record<string, number>;
+  enabled: boolean;
+  order: number;
+}
+
+// [PR-034] 内联 PRESET_LAYERS
+const PRESET_LAYERS: SimulationLayer[] = [
+  { id: 'metal-up-5', name: '铜价上涨5%', type: 'metal_price', overrides: {}, enabled: false, order: 1 },
+  { id: 'metal-down-5', name: '铜价下跌5%', type: 'metal_price', overrides: {}, enabled: false, order: 2 },
+  { id: 'labor-up-10', name: '人工费率上涨10%', type: 'cost_rate', overrides: {}, enabled: false, order: 3 },
+];
+
+// [PR-034] 内联 generateLayerOverrides 函数
+function generateLayerOverrides(
+  layer: SimulationLayer,
+  baseCostRates: import('@/types/project').CostRates,
+  baseMetalPrices: import('@/types/project').MetalPrices
+): Record<string, number> {
+  switch (layer.id) {
+    case 'metal-up-5':
+      return { copper: baseMetalPrices.copper * 1.05, aluminum: baseMetalPrices.aluminum * 1.05 };
+    case 'metal-down-5':
+      return { copper: baseMetalPrices.copper * 0.95, aluminum: baseMetalPrices.aluminum * 0.95 };
+    case 'labor-up-10':
+      return { laborRate: baseCostRates.laborRate * 1.10 };
+    default:
+      return layer.overrides;
+  }
+}
+
+// [PR-034] 内联 applySimulationLayers 函数
+function applySimulationLayers(
+  baseCostRates: import('@/types/project').CostRates,
+  baseMetalPrices: import('@/types/project').MetalPrices,
+  layers: SimulationLayer[]
+): { costRates: import('@/types/project').CostRates; metalPrices: import('@/types/project').MetalPrices } {
+  let costRates = { ...baseCostRates };
+  let metalPrices = { ...baseMetalPrices };
+
+  const activeLayers = layers
+    .filter(l => l.enabled)
+    .sort((a, b) => a.order - b.order);
+
+  for (const layer of activeLayers) {
+    for (const [key, value] of Object.entries(layer.overrides)) {
+      if (key in costRates) {
+        (costRates as Record<string, number>)[key] = value;
+      }
+      if (key in metalPrices) {
+        (metalPrices as Record<string, number>)[key] = value;
+      }
+    }
+  }
+
+  return { costRates, metalPrices };
+}
 import type { HarnessInput } from '@/types/harness';
 import type { EquipmentConfig, FactoryConfig } from '@/types/project';
 import { useProjectStore } from '@/store/projectStore';
@@ -88,6 +146,7 @@ export default function SimulationPage() {
   const [runTaskId, setRunTaskId] = useState<string | null>(null);
   const [convertTaskId, setConvertTaskId] = useState<string | null>(null);
   const [summaryText, setSummaryText] = useState<string | null>(null);
+  // [PR-034] layers 状态使用内联类型
   const [layers, setLayers] = useState<SimulationLayer[]>([]);
 
   useEffect(() => {

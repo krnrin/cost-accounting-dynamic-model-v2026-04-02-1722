@@ -35,6 +35,7 @@ import GapAnalysisPage from '@/pages/GapAnalysisPage';
 import PackagingSchemePage from '@/pages/PackagingSchemePage';
 import PackagingLogisticsPage from '@/pages/PackagingLogisticsPage';
 import SWUpdatePrompt from '@/components/SWUpdatePrompt';
+import RoleRouteGuard from '@/components/RoleRouteGuard'; // [PR-010]
 import { useAuthStore } from '@/store/authStore';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -68,7 +69,10 @@ export default function App() {
         <Route path="/project/:id/bom-workbook" element={<BomWorkbookPage />} />
         <Route element={<MainLayout />}>
           <Route path="/" element={<ProjectListPage />} />
-          <Route path="/manager" element={<ManagerDashboardPage />} />
+          {/* [PR-010] Manager+ routes */}
+          <Route path="/manager" element={
+            <RoleRouteGuard minRole="MANAGER"><ManagerDashboardPage /></RoleRouteGuard>
+          } />
           <Route path="/wizard" element={<WizardPage />} />
           {/* 新建项目向导 - 必须在 /project/:id 之前 */}
           <Route path="/project/new" element={<NewProjectWizard />} />
@@ -78,29 +82,47 @@ export default function App() {
           <Route path="/project/:id/scenario/:sid" element={<DashboardPage />} />
           <Route path="/project/:id/compare" element={<ScenarioComparePage />} />
           <Route path="/project/:id/bom/diff" element={<BomDiffPage />} />
-          <Route path="/project/:id/versions" element={<VersionManager />} />
+          {/* [PR-010] Version management requires MANAGER+ */}
+          <Route path="/project/:id/versions" element={
+            <RoleRouteGuard minRole="MANAGER"><VersionManager /></RoleRouteGuard>
+          } />
           {/* 场景级页面 */}
           <Route path="/project/:id/s/:sid" element={<DashboardPage />} />
           <Route path="/project/:id/s/:sid/harness/:harnessId" element={<HarnessDetailPage />} />
           <Route path="/project/:id/s/:sid/quote" element={<QuotePage />} />
           <Route path="/project/:id/s/:sid/gap" element={<GapAnalysisPage />} />
-          <Route path="/project/:id/s/:sid/versions" element={<VersionManager />} />
-          <Route path="/project/:id/s/:sid/simulation" element={<SimulationPage />} />
+          <Route path="/project/:id/s/:sid/versions" element={
+            <RoleRouteGuard minRole="MANAGER"><VersionManager /></RoleRouteGuard>
+          } />
+          {/* [PR-010] Simulation requires ENGINEER+ */}
+          <Route path="/project/:id/s/:sid/simulation" element={
+            <RoleRouteGuard minRole="ENGINEER"><SimulationPage /></RoleRouteGuard>
+          } />
           <Route path="/project/:id/s/:sid/annual-drop" element={<AnnualDropPage />} />
           <Route path="/project/:id/s/:sid/alloc" element={<AllocManagerPage />} />
           <Route path="/project/:id/s/:sid/workbench" element={<EngineerWorkbench />} />
           <Route path="/project/:id/s/:sid/change-engine" element={<ChangeEnginePage />} />
           <Route path="/project/:id/s/:sid/tracking" element={<TrackingPage />} />
           <Route path="/project/:id/s/:sid/config" element={<ConfigMatrixPage />} />
-          <Route path="/project/:id/s/:sid/pricing/connectors" element={<ConnectorPricingPage />} />
-          <Route path="/project/:id/s/:sid/pricing/wires" element={<WirePricingPage />} />
-          <Route path="/project/:id/s/:sid/pricing/devparts" element={<DevPartPricingPage />} />
+          {/* [PR-010] Pricing pages require ENGINEER+ */}
+          <Route path="/project/:id/s/:sid/pricing/connectors" element={
+            <RoleRouteGuard minRole="ENGINEER"><ConnectorPricingPage /></RoleRouteGuard>
+          } />
+          <Route path="/project/:id/s/:sid/pricing/wires" element={
+            <RoleRouteGuard minRole="ENGINEER"><WirePricingPage /></RoleRouteGuard>
+          } />
+          <Route path="/project/:id/s/:sid/pricing/devparts" element={
+            <RoleRouteGuard minRole="ENGINEER"><DevPartPricingPage /></RoleRouteGuard>
+          } />
           <Route path="/project/:id/s/:sid/packaging/scheme" element={<PackagingSchemePage />} />
           <Route path="/project/:id/s/:sid/packaging/logistics" element={<PackagingLogisticsPage />} />
           <Route path="/project/:id/alerts" element={<AlertsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/settings/alert-rules" element={<AlertsPage mode="rules" />} />
-          <Route path="/versions" element={<VersionManager />} />
+          {/* [PR-010] Global versions requires MANAGER+ */}
+          <Route path="/versions" element={
+            <RoleRouteGuard minRole="MANAGER"><VersionManager /></RoleRouteGuard>
+          } />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<NotFoundPage />} />

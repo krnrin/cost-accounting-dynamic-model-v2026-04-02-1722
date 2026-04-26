@@ -1,5 +1,5 @@
 import { numberOr, safeArray } from './shared_utils';
-import { computeInternalHarnessCost, INTERNAL_DEFAULTS, mapInternalProjectToProjectHarnessResult } from './harness_costing';
+import { computeInternalHarnessCost, mapInternalProjectToProjectHarnessResult } from './harness_costing';
 import type { HarnessResult, ProjectHarnessResult } from '@/types/harness';
 import type { 
   ChangePricingResult, 
@@ -223,17 +223,26 @@ export function computeAnnualImpact(deltaPerVehicle: number, annualVolumes: numb
 
 /**
  * computeMetalEscalation — 金属联动专用
+ *
+ * [成本核算数据原则] 必须传入 internalRates 参数，禁止回退到硬编码默认值
  */
 export function computeMetalEscalation(
-  baseHarnessConfigs: any[], 
-  baseMetalPrices: MetalPrices, 
-  newMetalPrices: MetalPrices, 
+  baseHarnessConfigs: any[],
+  baseMetalPrices: MetalPrices,
+  newMetalPrices: MetalPrices,
   params: any
 ): ChangePricingResult {
   const configs = safeArray(baseHarnessConfigs);
 
-  const baseResults = configs.map((c) => computeInternalHarnessCost(c, params?.internalRates ?? INTERNAL_DEFAULTS, baseMetalPrices));
-  const newResults = configs.map((c) => computeInternalHarnessCost(c, params?.internalRates ?? INTERNAL_DEFAULTS, newMetalPrices));
+  if (!params?.internalRates) {
+    throw new Error(
+      '[成本核算] computeMetalEscalation 缺少 internalRates 参数。' +
+      '必须传入真实费率配置，禁止使用硬编码默认值。'
+    );
+  }
+
+  const baseResults = configs.map((c) => computeInternalHarnessCost(c, params.internalRates, baseMetalPrices));
+  const newResults = configs.map((c) => computeInternalHarnessCost(c, params.internalRates, newMetalPrices));
 
   const baseProject = mapInternalProjectToProjectHarnessResult(baseResults);
   const newProject = mapInternalProjectToProjectHarnessResult(newResults);

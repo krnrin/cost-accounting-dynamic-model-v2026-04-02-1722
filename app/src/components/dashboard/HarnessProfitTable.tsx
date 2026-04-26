@@ -5,7 +5,7 @@ import { Typography, Space, Col } from '@douyinfe/semi-ui';
 import { IconUpload, IconDownload } from '@douyinfe/semi-icons';
 import { useNavigate } from 'react-router-dom';
 import { exportInternalCostExcel } from '@/engine/excel_export';
-import type { ProjectHarnessResult, InternalProjectResult } from '@/types/harness';
+import type { InternalProjectResult } from '@/types/harness';
 import type { ProjectRecord } from '@/data/db';
 import type { HarnessTableRow } from '@/hooks/useDashboardData';
 
@@ -15,7 +15,6 @@ interface Props {
   id: string | undefined;
   sid: string | undefined;
   project: ProjectRecord;
-  summary: ProjectHarnessResult | null;
   internalProject: InternalProjectResult | null;
   harnessTableData: HarnessTableRow[];
   showMohDetail: boolean;
@@ -28,7 +27,7 @@ interface Props {
 
 export default function HarnessProfitTable(props: Props) {
   const {
-    id, sid, project, summary, internalProject,
+    id, sid, project, internalProject,
     harnessTableData, showMohDetail, setShowMohDetail,
     setShowMultiImport, customerVehicleCost, internalVehicleCost, allocPerVehicle,
   } = props;
@@ -52,10 +51,10 @@ export default function HarnessProfitTable(props: Props) {
               className="db-action-btn"
               onClick={() =>
                 project &&
-                summary &&
+                internalProject &&
                 exportInternalCostExcel(
-                  summary.harnesses,
-                  summary,
+                  internalProject.harnesses,
+                  internalProject,
                   project.meta?.projectName || 'export',
                 )
               }

@@ -8,10 +8,7 @@ import {
   extractOAuthCode,
 } from '@/lib/feishuAuth';
 import {
-  getUserAccessToken,
-  getFeishuUserInfo,
-  refreshUserAccessToken,
-  clearFeishuTokenCache,
+  exchangeFeishuCode,
 } from '@/lib/feishuApi';
 import {
   fetchProfile,
@@ -146,13 +143,10 @@ export const useAuthStore = create<AuthState>()(
         },
 
         feishuLogin: async (code: string) => {
-          const tokenResult = await getUserAccessToken(code);
-          const userInfo = await getFeishuUserInfo(tokenResult.accessToken);
+          // [PR-001] 通过后端代理获取用户信息
+          const userInfo = await exchangeFeishuCode(code);
 
-          await syncProfileIntoState(set, tokenResult.accessToken, 'feishu', {
-            feishuAccessToken: tokenResult.accessToken,
-            feishuRefreshToken: tokenResult.refreshToken,
-            feishuTokenExpiresAt: Date.now() + tokenResult.expiresIn * 1000,
+          await syncProfileIntoState(set, localStorage.getItem('token') || '', 'feishu', {
             user: {
               id: userInfo.openId,
               email: userInfo.email || `${userInfo.userId}@feishu.user`,
@@ -189,16 +183,11 @@ export const useAuthStore = create<AuthState>()(
         },
 
         refreshFeishuToken: async () => {
-          const { feishuRefreshToken: rt, feishuTokenExpiresAt } = get();
-          if (!rt) throw new Error('No refresh token');
+          // [PR-001] Token refresh now handled by backend proxy
+          // This is a no-op since we don't store feishu tokens client-side anymore
+          const { feishuTokenExpiresAt } = get();
           if (feishuTokenExpiresAt && Date.now() < feishuTokenExpiresAt - 300000) return;
-
-          const result = await refreshUserAccessToken(rt);
-          await syncProfileIntoState(set, result.accessToken, 'feishu', {
-            feishuAccessToken: result.accessToken,
-            feishuRefreshToken: result.refreshToken,
-            feishuTokenExpiresAt: Date.now() + result.expiresIn * 1000,
-          });
+          // Token refresh would need to go through backend
         },
 
         refreshProfile: async () => {
@@ -225,7 +214,6 @@ export const useAuthStore = create<AuthState>()(
             // noop
           }
           syncService.setToken(null);
-          clearFeishuTokenCache();
           set({
             user: null,
             token: null,

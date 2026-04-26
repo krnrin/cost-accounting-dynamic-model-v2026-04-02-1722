@@ -78,10 +78,15 @@ export async function createFreezeSnapshot(
     scenarioId,
   };
 
+  // [PR-100] 快照创建失败时回滚，不写入无效ID
+  let settingsSnapshotSaved = false;
   try {
     await db.table('settingsSnapshots').add(settingsSnapshot);
-  } catch {
-    console.warn('settingsSnapshots table not available');
+    settingsSnapshotSaved = true;
+  } catch (e) {
+    console.error('Failed to save settingsSnapshots:', e);
+    // 不继续写入无效的 settingsSnapshotId
+    throw new Error(`创建参数快照失败: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   // 2. 创建报价快照 (B4) — 如果有线束结果
@@ -150,16 +155,17 @@ export async function createFreezeSnapshot(
   }
 
   // 3. 将快照ID写入场景元数据
-  const snapshotMeta: ScenarioSnapshotMeta = {
+  // [PR-100] 仅在 settingsSnapshot 成功保存后才写入元数据
+  if (!settingsSnapshotSaved) {
+    throw new Error('无法写入场景元数据：参数快照未成功保存');
+  }
+
+  // [PR-101] ScenarioRecord 已正式包含快照字段，无需 as any
+  await db.scenarios.update(scenarioId, {
+    updatedAt: now,
     settingsSnapshotId,
     quoteSnapshotId: quoteSnapshotId ?? undefined,
     snapshotChainId: chainId,
-  };
-
-  await db.scenarios.update(scenarioId, {
-    updatedAt: now,
-    // 使用展开字段存储快照引用
-    ...(snapshotMeta as any),
   });
 
   return {

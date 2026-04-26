@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbac.js';
 import { AnnualDropService } from '../services/annualDropService.js';
+import { AuditService } from '../services/auditService.js'; // [PR-040]
 
 const scenarioAnnualDropRouter = Router({ mergeParams: true });
 const annualDropRouter = Router();
@@ -38,6 +39,15 @@ scenarioAnnualDropRouter.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER'])
     const created = await AnnualDropService.create(projectId, req.params.sid as string, {
       ...input,
       projectId: undefined,
+    });
+    // [PR-040] 添加审计日志
+    await AuditService.log({
+      userId: req.user!.id,
+      projectId,
+      action: 'CREATE',
+      entity: 'annualDrop',
+      entityId: created.id,
+      details: { scenarioId: req.params.sid, year: input.year, dropRate: input.dropRate },
     });
     res.status(201).json({ data: created });
   } catch (error) {

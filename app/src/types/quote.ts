@@ -128,6 +128,15 @@ export interface MetalDelta {
   baseDeliveredPrice: number;
   newDeliveredPrice: number;
   weightedDelta: number;
+  /** [PR-095] 阈值报警信息 */
+  thresholdAlert?: {
+    copperExceeded: boolean;
+    aluminumExceeded: boolean;
+    copperThresholdAmount: number;
+    aluminumThresholdAmount: number;
+    copperDelta: number;
+    aluminumDelta: number;
+  };
 }
 
 /** 项目级金属联动结果 */
@@ -148,6 +157,12 @@ export interface MetalEscalationResult {
     years: { year: number; volume: number; annualImpact: number; cumulativeImpact: number }[];
     totalLifecycleImpact: number;
   } | null;
+  /** [PR-095] 阈值报警汇总 */
+  thresholdAlertSummary?: {
+    copperExceededCount: number;
+    aluminumExceededCount: number;
+    hasAnyExceeded: boolean;
+  };
 }
 
 /** 金属价格敏感度矩阵 */

@@ -1,5 +1,4 @@
 import { checkParamBoundaries } from '@/engine/param_boundaries';
-import type { Role } from '@/engine/rbac';
 import type { UserRole } from '@/hooks/usePermission';
 
 export interface BoundaryUiMessage {
@@ -14,20 +13,22 @@ export interface BoundaryUiResult {
   messages: BoundaryUiMessage[];
 }
 
-export function mapUserRoleToBoundaryRole(role?: UserRole | string | null): Role {
-  if (!role) return 'admin';
-  if (role === 'ADMIN') return 'admin';
-  if (role === 'MANAGER' || role === 'ENGINEER') return 'cost_engineer';
-  if (role === 'VIEWER') return 'viewer';
-  return 'customer';
+/**
+ * [PR-037] 角色映射已移至 param_permission.ts
+ * 此处保留空函数以维持向后兼容
+ */
+export function mapUserRoleToBoundaryRole(_role?: UserRole | string | null): void {
+  // 角色权限检查已移至 param_permission.ts
+  return;
 }
 
 export function applyParamBoundaryRules(
   params: Record<string, number>,
-  role?: UserRole | string | null,
+  _role?: UserRole | string | null,
 ): BoundaryUiResult {
   const sanitized = { ...params };
-  const result = checkParamBoundaries(params, mapUserRoleToBoundaryRole(role));
+  // [PR-037] 角色权限检查已移至 param_permission.ts，此处仅做数值边界检查
+  const result = checkParamBoundaries(params);
   const messages: BoundaryUiMessage[] = [];
 
   for (const violation of result.violations) {

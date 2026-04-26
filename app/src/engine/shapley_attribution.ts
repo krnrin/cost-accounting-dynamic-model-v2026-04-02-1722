@@ -1,8 +1,19 @@
 /**
- * Shapley Attribution (C21 — Issue #75)
- * 
- * 管理决策舱增强 — 成本因素Shapley贡献归因
- * - 基于成本因素变动量计算Shapley近似贡献度
+ * Marginal Attribution (C21 — Issue #75)
+ *
+ * [PR-102] 重命名说明：
+ * 原名称 "Shapley Attribution" 具有误导性 — 当前实现并非真正的 Shapley 值。
+ * Shapley 值需要计算所有排列组合的边际贡献，复杂度为 O(n!)，
+ * 对于制造业成本模型不切实际。
+ *
+ * 当前实现为「边际贡献归因」：contribution = delta_i
+ * 贡献率 = delta_i / Σ|delta_j|
+ *
+ * 若未来需要真正的 Shapley 值，可使用 Shapley-SV 或 KernelSHAP 近似算法。
+ * 参见：https://arxiv.org/abs/1705.07374
+ *
+ * 管理决策舱增强 — 成本因素边际贡献归因
+ * - 基于成本因素变动量计算边际贡献度
  * - 生成管理层可执行的决策建议
  * - 多维成本洞察汇总
  */
@@ -48,8 +59,8 @@ export interface DecisionSummary {
 
 // ─── Core Functions ───
 
-/** Compute Shapley-like attribution for cost factors */
-export function computeShapleyAttribution(factors: CostFactor[]): ShapleyResult[] {
+/** [PR-102] Compute marginal attribution for cost factors (not true Shapley) */
+export function computeMarginalAttribution(factors: CostFactor[]): ShapleyResult[] {
   const totalDelta = factors.reduce((sum, f) => sum + f.delta, 0);
   if (Math.abs(totalDelta) < 0.001) {
     return factors.map((f, i) => ({
@@ -157,7 +168,8 @@ export function buildDecisionSummary(factors: CostFactor[]): DecisionSummary {
     ? Math.round((totalCostChange / totalBase) * 10000) / 100
     : 0;
 
-  const shapleyResults = computeShapleyAttribution(factors);
+  // [PR-102] 使用重命名后的函数
+  const shapleyResults = computeMarginalAttribution(factors);
   const insights = generateInsights(factors, shapleyResults);
 
   // Category breakdown
@@ -182,3 +194,7 @@ export function buildDecisionSummary(factors: CostFactor[]): DecisionSummary {
     })).sort((a, b) => Math.abs(b.totalContribution) - Math.abs(a.totalContribution)),
   };
 }
+
+// [PR-102] 向后兼容别名（deprecated）
+/** @deprecated Use computeMarginalAttribution instead */
+export const computeShapleyAttribution = computeMarginalAttribution;

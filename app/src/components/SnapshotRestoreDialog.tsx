@@ -58,15 +58,25 @@ export default function SnapshotRestoreDialog({
 
   const handleRestore = async () => {
     if (!selectedId) return;
-    setRestoring(true);
-    try {
-      const success = await restore(selectedId);
-      if (success) {
-        onRestored();
-      }
-    } finally {
-      setRestoring(false);
-    }
+
+    // 二次确认
+    Modal.confirm({
+      title: '确认恢复快照',
+      content: `确定要将参数恢复到 ${selectedSnapshot ? new Date(selectedSnapshot.timestamp).toLocaleString('zh-CN') : '选中时间点'} 的状态吗？当前参数将被覆盖。`,
+      okText: '确认恢复',
+      cancelText: '取消',
+      onOk: async () => {
+        setRestoring(true);
+        try {
+          const success = await restore(selectedId);
+          if (success) {
+            onRestored();
+          }
+        } finally {
+          setRestoring(false);
+        }
+      },
+    });
   };
 
   return (
@@ -114,12 +124,12 @@ export default function SnapshotRestoreDialog({
               {
                 title: '当前值',
                 dataIndex: 'newValue',
-                render: (v: unknown) => <Text type="danger">{String(v)}</Text>,
+                render: (v: unknown) => <Text style={{ color: '#dc2626' /* git red for removed */ }}>{String(v)}</Text>,
               },
               {
                 title: '恢复为',
                 dataIndex: 'oldValue',
-                render: (v: unknown) => <Text type="success">{String(v)}</Text>,
+                render: (v: unknown) => <Text style={{ color: '#16a34a' /* git green for added */ }}>{String(v)}</Text>,
               },
             ]}
             rowKey="field"

@@ -1,9 +1,15 @@
 /**
  * B3: BOM 导入校验规则引擎深化
- * 
+ *
  * 提供 partNo 唯一性、分类合规、单位标准化等校验
  */
 import type { BomItem, WireItem } from '@/types/harness';
+import { normalizeUnit as normalizeUnitBase } from './unit_constants';
+
+export interface ValidationOptions {
+  /** [PR-109] partNo 唯一性校验是否大小写敏感，默认 false（不敏感） */
+  caseSensitive?: boolean;
+}
 
 export interface ValidationError {
   row: number;
@@ -22,17 +28,6 @@ export interface ValidationResult {
   suggestions: Array<{ row: number; field: string; suggestedValue: unknown; reason: string }>;
 }
 
-/** 标准单位映射 (非标单位 → 标准单位) */
-const UNIT_NORMALIZATION: Record<string, string> = {
-  '米': 'm', 'M': 'm', 'meter': 'm', 'meters': 'm',
-  '个': 'pcs', 'PCS': 'pcs', 'EA': 'pcs', 'ea': 'pcs', '只': 'pcs', '枚': 'pcs',
-  '根': 'pcs', '条': 'pcs',
-  '套': 'set', 'SET': 'set', 'Set': 'set',
-  '卷': 'roll', 'ROLL': 'roll',
-  '千克': 'kg', 'KG': 'kg', 'Kg': 'kg',
-  '克': 'g', 'G': 'g',
-};
-
 /** 标准物料分类 */
 const VALID_CATEGORIES = ['wire', 'connector', 'terminal', 'ipt_terminal', 'bracket_rubber', 'tape_tube', 'other'];
 
@@ -40,17 +35,18 @@ const VALID_CATEGORIES = ['wire', 'connector', 'terminal', 'ipt_terminal', 'brac
 const PART_NO_PATTERN = /^[A-Za-z0-9._\-]{3,50}$/;
 
 /**
- * 标准化单位
+ * 标准化单位 (重导出统一函数)
  */
-export function normalizeUnit(unit: string): string {
-  const trimmed = unit.trim();
-  return UNIT_NORMALIZATION[trimmed] || trimmed.toLowerCase();
-}
+export const normalizeUnit = normalizeUnitBase;
 
 /**
  * 校验 BOM 数据
  */
-export function validateBom(items: Array<Partial<BomItem | WireItem>>): ValidationResult {
+export function validateBom(
+  items: Array<Partial<BomItem | WireItem>>,
+  options?: ValidationOptions
+): ValidationResult {
+  const caseSensitive = options?.caseSensitive ?? false;
   const errors: ValidationError[] = [];
   const warnings: ValidationError[] = [];
   const suggestions: ValidationResult['suggestions'] = [];
@@ -68,7 +64,10 @@ export function validateBom(items: Array<Partial<BomItem | WireItem>>): Validati
         warnings.push({ row, field: 'partNo', value: item.partNo, rule: 'format', message: `第${row}行: 物料编号 "${item.partNo}" 格式异常(建议仅使用字母数字横杠)`, severity: 'warning' });
       }
       // partNo 唯一性
-      const normalizedPartNo = item.partNo.trim().toUpperCase();
+      // [PR-109] 根据配置决定是否大小写敏感
+      const normalizedPartNo = caseSensitive
+        ? item.partNo.trim()
+        : item.partNo.trim().toUpperCase();
       if (partNoSet.has(normalizedPartNo)) {
         errors.push({ row, field: 'partNo', value: item.partNo, rule: 'unique', message: `第${row}行: 物料编号 "${item.partNo}" 重复`, severity: 'error' });
       }
@@ -86,15 +85,25 @@ export function validateBom(items: Array<Partial<BomItem | WireItem>>): Validati
     }
 
     // 4. qty 校验
-    if (item.qty === undefined || item.qty === null || item.qty < 0) {
+    // [PR-110] 增加 NaN/Infinity 检查
+    if (item.qty === undefined || item.qty === null) {
+      errors.push({ row, field: 'qty', value: item.qty, rule: 'required', message: `第${row}行: 用量不能为空`, severity: 'error' });
+    } else if (!Number.isFinite(item.qty)) {
+      errors.push({ row, field: 'qty', value: item.qty, rule: 'finite', message: `第${row}行: 用量必须是有限数值（不能是 NaN 或 Infinity）`, severity: 'error' });
+    } else if (item.qty < 0) {
       errors.push({ row, field: 'qty', value: item.qty, rule: 'positive', message: `第${row}行: 用量必须 ≥ 0`, severity: 'error' });
     } else if (item.qty === 0) {
       warnings.push({ row, field: 'qty', value: 0, rule: 'zero_qty', message: `第${row}行: 用量为0，请确认是否正确`, severity: 'warning' });
     }
 
     // 5. unitPrice 校验
-    if (item.unitPrice !== undefined && item.unitPrice < 0) {
-      errors.push({ row, field: 'unitPrice', value: item.unitPrice, rule: 'positive', message: `第${row}行: 单价不能为负数`, severity: 'error' });
+    // [PR-110] 增加 NaN/Infinity 检查
+    if (item.unitPrice !== undefined && item.unitPrice !== null) {
+      if (!Number.isFinite(item.unitPrice)) {
+        errors.push({ row, field: 'unitPrice', value: item.unitPrice, rule: 'finite', message: `第${row}行: 单价必须是有限数值`, severity: 'error' });
+      } else if (item.unitPrice < 0) {
+        errors.push({ row, field: 'unitPrice', value: item.unitPrice, rule: 'positive', message: `第${row}行: 单价不能为负数`, severity: 'error' });
+      }
     }
 
     // 6. unit 标准化建议

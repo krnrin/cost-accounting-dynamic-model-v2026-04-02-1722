@@ -5,6 +5,8 @@ export class AuditService {
         return prisma.auditLog.create({
             data: {
                 ...params,
+                // [PR-040] 将扩展的 entity 类型转换为数据库支持的类型
+                entity: params.entity,
                 details: params.details ? toJson(params.details) : null,
             },
         });

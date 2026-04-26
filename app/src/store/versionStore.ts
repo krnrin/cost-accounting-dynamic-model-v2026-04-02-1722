@@ -9,6 +9,11 @@ import {
 import { computeHarnessCost, computeProjectFromHarnesses } from '@/engine/harness_costing';
 import { buildChangeComparisonTable, computeChangePricing } from '@/engine/change_pricing';
 import { computeVersionDiff } from '@/engine/version_diff';
+import {
+  broadcastStoreInvalidation,
+  subscribeToStoreInvalidation,
+  isBroadcastChannelSupported,
+} from '@/lib/crossTabSync';
 import type { ChangePricingResult } from '@/types/quote';
 import type { HarnessRecord, ScenarioRecord } from '@/data/db';
 import type { VersionDiff, VersionRecord, VersionSnapshot, VersionStatus } from '@/types/version';
@@ -38,11 +43,14 @@ interface VersionState {
   scenarioId: string | null;
   versions: VersionRecord[];
   loading: boolean;
+  error: string | null;
   baseVersionId: string | null;
   compareVersionId: string | null;
   changePricingResult: ChangePricingResult | null;
   versionDiffResult: VersionDiff | null;
   comparisonTable: ReturnType<typeof buildChangeComparisonTable> | null;
+  /** 请求序号，用于丢弃过期回调 */
+  _requestId: number;
 
   loadVersions: (projectId: string, scenarioId?: string | null) => Promise<void>;
   createSnapshot: (options: CreateSnapshotOptions) => Promise<VersionRecord>;
@@ -177,16 +185,23 @@ export const useVersionStore = create<VersionState>()(
       scenarioId: null,
       versions: [],
       loading: false,
+      error: null,
       baseVersionId: null,
       compareVersionId: null,
       changePricingResult: null,
       versionDiffResult: null,
       comparisonTable: null,
+      _requestId: 0,
 
       loadVersions: async (projectId, scenarioId = null) => {
-        set({ loading: true });
+        const requestId = get()._requestId + 1;
+        set({ loading: true, _requestId: requestId });
         try {
           const versions = await reloadVersions(projectId, scenarioId);
+          // 丢弃过期回调
+          if (get()._requestId !== requestId) {
+            return;
+          }
           set((state) => ({
             projectId,
             scenarioId,
@@ -201,6 +216,10 @@ export const useVersionStore = create<VersionState>()(
           }));
         } catch (error) {
           console.error('loadVersions error:', error);
+          // 丢弃过期回调
+          if (get()._requestId !== requestId) {
+            return;
+          }
           set({ loading: false });
           throw error;
         }
@@ -209,6 +228,7 @@ export const useVersionStore = create<VersionState>()(
       createSnapshot: async (options) => {
         const record = await createVersionSnapshot(options);
         await get().loadVersions(options.projectId, options.scenarioId);
+        broadcastStoreInvalidation('version-store', { projectId: options.projectId, scenarioId: options.scenarioId });
         return record;
       },
 
@@ -223,6 +243,7 @@ export const useVersionStore = create<VersionState>()(
 
         await db.versions.delete(versionId);
         await get().loadVersions(record.projectId, record.scenarioId ?? null);
+        broadcastStoreInvalidation('version-store', { projectId: record.projectId, scenarioId: record.scenarioId ?? undefined });
       },
 
       updateLabel: async (versionId, label, notes) => {
@@ -236,6 +257,7 @@ export const useVersionStore = create<VersionState>()(
           notes: notes?.trim() || undefined,
         });
         await get().loadVersions(record.projectId, record.scenarioId ?? null);
+        broadcastStoreInvalidation('version-store', { projectId: record.projectId, scenarioId: record.scenarioId ?? undefined });
       },
 
       updateStatus: async (versionId, status) => {
@@ -257,9 +279,15 @@ export const useVersionStore = create<VersionState>()(
         if (!record) {
           throw new Error('版本不存在');
         }
+        // 状态流转校验
+        const targetStatus: VersionStatus = record.status === 'draft' ? 'locked' : record.status;
+        const validation = validateTransition(record.status, targetStatus);
+        if (!validation.valid) {
+          throw new Error(validation.reason || '非法版本状态流转');
+        }
         const now = new Date().toISOString();
         await db.versions.update(versionId, {
-          status: record.status === 'draft' ? 'locked' : record.status,
+          status: targetStatus,
           lockInfo: {
             locked: true,
             lockedAt: now,
@@ -275,8 +303,14 @@ export const useVersionStore = create<VersionState>()(
         if (!record) {
           throw new Error('版本不存在');
         }
+        // 解锁后回到 reviewed 状态
+        const targetStatus: VersionStatus = record.status === 'locked' ? 'reviewed' : record.status;
+        const validation = validateTransition(record.status, targetStatus);
+        if (!validation.valid) {
+          throw new Error(validation.reason || '非法版本状态流转');
+        }
         await db.versions.update(versionId, {
-          status: record.status === 'locked' ? 'reviewed' : record.status,
+          status: targetStatus,
           lockInfo: {
             locked: false,
             lockedAt: record.lockInfo?.lockedAt,
@@ -310,9 +344,15 @@ export const useVersionStore = create<VersionState>()(
         if (!record) {
           throw new Error('版本不存在');
         }
+        // 审批通过后状态流转
+        const targetStatus: VersionStatus = record.status === 'draft' ? 'reviewed' : record.status;
+        const validation = validateTransition(record.status, targetStatus);
+        if (!validation.valid) {
+          throw new Error(validation.reason || '非法版本状态流转');
+        }
         const now = new Date().toISOString();
         await db.versions.update(versionId, {
-          status: record.status === 'draft' ? 'reviewed' : record.status,
+          status: targetStatus,
           approvalInfo: {
             ...(record.approvalInfo ?? { status: 'not_submitted' }),
             status: 'approved',
@@ -329,6 +369,7 @@ export const useVersionStore = create<VersionState>()(
         if (!record) {
           throw new Error('版本不存在');
         }
+        // 驳回后状态不变，但记录审批信息
         const now = new Date().toISOString();
         await db.versions.update(versionId, {
           approvalInfo: {
@@ -346,6 +387,14 @@ export const useVersionStore = create<VersionState>()(
         const record = await db.versions.get(versionId);
         if (!record || !record.scenarioId) {
           throw new Error('版本不存在或缺少场景绑定');
+        }
+
+        // 状态校验：只有 reviewed/published 且 locked 的版本可以恢复
+        if (!['reviewed', 'published'].includes(record.status)) {
+          throw new Error('只有已审核或已发布的版本可以恢复');
+        }
+        if (!record.lockInfo?.locked) {
+          throw new Error('只有已锁定的版本可以恢复');
         }
 
         const scenario = requireScenarioRecord(
@@ -450,14 +499,29 @@ export const useVersionStore = create<VersionState>()(
           scenarioId: null,
           versions: [],
           loading: false,
+          error: null,
           baseVersionId: null,
           compareVersionId: null,
           changePricingResult: null,
           versionDiffResult: null,
           comparisonTable: null,
+          _requestId: 0,
         });
       },
     }),
     { name: 'version-store' },
   ),
 );
+
+// 跨 Tab 同步订阅
+if (isBroadcastChannelSupported()) {
+  subscribeToStoreInvalidation((message) => {
+    if (message.storeName === 'version-store') {
+      const state = useVersionStore.getState();
+      // 如果消息来自其他 tab 且涉及当前项目，重新加载
+      if (state.projectId && (!message.projectId || message.projectId === state.projectId)) {
+        void state.loadVersions(state.projectId, state.scenarioId);
+      }
+    }
+  });
+}

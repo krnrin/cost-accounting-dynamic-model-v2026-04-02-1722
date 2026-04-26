@@ -5,13 +5,15 @@
  * the `input` field, leaving `result` outdated. Dashboard/QuotePage then
  * read stale cached results or had to recompute on every render.
  *
+ * [成本核算数据原则] 必须传入 internalRates，禁止回退到硬编码默认值
+ *
  * Usage:
  *   import { saveHarnessWithResult } from '@/utils/saveHarnessWithResult';
  *   await saveHarnessWithResult({ projectId, scenarioId, input, isNew });
  */
 import { db } from '@/data/db';
 import type { HarnessRecord } from '@/data/db';
-import { computeInternalHarnessCost, INTERNAL_DEFAULTS, mapInternalToHarnessResult } from '@/engine/harness_costing';
+import { computeInternalHarnessCost, mapInternalToHarnessResult } from '@/engine/harness_costing';
 import type { HarnessInput, HarnessResult } from '@/types/harness';
 
 export interface SaveHarnessOptions {
@@ -51,11 +53,12 @@ export async function saveHarnessWithResult(
   let result: HarnessResult | null = null;
   if (scenarioId) {
     const scenario = await db.scenarios.get(scenarioId);
-    if (scenario?.config?.metalPrices) {
+    // [成本核算数据原则] 必须有 internalRates，禁止回退
+    if (scenario?.config?.metalPrices && scenario?.config?.internalRates) {
       try {
         const internalResult = computeInternalHarnessCost(
           input,
-          scenario.config.internalRates ?? INTERNAL_DEFAULTS,
+          scenario.config.internalRates,
           scenario.config.metalPrices,
         );
         result = mapInternalToHarnessResult(internalResult);

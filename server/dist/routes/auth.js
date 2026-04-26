@@ -5,9 +5,8 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = Router();
 const registerSchema = z.object({
     email: z.string().email(),
-    password: z.string().min(6),
+    password: z.string().min(8),
     name: z.string().min(2),
-    role: z.enum(['ADMIN', 'MANAGER', 'ENGINEER', 'VIEWER']).optional(),
 });
 const loginSchema = z.object({
     email: z.string().email(),

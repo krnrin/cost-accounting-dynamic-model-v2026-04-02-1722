@@ -11,8 +11,18 @@ export async function enqueue(meta: SyncMeta, payload?: any): Promise<void> {
   if (existing) {
     // Merge: If the new operation is 'delete', it overrides previous 'create'/'update'
     // If previous was 'create' and new is 'update', still 'create'
+    // [PR-008] 完整merge逻辑：
+    // - delete 覆盖任何之前的操作（create/update/delete）
+    // - create + update = create
+    // - update + update = update
+    // - delete + create = 不可能（delete后实体不存在）
     let finalOp = meta.operation;
-    if (existing.operation === 'create' && meta.operation === 'update') {
+
+    if (meta.operation === 'delete') {
+      // delete 覆盖一切
+      finalOp = 'delete';
+    } else if (existing.operation === 'create' && meta.operation === 'update') {
+      // create + update = create
       finalOp = 'create';
     }
 

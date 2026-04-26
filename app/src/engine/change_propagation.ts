@@ -175,7 +175,8 @@ function computeSingleImpact(
 
     case 'rate_change': {
       const materialCost = numberOr(result.materialCost, 0);
-      const processCost = numberOr((result as any).processCost, result.laborPlusMfg);
+      // [PR-091] processCost = laborPlusMfg (人工+制造费)
+      const processCost = numberOr(result.laborPlusMfg, 0);
       const oldRates = event.before as Partial<CostRates>;
       const newRates = event.after as Partial<CostRates>;
 
@@ -190,10 +191,13 @@ function computeSingleImpact(
       deltaMgmt = (materialCost + processCost) * (newMgmt - oldMgmt);
 
       // 利润率变化
+      // [PR-092] 利润公式修正: deltaProfit = newProfit×newCostBase − oldProfit×oldCostBase
+      // 其中 costBase = materialCost + processCost + wasteCost + mgmtFee
       const oldProfit = numberOr(oldRates.profitRate, currentRates.profitRate);
       const newProfit = numberOr(newRates.profitRate, currentRates.profitRate);
-      const costBase = materialCost + processCost + (materialCost * newWaste) + ((materialCost + processCost) * newMgmt);
-      deltaProfit = costBase * (newProfit - oldProfit);
+      const oldCostBase = materialCost + processCost + (materialCost * oldWaste) + ((materialCost + processCost) * oldMgmt);
+      const newCostBase = materialCost + processCost + (materialCost * newWaste) + ((materialCost + processCost) * newMgmt);
+      deltaProfit = (newProfit * newCostBase) - (oldProfit * oldCostBase);
       break;
     }
 

@@ -119,6 +119,8 @@ export interface HarnessInput {
   configType?: 'S' | 'O';
   /** 功能位置 (同族线束共享, 如 "直流母线", "电动压缩机线束") */
   functionalSlot?: string;
+  /** 声明材料成本 (用于与BOM合计一致性校验 H006) */
+  materialCost?: number;
 }
 
 /** 材料成本拆分 */

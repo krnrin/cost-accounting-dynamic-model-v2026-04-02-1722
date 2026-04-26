@@ -94,6 +94,7 @@ export class RecoveryService {
 
     return {
       id: completed.id,
+      projectId: completed.projectId, // [PR-040] 添加 projectId 用于审计日志
       status: completed.status,
       recoveryCompletionBehavior: completed.recoveryCompletionBehavior,
       priceAdjustReminder: completed.priceAdjustReminder,

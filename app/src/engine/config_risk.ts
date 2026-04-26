@@ -57,15 +57,37 @@ export function detectConfigRisks(harnesses: HarnessInput[]): ConfigRiskItem[] {
       });
 
       // CFG-001: 选配件装车比与标配件不自洽
+      // 改进判定：标配+选配应互补覆盖所有配置，即总和应接近1.0
+      // 且每个选配应该有对应的标配替代（同一功能位置）
       const stdSum = standards.reduce((s, m) => s + m.vehicleRatio, 0);
       const optSum = optionals.reduce((s, m) => s + m.vehicleRatio, 0);
-      if (standards.length > 0 && optionals.length > 0 && Math.abs(stdSum - optSum) > 0.01) {
-        // 标配和选配应互补：每个标配件都有对应的选配替代
-        // 如果比例差异大，说明不自洽
+      const totalSum = stdSum + optSum;
+
+      // 互补性判定：标配和选配的总和应该覆盖全部配置（接近1.0）
+      if (Math.abs(totalSum - 1.0) > 0.05 && totalSum > 0) {
         risks.push({
           severity: 'warning', code: 'CFG-001', family, harnessIds: ids,
-          message: `「${family}」标配件装车比之和(${stdSum.toFixed(3)}) ≠ 选配件装车比之和(${optSum.toFixed(3)})，标配/选配应互补覆盖所有配置`,
+          message: `「${family}」标配+选配装车比之和(${totalSum.toFixed(3)})偏离1.0，标配/选配应互补覆盖所有配置`,
         });
+      }
+
+      // 如果标配和选配数量相同，检查是否一一对应（每个选配对应一个标配）
+      if (standards.length === optionals.length && standards.length > 0) {
+        // 检查每对标配-选配的装车比是否相近（互补关系）
+        const stdRatios = standards.map(m => m.vehicleRatio).sort((a, b) => a - b);
+        const optRatios = optionals.map(m => m.vehicleRatio).sort((a, b) => a - b);
+        for (let i = 0; i < stdRatios.length; i++) {
+          const stdRatio = stdRatios[i]!;
+          const optRatio = optRatios[i]!;
+          // 互补时，标配比和选配比应该相近（同一配置的不同选项）
+          if (Math.abs(stdRatio - optRatio) > 0.05) {
+            risks.push({
+              severity: 'info', code: 'CFG-001', family, harnessIds: ids,
+              message: `「${family}」标配装车比(${stdRatios.map(r => r.toFixed(3)).join(', ')})与选配装车比(${optRatios.map(r => r.toFixed(3)).join(', ')})不完全匹配，请确认互补关系`,
+            });
+            break;
+          }
+        }
       }
     }
 

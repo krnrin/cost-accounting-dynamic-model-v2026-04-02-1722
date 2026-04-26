@@ -30,8 +30,44 @@ export function withTrace<T extends (...args: any[]) => any>(
     const traceId = generateTraceId();
     const start = performance.now();
     const result = fn(...args);
-    const duration = performance.now() - start;
 
+    // 检测是否为 Promise
+    if (result && typeof result.then === 'function') {
+      return result
+        .then((resolved: unknown) => {
+          const duration = performance.now() - start;
+          const log: TraceLog = {
+            traceId,
+            step: stepName,
+            input: args.length === 1 ? args[0] : { args },
+            output: resolved as Record<string, unknown>,
+            duration,
+            timestamp: new Date().toISOString(),
+          };
+          _traceLogs.push(log);
+          if (_traceLogs.length > MAX_LOGS) _traceLogs.splice(0, _traceLogs.length - MAX_LOGS);
+          if (duration > 100) {
+            console.warn(`[TRACE] ${stepName} (async) took ${duration.toFixed(1)}ms`, { traceId });
+          }
+          return resolved;
+        })
+        .catch((err: Error) => {
+          const duration = performance.now() - start;
+          const log: TraceLog = {
+            traceId,
+            step: `${stepName} (error)`,
+            input: args.length === 1 ? args[0] : { args },
+            output: { error: err.message },
+            duration,
+            timestamp: new Date().toISOString(),
+          };
+          _traceLogs.push(log);
+          throw err;
+        });
+    }
+
+    // 同步函数
+    const duration = performance.now() - start;
     const log: TraceLog = {
       traceId,
       step: stepName,

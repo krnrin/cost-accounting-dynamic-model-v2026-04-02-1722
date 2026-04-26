@@ -56,6 +56,8 @@ export function computeGapAnalysis(
   const metalPriceEffect = copperPriceEffect + aluminumPriceEffect;
 
   // 用量效应 = 材料Gap - 价格效应 (理论上趋近零)
+  // [PR-081] 实际含义：BOM用量差异残差，即材料层Gap中无法被金属价格效应解释的部分
+  // 包含：BOM用量变化、非金属材料价格变化、计量误差等
   const volumeEffect = materialGap - metalPriceEffect;
 
   // ── 加工层 ──

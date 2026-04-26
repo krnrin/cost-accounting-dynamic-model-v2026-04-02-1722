@@ -192,14 +192,23 @@ export async function cloneScenario(
             .equals(oldHarnessId)
             .toArray();
 
-          for (const item of items) {
-            await (db as any).bomItems.add({
-              ...item,
-              id: generateId(),
-              harnessId: newHarnessId,
-              scenarioId: newScenarioId,
-            } as any);
-            bomItemCount++;
+          // [PR-094] 构建ID映射表用于重映射嵌套引用
+          const bomItemIdMap = new Map<string, string>();
+
+          // [PR-093] 使用bulkAdd批量插入替代串行await
+          if (items.length > 0) {
+            const newItems = items.map((item: any) => {
+              const newId = generateId();
+              bomItemIdMap.set(item.id, newId);
+              return {
+                ...item,
+                id: newId,
+                harnessId: newHarnessId,
+                scenarioId: newScenarioId,
+              };
+            });
+            await (db as any).bomItems.bulkAdd(newItems);
+            bomItemCount += items.length;
           }
 
           // 4. 克隆 Wire Items
@@ -208,14 +217,38 @@ export async function cloneScenario(
             .equals(oldHarnessId)
             .toArray();
 
-          for (const wire of wires) {
-            await (db as any).wireItems.add({
-              ...wire,
-              id: generateId(),
-              harnessId: newHarnessId,
-              scenarioId: newScenarioId,
-            } as any);
-            wireItemCount++;
+          // [PR-094] 构建Wire ID映射表
+          const wireItemIdMap = new Map<string, string>();
+
+          if (wires.length > 0) {
+            const newWires = wires.map((wire: any) => {
+              const newId = generateId();
+              wireItemIdMap.set(wire.id, newId);
+              return {
+                ...wire,
+                id: newId,
+                harnessId: newHarnessId,
+                scenarioId: newScenarioId,
+              };
+            });
+            await (db as any).wireItems.bulkAdd(newWires);
+            wireItemCount += wires.length;
+          }
+
+          // [PR-094] 重映射parentItemId引用（BOM项可能引用其他BOM项或Wire项）
+          if (items.length > 0 && bomItemIdMap.size > 0) {
+            const itemsWithParentRef = items.filter((item: any) => item.parentItemId);
+            for (const item of itemsWithParentRef) {
+              const newId = bomItemIdMap.get(item.id);
+              const newParentId = bomItemIdMap.get(item.parentItemId) || wireItemIdMap.get(item.parentItemId);
+              if (newId && newParentId) {
+                await (db as any).bomItems.update(newId, { parentItemId: newParentId });
+              } else if (newId && !newParentId) {
+                // 孤儿引用：原parentItemId在克隆范围外，清除引用并记录警告
+                await (db as any).bomItems.update(newId, { parentItemId: undefined });
+                warnings.push(`BOM项 ${newId} 的父项引用 ${item.parentItemId} 在克隆范围外，已清除`);
+              }
+            }
           }
         }
       }

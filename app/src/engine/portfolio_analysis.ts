@@ -1,12 +1,14 @@
 /**
  * 多项目组合分析引擎
- * 
+ *
  * 分析多个项目的整体财务表现、各项目贡献度、和金属价格风险敞口。
+ *
+ * [成本核算数据原则] 必须传入 internalRates 参数，禁止回退到硬编码默认值
  */
 
-import { computeInternalHarnessCost, computeInternalProjectFromHarnesses, INTERNAL_DEFAULTS } from './harness_costing';
+import { computeInternalHarnessCost, computeInternalProjectFromHarnesses } from './harness_costing';
 import type { HarnessInput, ProjectHarnessResult } from '../types/harness';
-import type { CostRates, MetalPrices } from '../types/project';
+import type { CostRates, MetalPrices, InternalCostRates } from '../types/project';
 
 /** A single project's summary data for portfolio analysis */
 export interface ProjectSummaryInput {
@@ -23,6 +25,8 @@ export interface ProjectSummaryInput {
   costRates: CostRates;
   /** Metal prices used */
   metalPrices: MetalPrices;
+  /** [PR-090] Internal cost rates for internal cost computation */
+  internalRates?: InternalCostRates;
 }
 
 /** Portfolio-level summary */
@@ -203,10 +207,17 @@ export function analyzeRiskExposure(
   const projectImpacts = projects.map(p => {
     const originalProfit = p.projectResult.weightedProfit * p.annualVolume;
     totalOriginalProfit += originalProfit;
-    
-    // Baseline cost at original metal prices
+
+    // [成本核算数据原则] 必须传入 internalRates，禁止回退
+    if (!p.internalRates) {
+      throw new Error(
+        `[成本核算] 项目 ${p.projectId} 缺少 internalRates 配置。` +
+        '必须传入真实费率配置，禁止使用硬编码默认值。'
+      );
+    }
+    const internalRates = p.internalRates;
     const baseResults = p.harnessInputs.map(input =>
-      computeInternalHarnessCost(input, (p as any).internalRates ?? INTERNAL_DEFAULTS, p.metalPrices)
+      computeInternalHarnessCost(input, internalRates, p.metalPrices)
     );
     const baseProjectResult = computeInternalProjectFromHarnesses(baseResults);
     const baseCost = baseProjectResult.vehicleCost;
@@ -216,9 +227,9 @@ export function analyzeRiskExposure(
       ...p.metalPrices,
       [metalType]: p.metalPrices[metalType] * (1 + priceChangePercent),
     };
-    
+
     const newResults = p.harnessInputs.map(input =>
-      computeInternalHarnessCost(input, (p as any).internalRates ?? INTERNAL_DEFAULTS, newMetalPrices)
+      computeInternalHarnessCost(input, internalRates, newMetalPrices)
     );
     const newProjectResult = computeInternalProjectFromHarnesses(newResults);
     const newCost = newProjectResult.vehicleCost;

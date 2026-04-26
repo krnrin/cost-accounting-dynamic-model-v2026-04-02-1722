@@ -10,7 +10,6 @@ interface RegisterInput {
   email: string;
   password: string;
   name: string;
-  role?: string;
 }
 
 interface LoginInput {
@@ -20,7 +19,7 @@ interface LoginInput {
 
 export class AuthService {
   static async register(data: RegisterInput) {
-    const { email, password, name, role } = data;
+    const { email, password, name } = data;
 
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
@@ -36,7 +35,8 @@ export class AuthService {
         email,
         password: hashedPassword,
         name,
-        role: (role && ROLES.includes(role as Role)) ? role : 'ENGINEER',
+        role: 'ENGINEER', // Always assign ENGINEER role on registration
+        tokenVersion: 0, // [PR-003] 初始版本号
       },
     });
 
@@ -77,9 +77,21 @@ export class AuthService {
     return this.sanitizeUser(user);
   }
 
-  private static generateToken(user: { id: string; email: string; role: string; name: string }) {
+  /**
+   * [PR-003] 递增用户的tokenVersion，使所有现有token失效
+   * 用于角色变更时强制用户重新登录
+   */
+  static async revokeUserTokens(userId: string): Promise<void> {
+    await prisma.user.update({
+      where: { id: userId },
+      data: { tokenVersion: { increment: 1 } },
+    });
+  }
+
+  private static generateToken(user: { id: string; email: string; role: string; name: string; tokenVersion: number }) {
     return jwt.sign(
-      { id: user.id, email: user.email, role: user.role, name: user.name },
+      // [PR-003] 包含tokenVersion用于版本校验
+      { id: user.id, email: user.email, role: user.role, name: user.name, tokenVersion: user.tokenVersion },
       config.JWT_SECRET,
       { expiresIn: config.JWT_EXPIRES_IN } as jwt.SignOptions
     );

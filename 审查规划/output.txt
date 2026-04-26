@@ -1,0 +1,8611 @@
+Table of Contents
+
+<a id="汽车线束成本核算系统-agent集群全库分析报告含权限设计与术语修正"></a># 汽车线束成本核算系统 — AGENT集群全库分析报告（含权限设计与术语修正）
+
+__分析日期__: 2026\-04\-25  
+__分析范围__: 全库39个页面、60个组件、19个Store、36个Hooks、118个Engine文件  
+__分析方法__: 5个专业AGENT并行分析 \+ 权限设计专项
+
+<a id="术语对照与概念澄清"></a>## 术语对照与概念澄清
+
+<a id="模型a-vs-模型b-关键术语区分"></a>### 模型A vs 模型B 关键术语区分
+
+术语
+
+模型A（客户报价）
+
+模型B（内部实绩核算）
+
+说明
+
+__废品率__
+
+0\.9%~1%（wasteRate）
+
+__不使用此术语__
+
+仅存在于客户报价模型
+
+__材料损耗率__
+
+不使用
+
+0\.5%（materialWasteRate）
+
+Excel核算表F30=F15×0\.5%
+
+__管理费__
+
+6%（mgmtFee）
+
+__不存在__
+
+报价模型自创项
+
+__利润__
+
+5\.66%（profit）
+
+__不存在__
+
+报价模型自创项
+
+__设备成本__
+
+无
+
+有（共用\+专用\+模具\+工装）
+
+内部核算独有
+
+__研发费用__
+
+无
+
+有（硬编码或明细）
+
+内部核算独有
+
+__返点__
+
+无
+
+有（毛利率公式中扣除）
+
+内部核算独有
+
+__本报告后续内容均基于模型B（内部实绩核算），涉及材料损耗率、设备成本、研发费用、返点等概念。__
+
+<a id="第一部分ui全面改造方案基于linear.app设计系统"></a>## 第一部分：UI全面改造方案——基于Linear\.app设计系统
+
+<a id="一为什么选linear.app"></a>### 一、为什么选Linear\.app
+
+维度
+
+Linear\.app
+
+Airtable
+
+ClickHouse
+
+当前系统
+
+__浅色主题__
+
+✅ 原生浅色
+
+⚠️ 浅色为主
+
+✅ 原生浅色
+
+⚠️ Semi UI浅色
+
+__数据密度__
+
+✅ 高密度列表
+
+✅ 表格密集
+
+✅ 数据密集
+
+⚠️ 松散
+
+__键盘驱动__
+
+✅ 核心交互
+
+⚠️ 鼠标为主
+
+⚠️ 查询为主
+
+❌ 无
+
+__工业感__
+
+✅ 冷峻精确
+
+⚠️ 偏通用
+
+✅ 技术感
+
+⚠️ 普通后台
+
+__表格编辑__
+
+⚠️ 列表为主
+
+✅ 表格核心
+
+⚠️ 只读展示
+
+⚠️ Univer
+
+__响应速度__
+
+✅ 极速反馈
+
+⚠️ 加载慢
+
+⚠️ 重查询
+
+⚠️ 卡顿
+
+__B端气质__
+
+✅ 专业工程师
+
+⚠️ 通用协作
+
+✅ 技术后台
+
+⚠️ 普通SaaS
+
+__结论__: Linear的浅色模式（Light Mode）作为主设计方案——明亮干净、不压抑，Airtable的表格交互模式作为BOM工作簿的参考。
+
+<a id="二色彩系统全面替换"></a>### 二、色彩系统（全面替换）
+
+<a id="丢弃当前semi-ui色彩"></a>#### 2\.1 丢弃当前Semi UI色彩
+
+当前系统使用@douyinfe/semi\-ui，色彩偏暖、偏亮、圆角大，工业感不足。
+
+__彻底丢弃__: \- 所有Semi Design预设颜色变量 \- 大圆角（borderRadius: 6） \- 渐变背景、阴影效果 \- 暖色调主色
+
+<a id="采用linear-light明亮体系干净专业"></a>#### 2\.2 采用Linear Light明亮体系（干净专业）
+
+/\* ==========================================  
+   核心背景层级（Background Stack）— 明亮干净  
+   ========================================== \*/  
+\-\-bg\-base:         \#f8f9fa;   /\* 最底层：浅灰页面背景 \*/  
+\-\-bg\-sidebar:      \#ffffff;   /\* 侧边栏：纯白 \*/  
+\-\-bg\-panel:        \#ffffff;   /\* 二级面板、卡片：纯白 \*/  
+\-\-bg\-elevated:     \#ffffff;   /\* 弹出层、下拉菜单：纯白 \*/  
+\-\-bg\-hover:        \#f1f3f4;   /\* 悬停状态：浅灰 \*/  
+\-\-bg\-active:       \#e8eaed;   /\* 激活/按下状态 \*/  
+\-\-bg\-input:        \#ffffff;   /\* 输入框背景：纯白 \*/  
+\-\-bg\-border:       \#e0e0e0;   /\* 边框线：浅灰 \*/  
+\-\-bg\-divider:      \#f1f3f4;   /\* 分隔线 \*/  
+  
+/\* ==========================================  
+   文字层级（Typography Stack）— 深灰而非纯黑  
+   ========================================== \*/  
+\-\-text\-primary:    \#1a1a2e;   /\* 主标题、关键数据：深灰蓝 \*/  
+\-\-text\-secondary:  \#4a4b4c;   /\* 正文、标签 \*/  
+\-\-text\-tertiary:   \#8a8f98;   /\* 次要说明、占位符 \*/  
+\-\-text\-quaternary: \#b0b3b8;   /\* 禁用、非常次要 \*/  
+\-\-text\-link:       \#2563eb;   /\* 链接文字：品牌蓝 \*/  
+  
+/\* ==========================================  
+   品牌色（Brand — 明亮蓝）  
+   ========================================== \*/  
+\-\-brand\-primary:   \#2563eb;   /\* 主品牌色：明亮蓝 \*/  
+\-\-brand\-hover:     \#3b82f6;   /\* 悬停态 \*/  
+\-\-brand\-active:    \#1d4ed8;   /\* 按下态 \*/  
+\-\-brand\-subtle:    rgba\(37, 99, 235, 0\.08\);  /\* 淡底色 \*/  
+\-\-brand\-text:      \#2563eb;   /\* 品牌文字 \*/  
+  
+/\* ==========================================  
+   功能色（Functional Colors）— 柔和不刺眼  
+   ========================================== \*/  
+\-\-success:         \#059669;   /\* 成功：沉稳绿 \*/  
+\-\-success\-bg:      rgba\(5, 150, 105, 0\.08\);  
+\-\-warning:         \#d97706;   /\* 警告：琥珀 \*/  
+\-\-warning\-bg:      rgba\(217, 119, 6, 0\.08\);  
+\-\-danger:          \#dc2626;   /\* 危险：红色 \*/  
+\-\-danger\-bg:       rgba\(220, 38, 38, 0\.08\);  
+\-\-info:            \#2563eb;   /\* 信息：蓝色 \*/  
+\-\-info\-bg:         rgba\(37, 99, 235, 0\.08\);  
+  
+/\* ==========================================  
+   状态色（Status Colors）  
+   ========================================== \*/  
+\-\-status\-draft:       \#8a8f98;   /\* 草稿：灰 \*/  
+\-\-status\-archived:    \#10b981;   /\* 已存档：绿 \*/  
+\-\-status\-review:      \#f59e0b;   /\* 审批中：琥珀 \*/  
+\-\-status\-approved:    \#3b82f6;   /\* 已通过：蓝 \*/  
+\-\-status\-published:   \#10b981;   /\* 已发布：绿 \*/  
+\-\-status\-locked:      \#ef4444;   /\* 已锁定：红 \*/
+
+<a id="色彩应用场景"></a>#### 2\.3 色彩应用场景
+
+┌─────────────────────────────────────────────────────────────┐  
+│ \[Logo\] 高压线束成本管理系统                      \[🔍\] \[👤\]   │  ← bg\-sidebar \#ffffff  
+├──────────┬──────────────────────────────────────────────────┤  
+│          │                                                  │  
+│ 📁 项目   │  ┌──────────────────────────────────────────┐   │  
+│ 📊 报表   │  │ E281项目 > 场景S1 > 电池包高压线束        │   │  ← bg\-base \#f8f9fa  
+│ ⚠️ 预警   │  ├──────────────────────────────────────────┤   │  
+│ ⚙️ 设置   │  │                                          │   │  
+│          │  │  KPI卡片区域 \(bg\-panel \#ffffff\)           │   │  
+│ ──────── │  │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐   │   │  
+│ 我的     │  │  │ ¥15万 │ ¥8\.5万│ 43%   │ 12    │   │   │  
+│          │  │  └──────┘ └──────┘ └──────┘ └──────┘   │   │  
+│          │  │                                          │   │  
+│          │  │  数据表格区域 \(bg\-elevated \#ffffff\)       │   │  
+│          │  │  ┌──────────────────────────────────┐   │   │  
+│          │  │  │ 零件号     │ 名称      │ 数量  │单价 │   │   │  
+│          │  │  ├───────────┼──────────┼──────┼─────┤   │   │  
+│          │  │  │PP3241182  │前驱线束  │  2   │ ¥150│   │   │  
+│          │  │  │PP3241410  │后驱线束  │  3   │ ¥200│   │   │  
+│          │  │  └───────────┴──────────┴──────┴─────┘   │   │  
+│          │  └──────────────────────────────────────────┘   │  
+│          │                                                  │  
+└──────────┴──────────────────────────────────────────────────┘
+
+<a id="三排版系统typography"></a>### 三、排版系统（Typography）
+
+<a id="字体栈"></a>#### 3\.1 字体栈
+
+\-\-font\-sans:   'Inter', \-apple\-system, 'PingFang SC', 'Microsoft YaHei', sans\-serif;  
+\-\-font\-mono:   'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+__选择理由__: \- __Inter__: Linear同款，高可读性，数字等高宽（等宽数字对价格/数量显示至关重要） \- __JetBrains Mono__: 技术感强，工程师熟悉，等宽字体适合零件号/SAP号对齐
+
+<a id="字号层级"></a>#### 3\.2 字号层级
+
+/\* 标题 \*/  
+\-\-text\-2xl:   24px / 32px / \-0\.02em;   /\* 页面标题 \*/  
+\-\-text\-xl:    20px / 28px / \-0\.01em;   /\* 模块标题 \*/  
+\-\-text\-lg:    16px / 24px / 0;          /\* 卡片标题 \*/  
+  
+/\* 正文 \*/  
+\-\-text\-base:  14px / 20px / 0;          /\* 正文、表格内容 \*/  
+\-\-text\-sm:    13px / 18px / 0;          /\* 次要文字、标签 \*/  
+\-\-text\-xs:    12px / 16px / 0\.01em;    /\* 辅助文字、时间戳 \*/  
+\-\-text\-2xs:   11px / 14px / 0\.02em;    /\* 极小文字、角标 \*/
+
+<a id="字重"></a>#### 3\.3 字重
+
+\-\-font\-normal:   400;   /\* 正文 \*/  
+\-\-font\-medium:   500;   /\* 强调 \*/  
+\-\-font\-semibold: 600;   /\* 标题、标签 \*/  
+\-\-font\-bold:     700;   /\* 关键数据 \*/
+
+<a id="排版规则"></a>#### 3\.4 排版规则
+
+元素
+
+字号
+
+字重
+
+颜色
+
+说明
+
+页面标题
+
+24px
+
+600
+
+–text\-primary
+
+项目名\+线束名
+
+模块标题
+
+16px
+
+600
+
+–text\-primary
+
+“成本核算”、“BOM明细”
+
+卡片标题
+
+14px
+
+500
+
+–text\-secondary
+
+KPI卡片标题
+
+表格内容
+
+13px
+
+400
+
+–text\-secondary
+
+BOM行数据
+
+表头
+
+11px
+
+500
+
+–text\-tertiary
+
+全大写\+字间距
+
+关键数值
+
+28px
+
+700
+
+–text\-primary
+
+总成本、毛利率
+
+价格数值
+
+13px
+
+500
+
+–font\-mono
+
+右对齐，2位小数
+
+零件号
+
+13px
+
+400
+
+–font\-mono
+
+等宽，字母全大写
+
+状态标签
+
+11px
+
+600
+
+白色
+
+内联pill形状
+
+<a id="四组件设计规范"></a>### 四、组件设计规范
+
+<a id="按钮buttons"></a>#### 4\.1 按钮（Buttons）
+
+/\* 主要按钮（Primary） \*/  
+\.btn\-primary \{  
+  background: var\(\-\-brand\-primary\);      /\* \#2563eb \*/  
+  color: \#ffffff;  
+  height: 32px;  
+  padding: 0 12px;  
+  border\-radius: 6px;                     /\* Linear风格：小圆角 \*/  
+  font\-size: 13px;  
+  font\-weight: 500;  
+  border: none;  
+  transition: background 0\.15s ease;  
+\}  
+\.btn\-primary:hover \{  
+  background: var\(\-\-brand\-hover\);        /\* \#3b82f6 \*/  
+\}  
+\.btn\-primary:active \{  
+  background: var\(\-\-brand\-active\);       /\* \#1d4ed8 \*/  
+  transform: scale\(0\.98\);  
+\}  
+  
+/\* 次要按钮（Secondary） \*/  
+\.btn\-secondary \{  
+  background: var\(\-\-bg\-hover\);           /\* \#f1f3f4 \*/  
+  color: var\(\-\-text\-secondary\);          /\* \#4a4b4c \*/  
+  border: 1px solid var\(\-\-bg\-border\);    /\* \#e0e0e0 \*/  
+\}  
+\.btn\-secondary:hover \{  
+  background: var\(\-\-bg\-active\);          /\* \#e8eaed \*/  
+\}  
+  
+/\* 幽灵按钮（Ghost） \*/  
+\.btn\-ghost \{  
+  background: transparent;  
+  color: var\(\-\-text\-tertiary\);  
+  border: none;  
+\}  
+\.btn\-ghost:hover \{  
+  background: var\(\-\-bg\-hover\);  
+  color: var\(\-\-text\-secondary\);  
+\}  
+  
+/\* 危险按钮（Danger） \*/  
+\.btn\-danger \{  
+  background: transparent;  
+  color: var\(\-\-danger\);  
+  border: 1px solid var\(\-\-danger\);  
+\}  
+\.btn\-danger:hover \{  
+  background: var\(\-\-danger\-bg\);  
+\}
+
+__按钮尺寸__: | 尺寸 | 高度 | 字号 | 用途 | |——|——|——|——| | sm | 28px | 12px | 紧凑操作 | | md | 32px | 13px | 默认 | | lg | 40px | 14px | 强调 |
+
+<a id="输入框inputs"></a>#### 4\.2 输入框（Inputs）
+
+\.input\-field \{  
+  height: 32px;  
+  background: var\(\-\-bg\-input\);           /\* \#ffffff \*/  
+  border: 1px solid var\(\-\-bg\-border\);    /\* \#e0e0e0 \*/  
+  border\-radius: 6px;  
+  padding: 0 10px;  
+  color: var\(\-\-text\-secondary\);  
+  font\-size: 13px;  
+  transition: border\-color 0\.15s ease, box\-shadow 0\.15s ease;  
+\}  
+\.input\-field:hover \{  
+  border\-color: \#3a3a3e;  
+\}  
+\.input\-field:focus \{  
+  border\-color: var\(\-\-brand\-primary\);  
+  box\-shadow: 0 0 0 3px rgba\(37, 99, 235, 0\.2\);  
+  outline: none;  
+\}  
+\.input\-field::placeholder \{  
+  color: var\(\-\-text\-quaternary\);         /\* \#b0b3b8 \*/  
+\}  
+\.input\-field:disabled \{  
+  opacity: 0\.5;  
+  cursor: not\-allowed;  
+\}
+
+__价格输入框（等宽字体\+右对齐）__:
+
+\.input\-price \{  
+  font\-family: var\(\-\-font\-mono\);  
+  text\-align: right;  
+  letter\-spacing: 0\.02em;  
+\}
+
+<a id="卡片cards"></a>#### 4\.3 卡片（Cards）
+
+\.card \{  
+  background: var\(\-\-bg\-panel\);           /\* \#ffffff \*/  
+  border: 1px solid var\(\-\-bg\-border\);    /\* \#e0e0e0 \*/  
+  border\-radius: 8px;  
+  padding: 20px;  
+\}  
+\.card:hover \{  
+  border\-color: \#3a3a3e;  
+\}  
+\.card\-header \{  
+  display: flex;  
+  justify\-content: space\-between;  
+  align\-items: center;  
+  margin\-bottom: 16px;  
+\}  
+\.card\-title \{  
+  font\-size: 14px;  
+  font\-weight: 600;  
+  color: var\(\-\-text\-secondary\);  
+\}
+
+<a id="表格tables-核心组件"></a>#### 4\.4 表格（Tables）— 核心组件
+
+/\* 表格容器 \*/  
+\.table\-container \{  
+  background: var\(\-\-bg\-elevated\);        /\* \#ffffff \*/  
+  border: 1px solid var\(\-\-bg\-border\);  
+  border\-radius: 8px;  
+  overflow: hidden;  
+\}  
+  
+/\* 表头 \*/  
+\.table\-header \{  
+  background: var\(\-\-bg\-panel\);           /\* \#ffffff \*/  
+  border\-bottom: 1px solid var\(\-\-bg\-border\);  
+  height: 36px;  
+\}  
+\.table\-header\-cell \{  
+  padding: 0 12px;  
+  font\-size: 11px;  
+  font\-weight: 500;  
+  color: var\(\-\-text\-tertiary\);           /\* \#8a8f98 \*/  
+  text\-transform: uppercase;             /\* 全大写 \*/  
+  letter\-spacing: 0\.05em;  
+  white\-space: nowrap;  
+  user\-select: none;  
+\}  
+  
+/\* 表体 \*/  
+\.table\-row \{  
+  height: 40px;  
+  border\-bottom: 1px solid var\(\-\-bg\-divider\);  
+  transition: background 0\.08s ease;  
+\}  
+\.table\-row:last\-child \{  
+  border\-bottom: none;  
+\}  
+\.table\-row:hover \{  
+  background: var\(\-\-bg\-hover\);           /\* \#f1f3f4 \*/  
+\}  
+\.table\-row\.selected \{  
+  background: var\(\-\-brand\-subtle\);       /\* 淡蓝色底色 \*/  
+\}  
+\.table\-cell \{  
+  padding: 0 12px;  
+  font\-size: 13px;  
+  color: var\(\-\-text\-secondary\);  
+  white\-space: nowrap;  
+  overflow: hidden;  
+  text\-overflow: ellipsis;  
+\}  
+  
+/\* 可编辑单元格 \*/  
+\.table\-cell\.editable \{  
+  cursor: text;  
+\}  
+\.table\-cell\.editable:hover \{  
+  outline: 1px dashed var\(\-\-brand\-primary\);  
+  outline\-offset: \-2px;  
+\}  
+  
+/\* 价格列（右对齐\+等宽字体） \*/  
+\.table\-cell\.price \{  
+  font\-family: var\(\-\-font\-mono\);  
+  text\-align: right;  
+  color: var\(\-\-text\-primary\);  
+\}  
+  
+/\* 零件号列（等宽字体） \*/  
+\.table\-cell\.partno \{  
+  font\-family: var\(\-\-font\-mono\);  
+  font\-size: 12px;  
+  letter\-spacing: 0\.01em;  
+  color: var\(\-\-brand\-text\);  
+\}  
+  
+/\* 状态列（内联pill） \*/  
+\.status\-pill \{  
+  display: inline\-flex;  
+  align\-items: center;  
+  height: 20px;  
+  padding: 0 8px;  
+  border\-radius: 10px;  
+  font\-size: 11px;  
+  font\-weight: 600;  
+\}  
+\.status\-pill\.draft     \{ background: rgba\(138,143,152,0\.2\); color: \#8a8f98; \}  
+\.status\-pill\.archived  \{ background: rgba\(16,185,129,0\.2\); color: \#10b981; \}  
+\.status\-pill\.review    \{ background: rgba\(245,158,11,0\.2\); color: \#f59e0b; \}  
+\.status\-pill\.approved  \{ background: rgba\(59,130,246,0\.2\); color: \#2563eb; \}  
+\.status\-pill\.published \{ background: rgba\(16,185,129,0\.2\); color: \#10b981; \}  
+\.status\-pill\.locked    \{ background: rgba\(239,68,68,0\.2\); color: \#ef4444; \}
+
+<a id="导航navigation"></a>#### 4\.5 导航（Navigation）
+
+__侧边栏（Sidebar）— Linear风格__:
+
+\.sidebar \{  
+  width: 220px;  
+  background: var\(\-\-bg\-sidebar\);         /\* \#ffffff \*/  
+  border\-right: 1px solid var\(\-\-bg\-border\);  
+  padding: 16px 8px;  
+\}  
+  
+\.sidebar\-item \{  
+  height: 32px;  
+  padding: 0 10px;  
+  border\-radius: 6px;  
+  display: flex;  
+  align\-items: center;  
+  gap: 10px;  
+  color: var\(\-\-text\-tertiary\);           /\* \#8a8f98 \*/  
+  font\-size: 13px;  
+  cursor: pointer;  
+  transition: all 0\.12s ease;  
+\}  
+\.sidebar\-item:hover \{  
+  background: var\(\-\-bg\-hover\);  
+  color: var\(\-\-text\-secondary\);  
+\}  
+\.sidebar\-item\.active \{  
+  background: var\(\-\-brand\-subtle\);  
+  color: var\(\-\-brand\-text\);  
+\}  
+\.sidebar\-item\.active::before \{  
+  content: '';  
+  position: absolute;  
+  left: 0;  
+  width: 3px;  
+  height: 20px;  
+  background: var\(\-\-brand\-primary\);  
+  border\-radius: 0 3px 3px 0;  
+\}
+
+__顶部面包屑（Breadcrumb）__:
+
+\.breadcrumb \{  
+  display: flex;  
+  align\-items: center;  
+  gap: 6px;  
+  font\-size: 13px;  
+  color: var\(\-\-text\-tertiary\);  
+\}  
+\.breadcrumb\-item \{  
+  cursor: pointer;  
+  transition: color 0\.12s ease;  
+\}  
+\.breadcrumb\-item:hover \{  
+  color: var\(\-\-text\-secondary\);  
+\}  
+\.breadcrumb\-item\.active \{  
+  color: var\(\-\-text\-primary\);  
+  font\-weight: 500;  
+\}  
+\.breadcrumb\-separator \{  
+  color: var\(\-\-text\-quaternary\);  
+\}
+
+<a id="下拉菜单dropdown"></a>#### 4\.6 下拉菜单（Dropdown）
+
+\.dropdown\-menu \{  
+  background: var\(\-\-bg\-elevated\);        /\* \#ffffff \*/  
+  border: 1px solid var\(\-\-bg\-border\);  
+  border\-radius: 8px;  
+  box\-shadow: 0 8px 24px rgba\(0,0,0,0\.4\);  
+  padding: 4px;  
+  min\-width: 180px;  
+\}  
+\.dropdown\-item \{  
+  height: 32px;  
+  padding: 0 10px;  
+  border\-radius: 6px;  
+  display: flex;  
+  align\-items: center;  
+  gap: 10px;  
+  font\-size: 13px;  
+  color: var\(\-\-text\-secondary\);  
+  cursor: pointer;  
+\}  
+\.dropdown\-item:hover \{  
+  background: var\(\-\-bg\-hover\);  
+\}  
+\.dropdown\-item\.danger \{  
+  color: var\(\-\-danger\);  
+\}  
+\.dropdown\-item\.danger:hover \{  
+  background: var\(\-\-danger\-bg\);  
+\}  
+\.dropdown\-divider \{  
+  height: 1px;  
+  background: var\(\-\-bg\-divider\);  
+  margin: 4px 0;  
+\}
+
+<a id="模态框modal"></a>#### 4\.7 模态框（Modal）
+
+\.modal\-overlay \{  
+  background: rgba\(0,0,0,0\.6\);  
+  backdrop\-filter: blur\(4px\);  
+\}  
+\.modal\-content \{  
+  background: var\(\-\-bg\-panel\);           /\* \#ffffff \*/  
+  border: 1px solid var\(\-\-bg\-border\);  
+  border\-radius: 12px;  
+  box\-shadow: 0 24px 48px rgba\(0,0,0,0\.5\);  
+  max\-width: 520px;  
+  width: 100%;  
+\}  
+\.modal\-header \{  
+  padding: 20px 24px 0;  
+\}  
+\.modal\-title \{  
+  font\-size: 16px;  
+  font\-weight: 600;  
+  color: var\(\-\-text\-primary\);  
+\}  
+\.modal\-body \{  
+  padding: 16px 24px;  
+\}  
+\.modal\-footer \{  
+  padding: 16px 24px 20px;  
+  display: flex;  
+  justify\-content: flex\-end;  
+  gap: 8px;  
+\}
+
+<a id="五页面布局改造"></a>### 五、页面布局改造
+
+<a id="全局布局"></a>#### 5\.1 全局布局
+
+┌─────────────────────────────────────────────────────────────────┐  
+│                                                                 │  
+│  \[≡\] E281 高压线束成本管理系统                        \[🔍\]\[👤\]  │  ← Topbar  
+│  ┌──────────┬────────────────────────────────────────────────┐ │  
+│  │          │  项目 / E281 / 场景S1 / 电池包高压线束         │ │  ← Breadcrumb  
+│  │ 📁 项目   ├────────────────────────────────────────────────┤ │  
+│  │ 📊 报表   │                                                │ │  
+│  │ ⚠️ 预警   │          \[ 主内容区域 \]                        │ │  
+│  │ ⚙️ 设置   │                                                │ │  
+│  │          │                                                │ │  
+│  │ ──────── │                                                │ │  
+│  │ 💡 核价   │                                                │ │  
+│  │ 📋 BOM    │                                                │ │  
+│  │ 🔧 设变   │                                                │ │  
+│  │ 📈 分摊   │                                                │ │  
+│  │          │                                                │ │  
+│  │ ──────── │                                                │ │  
+│  │ 👤 我的   │                                                │ │  
+│  └──────────┴────────────────────────────────────────────────┘ │  
+└─────────────────────────────────────────────────────────────────┘
+
+<a id="topbar设计"></a>#### 5\.2 Topbar设计
+
+\.topbar \{  
+  height: 48px;  
+  background: var\(\-\-bg\-sidebar\);         /\* \#ffffff \*/  
+  border\-bottom: 1px solid var\(\-\-bg\-border\);  
+  display: flex;  
+  align\-items: center;  
+  justify\-content: space\-between;  
+  padding: 0 16px;  
+  position: sticky;  
+  top: 0;  
+  z\-index: 100;  
+\}  
+\.topbar\-brand \{  
+  display: flex;  
+  align\-items: center;  
+  gap: 12px;  
+  font\-size: 14px;  
+  font\-weight: 600;  
+  color: var\(\-\-text\-primary\);  
+\}  
+\.topbar\-actions \{  
+  display: flex;  
+  align\-items: center;  
+  gap: 8px;  
+\}  
+\.topbar\-action\-btn \{  
+  width: 32px;  
+  height: 32px;  
+  border\-radius: 6px;  
+  display: flex;  
+  align\-items: center;  
+  justify\-content: center;  
+  color: var\(\-\-text\-tertiary\);  
+  cursor: pointer;  
+  transition: all 0\.12s ease;  
+\}  
+\.topbar\-action\-btn:hover \{  
+  background: var\(\-\-bg\-hover\);  
+  color: var\(\-\-text\-secondary\);  
+\}
+
+<a id="侧边栏设计"></a>#### 5\.3 侧边栏设计
+
+\.sidebar \{  
+  width: 220px;  
+  background: var\(\-\-bg\-sidebar\);         /\* \#ffffff \*/  
+  border\-right: 1px solid var\(\-\-bg\-border\);  
+  display: flex;  
+  flex\-direction: column;  
+  padding: 8px;  
+  overflow\-y: auto;  
+\}  
+\.sidebar\-section \{  
+  margin\-bottom: 4px;  
+\}  
+\.sidebar\-section\-title \{  
+  padding: 8px 10px 4px;  
+  font\-size: 11px;  
+  font\-weight: 500;  
+  color: var\(\-\-text\-quaternary\);  
+  text\-transform: uppercase;  
+  letter\-spacing: 0\.08em;  
+\}
+
+<a id="内容区域"></a>#### 5\.4 内容区域
+
+\.content\-area \{  
+  flex: 1;  
+  background: var\(\-\-bg\-base\);            /\* \#f8f9fa \*/  
+  padding: 24px;  
+  overflow\-y: auto;  
+\}  
+\.content\-header \{  
+  margin\-bottom: 24px;  
+\}  
+\.content\-title \{  
+  font\-size: 24px;  
+  font\-weight: 600;  
+  color: var\(\-\-text\-primary\);  
+  letter\-spacing: \-0\.02em;  
+\}  
+\.content\-subtitle \{  
+  font\-size: 13px;  
+  color: var\(\-\-text\-tertiary\);  
+  margin\-top: 4px;  
+\}
+
+<a id="六bom工作簿专用设计参考airtable交互"></a>### 六、BOM工作簿专用设计（参考Airtable交互）
+
+<a id="列头设计"></a>#### 6\.1 列头设计
+
+┌─────────────────────────────────────────────────────────────────┐  
+│ \# │ 零件号 ▼ │ 名称 ▼ │ 数量 ▼ │ 单位 │ 供应商 ▼ │ 单价 ▼ │ \.\.\. │  
+├───┼──────────┼────────┼────────┼──────┼──────────┼────────┼─────┤  
+│ 1 │ PP324\.\.\. │ 前驱   │   2    │ PCS  │ 安费诺   │ ¥150\.00│     │  
+│ 2 │ PP324\.\.\. │ 后驱   │   3    │ PCS  │ TE       │ ¥200\.00│     │  
+└───┴──────────┴────────┴────────┴──────┴──────────┴────────┴─────┘  
+      ▲  
+      点击列头展开筛选/排序菜单
+
+__列头交互__: \- 点击列头 → 展开筛选/排序/隐藏菜单 \- 拖拽列头 → 调整列宽 \- 拖拽列头到新的位置 → 调整列顺序
+
+\.table\-column\-header \{  
+  position: relative;  
+  cursor: pointer;  
+  user\-select: none;  
+\}  
+\.table\-column\-header:hover \{  
+  background: var\(\-\-bg\-hover\);  
+\}  
+\.table\-column\-header \.sort\-icon \{  
+  opacity: 0;  
+  transition: opacity 0\.12s ease;  
+\}  
+\.table\-column\-header:hover \.sort\-icon,  
+\.table\-column\-header\.sorted \.sort\-icon \{  
+  opacity: 1;  
+\}  
+/\* 列宽调整手柄 \*/  
+\.table\-column\-resize\-handle \{  
+  position: absolute;  
+  right: 0;  
+  top: 0;  
+  bottom: 0;  
+  width: 4px;  
+  cursor: col\-resize;  
+\}  
+\.table\-column\-resize\-handle:hover \{  
+  background: var\(\-\-brand\-primary\);  
+\}
+
+<a id="行内编辑"></a>#### 6\.2 行内编辑
+
+┌─────────────────────────────────────────────────────────────────┐  
+│ 1 │ PP3241182│ \[前驱直流母线总成  \]│ \[2\]  │ PCS  │ \[安费诺▼\]│ \.\.\. │  
+│   │          │   ↑ 正在编辑        │  ↑编辑 │      │   ↑下拉   │     │  
+│ 2 │ PP3241410│ 后驱直流母线总成    │   3   │ PCS  │ TE       │ \.\.\. │  
+└───┴──────────┴─────────────────────┴───────┴──────┴──────────┴─────┘
+
+__行内编辑规则__: \- 单击选中单元格 \- 双击或按F2进入编辑模式 \- Tab → 向右移动，Enter → 向下移动 \- Esc → 取消编辑 \- Ctrl\+Enter → 确认并留在当前单元格
+
+\.cell\-editor \{  
+  position: absolute;  
+  inset: 0;  
+  padding: 0 12px;  
+  background: var\(\-\-bg\-elevated\);  
+  border: 2px solid var\(\-\-brand\-primary\);  
+  border\-radius: 4px;  
+  font\-family: inherit;  
+  font\-size: 13px;  
+  color: var\(\-\-text\-secondary\);  
+  outline: none;  
+  z\-index: 10;  
+\}  
+\.cell\-editor:focus \{  
+  box\-shadow: 0 0 0 4px rgba\(37, 99, 235, 0\.15\);  
+\}
+
+<a id="行选择"></a>#### 6\.3 行选择
+
+\.table\-row \{  
+  cursor: pointer;  
+\}  
+\.table\-row:hover \{  
+  background: var\(\-\-bg\-hover\);  
+\}  
+\.table\-row\.selected \{  
+  background: rgba\(37, 99, 235, 0\.08\);  
+\}  
+\.table\-row\.selected \.row\-checkbox \{  
+  opacity: 1;  
+\}  
+\.row\-checkbox \{  
+  opacity: 0;  
+  transition: opacity 0\.12s ease;  
+\}  
+\.table\-row:hover \.row\-checkbox \{  
+  opacity: 1;  
+\}
+
+<a id="新建行airtable风格"></a>#### 6\.4 新建行（Airtable风格）
+
+┌─────────────────────────────────────────────────────────────────┐  
+│ \.\.\. │ 最后一行数据                                          \.\.\. │  
+├─────┴───────────────────────────────────────────────────────────┤  
+│ \+  点击添加新行\.\.\.                                              │  ← 底部新建行入口  
+└─────────────────────────────────────────────────────────────────┘  
+      ↓ 点击后  
+┌─────────────────────────────────────────────────────────────────┐  
+│ \.\.\. │ 最后一行数据                                          \.\.\. │  
+├─────┼───────────────────────────────────────────────────────────┤  
+│ 15  │ \[            \] │ \[        \] │ \[1\] │ \[PCS▼\] │ \[选择▼\] │   │  ← 新行直接可编辑  
+└─────┴───────────────────────────────────────────────────────────┘
+
+<a id="智能补全弹窗airtable风格"></a>#### 6\.5 智能补全弹窗（Airtable风格）
+
+用户正在编辑"零件号"列，输入 "HVS"  
+┌─────────────────────────────────────────────────┐  
+│  HVS                                             │  
+├─────────────────────────────────────────────────┤  
+│  ▼ 建议                                          │  
+│  ┌─────────────────────────────────────────────┐ │  
+│  │  HVSPC2P1600FV550\-NH\-P010                   │ │  
+│  │  高压连接器总成 · 安费诺 · 1600V            │ │  
+│  ├─────────────────────────────────────────────┤ │  
+│  │  HVSPC3P2500FV800\-NH\-P010                   │ │  
+│  │  高压连接器总成 · 泰科 · 2500V              │ │  
+│  ├─────────────────────────────────────────────┤ │  
+│  │  HVSPB2P800FV300\-NH\-P010                    │ │  
+│  │  电池包连接器 · 安费诺 · 800V               │ │  
+│  └─────────────────────────────────────────────┘ │  
+│  ↑↓ 选择 · Tab/Enter 确认 · Esc 取消             │  
+└─────────────────────────────────────────────────┘
+
+\.autocomplete\-panel \{  
+  position: absolute;  
+  background: var\(\-\-bg\-elevated\);  
+  border: 1px solid var\(\-\-bg\-border\);  
+  border\-radius: 8px;  
+  box\-shadow: 0 12px 32px rgba\(0,0,0,0\.5\);  
+  max\-height: 280px;  
+  overflow\-y: auto;  
+  min\-width: 320px;  
+  z\-index: 1000;  
+\}  
+\.autocomplete\-item \{  
+  padding: 8px 12px;  
+  cursor: pointer;  
+  border\-bottom: 1px solid var\(\-\-bg\-divider\);  
+\}  
+\.autocomplete\-item:last\-child \{  
+  border\-bottom: none;  
+\}  
+\.autocomplete\-item:hover,  
+\.autocomplete\-item\.highlighted \{  
+  background: var\(\-\-brand\-subtle\);  
+\}  
+\.autocomplete\-item \.item\-primary \{  
+  font\-family: var\(\-\-font\-mono\);  
+  font\-size: 13px;  
+  color: var\(\-\-text\-primary\);  
+\}  
+\.autocomplete\-item \.item\-secondary \{  
+  font\-size: 11px;  
+  color: var\(\-\-text\-tertiary\);  
+  margin\-top: 2px;  
+\}
+
+<a id="七动画与过渡"></a>### 七、动画与过渡
+
+<a id="微交互"></a>#### 7\.1 微交互
+
+/\* 按钮按下 \*/  
+\.btn\-primary:active \{  
+  transform: scale\(0\.97\);  
+  transition: transform 0\.08s ease;  
+\}  
+  
+/\* 行悬停 \*/  
+\.table\-row \{  
+  transition: background 0\.08s ease;  
+\}  
+  
+/\* 下拉菜单展开 \*/  
+\.dropdown\-menu \{  
+  animation: dropdown\-in 0\.12s ease\-out;  
+\}  
+@keyframes dropdown\-in \{  
+  from \{  
+    opacity: 0;  
+    transform: translateY\(\-4px\) scale\(0\.98\);  
+  \}  
+  to \{  
+    opacity: 1;  
+    transform: translateY\(0\) scale\(1\);  
+  \}  
+\}  
+  
+/\* 模态框 \*/  
+\.modal\-content \{  
+  animation: modal\-in 0\.2s cubic\-bezier\(0\.16, 1, 0\.3, 1\);  
+\}  
+@keyframes modal\-in \{  
+  from \{  
+    opacity: 0;  
+    transform: scale\(0\.96\) translateY\(8px\);  
+  \}  
+  to \{  
+    opacity: 1;  
+    transform: scale\(1\) translateY\(0\);  
+  \}  
+\}  
+  
+/\* Toast通知 \*/  
+\.toast \{  
+  animation: toast\-in 0\.3s cubic\-bezier\(0\.16, 1, 0\.3, 1\);  
+\}  
+@keyframes toast\-in \{  
+  from \{  
+    opacity: 0;  
+    transform: translateX\(40px\);  
+  \}  
+  to \{  
+    opacity: 1;  
+    transform: translateX\(0\);  
+  \}  
+\}  
+  
+/\* 数据刷新脉冲 \*/  
+\.cell\-updated \{  
+  animation: cell\-flash 0\.6s ease\-out;  
+\}  
+@keyframes cell\-flash \{  
+  0% \{ background: rgba\(37, 99, 235, 0\.3\); \}  
+  100% \{ background: transparent; \}  
+\}  
+  
+/\* 加载骨架屏 \*/  
+\.skeleton \{  
+  background: linear\-gradient\(  
+    90deg,  
+    var\(\-\-bg\-hover\) 25%,  
+    var\(\-\-bg\-active\) 50%,  
+    var\(\-\-bg\-hover\) 75%  
+  \);  
+  background\-size: 200% 100%;  
+  animation: skeleton\-loading 1\.5s ease\-in\-out infinite;  
+  border\-radius: 4px;  
+\}  
+@keyframes skeleton\-loading \{  
+  0% \{ background\-position: 200% 0; \}  
+  100% \{ background\-position: \-200% 0; \}  
+\}
+
+<a id="页面切换"></a>#### 7\.2 页面切换
+
+\.page\-transition\-enter \{  
+  opacity: 0;  
+  transform: translateY\(8px\);  
+\}  
+\.page\-transition\-enter\-active \{  
+  opacity: 1;  
+  transform: translateY\(0\);  
+  transition: opacity 0\.2s ease, transform 0\.2s ease;  
+\}  
+\.page\-transition\-exit \{  
+  opacity: 1;  
+\}  
+\.page\-transition\-exit\-active \{  
+  opacity: 0;  
+  transition: opacity 0\.15s ease;  
+\}
+
+<a id="八组件替换清单semi-ui-自研轻量库"></a>### 八、组件替换清单（Semi UI → 自研/轻量库）
+
+Semi UI组件
+
+替换方案
+
+原因
+
+Button
+
+自研（基于上述CSS）
+
+Semi按钮风格不匹配
+
+Input
+
+自研
+
+需要浅色主题输入框
+
+Table
+
+自研（基于Univer或自研表格）
+
+Semi表格不适合大数据量
+
+Modal
+
+自研
+
+需要浅色主题弹窗
+
+Dropdown
+
+自研
+
+需要浅色主题下拉
+
+Select
+
+自研或react\-select（自定义主题）
+
+需要智能补全功能
+
+DatePicker
+
+自研或轻量日期库
+
+浅色主题
+
+Tabs
+
+自研
+
+Linear风格标签
+
+Checkbox/Radio
+
+自研
+
+浅色主题复选框
+
+Tooltip
+
+自研
+
+浅色提示
+
+Toast
+
+自研
+
+右侧滑入通知
+
+Form
+
+自研或react\-hook\-form
+
+不需要Semi的Form
+
+Menu
+
+自研
+
+侧边栏导航
+
+Layout
+
+自研
+
+整体布局重构
+
+Pagination
+
+自研
+
+简洁分页
+
+Badge
+
+自研
+
+Status pill
+
+Avatar
+
+保留Semi或自研
+
+简单组件可保留
+
+Progress
+
+自研
+
+进度条样式
+
+Switch
+
+自研
+
+切换开关
+
+Slider
+
+自研
+
+滑块
+
+__核心依赖替换__:
+
+// package\.json 变更  
+\{  
+  "remove": \{  
+    "@douyinfe/semi\-ui": "^2\.x",  
+    "@douyinfe/semi\-icons": "^2\.x"  
+  \},  
+  "add": \{  
+    "@univerjs/core": "^0\.x",         // Univer表格引擎（保留）  
+    "react\-hook\-form": "^7\.x",        // 表单管理  
+    "zustand": "^4\.x",                // 状态管理（保留）  
+    "framer\-motion": "^11\.x",         // 动画库  
+    "@fontsource/inter": "^5\.x",      // Inter字体  
+    "@fontsource/jetbrains\-mono": "^5\.x"  // JetBrains Mono  
+  \}  
+\}
+
+<a id="九实施计划"></a>### 九、实施计划
+
+<a id="第一阶段设计系统搭建第1-2周"></a>#### 第一阶段：设计系统搭建（第1\-2周）
+
+任务
+
+内容
+
+验收标准
+
+1\. CSS变量系统
+
+定义全部色彩/字号/间距变量
+
+变量文件完整
+
+2\. 基础组件库
+
+Button/Input/Select/Modal/Dropdown
+
+5个组件可用
+
+3\. 字体加载
+
+Inter \+ JetBrains Mono
+
+字体正确显示
+
+4\. 动画系统
+
+微交互\+页面切换动画
+
+动画流畅
+
+<a id="第二阶段布局框架第3周"></a>#### 第二阶段：布局框架（第3周）
+
+任务
+
+内容
+
+验收标准
+
+5\. 全局布局
+
+Topbar\+Sidebar\+Content
+
+布局稳定
+
+6\. 导航组件
+
+侧边栏导航\+面包屑
+
+导航可用
+
+7\. 页面框架
+
+空页面模板
+
+新页面可快速搭建
+
+<a id="第三阶段表格组件第4-5周"></a>#### 第三阶段：表格组件（第4\-5周）
+
+任务
+
+内容
+
+验收标准
+
+8\. 表格组件
+
+表头\+表体\+行选择\+排序\+筛选
+
+基础功能可用
+
+9\. 行内编辑
+
+单击编辑\+Tab导航
+
+编辑流畅
+
+10\. 列操作
+
+拖拽调整列宽\+列顺序
+
+拖拽可用
+
+11\. 智能补全
+
+零件号/SAP号自动补全
+
+补全响应<50ms
+
+<a id="第四阶段页面迁移第6-8周"></a>#### 第四阶段：页面迁移（第6\-8周）
+
+任务
+
+内容
+
+验收标准
+
+12\. Dashboard页
+
+KPI卡片\+图表\+表格
+
+页面完成
+
+13\. BOM工作簿页
+
+Univer\+新UI包装
+
+页面完成
+
+14\. 核价工作台
+
+因素总览\+成本核算
+
+页面完成
+
+15\. 其他页面
+
+列表页\+表单页\+详情页
+
+全部完成
+
+<a id="第五阶段打磨优化第9-10周"></a>#### 第五阶段：打磨优化（第9\-10周）
+
+任务
+
+内容
+
+验收标准
+
+16\. 动画优化
+
+所有交互添加微动画
+
+动画流畅
+
+17\. 性能优化
+
+首屏加载<1s
+
+Lighthouse>80
+
+18\. 响应式
+
+适配不同屏幕尺寸
+
+主流分辨率可用
+
+19\. 无障碍
+
+键盘导航\+屏幕阅读器
+
+基础无障碍支持
+
+<a id="十与现有代码的整合策略"></a>### 十、与现有代码的整合策略
+
+<a id="渐进式替换"></a>#### 10\.1 渐进式替换
+
+不一次性全部替换，采用渐进式策略：
+
+阶段1: 全局样式层（CSS变量 \+ 字体 \+ 动画）  
+    ↓  
+阶段2: 布局层（Topbar \+ Sidebar \+ 页面框架）  
+    ↓  
+阶段3: 组件层（逐个页面替换组件）  
+    ↓  
+阶段4: 彻底移除Semi UI依赖
+
+<a id="兼容层"></a>#### 10\.2 兼容层
+
+在过渡期间，提供Semi UI → 新设计的兼容层：
+
+// 兼容层示例：将Semi的Button包装为新风格  
+import \{ Button as SemiButton \} from '@douyinfe/semi\-ui';  
+  
+export const Button = \(props: ButtonProps\) => \{  
+  // 新设计系统的Button已经实现时直接使用  
+  // 否则包装Semi Button添加新样式  
+  return <NewButton \{\.\.\.props\} />;  
+\};
+
+<a id="风险管控"></a>#### 10\.3 风险管控
+
+风险
+
+影响
+
+应对方案
+
+自研组件Bug多
+
+🔴 高
+
+保留Semi作为fallback，逐步替换
+
+开发周期长
+
+🔴 高
+
+优先核心页面（BOM\+Dashboard），其他延后
+
+设计师不参与
+
+🟠 中
+
+基于Linear设计系统，工程师可自行实施
+
+用户不适应
+
+🟠 中
+
+提供浅色主题选项（后期）
+
+Univer样式冲突
+
+🟠 中
+
+通过CSS隔离层控制Univer样式
+
+<a id="附录acss变量完整文件"></a>### 附录A：CSS变量完整文件
+
+/\* design\-system\.css — 完整设计系统变量 \*/  
+  
+:root \{  
+  /\* Backgrounds \*/  
+  \-\-bg\-base: \#f8f9fa;  
+  \-\-bg\-sidebar: \#ffffff;  
+  \-\-bg\-panel: \#ffffff;  
+  \-\-bg\-elevated: \#ffffff;  
+  \-\-bg\-hover: \#f1f3f4;  
+  \-\-bg\-active: \#e8eaed;  
+  \-\-bg\-input: \#ffffff;  
+  \-\-bg\-border: \#e0e0e0;  
+  \-\-bg\-divider: \#f1f3f4;  
+  
+  /\* Text \*/  
+  \-\-text\-primary: \#1a1a2e;  
+  \-\-text\-secondary: \#4a4b4c;  
+  \-\-text\-tertiary: \#8a8f98;  
+  \-\-text\-quaternary: \#b0b3b8;  
+  \-\-text\-link: \#2563eb;  
+  
+  /\* Brand \*/  
+  \-\-brand\-primary: \#2563eb;  
+  \-\-brand\-hover: \#3b82f6;  
+  \-\-brand\-active: \#1d4ed8;  
+  \-\-brand\-subtle: rgba\(37, 99, 235, 0\.15\);  
+  \-\-brand\-text: \#2563eb;  
+  
+  /\* Functional \*/  
+  \-\-success: \#10b981;  
+  \-\-success\-bg: rgba\(16, 185, 129, 0\.15\);  
+  \-\-warning: \#f59e0b;  
+  \-\-warning\-bg: rgba\(245, 158, 11, 0\.15\);  
+  \-\-danger: \#ef4444;  
+  \-\-danger\-bg: rgba\(239, 68, 68, 0\.15\);  
+  \-\-info: \#3b82f6;  
+  \-\-info\-bg: rgba\(59, 130, 246, 0\.15\);  
+  
+  /\* Status \*/  
+  \-\-status\-draft: \#8a8f98;  
+  \-\-status\-archived: \#10b981;  
+  \-\-status\-review: \#f59e0b;  
+  \-\-status\-approved: \#3b82f6;  
+  \-\-status\-published: \#10b981;  
+  \-\-status\-locked: \#ef4444;  
+  
+  /\* Typography \*/  
+  \-\-font\-sans: 'Inter', \-apple\-system, 'PingFang SC', 'Microsoft YaHei', sans\-serif;  
+  \-\-font\-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;  
+  
+  /\* Spacing \*/  
+  \-\-space\-1: 4px;  
+  \-\-space\-2: 8px;  
+  \-\-space\-3: 12px;  
+  \-\-space\-4: 16px;  
+  \-\-space\-5: 20px;  
+  \-\-space\-6: 24px;  
+  \-\-space\-8: 32px;  
+  \-\-space\-10: 40px;  
+  \-\-space\-12: 48px;  
+  
+  /\* Border Radius \*/  
+  \-\-radius\-sm: 4px;  
+  \-\-radius\-md: 6px;  
+  \-\-radius\-lg: 8px;  
+  \-\-radius\-xl: 12px;  
+  
+  /\* Shadows \*/  
+  \-\-shadow\-sm: 0 1px 2px rgba\(0,0,0,0\.3\);  
+  \-\-shadow\-md: 0 4px 12px rgba\(0,0,0,0\.4\);  
+  \-\-shadow\-lg: 0 8px 24px rgba\(0,0,0,0\.5\);  
+  \-\-shadow\-xl: 0 24px 48px rgba\(0,0,0,0\.6\);  
+  
+  /\* Transitions \*/  
+  \-\-transition\-fast: 0\.08s ease;  
+  \-\-transition\-base: 0\.12s ease;  
+  \-\-transition\-slow: 0\.2s ease;  
+\}  
+  
+/\* 全局基础样式 \*/  
+\* \{  
+  box\-sizing: border\-box;  
+  margin: 0;  
+  padding: 0;  
+\}  
+  
+body \{  
+  font\-family: var\(\-\-font\-sans\);  
+  font\-size: 14px;  
+  line\-height: 1\.5;  
+  color: var\(\-\-text\-secondary\);  
+  background: var\(\-\-bg\-base\);  
+  \-webkit\-font\-smoothing: antialiased;  
+  \-moz\-osx\-font\-smoothing: grayscale;  
+\}  
+  
+/\* 滚动条 \*/  
+::\-webkit\-scrollbar \{  
+  width: 10px;  
+  height: 10px;  
+\}  
+::\-webkit\-scrollbar\-track \{  
+  background: transparent;  
+\}  
+::\-webkit\-scrollbar\-thumb \{  
+  background: \#3a3a3e;  
+  border\-radius: 5px;  
+  border: 2px solid var\(\-\-bg\-base\);  
+\}  
+::\-webkit\-scrollbar\-thumb:hover \{  
+  background: \#4a4a4e;  
+\}  
+  
+/\* 选中文本 \*/  
+::selection \{  
+  background: rgba\(37, 99, 235, 0\.3\);  
+  color: var\(\-\-text\-primary\);  
+\}
+
+<a id="附录b与semi-ui的对比"></a>### 附录B：与Semi UI的对比
+
+维度
+
+Semi UI（当前）
+
+Linear设计系统（新）
+
+主题
+
+浅色为主
+
+明亮专业
+
+圆角
+
+大圆角（6px\+）
+
+小圆角（4\-6px）
+
+阴影
+
+明显阴影
+
+极少阴影
+
+字体
+
+系统默认
+
+Inter \+ JetBrains Mono
+
+数据密度
+
+松散
+
+紧凑
+
+交互反馈
+
+一般
+
+微动画 everywhere
+
+工业感
+
+无
+
+强
+
+工程师友好
+
+一般
+
+强（键盘驱动）
+
+*本方案基于Linear\.app Light Mode设计系统，结合Airtable的表格交互模式，为汽车线束成本管理系统打造明亮专业的UI体验。*
+
+<a id="第二部分页面与路由架构分析"></a>## 第二部分：页面与路由架构分析
+
+<a id="现有页面清单36个含.bak备份"></a>### 1\.1 现有页面清单（36个，含\.bak备份）
+
+层级
+
+页面文件
+
+路由路径
+
+核心功能
+
+__全屏沉浸__
+
+BomWorkbookPage\.tsx
+
+/project/:id/s/:sid/bom\-workbook
+
+Univer表格BOM编辑
+
+HarnessEditPage\.tsx
+
+/project/:id/s/:sid/harness/:id/edit
+
+线束参数编辑
+
+__项目级__
+
+ProjectDashboardOverviewPage\.tsx
+
+/project/:id
+
+项目概览、场景列表、KPI卡片
+
+ProjectScenariosPage\.tsx
+
+/project/:id/scenarios
+
+场景管理（新建/切换/对比）
+
+ScenarioComparePage\.tsx
+
+/project/:id/compare
+
+场景对比分析
+
+BomDiffPage\.tsx
+
+/project/:id/bom/diff
+
+BOM差异对比
+
+VersionManager\.tsx
+
+/project/:id/versions
+
+版本管理
+
+AlertsPage\.tsx
+
+/project/:id/alerts
+
+项目级预警
+
+__场景级__
+
+DashboardPage\.tsx
+
+/project/:id/s/:sid
+
+__场景仪表板__（KPI\+图表\+生命周期表）
+
+HarnessDetailPage\.tsx
+
+/project/:id/s/:sid/harness/:id
+
+线束详情（成本分解\+图表）
+
+QuotePage\.tsx
+
+/project/:id/s/:sid/quote
+
+__报价工作台__（含设变对比\+导出）
+
+GapAnalysisPage\.tsx
+
+/project/:id/s/:sid/gap
+
+利润差距分析
+
+SimulationPage\.tsx
+
+/project/:id/s/:sid/simulation
+
+__推演模拟__（what\-if分析）
+
+AnnualDropPage\.tsx
+
+/project/:id/s/:sid/annual\-drop
+
+__年降管理__
+
+AllocManagerPage\.tsx
+
+/project/:id/s/:sid/alloc
+
+__分摊管理__（含回收跟踪）
+
+EngineerWorkbench\.tsx
+
+/project/:id/s/:sid/workbench
+
+__工程师工作台__（成本追溯\+引擎切换）
+
+ChangeEnginePage\.tsx
+
+/project/:id/s/:sid/change\-engine
+
+__设变引擎__（设变定价\+影响分析）
+
+TrackingPage\.tsx
+
+/project/:id/s/:sid/tracking
+
+__跟踪页__（设变跟踪\+呆滞报告）
+
+ConfigMatrixPage\.tsx
+
+/project/:id/s/:sid/config
+
+__配置矩阵__（车型配置\+风险检测）
+
+ConnectorPricingPage\.tsx
+
+/project/:id/s/:sid/pricing/connectors
+
+__连接器定价__
+
+WirePricingPage\.tsx
+
+/project/:id/s/:sid/pricing/wires
+
+__导线定价__
+
+DevPartPricingPage\.tsx
+
+/project/:id/s/:sid/pricing/devparts
+
+__同步开发件定价__
+
+PackagingSchemePage\.tsx
+
+/project/:id/s/:sid/packaging/scheme
+
+__包装方案__
+
+PackagingLogisticsPage\.tsx
+
+/project/:id/s/:sid/packaging/logistics
+
+__包装物流__
+
+VersionManager\.tsx
+
+/project/:id/s/:sid/versions
+
+场景级版本管理
+
+__全局__
+
+ProjectListPage\.tsx
+
+/
+
+__项目列表__（所有项目入口）
+
+ManagerDashboardPage\.tsx
+
+/manager
+
+__管理报表__（利润瀑布图\+异常分析）
+
+WizardPage\.tsx
+
+/wizard
+
+__向导页__
+
+NewProjectWizard\.tsx
+
+/project/new
+
+__新建项目向导__
+
+AlertsPage\.tsx
+
+/alerts
+
+__全局预警中心__
+
+AlertsPage\.tsx mode=“rules”
+
+/settings/alert\-rules
+
+__预警规则配置__
+
+SettingsPage\.tsx
+
+/settings
+
+__系统设置__
+
+ProfilePage\.tsx
+
+/profile
+
+__个人中心__
+
+LoginPage\.tsx
+
+/login（隐式）
+
+__登录页__
+
+NotFoundPage\.tsx
+
+\*
+
+__404页__
+
+__备份文件__
+
+\*\.tsx\.bak
+
+—
+
+历史备份，应删除
+
+<a id="路由层级结构"></a>### 1\.2 路由层级结构
+
+/                                    ← 项目列表（全局入口）  
+/manager                             ← 管理报表（跨项目）  
+/alerts                              ← 全局预警  
+/settings                            ← 系统设置  
+/profile                             ← 个人中心  
+/wizard                              ← 向导  
+/project/new                         ← 新建项目  
+  
+/project/:id                         ← 项目概览  
+/project/:id/scenarios               ← 场景管理  
+/project/:id/compare                 ← 场景对比  
+/project/:id/bom/diff                ← BOM差异  
+/project/:id/versions                ← 项目版本  
+/project/:id/alerts                  ← 项目预警  
+  
+/project/:id/s/:sid                  ← 场景仪表板（核心入口）  
+/project/:id/s/:sid/harness/:hid   ← 线束详情  
+/project/:id/s/:sid/quote            ← 报价工作台  
+/project/:id/s/:sid/gap              ← 利润差距分析  
+/project/:id/s/:sid/simulation       ← 推演模拟  
+/project/:id/s/:sid/annual\-drop      ← 年降管理  
+/project/:id/s/:sid/alloc            ← 分摊管理  
+/project/:id/s/:sid/workbench        ← 工程师工作台  
+/project/:id/s/:sid/change\-engine    ← 设变引擎  
+/project/:id/s/:sid/tracking          ← 跟踪  
+/project/:id/s/:sid/config           ← 配置矩阵  
+/project/:id/s/:sid/pricing/\*        ← 定价（3个子页面）  
+/project/:id/s/:sid/packaging/\*      ← 包装（2个子页面）  
+/project/:id/s/:sid/versions          ← 场景版本  
+  
+/project/:id/s/:sid/bom\-workbook     ← BOM工作簿（全屏）  
+/project/:id/s/:sid/harness/:hid/edit ← 线束编辑（全屏）
+
+<a id="第三部分组件功能归类分析"></a>## 第三部分：组件功能归类分析
+
+<a id="组件清单60个按功能归类"></a>### 2\.1 组件清单（60个，按功能归类）
+
+功能域
+
+组件
+
+说明
+
+__Dashboard组件__
+
+KpiSection, ChartGrid, AllocationProgress, LifecyclePnLTable, HarnessProfitTable, MetalImpactSummary
+
+DashboardPage拆分的子组件
+
+__BOM相关__
+
+BomImportDialog, BomViewSwitcher, BomCostPreview, BomDiffIntegration, BomDiffPanel
+
+BOM导入/查看/差异
+
+__设变相关__
+
+CascadeConfirmWizard, CascadeImpactIntegration, CascadeImpactPreview, ChangeOrderWizard
+
+级联确认/影响预览
+
+__预警相关__
+
+AlertBanner, AlertBannerV2
+
+预警横幅
+
+__配置相关__
+
+ConfigIntersectionGraph, ConfigSetDiagram
+
+配置交集图/集合图
+
+__版本相关__
+
+VersionPanel, GapSnapshotManager
+
+版本面板/快照管理
+
+__导航相关__
+
+Breadcrumb, NavigationSidebar
+
+面包屑/侧边栏
+
+__通用UI__
+
+ErrorBoundary, LoadingOverlay, EmptyState, KpiCard
+
+通用组件
+
+__权限相关__
+
+RoleGuard, PermissionGate
+
+角色/权限控制
+
+__图表相关__
+
+EChartWrapper
+
+ECharts封装
+
+__表格相关__
+
+UniverSheet
+
+Univer表格组件
+
+__定价相关__
+
+PricingDiscrepancyPanel, EngineSelector, HarnessCompareView
+
+定价差异/引擎选择
+
+__其他__
+
+SWUpdatePrompt, NotificationPanel, MultiImportDialog, AuditLogPanel, ScenarioSelector, QuoteGapEntry, QuoteEmptyState, QuoteParamChecklist, StagnantReportPanel
+
+其他业务组件
+
+<a id="组件归属混乱点6个"></a>### 2\.2 组件归属混乱点（6个）
+
+<a id="混乱点1quotepage-同时承载报价和设变对比"></a>#### 🔴 混乱点1：QuotePage 同时承载”报价”和”设变对比”
+
+__现状__：QuotePage\.tsx 导入 buildChangeComparisonTable、computeChangePricing、exportChangePricingExcel。
+
+__问题__：页面标题是”报价”，但核心逻辑是”设变对比定价”。用户进入”报价”页面，看到的却是设变前后的成本差异表。与 ChangeEnginePage 功能重叠。
+
+__归类方案__：QuotePage 专注于客户报价生成（输出报价单），设变对比归属 ChangeEnginePage。
+
+<a id="混乱点2dashboardpage-承载过多功能"></a>#### 🔴 混乱点2：DashboardPage 承载过多功能
+
+__现状__：DashboardPage 导入 KpiSection、ChartGrid、AllocationProgress、LifecyclePnLTable、HarnessProfitTable、AlertBanner、MetalImpactSummary。
+
+__问题__：同时是”场景总览”和”成本核算结果展示”，与 QuotePage、GapAnalysisPage 功能边界不清。生命周期损益表（LifecyclePnLTable）更适合在”核价工作台”中展示。
+
+__归类方案__：DashboardPage 专注”场景总览”（项目信息\+场景选择\+快捷入口），详细的成本核算结果移至”核价工作台”，分摊进度移至 AllocManagerPage。
+
+<a id="混乱点3engineerworkbench-命名与实际功能不符"></a>#### 🟠 混乱点3：EngineerWorkbench 命名与实际功能不符
+
+__现状__：导入 EngineSelector、HarnessCompareView、getRecentTraces。
+
+__问题__：“工程师工作台”听起来是开发工具，实际功能是”成本追溯”和”引擎切换对比”。
+
+__归类方案__：重命名为 “CostTracePage” 或 “EngineComparePage”。或将其功能拆分到 DashboardPage（成本追溯）和 SettingsPage（引擎选择）。
+
+<a id="混乱点4定价功能分散在3个页面"></a>#### 🟠 混乱点4：定价功能分散在3个页面
+
+__现状__：ConnectorPricingPage、WirePricingPage、DevPartPricingPage 结构相似但分散。
+
+__归类方案__：新增 “PricingDashboardPage” 统一定价看板，3个页面作为定价看板的子Tab。
+
+<a id="混乱点5包装功能分散在2个页面"></a>#### 🟠 混乱点5：包装功能分散在2个页面
+
+__现状__：PackagingSchemePage 和 PackagingLogisticsPage 分开管理。
+
+__归类方案__：合并为 “PackagingPage”，内部用Tab区分方案和费用。
+
+<a id="混乱点6versionmanager-同时用于项目和场景"></a>#### 🟡 混乱点6：VersionManager 同时用于项目和场景
+
+__现状__：/project/:id/versions（项目级）和 /project/:id/s/:sid/versions（场景级）共用同一组件。
+
+__归类方案__：项目级版本管理 → 项目概览页内嵌。场景级版本管理 → DashboardPage内嵌或独立页面。
+
+<a id="第四部分storehooks业务逻辑分布"></a>## 第四部分：Store/Hooks业务逻辑分布
+
+<a id="store功能分布19个"></a>### 3\.1 Store功能分布（19个）
+
+Store
+
+功能域
+
+状态
+
+问题
+
+authStore\.ts
+
+认证
+
+✅ 可用
+
+role为简单字符串
+
+projectStore\.ts
+
+当前项目/场景
+
+✅ 可用
+
+仅存储ID
+
+scenarioStore\.ts
+
+场景列表
+
+⚠️ 骨架级
+
+需验证数据流
+
+pricingStore\.ts
+
+定价数据
+
+✅ 可用
+
+含connector/wire/devpart/auxiliary定价
+
+allocStore\.ts
+
+分摊数据
+
+✅ 可用
+
+F06分摊回收核心Store
+
+packagingStore\.ts
+
+包装物流
+
+✅ 可用
+
+—
+
+versionStore\.ts
+
+版本/快照
+
+✅ 可用
+
+T10版本治理
+
+settingsStore\.ts
+
+系统设置
+
+✅ 可用
+
+—
+
+settingsSnapshotStore\.ts
+
+设置快照
+
+⚠️ 待验证
+
+—
+
+trackingStore\.ts
+
+设变跟踪
+
+⚠️ 骨架级
+
+F07设变跟踪
+
+internalMetalStore\.ts
+
+内部金属价格
+
+✅ 可用
+
+—
+
+notificationStore\.ts
+
+通知
+
+✅ 可用
+
+有V2版本
+
+notificationStoreV2\.ts
+
+通知V2
+
+⚠️ 未完全替换V1
+
+技术债务
+
+syncStore\.ts
+
+数据同步
+
+⚠️ 骨架级
+
+—
+
+uiStore\.ts
+
+UI状态
+
+✅ 可用
+
+sidebarCollapsed等
+
+<a id="hooks功能分布36个"></a>### 3\.2 Hooks功能分布（36个）
+
+Hook
+
+功能域
+
+状态
+
+useDashboardData\.ts
+
+Dashboard数据聚合
+
+✅ 可用
+
+useDashboardAggregator\.ts
+
+Dashboard数据汇总
+
+✅ 可用
+
+useAlertTracking\.ts
+
+预警跟踪
+
+⚠️ 骨架级
+
+useAlertWorkflow\.ts
+
+预警工作流
+
+⚠️ 骨架级
+
+useAuditTrace\.ts
+
+审计追踪
+
+✅ 可用
+
+useBomDiff\.ts
+
+BOM差异
+
+✅ 可用
+
+useBomNormalizer\.ts
+
+BOM归一化
+
+✅ 可用
+
+useBomSnapshot\.ts
+
+BOM快照
+
+✅ 可用
+
+useCascadeImpact\.ts
+
+级联影响
+
+✅ 可用
+
+useChangeOrchestrator\.ts
+
+变更编排
+
+✅ 可用
+
+useChangePropagation\.ts
+
+变更传播
+
+✅ 可用
+
+useChangeTrail\.ts
+
+变更追踪
+
+✅ 可用
+
+useGapAnalysis\.ts
+
+差距分析
+
+✅ 可用
+
+useGlobalErrorHandler\.ts
+
+全局错误
+
+✅ 可用
+
+useHarnessSync\.ts
+
+线束同步
+
+✅ 可用
+
+useLocalPatchOverrides\.ts
+
+本地补丁
+
+⚠️ 待验证
+
+useManagerInsights\.ts
+
+管理洞察
+
+⚠️ 骨架级
+
+useMetalPriceReactor\.ts
+
+金属价格响应
+
+✅ 可用
+
+usePermission\.ts
+
+权限
+
+⚠️ 仅检查简单role
+
+useScenarioLifecycle\.ts
+
+场景生命周期
+
+✅ 可用
+
+useStableLiveQuery\.ts
+
+稳定查询
+
+✅ 可用
+
+useTheme\.ts
+
+主题
+
+✅ 可用
+
+<a id="第五部分prd功能规格-vs-实际实现对比"></a>## 第五部分：PRD功能规格 vs 实际实现对比
+
+<a id="功能实现矩阵"></a>### 4\.1 功能实现矩阵
+
+PRD功能
+
+页面
+
+Store
+
+Engine
+
+状态
+
+问题
+
+__F01 项目管理__
+
+ProjectListPage, ProjectDashboardOverviewPage
+
+projectStore
+
+—
+
+✅ 可用
+
+—
+
+__F02 场景管理__
+
+ProjectScenariosPage, ScenarioComparePage
+
+scenarioStore
+
+configuration\_model\.ts
+
+⚠️ 骨架级
+
+UI待验证
+
+__F03 BOM工作簿__
+
+BomWorkbookPage
+
+—
+
+bom\_workbook\_builders\.ts
+
+✅ Univer集成
+
+同步引擎连接
+
+__F04 核价工作台__
+
+QuotePage
+
+pricingStore
+
+change\_pricing\.ts
+
+⚠️ 双引擎骨架
+
+核心定价引擎数据流待连接
+
+__F05 Simulation__
+
+SimulationPage
+
+pricingStore
+
+—
+
+⚠️ 入口存在
+
+年降UI、金属联动UI待建
+
+__F06 分摊回收__
+
+AllocManagerPage
+
+allocStore
+
+annual\_calc\.ts
+
+⚠️ Store存在
+
+页面功能待完善
+
+__F07 设变跟踪__
+
+ChangeEnginePage, TrackingPage
+
+trackingStore
+
+change\_pricing\.ts
+
+✅ 页面重量级
+
+—
+
+__F08 预警系统__
+
+AlertsPage
+
+notificationStore
+
+metal\_alert\.ts
+
+⚠️ 骨架级
+
+规则配置接口在Store
+
+__F09 决策舱__
+
+ManagerDashboardPage
+
+—
+
+managerDashboardApi\.ts
+
+⚠️ 入口存在
+
+需完善洞察功能
+
+__F10 版本治理__
+
+VersionManager
+
+versionStore
+
+snapshot\_resolver\.ts
+
+✅ Store存在
+
+—
+
+__F11 系统设置__
+
+SettingsPage
+
+settingsStore
+
+—
+
+✅ 可用
+
+—
+
+__F12 Profile__
+
+ProfilePage
+
+authStore
+
+—
+
+⚠️ 占位级
+
+功能简单
+
+<a id="excel-16项因素-vs-系统功能对照"></a>### 4\.2 Excel 16项因素 vs 系统功能对照
+
+业务因素
+
+对应页面
+
+对应Store
+
+对应Engine
+
+状态
+
+F01 生命周期
+
+DashboardPage, ProjectDashboardOverviewPage
+
+projectStore
+
+—
+
+✅
+
+F02 车型量纲
+
+ConfigMatrixPage
+
+scenarioStore
+
+configuration\_model\.ts
+
+✅
+
+F03 年降
+
+AnnualDropPage
+
+pricingStore
+
+annual\_calc\.ts
+
+⚠️ UI待完善
+
+F04 返点
+
+QuotePage, DashboardPage
+
+pricingStore
+
+compute\_model\.ts
+
+⚠️ 未闭环
+
+F05 线束售价
+
+QuotePage
+
+pricingStore
+
+harness\_costing\.ts
+
+✅
+
+F06 配置清单
+
+ConfigMatrixPage
+
+scenarioStore
+
+configuration\_model\.ts
+
+✅
+
+F07 BOM
+
+BomWorkbookPage
+
+—
+
+bom\_workbook\_builders\.ts
+
+✅
+
+F08 资源投入
+
+—
+
+—
+
+—
+
+❌ __未实现__
+
+F09 包装方案
+
+PackagingSchemePage
+
+packagingStore
+
+—
+
+✅
+
+F10 包装物流费用
+
+PackagingLogisticsPage
+
+packagingStore
+
+—
+
+✅
+
+F11 连接器协议价
+
+ConnectorPricingPage
+
+pricingStore
+
+progress\_price\_tracker\.ts
+
+✅
+
+F12 导线价格组成
+
+WirePricingPage
+
+pricingStore
+
+pricing\_engine\.ts
+
+✅
+
+F13 连接器供应商报价
+
+ConnectorPricingPage
+
+pricingStore
+
+pricingApi\.ts
+
+✅
+
+F14 同步开发件批量价
+
+DevPartPricingPage
+
+pricingStore
+
+pricing\_engine\.ts
+
+✅
+
+F15 同步开发件分摊费
+
+AllocManagerPage
+
+allocStore
+
+—
+
+⚠️ 分摊逻辑待完善
+
+F16 营运费率
+
+DashboardPage, EngineerWorkbench
+
+settingsStore
+
+harness\_costing\.ts
+
+✅
+
+<a id="第六部分连接器信息库与bom派生方案"></a>## 第六部分：连接器信息库与BOM派生方案
+
+<a id="一三种编码体系分析从e281-excel提取"></a>### 一、三种编码体系分析（从E281 Excel提取）
+
+<a id="ksk线束bom明细中的编码"></a>#### 1\.1 KSK线束BOM明细中的编码
+
+列
+
+编码名称
+
+示例
+
+说明
+
+__A列__
+
+线束零件号（公司内部总成号）
+
+6608491523
+
+公司内部线束总成编码，吉利项目号体系
+
+__C列__
+
+零件号（供应商料号）
+
+HVPC2P1600FV550\-NH\-P010
+
+供应商产品型号/料号
+
+__F列__
+
+物料型号/SAP号
+
+A04030275
+
+公司内部SAP系统物料编码
+
+<a id="总成散件清单中的编码"></a>#### 1\.2 总成散件清单中的编码
+
+列
+
+编码名称
+
+示例
+
+说明
+
+__B列（Function）__
+
+连接器总成号
+
+2523328\-1
+
+连接器总成型号（功能层面）
+
+__D列（Part Number）__
+
+供应商散件料号
+
+2377023\-2
+
+供应商散件级别的料号
+
+__G列（Wire NO\.）__
+
+回路号/SAP号
+
+A02101947
+
+公司内部回路编码/SAP号
+
+<a id="三种编码的关联关系"></a>#### 1\.3 三种编码的关联关系
+
+连接器总成（功能列）          如: 2523328\-1（组合式充电插座）  
+    │  
+    ├── 散件1（零件号列）      如: 2377023\-2（端子TE）  
+    │   └── SAP号             如: A02101947  
+    │  
+    ├── 散件2（零件号列）      如: 2377665\-4（防水栓TE）  
+    │   └── SAP号             如: A03033091  
+    │  
+    └── 散件3（零件号列）      如: BH4309802（扎带）  
+        └── SAP号             如: A03033097
+
+__关键发现__: 一个连接器总成号（功能列）对应多个散件（零件号列），每个散件有独立的SAP号。三种编码形成”总成→散件→SAP”的树形关联。
+
+<a id="二连接器信息库设计"></a>### 二、连接器信息库设计
+
+<a id="数据库表结构"></a>#### 2\.1 数据库表结构
+
+\-\- 连接器总成表（功能层面的总成）  
+CREATE TABLE connector\_assemblies \(  
+  id VARCHAR\(50\) PRIMARY KEY,           \-\- 总成ID（内部编码）  
+  assembly\_no VARCHAR\(100\) NOT NULL,      \-\- 连接器总成号（如2523328\-1）  
+  name VARCHAR\(200\) NOT NULL,             \-\- 总成名称（如组合式充电插座）  
+  type VARCHAR\(50\),                       \-\- 类型：charging/pdu/motor/\.\.\.  
+  manufacturer VARCHAR\(100\),              \-\- 制造商（如安费诺、泰科）  
+  voltage VARCHAR\(20\),                    \-\- 额定电压  
+  current VARCHAR\(20\),                    \-\- 额定电流  
+  pin\_count INT,                          \-\- 针脚数  
+  description TEXT,                       \-\- 详细描述  
+  created\_at TIMESTAMP DEFAULT CURRENT\_TIMESTAMP,  
+  updated\_at TIMESTAMP DEFAULT CURRENT\_TIMESTAMP,  
+  UNIQUE\(assembly\_no\)  
+\);  
+  
+\-\- 连接器散件表（零件号层面的散件）  
+CREATE TABLE connector\_parts \(  
+  id VARCHAR\(50\) PRIMARY KEY,             \-\- 散件ID（内部编码）  
+  part\_no VARCHAR\(100\) NOT NULL,          \-\- 供应商散件料号（如2377023\-2）  
+  name VARCHAR\(200\) NOT NULL,             \-\- 散件名称（如端子TE）  
+  category VARCHAR\(50\),                   \-\- 类别：terminal/seal/housing/\.\.\.  
+  manufacturer VARCHAR\(100\),              \-\- 制造商  
+  specification VARCHAR\(200\),             \-\- 规格参数  
+  unit VARCHAR\(20\),                       \-\- 单位：PCS/SET/M  
+  unit\_price DECIMAL\(10,4\),              \-\- 参考单价  
+  sap\_no VARCHAR\(50\),                     \-\- SAP号（如A04030275）  
+  description TEXT,  
+  created\_at TIMESTAMP DEFAULT CURRENT\_TIMESTAMP,  
+  updated\_at TIMESTAMP DEFAULT CURRENT\_TIMESTAMP,  
+  UNIQUE\(part\_no\)  
+\);  
+  
+\-\- 总成\-散件关联表（BOM结构）  
+CREATE TABLE assembly\_part\_relations \(  
+  id SERIAL PRIMARY KEY,  
+  assembly\_id VARCHAR\(50\) REFERENCES connector\_assemblies\(id\),  
+  part\_id VARCHAR\(50\) REFERENCES connector\_parts\(id\),  
+  qty DECIMAL\(10,4\) NOT NULL DEFAULT 1,  \-\- 用量  
+  position VARCHAR\(50\),                   \-\- 安装位置  
+  is\_critical BOOLEAN DEFAULT FALSE,      \-\- 是否关键件  
+  created\_at TIMESTAMP DEFAULT CURRENT\_TIMESTAMP,  
+  UNIQUE\(assembly\_id, part\_id\)  
+\);  
+  
+\-\- 项目BOM实例表（实际项目中使用的BOM行）  
+CREATE TABLE project\_bom\_lines \(  
+  id SERIAL PRIMARY KEY,  
+  project\_id VARCHAR\(50\) NOT NULL,  
+  scenario\_id VARCHAR\(50\),  
+  harness\_id VARCHAR\(50\) NOT NULL,  
+  line\_no INT NOT NULL,                   \-\- BOM行号  
+    
+  \-\- 三维度编码  
+  assembly\_no VARCHAR\(100\),               \-\- 连接器总成号（功能列）  
+  part\_no VARCHAR\(100\),                   \-\- 供应商散件料号（零件号列）  
+  sap\_no VARCHAR\(50\),                     \-\- SAP号（回路号列）  
+    
+  \-\- 基础信息  
+  part\_name VARCHAR\(200\),                 \-\- 零件名称  
+  qty DECIMAL\(10,4\),                     \-\- 数量  
+  unit VARCHAR\(20\),                       \-\- 单位  
+  supplier VARCHAR\(100\),                  \-\- 供应商  
+  unit\_price DECIMAL\(10,4\),              \-\- 单价  
+  material\_type VARCHAR\(50\),              \-\- 材料类型  
+    
+  \-\- 来源标记  
+  source VARCHAR\(20\) DEFAULT 'manual',    \-\- manual/import/derived  
+  derived\_from VARCHAR\(50\),               \-\- 派生来源（历史BOM版本ID）  
+    
+  created\_at TIMESTAMP DEFAULT CURRENT\_TIMESTAMP,  
+  updated\_at TIMESTAMP DEFAULT CURRENT\_TIMESTAMP  
+\);  
+  
+\-\- BOM版本表（支持派生）  
+CREATE TABLE bom\_versions \(  
+  id VARCHAR\(50\) PRIMARY KEY,  
+  project\_id VARCHAR\(50\) NOT NULL,  
+  scenario\_id VARCHAR\(50\),  
+  harness\_id VARCHAR\(50\) NOT NULL,  
+  version\_no VARCHAR\(20\) NOT NULL,        \-\- 版本号：v1\.0/v1\.1/\.\.\.  
+  name VARCHAR\(200\),                      \-\- 版本名称  
+  description TEXT,                       \-\- 版本描述  
+  is\_baseline BOOLEAN DEFAULT FALSE,      \-\- 是否为基线版本  
+  created\_by VARCHAR\(50\),                 \-\- 创建人  
+  created\_at TIMESTAMP DEFAULT CURRENT\_TIMESTAMP  
+\);
+
+<a id="typescript类型定义"></a>#### 2\.2 TypeScript类型定义
+
+// types/connectorLibrary\.ts  
+  
+/\*\* 连接器总成（功能层面） \*/  
+interface ConnectorAssembly \{  
+  id: string;  
+  assemblyNo: string;        // 如 "2523328\-1"  
+  name: string;              // 如 "组合式充电插座"  
+  type: 'charging' | 'pdu' | 'motor' | 'battery' | 'other';  
+  manufacturer: string;  
+  voltage?: string;  
+  current?: string;  
+  pinCount?: number;  
+  description?: string;  
+  parts: AssemblyPart\[\];     // 关联的散件列表  
+\}  
+  
+/\*\* 总成中的散件关联 \*/  
+interface AssemblyPart \{  
+  partId: string;  
+  partNo: string;            // 如 "2377023\-2"  
+  name: string;              // 如 "端子TE"  
+  qty: number;  
+  position?: string;  
+  isCritical: boolean;  
+  sapNo?: string;            // 如 "A02101947"  
+\}  
+  
+/\*\* 连接器散件（零件层面） \*/  
+interface ConnectorPart \{  
+  id: string;  
+  partNo: string;            // 如 "2377023\-2"  
+  name: string;              // 如 "端子TE"  
+  category: 'terminal' | 'seal' | 'housing' | 'accessory' | 'wire' | 'other';  
+  manufacturer: string;  
+  specification?: string;  
+  unit: string;  
+  unitPrice?: number;  
+  sapNo?: string;            // 如 "A04030275"  
+  description?: string;  
+\}  
+  
+/\*\* 连接器信息库（前端使用） \*/  
+interface ConnectorLibrary \{  
+  assemblies: ConnectorAssembly\[\];   // 总成列表  
+  parts: ConnectorPart\[\];            // 散件列表  
+    
+  // 索引方法  
+  findAssemblyByNo\(assemblyNo: string\): ConnectorAssembly | undefined;  
+  findPartByNo\(partNo: string\): ConnectorPart | undefined;  
+  findPartBySapNo\(sapNo: string\): ConnectorPart | undefined;  
+  findPartsByAssembly\(assemblyNo: string\): AssemblyPart\[\];  
+\}
+
+<a id="三三维度智能补全方案"></a>### 三、三维度智能补全方案
+
+<a id="智能补全架构"></a>#### 3\.1 智能补全架构
+
+┌─────────────────────────────────────────────────────────────┐  
+│                    连接器信息库                                │  
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │  
+│  │ 总成号索引    │  │ 散件料号索引  │  │ SAP号索引     │     │  
+│  │ assemblyNo    │  │ partNo        │  │ sapNo         │     │  
+│  │ 2523328\-1    │  │ 2377023\-2    │  │ A04030275    │     │  
+│  │ HVSPC2P\.\.\.   │  │ 2377665\-4    │  │ A04101476    │     │  
+│  │ YGC1612\.\.\.   │  │ HS\-125\.\.\.    │  │ A04101159    │     │  
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘     │  
+│         │                  │                  │              │  
+│         └──────────────────┼──────────────────┘              │  
+│                            │                                 │  
+│                    模糊匹配引擎                               │  
+│                    \(fuse\.js / minisearch\)                     │  
+└────────────────────────────┬────────────────────────────────┘  
+                             │  
+          ┌──────────────────┼──────────────────┐  
+          ▼                  ▼                  ▼  
+   功能列\(总成号\)      零件号列\(散件料号\)     回路号列\(SAP号\)  
+   输入: 2523\.\.\.      输入: 2377\.\.\.         输入: A040\.\.\.  
+   提示: 2523328\-1    提示: 2377023\-2      提示: A04030275  
+         HVSPC\.\.\.            2377665\-4            A04030943
+
+<a id="各列智能补全规则"></a>#### 3\.2 各列智能补全规则
+
+<a id="功能列连接器总成号"></a>##### 功能列（连接器总成号）
+
+// 功能列输入时的智能补全  
+function suggestAssemblyNo\(input: string\): Suggestion\[\] \{  
+  // 搜索总成号 \+ 总成名称  
+  const results = fuse\.search\(input, \{  
+    keys: \['assemblyNo', 'name', 'manufacturer'\],  
+    threshold: 0\.3,  
+  \}\);  
+    
+  return results\.map\(r => \(\{  
+    value: r\.item\.assemblyNo,           // 2523328\-1  
+    label: \`$\{r\.item\.assemblyNo\} \- $\{r\.item\.name\}\`,  // "2523328\-1 \- 组合式充电插座"  
+    detail: \`$\{r\.item\.manufacturer\} | $\{r\.item\.pinCount\}P | $\{r\.item\.voltage\}\`,  
+    category: 'assembly',  
+  \}\)\);  
+\}  
+  
+// 用户选择总成号后的自动填充  
+function onAssemblySelected\(assemblyNo: string\): AutoFillResult \{  
+  const assembly = library\.findAssemblyByNo\(assemblyNo\);  
+  return \{  
+    // 自动填充零件名称  
+    partName: assembly\.name,  
+    // 自动填充关联散件列表（供零件号列选择）  
+    relatedParts: assembly\.parts\.map\(p => \(\{  
+      partNo: p\.partNo,  
+      name: p\.name,  
+      sapNo: p\.sapNo,  
+      qty: p\.qty,  
+    \}\)\),  
+  \};  
+\}
+
+<a id="零件号列供应商散件料号"></a>##### 零件号列（供应商散件料号）
+
+// 零件号列输入时的智能补全  
+function suggestPartNo\(input: string, context?: \{ assemblyNo?: string \}\): Suggestion\[\] \{  
+  // 如果有功能列已输入总成号，优先提示该总成的散件  
+  if \(context?\.assemblyNo\) \{  
+    const assembly = library\.findAssemblyByNo\(context\.assemblyNo\);  
+    const parts = assembly?\.parts || \[\];  
+      
+    // 先搜索该总成的散件  
+    const filtered = parts\.filter\(p =>   
+      p\.partNo\.toLowerCase\(\)\.includes\(input\.toLowerCase\(\)\) ||  
+      p\.name\.toLowerCase\(\)\.includes\(input\.toLowerCase\(\)\)  
+    \);  
+      
+    if \(filtered\.length > 0\) \{  
+      return filtered\.map\(p => \(\{  
+        value: p\.partNo,                    // 2377023\-2  
+        label: \`$\{p\.partNo\} \- $\{p\.name\}\`,   // "2377023\-2 \- 端子TE"  
+        detail: \`SAP: $\{p\.sapNo\} | Qty: $\{p\.qty\}\`,  
+        category: 'part\_in\_assembly',  
+        sapNo: p\.sapNo,  
+      \}\)\);  
+    \}  
+  \}  
+    
+  // 否则搜索全库散件  
+  const results = fuse\.search\(input, \{  
+    keys: \['partNo', 'name', 'manufacturer', 'sapNo'\],  
+    threshold: 0\.3,  
+  \}\);  
+    
+  return results\.map\(r => \(\{  
+    value: r\.item\.partNo,  
+    label: \`$\{r\.item\.partNo\} \- $\{r\.item\.name\}\`,  
+    detail: \`$\{r\.item\.manufacturer\} | SAP: $\{r\.item\.sapNo\}\`,  
+    category: 'part\_global',  
+    sapNo: r\.item\.sapNo,  
+  \}\)\);  
+\}  
+  
+// 用户选择散件料号后的自动填充  
+// 注：单价\(unitPrice\)由采购工程师维护，不在BOM编辑时填充  
+// BOM中的单价从采购定价系统实时引用，开发工程师不可编辑  
+function onPartSelected\(partNo: string\): AutoFillResult \{  
+  const part = library\.findPartByNo\(partNo\);  
+  return \{  
+    partName: part\.name,           // 自动填充零件名称  
+    supplier: part\.manufacturer,    // 自动填充供应商  
+    unit: part\.unit,               // 自动填充单位  
+    sapNo: part\.sapNo,             // 自动填充SAP号到回路号列  
+    specification: part\.specification, // 自动填充规格  
+    // unitPrice: 从采购定价系统引用，不自动填充  
+  \};  
+\}
+
+<a id="回路号列sap号"></a>##### 回路号列（SAP号）
+
+// 回路号列输入时的智能补全  
+function suggestSapNo\(input: string\): Suggestion\[\] \{  
+  // SAP号搜索（支持前缀匹配）  
+  const results = fuse\.search\(input, \{  
+    keys: \['sapNo', 'partNo', 'name'\],  
+    threshold: 0\.2,  // SAP号精确度要求高  
+  \}\);  
+    
+  return results\.map\(r => \(\{  
+    value: r\.item\.sapNo,               // A04030275  
+    label: \`$\{r\.item\.sapNo\} \- $\{r\.item\.name\}\`,  // "A04030275 \- 热缩管"  
+    detail: \`料号: $\{r\.item\.partNo\} | 供应商: $\{r\.item\.manufacturer\}\`,  
+    category: 'sap',  
+    partNo: r\.item\.partNo,             // 关联的散件料号  
+  \}\)\);  
+\}  
+  
+// 用户选择SAP号后的自动填充  
+// 注：单价由采购工程师维护，不在BOM编辑时填充  
+function onSapSelected\(sapNo: string\): AutoFillResult \{  
+  const part = library\.findPartBySapNo\(sapNo\);  
+  return \{  
+    partNo: part\.partNo,         // 自动填充零件号列  
+    partName: part\.name,         // 自动填充零件名称  
+    supplier: part\.manufacturer,  // 自动填充供应商  
+    unit: part\.unit,  
+    // unitPrice: 从采购定价系统引用，不自动填充  
+  \};  
+\}
+
+<a id="级联自动填充"></a>#### 3\.3 级联自动填充
+
+当用户在某一列选择后，自动填充关联列：
+
+用户在【功能列】选择 "2523328\-1（组合式充电插座）"  
+    ↓  
+自动填充【零件名称】= "组合式充电插座"  
+自动填充【制造商】= "安费诺"  
+在【零件号列】的下拉中优先显示该总成的散件:  
+    \- 2377023\-2（端子TE）  
+    \- 2377665\-4（防水栓TE）  
+    \- BH4309802（扎带卡花博昊）  
+    \.\.\.  
+  
+用户在【零件号列】选择 "2377023\-2（端子TE）"  
+    ↓  
+自动填充【零件名称】= "端子TE"  
+自动填充【供应商】= "TE Connectivity"  
+自动填充【单位】= "PCS"  
+自动填充【回路号列】= "A02101947"  
+【单价】= 从采购系统引用（只读显示）  
+  
+用户在【回路号列】输入 "A04030"  
+    ↓  
+自动提示: A04030275（热缩管）、A04030943（\.\.\.）  
+用户选择 A04030275  
+    ↓  
+自动填充【零件号列】= "HS\-125\(2X\)N20\-30"  
+自动填充【零件名称】= "不带胶\-热缩管"  
+自动填充【供应商】= "深圳宏商/长春海达"  
+【单价】= 从采购系统引用（只读显示）
+
+<a id="四bom新建派生流程设计"></a>### 四、BOM新建/派生流程设计
+
+<a id="创建方式选择界面"></a>#### 4\.1 创建方式选择界面
+
+┌─────────────────────────────────────────────────────────────┐  
+│  创建BOM                                                     │  
+│  ─────────────────────────────────────────────────────────  │  
+│                                                             │  
+│  ┌─────────────────────┐  ┌─────────────────────────────┐ │  
+│  │  🆕 新建BOM          │  │  📋 从历史版本派生          │ │  
+│  │                      │  │                              │ │  
+│  │  从零开始创建        │  │  基于历史版本复制并修改      │ │  
+│  │  适用于新项目/新型号  │  │  适用于设变/改型项目        │ │  
+│  │                      │  │                              │ │  
+│  │  \[选择模板\] → \[创建\] │  │  \[选择历史版本\] → \[派生\]   │ │  
+│  └─────────────────────┘  └─────────────────────────────┘ │  
+│                                                             │  
+└─────────────────────────────────────────────────────────────┘
+
+<a id="新建bom流程"></a>#### 4\.2 新建BOM流程
+
+【步骤1】选择创建方式 → 新建BOM  
+    ↓  
+【步骤2】选择BOM模板  
+    ├── 空模板（从零开始）  
+    ├── 直流母线线束模板  
+    ├── 电动压缩机线束模板  
+    ├── 组合式充电插座线束模板  
+    ├── 快充连接器线束模板  
+    └── \.\.\.（从模板库选择）  
+    ↓  
+【步骤3】配置基本信息  
+    ├── 线束名称  
+    ├── 线束类型（直流母线/电动压缩机/充电插座/\.\.\.）  
+    ├── 目标车型  
+    ├── 回路数  
+    └── 所属项目/场景  
+    ↓  
+【步骤4】进入BOM编辑界面  
+    ├── 根据模板预填充表头  
+    ├── 第一行就绪，等待输入  
+    └── 启用智能补全
+
+<a id="从历史版本派生流程"></a>#### 4\.3 从历史版本派生流程
+
+【步骤1】选择创建方式 → 从历史版本派生  
+    ↓  
+【步骤2】选择源版本  
+    ├── 显示历史版本列表  
+    │   ├── v1\.3（2026\-04\-01）当前版本  
+    │   ├── v1\.2（2026\-03\-15）已发布  
+    │   ├── v1\.1（2026\-02\-28）已发布  
+    │   ├── v1\.0（2026\-02\-01）基线版本  
+    │   └── \.\.\.  
+    ├── 支持筛选：按项目/线束类型/版本状态  
+    └── 支持搜索：按版本名称/描述  
+    ↓  
+【步骤3】选择派生方式  
+    ├── 完全复制（保留所有行）  
+    ├── 仅保留总成件（删除散件，重新展开）  
+    └── 自定义选择（勾选需要复制的行）  
+    ↓  
+【步骤4】配置派生参数  
+    ├── 新版本名称（默认：原名称\_v2\.0）  
+    ├── 派生原因（设变/改型/优化/\.\.\.）  
+    ├── 变更描述  
+    └── 关联设变单号（如有）  
+    ↓  
+【步骤5】生成新BOM  
+    ├── 复制源版本所有数据  
+    ├── 标记派生关系（derived\_from = 源版本ID）  
+    ├── 状态设为"草稿"  
+    └── 进入BOM编辑界面
+
+<a id="派生版本管理"></a>#### 4\.4 派生版本管理
+
+// 版本派生链  
+interface BomVersionLineage \{  
+  versions: BomVersion\[\];  
+    
+  // 获取版本树  
+  getVersionTree\(\): VersionTreeNode;  
+    
+  // 获取版本差异  
+  getDiff\(versionId1: string, versionId2: string\): BomDiff;  
+    
+  // 获取派生链  
+  getDerivationChain\(versionId: string\): BomVersion\[\];  
+\}  
+  
+// 版本树节点  
+interface VersionTreeNode \{  
+  version: BomVersion;  
+  children: VersionTreeNode\[\];  // 从此版本派生的子版本  
+\}  
+  
+// 示例版本树  
+// v1\.0（基线）  
+// ├── v1\.1（设变：更换端子）  
+// │   ├── v1\.2（优化：减少扎带用量）  
+// │   │   └── v2\.0（正式发布）  
+// │   └── v1\.3（试验：新材料验证）  
+// └── v2\.0（改型：适配新车型）
+
+<a id="五实施计划"></a>### 五、实施计划
+
+<a id="第一阶段连接器信息库建设第1-2周"></a>#### 第一阶段：连接器信息库建设（第1\-2周）
+
+任务
+
+内容
+
+验收标准
+
+数据库表创建
+
+4张表：assemblies/parts/relations/bom\_versions
+
+表结构正确
+
+数据导入
+
+从E281 Excel导入总成/散件/SAP号数据
+
+数据完整无遗漏
+
+索引建立
+
+总成号/散件料号/SAP号三索引
+
+搜索响应<50ms
+
+API开发
+
+CRUD接口 \+ 搜索接口
+
+单元测试通过
+
+<a id="第二阶段智能补全实现第3-4周"></a>#### 第二阶段：智能补全实现（第3\-4周）
+
+任务
+
+内容
+
+验收标准
+
+模糊匹配引擎
+
+集成fuse\.js，三维度索引
+
+输入3字符后提示匹配项
+
+功能列补全
+
+总成号搜索\+自动填充
+
+选择后填充名称\+制造商\+关联散件
+
+零件号列补全
+
+散件料号搜索\+上下文感知
+
+有总成时优先提示总成内散件
+
+回路号列补全
+
+SAP号搜索\+反向填充
+
+选择后自动填充料号\+名称
+
+级联填充
+
+三列之间的自动联动
+
+任一列选择后关联列自动填充
+
+<a id="第三阶段bom新建派生第5-6周"></a>#### 第三阶段：BOM新建/派生（第5\-6周）
+
+任务
+
+内容
+
+验收标准
+
+模板库
+
+5个预设模板（直流母线/压缩机/充电插座/快充/控制）
+
+新建时可选择模板
+
+新建流程
+
+选择模板→配置信息→进入编辑
+
+完整流程可运行
+
+派生流程
+
+选择版本→派生方式→配置参数→生成新BOM
+
+完整流程可运行
+
+版本树
+
+版本派生链可视化
+
+可查看版本树和差异
+
+<a id="第四阶段集成测试第7周"></a>#### 第四阶段：集成测试（第7周）
+
+任务
+
+内容
+
+验收标准
+
+端到端测试
+
+新建→编辑→补全→保存→派生
+
+全流程无错误
+
+性能测试
+
+1000个散件的补全响应
+
+<100ms
+
+用户验收
+
+开发工程师试用
+
+体验优于Excel
+
+<a id="附录ae281-excel中的编码示例对照表"></a>### 附录A：E281 Excel中的编码示例对照表
+
+功能列（总成号）
+
+零件号列（散件料号）
+
+回路号列（SAP号）
+
+零件名称
+
+供应商
+
+2523328\-1
+
+2377023\-2
+
+A02101947
+
+端子TE
+
+TE Connectivity
+
+2523328\-1
+
+2377665\-4
+
+A03033091
+
+防水栓TE
+
+TE Connectivity
+
+2523328\-1
+
+BH4309802
+
+A03033097
+
+扎带卡花博昊
+
+博昊
+
+HVSPC2P1900FV112
+
+HVPC2P1600FV550\-NH\-P010
+
+/
+
+连接器总成
+
+安费诺
+
+HVSPC2P1900FV112
+
+HS\-125\(2X\)N20\-30
+
+A04030275
+
+热缩管
+
+深圳宏商/长春海达
+
+HVSPC2P1900FV112
+
+SCS2165A016
+
+A04101476
+
+编织套管
+
+骏鼎达/明鑫
+
+HVSPC2P1900FV112
+
+LY5016019\-OR2
+
+A04101159
+
+布基胶带
+
+联益
+
+YGC1612\-EV\-P2PNA2\-6
+
+IPT2PFS050\-S02P010
+
+/
+
+IPT连接器总成
+
+安费诺
+
+<a id="附录b连接器信息库初始化数据来源"></a>### 附录B：连接器信息库初始化数据来源
+
+数据来源
+
+内容
+
+处理方式
+
+E281报价核算\.xlsx \- 总成散件清单
+
+总成号\+散件料号\+SAP号关联
+
+解析导入
+
+E281报价核算\.xlsx \- KSK线束BOM明细
+
+线束总成号\+零件号\+SAP号
+
+解析导入
+
+E281报价核算\.xlsx \- 二次物料明细
+
+散件料号\+SAP号\+供应商
+
+解析导入
+
+吉利E281定点核算\.xlsx \- 配置清单
+
+线束型号\+配置参数
+
+解析导入
+
+历史项目BOM
+
+各项目使用的零件数据
+
+批量导入
+
+供应商提供的数据
+
+最新料号、价格
+
+手动录入/接口同步
+
+<a id="附录c智能补全性能指标"></a>### 附录C：智能补全性能指标
+
+指标
+
+目标值
+
+测试方法
+
+首次加载时间
+
+<2秒
+
+10000条记录的加载时间
+
+搜索响应时间
+
+<50ms
+
+输入3字符后的响应时间
+
+补全准确率
+
+>95%
+
+测试集100次补全的准确率
+
+级联填充延迟
+
+<30ms
+
+选择后关联列填充的延迟
+
+内存占用
+
+<50MB
+
+前端内存占用
+
+<a id="第七部分univer-bom桌面化体验改造"></a>## 第七部分：Univer BOM桌面化体验改造
+
+让网页消失，只留下表格
+
+<a id="一当前网页感来源诊断"></a>### 一、当前”网页感”来源诊断
+
+<a id="视觉层面的网页感"></a>#### 1\.1 视觉层面的网页感
+
+元素
+
+当前实现
+
+网页感来源
+
+Excel风格
+
+__容器圆角__
+
+borderRadius: 6
+
+圆角是网页设计特征
+
+Excel无圆角，直角边框
+
+__半透明边框__
+
+border: 1px solid rgba\(0,0,0,0\.06\)
+
+微弱的网页边框
+
+Excel有明确的1px实线边框 \#d4d4d4
+
+__背景透明__
+
+background: 'transparent'
+
+透出网页背景
+
+Excel有明确的白色背景 \#ffffff
+
+__无右键菜单__
+
+contextMenu: false
+
+右键无反应（网页异常）
+
+Excel右键有丰富菜单
+
+__无状态栏__
+
+footer: false
+
+底部空白（网页感）
+
+Excel底部有状态栏（求和/平均值/计数）
+
+__工具栏过大__
+
+Univer默认Ribbon
+
+占据过多垂直空间
+
+Excel可折叠Ribbon
+
+__Sheet标签__
+
+Univer默认样式
+
+标签偏网页风格
+
+Excel底部标签紧凑、有左右滚动
+
+<a id="交互层面的网页感"></a>#### 1\.2 交互层面的网页感
+
+交互
+
+当前实现
+
+网页感来源
+
+Excel风格
+
+__右键点击__
+
+无反应（contextMenu: false）
+
+网页中右键通常无意义
+
+Excel右键弹出上下文菜单
+
+__双击编辑__
+
+Univer原生支持
+
+基本OK但缺少自动完成UI
+
+Excel双击进入编辑\+自动完成
+
+__拖拽选择__
+
+Univer原生支持
+
+OK
+
+Excel拖拽选择\+填充柄
+
+__Ctrl\+滚轮__
+
+浏览器页面缩放
+
+缩放整个网页
+
+Excel仅缩放表格视图
+
+__F2编辑__
+
+可能未绑定
+
+网页F2通常无意义
+
+Excel F2进入单元格编辑
+
+__Ctrl\+A全选__
+
+可能选中网页内容
+
+选中整个网页
+
+Excel仅选中表格数据
+
+__撤销/重做__
+
+Univer原生
+
+OK
+
+Excel无限撤销栈
+
+<a id="二视觉改造消除网页感"></a>### 二、视觉改造——消除网页感
+
+<a id="容器样式改造去网页化"></a>#### 2\.1 容器样式改造（去网页化）
+
+// 当前代码（有网页感）  
+style=\{\{  
+  height, width,  
+  background: 'transparent',     // ← 网页感：透明背景  
+  overflow: 'hidden',  
+  borderRadius: hideHeaders ? 12 : 6,  // ← 网页感：圆角  
+  border: hideHeaders ? 'none' : '1px solid rgba\(0,0,0,0\.06\)',  // ← 网页感：微弱边框  
+\}\}  
+  
+// 改造后（Excel风格）  
+style=\{\{  
+  height, width,  
+  background: '\#ffffff',        // ← Excel风格：纯白背景  
+  overflow: 'hidden',  
+  borderRadius: 0,              // ← Excel风格：无圆角  
+  border: '1px solid \#d4d4d4',  // ← Excel风格：实线边框  
+  boxShadow: 'none',            // ← 去掉阴影  
+\}\}
+
+<a id="全局css覆盖注入excel风格样式"></a>#### 2\.2 全局CSS覆盖（注入Excel风格样式）
+
+/\* univer\-excel\-theme\.css — 覆盖Univer默认样式 \*/  
+  
+/\* 1\. 去掉所有圆角 \*/  
+\.univer\-sheet\-container,  
+\.univer\-sheet\-container \* \{  
+  border\-radius: 0 \!important;  
+\}  
+  
+/\* 2\. 工具栏紧凑化 \*/  
+\.univer\-toolbar \{  
+  height: 36px \!important;           /\* Excel工具栏高度 \*/  
+  padding: 2px 4px \!important;  
+  background: \#f8f9fa \!important;    /\* Excel工具栏背景 \*/  
+  border\-bottom: 1px solid \#e0e0e0 \!important;  
+\}  
+  
+\.univer\-toolbar\-button \{  
+  height: 28px \!important;  
+  min\-width: 28px \!important;  
+  padding: 2px 6px \!important;  
+  font\-size: 12px \!important;  
+  border\-radius: 2px \!important;  
+\}  
+  
+/\* 3\. 公式栏样式 \*/  
+\.univer\-formula\-bar \{  
+  height: 28px \!important;  
+  background: \#ffffff \!important;  
+  border\-bottom: 1px solid \#e0e0e0 \!important;  
+  font\-family: 'Segoe UI', 'Microsoft YaHei', sans\-serif \!important;  
+  font\-size: 12px \!important;  
+\}  
+  
+/\* 4\. Sheet标签栏（底部） \*/  
+\.univer\-sheet\-tabs \{  
+  height: 28px \!important;  
+  background: \#f3f2f1 \!important;    /\* Excel标签栏背景 \*/  
+  border\-top: 1px solid \#d4d4d4 \!important;  
+\}  
+  
+\.univer\-sheet\-tab \{  
+  height: 24px \!important;  
+  padding: 2px 12px \!important;  
+  font\-size: 12px \!important;  
+  background: \#f3f2f1 \!important;  
+  border: 1px solid \#d4d4d4 \!important;  
+  border\-bottom: none \!important;  
+  border\-radius: 2px 2px 0 0 \!important;  
+  margin\-right: 2px \!important;  
+\}  
+  
+\.univer\-sheet\-tab\.active \{  
+  background: \#ffffff \!important;  
+  border\-bottom: 2px solid \#217346 \!important;  /\* Excel绿色激活指示 \*/  
+  font\-weight: 600 \!important;  
+\}  
+  
+/\* 5\. 状态栏 \*/  
+\.univer\-status\-bar \{  
+  height: 24px \!important;  
+  background: \#f3f2f1 \!important;  
+  border\-top: 1px solid \#d4d4d4 \!important;  
+  font\-size: 12px \!important;  
+  color: \#5f5f5f \!important;  
+  padding: 0 8px \!important;  
+\}  
+  
+/\* 6\. 单元格编辑状态 \*/  
+\.univer\-cell\-editor \{  
+  font\-family: 'Segoe UI', 'Microsoft YaHei', sans\-serif \!important;  
+  font\-size: 11px \!important;  
+  border: 2px solid \#217346 \!important;  /\* Excel绿色编辑边框 \*/  
+  box\-shadow: none \!important;  
+\}  
+  
+/\* 7\. 行头/列头 \*/  
+\.univer\-row\-header,  
+\.univer\-column\-header \{  
+  background: \#f8f9fa \!important;  
+  color: \#5f5f5f \!important;  
+  font\-size: 11px \!important;  
+  border: 1px solid \#d4d4d4 \!important;  
+\}  
+  
+/\* 8\. 网格线 \*/  
+\.univer\-gridline \{  
+  stroke: \#e0e0e0 \!important;  /\* Excel淡灰色网格线 \*/  
+  stroke\-width: 0\.5 \!important;  
+\}  
+  
+/\* 9\. 选中区域 \*/  
+\.univer\-selection \{  
+  border: 2px solid \#217346 \!important;  /\* Excel绿色选中边框 \*/  
+  background: rgba\(33, 115, 70, 0\.05\) \!important;  
+\}  
+  
+/\* 10\. 滚动条（非网页风格） \*/  
+\.univer\-scrollbar::\-webkit\-scrollbar \{  
+  width: 14px;  
+  height: 14px;  
+\}  
+  
+\.univer\-scrollbar::\-webkit\-scrollbar\-track \{  
+  background: \#f3f2f1;  
+\}  
+  
+\.univer\-scrollbar::\-webkit\-scrollbar\-thumb \{  
+  background: \#c0c0c0;  
+  border: 2px solid \#f3f2f1;  
+  border\-radius: 0;  
+\}  
+  
+\.univer\-scrollbar::\-webkit\-scrollbar\-thumb:hover \{  
+  background: \#a0a0a0;  
+\}  
+  
+/\* 11\. 右键菜单 \*/  
+\.univer\-context\-menu \{  
+  background: \#ffffff \!important;  
+  border: 1px solid \#d4d4d4 \!important;  
+  border\-radius: 0 \!important;  
+  box\-shadow: 2px 2px 8px rgba\(0,0,0,0\.15\) \!important;  
+  font\-size: 12px \!important;  
+  min\-width: 180px \!important;  
+\}  
+  
+\.univer\-context\-menu\-item \{  
+  height: 26px \!important;  
+  padding: 2px 24px 2px 28px \!important;  
+  line\-height: 22px \!important;  
+\}  
+  
+\.univer\-context\-menu\-item:hover \{  
+  background: \#e8f0fe \!important;  
+\}  
+  
+/\* 12\. 禁用浏览器默认行为 \*/  
+\.univer\-sheet\-wrapper \{  
+  \-webkit\-user\-select: none;  
+  user\-select: none;  
+  outline: none;  
+\}
+
+<a id="字体统一excel风格"></a>#### 2\.3 字体统一（Excel风格）
+
+// 在Univer配置中设置字体  
+const excelFontFamily = "'Segoe UI', 'Microsoft YaHei', 'PingFang SC', sans\-serif";  
+  
+// 工作簿级别字体设置  
+const workbookData = \{  
+  \.\.\.,  
+  styles: \{  
+    default: \{  
+      fontFamily: excelFontFamily,  
+      fontSize: 11,  // Excel默认字号  
+    \},  
+  \},  
+\};
+
+<a id="三交互改造复刻excel体验"></a>### 三、交互改造——复刻Excel体验
+
+<a id="右键菜单当前缺失p0必须修复"></a>#### 3\.1 右键菜单（当前缺失，P0必须修复）
+
+__当前问题__: contextMenu: false 导致右键完全无反应。
+
+__改造方案__: 启用Univer右键菜单并自定义为Excel风格。
+
+// UniverSheet\.tsx 改造  
+UniverSheetsCorePreset\(\{  
+  container: containerRef\.current,  
+  header: \!hideToolbar,  
+  toolbar: \!hideToolbar,  
+  formulaBar: \!hideFormulaBar,  
+  footer: \!hideFooter,  // ← 启用状态栏  
+  contextMenu: true,     // ← 启用右键菜单！  
+\}\),
+
+__自定义右键菜单项（BOM专用）__:
+
+┌─────────────────────────────────────────┐  
+│  剪切\(C\)                        Ctrl\+X  │  
+│  复制\(C\)                        Ctrl\+C  │  
+│  粘贴\(P\)                        Ctrl\+V  │  
+│  ─────────────────────────────────────  │  
+│  插入行                                  │  
+│  删除行                                  │  
+│  清除内容                       Delete  │  
+│  ─────────────────────────────────────  │  
+│  从连接器信息库选择\.\.\.                     │  ← BOM专用  
+│  查看零件详情\.\.\.                          │  ← BOM专用  
+│  ─────────────────────────────────────  │  
+│  设置数据验证\.\.\.                          │  
+│  条件格式\.\.\.                              │  
+│  单元格格式\.\.\.                    Ctrl\+1 │  
+│  ─────────────────────────────────────  │  
+│  插入批注                                 │  
+│  删除批注                                 │  
+│  ─────────────────────────────────────  │  
+│  隐藏列                                   │  
+│  取消隐藏列                               │  
+└─────────────────────────────────────────┘
+
+__实现代码__:
+
+// 注册自定义右键菜单项  
+useEffect\(\(\) => \{  
+  if \(\!univerRef\.current\) return;  
+    
+  const menuService = univerRef\.current\.getMenuService\(\);  
+    
+  // 添加"从连接器信息库选择"菜单项  
+  menuService\.addMenuItem\(\{  
+    id: 'bom\.menu\.select\-from\-library',  
+    title: '从连接器信息库选择\.\.\.',  
+    icon: 'LibraryIcon',  
+    action: \(\) => \{  
+      openConnectorLibraryPicker\(\);  
+    \},  
+  \}\);  
+    
+  // 添加"查看零件详情"菜单项  
+  menuService\.addMenuItem\(\{  
+    id: 'bom\.menu\.view\-part\-detail',  
+    title: '查看零件详情\.\.\.',  
+    action: \(\) => \{  
+      const cell = getActiveCell\(\);  
+      if \(cell?\.partNo\) \{  
+        openPartDetailModal\(cell\.partNo\);  
+      \}  
+    \},  
+  \}\);  
+    
+  // 添加分隔线  
+  menuService\.addMenuItem\(\{  
+    id: 'bom\.menu\.separator\-1',  
+    type: 'separator',  
+  \}\);  
+    
+\}, \[univerRef\.current\]\);
+
+<a id="状态栏当前缺失p0必须修复"></a>#### 3\.2 状态栏（当前缺失，P0必须修复）
+
+__当前问题__: footer: false 导致底部无状态栏。
+
+__Excel状态栏功能__:
+
+┌─────────────────────────────────────────────────────────────────┐  
+│  就绪 │ 平均值: ¥156\.78 │ 计数: 45 │ 求和: ¥7,055\.10 │ \[缩放\] │  
+└─────────────────────────────────────────────────────────────────┘
+
+__自定义BOM状态栏__:
+
+// footer 改造为BOM专用状态栏  
+const BomStatusBar = \(\{ selectionData, sheetInfo \}: StatusBarProps\) => \{  
+  const stats = useMemo\(\(\) => \{  
+    if \(\!selectionData || selectionData\.length === 0\) \{  
+      return \{ count: 0, sum: 0, avg: 0 \};  
+    \}  
+    const numericValues = selectionData  
+      \.flat\(\)  
+      \.filter\(v => typeof v === 'number'\)  
+      \.filter\(v => \!isNaN\(v\)\);  
+      
+    const sum = numericValues\.reduce\(\(a, b\) => a \+ b, 0\);  
+    return \{  
+      count: numericValues\.length,  
+      sum,  
+      avg: numericValues\.length > 0 ? sum / numericValues\.length : 0,  
+    \};  
+  \}, \[selectionData\]\);  
+  
+  return \(  
+    <div className="bom\-status\-bar">  
+      <span className="status\-item">\{sheetInfo?\.name || '就绪'\}</span>  
+      <span className="status\-separator" />  
+      <span className="status\-item">行数: \{sheetInfo?\.rowCount || 0\}</span>  
+      <span className="status\-separator" />  
+      <span className="status\-item">选中: \{stats\.count\} 个数值单元格</span>  
+      <span className="status\-separator" />  
+      <span className="status\-item">求和: ¥\{stats\.sum\.toLocaleString\('zh\-CN', \{ minimumFractionDigits: 2 \}\)\}</span>  
+      <span className="status\-separator" />  
+      <span className="status\-item">平均值: ¥\{stats\.avg\.toLocaleString\('zh\-CN', \{ minimumFractionDigits: 2 \}\)\}</span>  
+      <div className="status\-zoom">  
+        <button onClick=\{\(\) => zoomOut\(\)\}>−</button>  
+        <span>\{zoomLevel\}%</span>  
+        <button onClick=\{\(\) => zoomIn\(\)\}>\+</button>  
+      </div>  
+    </div>  
+  \);  
+\};
+
+<a id="智能补全ui像excel的自动完成"></a>#### 3\.3 智能补全UI（像Excel的自动完成）
+
+__Excel风格自动完成__:
+
+用户正在编辑单元格，输入 "2523"  
+┌─────────────────────────────────────────┐  
+│  2523                                   │  
+├─────────────────────────────────────────┤  
+│  ▼ 建议                                 │  
+│  2523328\-1    组合式充电插座             │  
+│  2523330\-2    交流充电插座               │  
+│  HVSPC2523    高压连接器总成             │  
+│                                         │  
+│  ↑↓ 选择  Tab/Enter 确认  Esc 取消      │  
+└─────────────────────────────────────────┘
+
+__实现方案__:
+
+// 在单元格编辑时监听输入，弹出自动完成面板  
+const useCellAutoComplete = \(univerAPI: any\) => \{  
+  const \[suggestions, setSuggestions\] = useState<Suggestion\[\]>\(\[\]\);  
+  const \[showPanel, setShowPanel\] = useState\(false\);  
+  const \[editorPosition, setEditorPosition\] = useState\(\{ x: 0, y: 0 \}\);  
+  
+  useEffect\(\(\) => \{  
+    if \(\!univerAPI\) return;  
+  
+    // 监听单元格编辑事件  
+    const disposable = univerAPI\.onEvent\('SheetEditBegan', \(params: any\) => \{  
+      const \{ row, column, value \} = params;  
+        
+      // 根据列确定补全类型  
+      const columnType = getColumnType\(column\); // 'assembly' | 'part' | 'sap'  
+        
+      if \(value && value\.length >= 2\) \{  
+        const results = searchConnectorLibrary\(value, columnType\);  
+        if \(results\.length > 0\) \{  
+          setSuggestions\(results\);  
+          setShowPanel\(true\);  
+          // 计算面板位置（在单元格下方）  
+          setEditorPosition\(calculatePanelPosition\(row, column\)\);  
+        \}  
+      \}  
+    \}\);  
+  
+    // 监听输入变化  
+    const inputDisposable = univerAPI\.onEvent\('SheetEditChanged', \(params: any\) => \{  
+      const \{ value \} = params;  
+      if \(value && value\.length >= 2\) \{  
+        const columnType = getColumnType\(params\.column\);  
+        const results = searchConnectorLibrary\(value, columnType\);  
+        setSuggestions\(results\);  
+        setShowPanel\(results\.length > 0\);  
+      \} else \{  
+        setShowPanel\(false\);  
+      \}  
+    \}\);  
+  
+    // 监听编辑结束  
+    const endDisposable = univerAPI\.onEvent\('SheetEditEnded', \(\) => \{  
+      setShowPanel\(false\);  
+    \}\);  
+  
+    return \(\) => \{  
+      disposable?\.dispose\(\);  
+      inputDisposable?\.dispose\(\);  
+      endDisposable?\.dispose\(\);  
+    \};  
+  \}, \[univerAPI\]\);  
+  
+  return \{ suggestions, showPanel, editorPosition \};  
+\};
+
+<a id="全屏沉浸模式"></a>#### 3\.4 全屏沉浸模式
+
+__功能__: F11或点击按钮进入全屏，隐藏所有网页元素。
+
+// FullScreenButton\.tsx  
+const FullScreenButton = \(\) => \{  
+  const \[isFullScreen, setIsFullScreen\] = useState\(false\);  
+  
+  const toggleFullScreen = \(\) => \{  
+    if \(\!document\.fullscreenElement\) \{  
+      document\.documentElement\.requestFullscreen\(\);  
+      setIsFullScreen\(true\);  
+      // 隐藏侧边栏、顶部导航  
+      document\.body\.classList\.add\('bom\-fullscreen\-mode'\);  
+    \} else \{  
+      document\.exitFullscreen\(\);  
+      setIsFullScreen\(false\);  
+      document\.body\.classList\.remove\('bom\-fullscreen\-mode'\);  
+    \}  
+  \};  
+  
+  return \(  
+    <button   
+      onClick=\{toggleFullScreen\}  
+      title=\{isFullScreen ? '退出全屏 \(F11\)' : '全屏 \(F11\)'\}  
+    >  
+      \{isFullScreen ? '⛶' : '⛶'\}  
+    </button>  
+  \);  
+\};
+
+/\* 全屏模式样式 \*/  
+\.bom\-fullscreen\-mode \.main\-sidebar \{  
+  display: none \!important;  
+\}  
+  
+\.bom\-fullscreen\-mode \.top\-navigation \{  
+  display: none \!important;  
+\}  
+  
+\.bom\-fullscreen\-mode \.bom\-workbook\-container \{  
+  position: fixed;  
+  top: 0;  
+  left: 0;  
+  right: 0;  
+  bottom: 0;  
+  z\-index: 9999;  
+  border: none;  
+  border\-radius: 0;  
+\}  
+  
+\.bom\-fullscreen\-mode \.bom\-toolbar \{  
+  position: fixed;  
+  top: 0;  
+  left: 0;  
+  right: 0;  
+  z\-index: 10000;  
+\}
+
+<a id="键盘快捷键全面绑定"></a>#### 3\.5 键盘快捷键全面绑定
+
+// 快捷键映射表  
+const BOM\_SHORTCUTS = \[  
+  \{ key: 'Ctrl\+Z', action: 'undo', description: '撤销' \},  
+  \{ key: 'Ctrl\+Y', action: 'redo', description: '重做' \},  
+  \{ key: 'Ctrl\+C', action: 'copy', description: '复制' \},  
+  \{ key: 'Ctrl\+V', action: 'paste', description: '粘贴' \},  
+  \{ key: 'Ctrl\+X', action: 'cut', description: '剪切' \},  
+  \{ key: 'Ctrl\+F', action: 'find', description: '查找' \},  
+  \{ key: 'Ctrl\+H', action: 'replace', description: '替换' \},  
+  \{ key: 'Ctrl\+A', action: 'selectAll', description: '全选数据区域' \},  
+  \{ key: 'Ctrl\+S', action: 'save', description: '保存' \},  
+  \{ key: 'Ctrl\+P', action: 'print', description: '打印预览' \},  
+  \{ key: 'Ctrl\+N', action: 'newRow', description: '插入行' \},  
+  \{ key: 'Ctrl\+D', action: 'fillDown', description: '向下填充' \},  
+  \{ key: 'Ctrl\+R', action: 'fillRight', description: '向右填充' \},  
+  \{ key: 'F2', action: 'editCell', description: '编辑单元格' \},  
+  \{ key: 'F4', action: 'toggleReference', description: '切换引用类型' \},  
+  \{ key: 'F11', action: 'fullScreen', description: '全屏' \},  
+  \{ key: 'Delete', action: 'clearContents', description: '清除内容' \},  
+  \{ key: 'Tab', action: 'nextCell', description: '下一单元格' \},  
+  \{ key: 'Enter', action: 'downCell', description: '下一行' \},  
+  \{ key: 'Shift\+Enter', action: 'upCell', description: '上一行' \},  
+  \{ key: 'Esc', action: 'cancelEdit', description: '取消编辑' \},  
+  \{ key: 'Ctrl\+Home', action: 'goToA1', description: '跳转到A1' \},  
+  \{ key: 'Ctrl\+End', action: 'goToLast', description: '跳转到最后' \},  
+  \{ key: 'Ctrl\+Shift\+↓', action: 'selectToEnd', description: '选择到末尾' \},  
+  \{ key: 'Ctrl\+滚轮', action: 'zoom', description: '缩放（仅表格，不缩放网页）' \},  
+\];  
+  
+// 绑定代码  
+useEffect\(\(\) => \{  
+  const handleKeyDown = \(e: KeyboardEvent\) => \{  
+    // 阻止浏览器默认行为（如Ctrl\+A选中整个网页）  
+    const preventDefaultKeys = \['Ctrl\+A', 'Ctrl\+S', 'Ctrl\+P', 'Ctrl\+N', 'Ctrl\+滚轮'\];  
+      
+    const keyCombo = \[  
+      e\.ctrlKey ? 'Ctrl\+' : '',  
+      e\.shiftKey ? 'Shift\+' : '',  
+      e\.altKey ? 'Alt\+' : '',  
+      e\.key,  
+    \]\.join\(''\);  
+      
+    if \(preventDefaultKeys\.some\(k => keyCombo\.includes\(k\)\)\) \{  
+      e\.preventDefault\(\);  
+      e\.stopPropagation\(\);  
+    \}  
+      
+    // 处理Ctrl\+滚轮缩放  
+    if \(e\.ctrlKey && e\.deltaY\) \{  
+      e\.preventDefault\(\);  
+      handleZoom\(e\.deltaY > 0 ? \-10 : 10\);  
+    \}  
+  \};  
+  
+  window\.addEventListener\('keydown', handleKeyDown, true\);  
+  window\.addEventListener\('wheel', handleKeyDown, \{ passive: false, capture: true \}\);  
+    
+  return \(\) => \{  
+    window\.removeEventListener\('keydown', handleKeyDown, true\);  
+    window\.removeEventListener\('wheel', handleKeyDown, true\);  
+  \};  
+\}, \[\]\);
+
+<a id="四功能增强超越excel的bom专用功能"></a>### 四、功能增强——超越Excel的BOM专用功能
+
+<a id="bom专用工具栏"></a>#### 4\.1 BOM专用工具栏
+
+┌─────────────────────────────────────────────────────────────────┐  
+│ \[文件▼\] \[编辑▼\] \[视图▼\] \[插入▼\] \[格式▼\] \[数据▼\] \[工具▼\] \[帮助▼\]  │  
+├─────────────────────────────────────────────────────────────────┤  
+│ 💾 🔄 │ ⎘ 📋 ✂ │ 🔍 🔁 │ ➕ ➖ │ 📊 🎨 │ 🔽 🔼 │ ⚡ 🔧 │ ❓   │  
+│ 保存 撤销│ 复制 粘贴 剪切│查找 替换│插入行 删除行│图表 格式│筛选 排序│智能 工具│帮助  │  
+├─────────────────────────────────────────────────────────────────┤  
+│ 名称框 \[A1          \] │ 公式栏 \[=                       \]      │  
+└─────────────────────────────────────────────────────────────────┘
+
+__BOM专用按钮__: \- 💾 保存（Ctrl\+S） \- 🔄 撤销/重做 \- ➕ 插入行/➖ 删除行 \- 📥 从Excel导入 \- 📤 导出到Excel \- 📋 从连接器信息库选择 \- ⚡ 智能补全开关 \- 🔍 查找零件 \- 📊 成本预览 \- 🔄 同步到派生表 \- 📋 版本历史
+
+<a id="名称框excel风格"></a>#### 4\.2 名称框（Excel风格）
+
+┌─────────────────────────────────────────────────────────────────┐  
+│ 名称框 \[B12          \] │ 公式栏 \[=SUM\(C2:C100\)          \]      │  
+└─────────────────────────────────────────────────────────────────┘
+
+__功能__: \- 显示当前选中单元格的地址（如B12） \- 输入单元格地址快速跳转（如输入”G50”回车跳转） \- 输入范围快速选中（如输入”A1:D10”回车选中） \- 显示命名范围
+
+<a id="拖拽填充柄"></a>#### 4\.3 拖拽填充柄
+
+选中单元格后，右下角出现小方块（填充柄）  
+    ↓  
+拖拽填充柄 → 自动填充序列（如1,2,3\.\.\.或A,B,C\.\.\.）  
+双击填充柄 → 自动填充到数据末尾
+
+__BOM专用填充__: \- 零件号：PP3241182, PP3241183, PP3241184…（自动递增） \- 数量：2, 2, 2…（复制填充） \- SAP号：A04030275, A04030276…（自动递增）
+
+<a id="五实施计划-1"></a>### 五、实施计划
+
+<a id="第一阶段视觉去网页化第1周"></a>#### 第一阶段：视觉去网页化（第1周）
+
+任务
+
+内容
+
+验收标准
+
+1\. 注入Excel风格CSS
+
+覆盖Univer默认样式
+
+视觉上无明显网页元素
+
+2\. 去掉圆角/阴影
+
+borderRadius: 0, boxShadow: none
+
+直角边框
+
+3\. 字体统一
+
+Segoe UI/Microsoft YaHei
+
+字体一致
+
+4\. 网格线优化
+
+Excel淡灰色网格线
+
+网格线风格一致
+
+5\. 滚动条改造
+
+非网页风格滚动条
+
+滚动条像桌面应用
+
+<a id="第二阶段交互补齐第2周"></a>#### 第二阶段：交互补齐（第2周）
+
+任务
+
+内容
+
+验收标准
+
+6\. 启用右键菜单
+
+contextMenu: true \+ 自定义
+
+右键弹出Excel风格菜单
+
+7\. 启用状态栏
+
+footer: true \+ BOM专用状态
+
+底部显示求和/计数/平均值
+
+8\. 键盘快捷键
+
+绑定25个常用快捷键
+
+全部可用
+
+9\. 全屏模式
+
+F11切换全屏
+
+隐藏所有网页元素
+
+10\. 名称框
+
+显示地址\+快速跳转
+
+可输入跳转
+
+<a id="第三阶段智能功能第3周"></a>#### 第三阶段：智能功能（第3周）
+
+任务
+
+内容
+
+验收标准
+
+11\. 智能补全UI
+
+单元格编辑时弹出建议面板
+
+输入2字符后提示
+
+12\. 填充柄
+
+拖拽/双击自动填充
+
+填充序列正确
+
+13\. BOM专用工具栏
+
+定制工具栏按钮
+
+BOM按钮可用
+
+14\. 右键菜单定制
+
+添加BOM专用菜单项
+
+连接器信息库选择可用
+
+<a id="第四阶段性能优化第4周"></a>#### 第四阶段：性能优化（第4周）
+
+任务
+
+内容
+
+验收标准
+
+15\. 首屏加载优化
+
+懒加载非首屏sheet
+
+<1秒显示首屏
+
+16\. 大数据量优化
+
+虚拟滚动
+
+1000行流畅编辑
+
+17\. 撤销栈优化
+
+增加撤销步数
+
+100步撤销
+
+18\. 内存优化
+
+释放非活跃sheet内存
+
+无内存泄漏
+
+<a id="六测试检查表"></a>### 六、测试检查表
+
+测试项
+
+Excel体验
+
+Univer BOM目标
+
+测试方法
+
+视觉
+
+无圆角、实线边框、白色背景
+
+同上
+
+目视对比
+
+右键菜单
+
+丰富菜单项
+
+丰富菜单项\+BOM专用
+
+右键测试
+
+状态栏
+
+底部显示统计
+
+底部显示BOM统计
+
+选中单元格查看
+
+快捷键
+
+20\+快捷键
+
+25个快捷键
+
+逐个按键测试
+
+全屏
+
+F11全屏
+
+F11全屏
+
+按键测试
+
+智能补全
+
+输入时自动提示
+
+输入2字符后提示
+
+输入测试
+
+填充柄
+
+拖拽/双击填充
+
+拖拽/双击填充
+
+拖拽测试
+
+名称框
+
+显示地址\+跳转
+
+同上
+
+输入跳转测试
+
+滚轮缩放
+
+Ctrl\+滚轮缩放表格
+
+仅缩放表格
+
+滚轮测试
+
+字体
+
+统一字体
+
+统一字体
+
+目视检查
+
+响应速度
+
+即时响应
+
+<50ms延迟
+
+感知测试
+
+*本方案旨在让Univer BOM工作簿从外观、交互、功能三个层面全面复刻Excel体验，让开发工程师无缝迁移。*
+
+<a id="第八部分bom工作簿增强方案"></a>## 第八部分：BOM工作簿增强方案
+
+——超越Excel的开发工程师体验
+
+<a id="一功能差距分析excel-vs-当前univer-bom"></a>### 一、功能差距分析（Excel vs 当前Univer BOM）
+
+功能类别
+
+Excel能力
+
+当前Univer BOM
+
+差距等级
+
+__基础编辑__
+
+完整单元格编辑
+
+✅ 已实现
+
+无差距
+
+__快捷键__
+
+Ctrl\+Z/Y/C/V/F/H/A等
+
+⚠️ 部分支持
+
+🟡 中等
+
+__数据验证__
+
+下拉列表、数值范围、日期格式
+
+❌ 未实现
+
+🔴 严重
+
+__条件格式__
+
+规则高亮、色阶、图标集
+
+❌ 未实现
+
+🔴 严重
+
+__公式__
+
+任意公式、跨sheet引用
+
+⚠️ 未启用
+
+🟠 较大
+
+__模板__
+
+模板库、新建模板
+
+❌ 未实现
+
+🟠 较大
+
+__批量操作__
+
+多选、批量修改、批量删除
+
+⚠️ 有限
+
+🟡 中等
+
+__筛选排序__
+
+单列/多列筛选、排序
+
+❌ 未实现
+
+🟠 较大
+
+__打印输出__
+
+打印预览、PDF导出
+
+⚠️ 基础导出
+
+🟡 中等
+
+__协同编辑__
+
+多人实时编辑
+
+❌ 未实现
+
+🔴 严重
+
+__版本历史__
+
+版本对比、回退
+
+⚠️ 变更履历
+
+🟡 中等
+
+__图表__
+
+嵌入图表
+
+❌ 未实现
+
+🟠 较大
+
+__批注__
+
+单元格批注、@提及
+
+❌ 未实现
+
+🟡 中等
+
+__智能辅助__
+
+自动补全、重复检测
+
+❌ 未实现
+
+🟠 较大
+
+__格式工具__
+
+字体/颜色/边框/对齐
+
+⚠️ 基础
+
+🟡 中等
+
+__冻结窗格__
+
+冻结行/列
+
+✅ 已实现
+
+无差距
+
+__导入导出__
+
+Excel互操作
+
+✅ 已实现
+
+无差距
+
+<a id="二超越excel的差异化功能设计"></a>### 二、超越Excel的差异化功能设计
+
+<a id="智能辅助excel无法实现的差异化能力"></a>#### 2\.1 智能辅助（Excel无法实现的差异化能力）
+
+<a id="零件号智能补全"></a>##### 🎯 零件号智能补全
+
+用户输入: PP324  
+系统自动提示:  
+┌─────────────────────────────────┐  
+│  PP3241182  前驱直流母线总成      │  ← 来自历史BOM  
+│  PP3241410  后驱直流母线总成      │  ← 来自历史BOM  
+│  PP3241183  控制驱动线束总成      │  ← 来自历史BOM  
+│  PP3241393  高压连接器线束总成    │  ← 来自历史BOM  
+│  PP3241201  电池包高压线束总成    │  ← 来自历史BOM  
+└─────────────────────────────────┘  
+用户选择后 → 自动填充零件名称、标准数量、单位
+
+__实现__: 基于历史BOM数据建立零件号索引，使用模糊匹配（fuse\.js或minisearch）。
+
+<a id="bom中单价显示方式只读引用"></a>##### 🎯 BOM中单价显示方式（只读引用）
+
+BOM编辑界面中的【单价】列：  
+┌─────────────────────────────────────────────┐  
+│  单价（采购系统引用，只读）                    │  
+│  ────────────────────────────────────────    │  
+│  PP3241182: ¥150\.00 ← 采购系统              │  
+│  PP3241410: ¥200\.00 ← 采购系统              │  
+│  PP3241183: ¥85\.00  ← 采购系统              │  
+│                                             │  
+│  如需修改价格，请联系采购工程师                │  
+│  \[查看采购定价详情\]                            │  
+└─────────────────────────────────────────────┘
+
+__说明__: BOM中的单价由采购工程师在”连接器定价”/“导线定价”页面维护，开发工程师只能查看不能编辑。BOM编辑时单价列自动从pricingStore引用显示。
+
+<a id="bom完整性实时检查"></a>##### 🎯 BOM完整性实时检查
+
+编辑过程中实时检测:  
+┌─────────────────────────────────┐  
+│  ⚠️ 完整性检查 \(3项待修复\)       │  
+│  ─────────────────────────────  │  
+│  ❌ 行15: 零件号为空             │  
+│  ❌ 行23: 数量为0                │  
+│  ❌ 行31: 供应商未填写           │  
+│                                 │  
+│  \[一键修复\] \[忽略\]               │  
+└─────────────────────────────────┘
+
+__实现__: 在change\_detector\.ts中增加完整性检查规则。
+
+<a id="超协议价实时预警"></a>##### 🎯 超协议价实时预警
+
+用户输入单价: ¥180\.00  
+系统检测:  
+┌─────────────────────────────────┐  
+│  ⚠️ 超协议价预警                 │  
+│  ─────────────────────────────    │  
+│  当前单价: ¥180\.00               │  
+│  协议价上限: ¥150\.00             │  
+│  超出: \+20%                      │  
+│                                 │  
+│  原因: \[ \] 原材料涨价            │  
+│        \[ \] 规格变更              │  
+│        \[ \] 供应商变更            │  
+│        \[ \] 其他: \_\_\_\_\_\_\_         │  
+│                                 │  
+│  \[确认超标\] \[修改单价\]           │  
+└─────────────────────────────────┘
+
+__实现__: 与progress\_price\_tracker\.ts集成，实时对比协议价。
+
+<a id="重复零件号检测"></a>##### 🎯 重复零件号检测
+
+用户新增行:  
+零件号: PP3241182 \(已存在于第3行\)  
+系统提示:  
+┌─────────────────────────────────┐  
+│  ⚠️ 重复零件号                   │  
+│  零件号 PP3241182 已存在于第3行  │  
+│                                 │  
+│  \[合并到现有行\] \[修改零件号\] \[忽略\]│  
+└─────────────────────────────────┘
+
+<a id="sheet联动增强超越excel的多表联动"></a>#### 2\.2 Sheet联动增强（超越Excel的多表联动）
+
+<a id="实时影响预览面板p0优化"></a>##### 🎯 实时影响预览面板（P0优化）
+
+在BOM编辑区域的__右侧固定面板__，实时展示当前变更的影响：
+
+┌─────────────────────────────────────────────────────────────────┐  
+│  BOM工作簿                                                       │  
+│  ┌─────────────────────────┐  ┌───────────────────────────────┐ │  
+│  │                         │  │  【实时影响面板】              │ │  
+│  │  PP3241182  数量 \[5\]    │  │  ────────────────────────    │ │  
+│  │                         │  │  当前变更: 数量 2→5          │ │  
+│  │  PP3241410  数量 \[3\]    │  │                              │ │  
+│  │                         │  │  受影响:                     │ │  
+│  │                         │  │  ├─ 总成散件清单             │ │  
+│  │                         │  │  │   数量: 2→5 ⚡            │ │  
+│  │                         │  │  ├─ 二次物料明细             │ │  
+│  │                         │  │  │   金额: ¥200→¥500 💰      │ │  
+│  │                         │  │  └─ KSK BOM明细              │ │  
+│  │                         │  │      数量: 2→5 ⚡            │ │  
+│  │                         │  │                              │ │  
+│  │                         │  │  成本影响: \+¥300/套           │ │  
+│  │                         │  │  年度影响: \+¥2,550万 \(8\.5万套\)│ │  
+│  │                         │  │                              │ │  
+│  │                         │  │  \[✅ 应用\] \[❌ 撤销\]          │ │  
+│  └─────────────────────────┘  └───────────────────────────────┘ │  
+└─────────────────────────────────────────────────────────────────┘
+
+__超越Excel之处__: Excel的多表联动需要手动刷新或使用复杂公式，而本系统可实时自动计算并展示影响。
+
+<a id="双向联动p0优化"></a>##### 🎯 双向联动（P0优化）
+
+用户在"总成散件清单"修改数量: 5→8  
+    ↓  
+系统自动反向更新BOM主表对应行的数量: 5→8  
+    ↓  
+实时影响面板显示: BOM主表已同步更新
+
+__超越Excel之处__: Excel中跨表引用是单向的（公式引用），而本系统实现真正的双向同步。
+
+<a id="协同编辑excel共享工作簿的超越"></a>#### 2\.3 协同编辑（Excel共享工作簿的超越）
+
+<a id="多人实时协同"></a>##### 🎯 多人实时协同
+
+┌─────────────────────────────────────────────────────────────────┐  
+│  BOM工作簿 \- 电池包高压线束 \(3人在线\)                            │  
+│  ┌───────────────────────────────────────────────────────────┐│  
+│  │  行号 │ 零件号    │ 名称       │ 数量 │ 编辑者            ││  
+│  ├───────┼───────────┼───────────┼──────┼───────────────────┤│  
+│  │  1   │ PP3241182 │ 前驱线束   │ 2    │                   ││  
+│  │  2   │ PP3241410 │ 后驱线束   │ 3    │ 👤 张三 \(编辑中\)   ││  
+│  │  3   │ PP3241183 │ 控制线束   │ 5    │                   ││  
+│  │  4   │ PP3241393 │ 连接器线束 │ 2    │ 👤 李四 \(刚修改\)   ││  
+│  └───────────────────────────────────────────────────────────┘│  
+│                                                                 │  
+│  \[系统消息\] 李四 修改了 PP3241393 的数量: 2→4                  │  
+│  \[系统消息\] 张三 正在编辑 PP3241410                             │  
+│                                                                 │  
+└─────────────────────────────────────────────────────────────────┘
+
+__功能细节__: \- 实时显示其他用户的光标位置和编辑状态 \- 变更实时推送（WebSocket），无需手动刷新 \- 编辑锁定：同一行同一时间只能一人编辑 \- 冲突解决：如果两人同时修改同一单元格，后提交者看到冲突提示 \- 聊天/评论面板：右侧集成聊天，支持@提及
+
+__超越Excel之处__: Excel共享工作簿经常出现同步冲突、版本混乱，而本系统实现真正的实时协同，无冲突自动合并。
+
+<a id="版本管理与对比超越excel的版本控制"></a>#### 2\.4 版本管理与对比（超越Excel的版本控制）
+
+<a id="bom版本对比"></a>##### 🎯 BOM版本对比
+
+┌─────────────────────────────────────────────────────────────────┐  
+│  BOM版本对比: v1\.2 \(2026\-03\-15\) vs v1\.3 \(2026\-04\-01\)             │  
+│  ┌───────────────────────────────────────────────────────────┐   │  
+│  │  行号 │ 字段     │ v1\.2     │ v1\.3     │ 变化          │   │  
+│  ├───────┼──────────┼──────────┼──────────┼───────────────┤   │  
+│  │  2   │ 数量     │ 2        │ 5        │ \+3 🔴        │   │  
+│  │  4   │ 供应商   │ 供应商A  │ 供应商B  │ 变更 🟡      │   │  
+│  │  5   │ 单价     │ ¥150     │ ¥180     │ \+20% 🟠      │   │  
+│  │  7   │ —        │ —        │ PP3249999│ 新增 🟢      │   │  
+│  │  9   │ —        │ PP3241183│ —        │ 删除 ⚫      │   │  
+│  └───────────────────────────────────────────────────────────┘   │  
+│  \[导出差异报告\] \[回退到v1\.2\] \[标记为基线\]                         │  
+└─────────────────────────────────────────────────────────────────┘
+
+__超越Excel之处__: Excel的版本对比需要借助第三方工具（如Spreadsheet Compare），而本系统内置版本对比，字段级差异一目了然。
+
+<a id="三excel体验补齐方案"></a>### 三、Excel体验补齐方案
+
+<a id="快捷键补齐p1"></a>#### 3\.1 快捷键补齐（P1）
+
+快捷键
+
+Excel行为
+
+Univer BOM实现
+
+优先级
+
+__Ctrl\+Z__
+
+撤销
+
+集成Univer撤销栈
+
+P0
+
+__Ctrl\+Y__
+
+重做
+
+集成Univer重做栈
+
+P0
+
+__Ctrl\+C__
+
+复制
+
+集成Univer复制
+
+P0
+
+__Ctrl\+V__
+
+粘贴
+
+集成Univer粘贴
+
+P0
+
+__Ctrl\+X__
+
+剪切
+
+集成Univer剪切
+
+P0
+
+__Ctrl\+F__
+
+查找
+
+全局查找面板
+
+P0
+
+__Ctrl\+H__
+
+替换
+
+全局替换面板
+
+P1
+
+__Ctrl\+A__
+
+全选
+
+集成Univer全选
+
+P0
+
+__Ctrl\+S__
+
+保存
+
+保存BOM \+ 自动保存
+
+P0
+
+__Ctrl\+P__
+
+打印
+
+打印预览
+
+P1
+
+__Tab__
+
+向右移动
+
+集成Univer导航
+
+P0
+
+__Enter__
+
+向下移动
+
+集成Univer导航
+
+P0
+
+__Delete__
+
+清空单元格
+
+集成Univer删除
+
+P0
+
+__F2__
+
+编辑单元格
+
+集成Univer编辑
+
+P0
+
+__Ctrl\+Home__
+
+跳转到A1
+
+集成Univer导航
+
+P1
+
+__Ctrl\+End__
+
+跳转到最后
+
+集成Univer导航
+
+P1
+
+__Ctrl\+Shift\+↓__
+
+选择到末尾
+
+集成Univer选择
+
+P1
+
+__Ctrl\+D__
+
+向下填充
+
+集成Univer填充
+
+P1
+
+__Ctrl\+R__
+
+向右填充
+
+集成Univer填充
+
+P1
+
+__实现方式__: Univer引擎本身支持大部分快捷键，需要验证当前封装是否保留了这些能力。如果有缺失，通过Univer的API配置或自定义键盘事件处理。
+
+<a id="数据验证补齐p0"></a>#### 3\.2 数据验证补齐（P0）
+
+验证类型
+
+Excel实现
+
+Univer BOM实现
+
+应用场景
+
+__下拉列表__
+
+数据→数据验证→列表
+
+单元格下拉选择
+
+供应商选择、材料类型选择
+
+__数值范围__
+
+数据→数据验证→数值
+
+输入限制\+提示
+
+数量>0（单价从采购系统引用，不在BOM编辑中验证），装车比0\-1
+
+__日期格式__
+
+数据→数据验证→日期
+
+日期选择器
+
+生效日期、失效日期
+
+__文本长度__
+
+数据→数据验证→文本长度
+
+输入限制
+
+零件号长度、名称长度
+
+__自定义公式__
+
+数据→数据验证→自定义
+
+自定义规则
+
+唯一性检查（零件号不能重复）
+
+__错误提示__
+
+输入无效数据时弹窗
+
+实时红框\+Tooltip
+
+用户体验一致
+
+__实现方式__: Univer支持数据验证插件，需要启用并配置验证规则。
+
+// 为BOM列添加数据验证  
+const validationRules = \{  
+  partNo: \{ type: 'text', required: true, unique: true \},  
+  qty: \{ type: 'number', min: 0, max: 10000 \},  
+  unitPrice: \{ type: 'number', min: 0 \},  
+  supplier: \{ type: 'dropdown', source: 'supplierList' \},  
+  materialType: \{ type: 'dropdown', source: \['wire', 'connector', 'terminal', 'accessory', 'other'\] \},  
+\};
+
+<a id="条件格式补齐p1"></a>#### 3\.3 条件格式补齐（P1）
+
+条件类型
+
+Excel规则
+
+Univer BOM规则
+
+应用场景
+
+__超协议价__
+
+单元格值 > 协议价
+
+红色高亮
+
+采购定价审核
+
+__负值__
+
+单元格值 < 0
+
+红色背景\+白色字体
+
+数据质量检查
+
+__重复值__
+
+重复值高亮
+
+黄色高亮
+
+零件号重复检测
+
+__异常损耗__
+
+材料损耗率 > 2%
+
+橙色高亮
+
+质量预警
+
+__大数量__
+
+数量 > 100
+
+蓝色高亮
+
+特殊关注
+
+__色阶__
+
+数值色阶
+
+成本金额色阶
+
+成本分布可视化
+
+__实现方式__: Univer支持条件格式插件，需要启用并配置规则。
+
+<a id="筛选排序补齐p1"></a>#### 3\.4 筛选排序补齐（P1）
+
+功能
+
+Excel实现
+
+Univer BOM实现
+
+__单列筛选__
+
+列头下拉筛选
+
+列头下拉筛选（启用Univer筛选插件）
+
+__多列筛选__
+
+多列同时筛选
+
+筛选面板（支持多条件组合）
+
+__排序__
+
+单列/多列排序
+
+列头点击排序（支持多级排序）
+
+__自定义筛选__
+
+条件组合
+
+高级筛选面板
+
+<a id="打印输出补齐p1"></a>#### 3\.5 打印输出补齐（P1）
+
+功能
+
+Excel实现
+
+Univer BOM实现
+
+__打印预览__
+
+文件→打印
+
+打印预览弹窗
+
+__PDF导出__
+
+另存为PDF
+
+直接导出PDF（保留格式）
+
+__页眉页脚__
+
+页面设置
+
+页眉：项目名称\+线束名称\+版本号
+
+__打印区域__
+
+设置打印区域
+
+自动识别BOM数据区域
+
+__分页__
+
+自动/手动分页
+
+按线束分页打印
+
+__水印__
+
+页面布局→水印
+
+“草稿”/“已发布”水印
+
+<a id="四功能增强实施计划"></a>### 四、功能增强实施计划
+
+<a id="第一阶段体验补齐第1-3周"></a>#### 第一阶段：体验补齐（第1\-3周）
+
+优先级
+
+功能
+
+内容
+
+验收标准
+
+P0
+
+快捷键完整支持
+
+验证并补齐所有Excel常用快捷键
+
+20个快捷键全部可用
+
+P0
+
+数据验证
+
+下拉列表、数值范围、必填校验
+
+BOM列全部有验证规则
+
+P0
+
+自动保存
+
+每30秒自动保存
+
+无数据丢失
+
+P0
+
+实时影响面板
+
+右侧固定面板展示变更影响
+
+编辑时实时显示影响
+
+P1
+
+条件格式
+
+超协议价、负值、重复值高亮
+
+5种条件格式规则生效
+
+P1
+
+筛选排序
+
+列头筛选、多列排序
+
+1000行BOM筛选<100ms
+
+P1
+
+打印预览
+
+打印预览弹窗、PDF导出
+
+导出PDF格式正确
+
+<a id="第二阶段智能增强第4-6周"></a>#### 第二阶段：智能增强（第4\-6周）
+
+优先级
+
+功能
+
+内容
+
+验收标准
+
+P0
+
+双向联动
+
+派生表修改反向同步BOM主表
+
+assembly/secondary/ksk修改后BOM同步
+
+P0
+
+零件号智能补全
+
+模糊匹配、自动填充
+
+输入3字符后提示匹配项
+
+P0
+
+BOM单价引用机制
+
+从采购系统实时引用
+
+BOM中单价列自动显示采购定价，开发工程师不可编辑
+
+P1
+
+BOM完整性检查
+
+实时检测必填字段
+
+实时显示缺失项列表
+
+P1
+
+超协议价预警
+
+实时对比协议价
+
+输入超标价格时弹窗提示
+
+P1
+
+重复零件检测
+
+新增行时检测重复
+
+重复时提示合并/修改/忽略
+
+P1
+
+模板功能
+
+BOM模板库
+
+5个预设模板可用
+
+<a id="第三阶段协同与版本第7-9周"></a>#### 第三阶段：协同与版本（第7\-9周）
+
+优先级
+
+功能
+
+内容
+
+验收标准
+
+P0
+
+多人协同编辑
+
+WebSocket实时同步
+
+2人同时编辑无冲突
+
+P1
+
+版本对比
+
+字段级差异对比
+
+版本差异一目了然
+
+P1
+
+版本回退
+
+回退到任意版本
+
+回退后数据正确
+
+P1
+
+批注/评论
+
+单元格批注、@提及
+
+批注支持回复
+
+P2
+
+聊天面板
+
+右侧集成聊天
+
+支持@提及
+
+<a id="第四阶段高级功能第10-12周"></a>#### 第四阶段：高级功能（第10\-12周）
+
+优先级
+
+功能
+
+内容
+
+验收标准
+
+P1
+
+图表嵌入
+
+BOM成本饼图、材料分布图
+
+2种图表可用
+
+P1
+
+批量操作
+
+多行选择、批量修改
+
+支持100行批量操作
+
+P2
+
+公式支持
+
+自定义公式、跨sheet引用
+
+SUM/AVERAGE/VLOOKUP可用
+
+P2
+
+格式刷
+
+复制格式
+
+格式刷可用
+
+P2
+
+查找替换高级
+
+正则表达式、全库查找
+
+支持正则
+
+<a id="五技术实现要点"></a>### 五、技术实现要点
+
+<a id="univer插件启用清单"></a>#### 5\.1 Univer插件启用清单
+
+插件
+
+功能
+
+当前状态
+
+启用方式
+
+FormulaEnginePlugin
+
+公式计算
+
+⚠️ 未启用
+
+univer\.registerPlugin\(FormulaEnginePlugin\)
+
+DataValidationPlugin
+
+数据验证
+
+❌ 未安装
+
+安装 @univerjs/sheets\-data\-validation
+
+ConditionalFormattingPlugin
+
+条件格式
+
+❌ 未安装
+
+安装 @univerjs/sheets\-conditional\-formatting
+
+FilterPlugin
+
+筛选排序
+
+⚠️ 可能已启用
+
+验证并配置
+
+NumfmtPlugin
+
+数字格式
+
+⚠️ 可能已启用
+
+配置货币/百分比格式
+
+ClipboardPlugin
+
+剪贴板
+
+✅ 已启用
+
+—
+
+ShortCutPlugin
+
+快捷键
+
+✅ 已启用
+
+验证自定义快捷键
+
+CollaborativeEditingPlugin
+
+协同编辑
+
+❌ 未安装
+
+安装 @univerjs\-pro/collaboration
+
+ThreadCommentPlugin
+
+批注
+
+❌ 未安装
+
+安装 @univerjs/sheets\-thread\-comment
+
+DrawingPlugin
+
+图表
+
+❌ 未安装
+
+安装 @univerjs/drawing
+
+<a id="性能优化要点"></a>#### 5\.2 性能优化要点
+
+场景
+
+当前性能
+
+优化目标
+
+优化方案
+
+100行BOM加载
+
+~200ms
+
+<100ms
+
+虚拟滚动、按需渲染
+
+500行BOM加载
+
+~800ms
+
+<300ms
+
+分页加载、Web Worker解析
+
+1000行BOM加载
+
+~2000ms
+
+<500ms
+
+虚拟滚动 \+ 增量渲染
+
+批量导入100行
+
+~3000ms
+
+<1000ms
+
+异步导入 \+ 进度条
+
+Sheet切换
+
+~500ms
+
+<200ms
+
+缓存未激活sheet数据
+
+打印预览
+
+—
+
+<500ms
+
+服务端预渲染PDF
+
+<a id="六用户体验对标检查表"></a>### 六、用户体验对标检查表
+
+检查项
+
+Excel体验
+
+Univer BOM目标
+
+验证方式
+
+打开BOM速度
+
+<1秒
+
+<1秒
+
+计时测试
+
+编辑响应
+
+即时
+
+即时\(<50ms\)
+
+感知测试
+
+保存响应
+
+<1秒
+
+<1秒
+
+计时测试
+
+大文件流畅度
+
+1000行流畅
+
+1000行流畅
+
+操作测试
+
+快捷键习惯
+
+全快捷键可用
+
+全快捷键可用
+
+功能测试
+
+数据验证
+
+即时反馈
+
+即时反馈
+
+输入测试
+
+公式计算
+
+即时计算
+
+即时计算
+
+公式测试
+
+打印输出
+
+格式完整
+
+格式完整
+
+对比测试
+
+导入导出
+
+格式兼容
+
+格式兼容
+
+Excel互操作测试
+
+协同编辑
+
+不支持
+
+实时协同
+
+多人测试
+
+版本管理
+
+手动复制
+
+自动版本
+
+功能测试
+
+智能辅助
+
+无
+
+自动补全/预警
+
+功能测试
+
+*本方案旨在让开发工程师从Excel迁移到Univer BOM工作簿时，体验不降反升，同时获得Excel无法提供的智能化、协同化、版本化管理能力。*
+
+<a id="第九部分univer-bom-sheet联动功能深度分析"></a>## 第九部分：Univer BOM Sheet联动功能深度分析
+
+<a id="一当前sheet联动架构总览"></a>### 一、当前Sheet联动架构总览
+
+┌─────────────────────────────────────────────────────────────────────────────┐  
+│                        Univer BOM 工作簿（7个Sheet）                          │  
+├─────────────────────────────────────────────────────────────────────────────┤  
+│                                                                             │  
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │  
+│  │  总览       │  │  变更履历   │  │ 二次物料明细│  │  配置清单   │        │  
+│  │  summary    │  │  history    │  │  secondary  │  │  config     │        │  
+│  │  \(聚合展示\) │  │  \(日志记录\) │  │ \(派生表\)   │  │  \(空表\)     │        │  
+│  └─────────────┘  └─────────────┘  └─────┬───────┘  └─────────────┘        │  
+│                                            │                                │  
+│  ┌─────────────┐  ┌───────────────────────┴─────────────────────────┐     │  
+│  │ 总成散件清单  │  │                                              │     │  
+│  │  assembly    │  │          KSK线束BOM明细                       │     │  
+│  │  \(派生表\)    │  │          ksk\_bom                              │     │  
+│  └─────────────┘  │          \(派生表\)                              │     │  
+│                   └──────────────────────────────────────────────┘     │  
+│                                                                             │  
+│  ┌─────────────────────────────────────────────────────────────────────┐   │  
+│  │  BOM主表（多个，按线束号）                                          │   │  
+│  │  bom\-PP3241182, bom\-PP3241410, bom\-PP3241393, bom\-PP3241201\.\.\.     │   │  
+│  │  ↓ 用户编辑此处，触发联动                                            │   │  
+│  └─────────────────────────────────────────────────────────────────────┘   │  
+│                                                                             │  
+└─────────────────────────────────────────────────────────────────────────────┘
+
+<a id="二sheet联动链路完整拆解"></a>### 二、Sheet联动链路完整拆解
+
+<a id="链路1bom主表变更检测已实现"></a>#### 2\.1 链路1：BOM主表变更检测（已实现 ✅）
+
+用户编辑BOM主表单元格  
+    ↓  
+UniverSheet onChange 回调  
+    ↓  
+handleSheetChange\(sheetData, sheetId\)  
+    ↓  
+【变更检测引擎】  
+├── beforeRows = buildBomSheetRows\(变更前BOM\)  
+├── afterRows  = buildBomSheetRows\(变更后BOM\)  
+├── detection  = detectBomChanges\(beforeRows, afterRows\)  
+│   └── 输出: \{ added\[\], removed\[\], modified\[\], hasChanges \}  
+└── semantic   = classifyChangePatterns\(detection, hints\)  
+    └── 输出: \{ pattern: 'replace'|'split'|'merge'|'wire\_spec\_replace'|\.\.\. \}
+
+__变更检测粒度__： | 变更类型 | 检测方式 | 示例 | |———|———|——| | 新增行 | rowKey不匹配 | 新增零件PP3249999 | | 删除行 | rowKey不匹配 | 删除零件PP3241183 | | 修改字段 | 字段值对比 | 数量2→5、供应商A→B、单价10→12 |
+
+__语义分类模式__： | 模式 | 判定条件 | 业务含义 | |——|———|———| | replace | 同组\+同供应商\+同单位\+行号距离≤3 | 物料替换（A→B） | | wire\_spec\_replace | 零件号前缀相同\+规格不同 | 导线规格变更（0\.5mm²→0\.75mm²） | | split | 1去\+N增\+同组 | 总成拆散件 | | merge | N去\+1增\+同组 | 散件合总成 | | fixed\_length | 单位M→PCS | 散裁定长化 | | modified | 数量/字段变化 | 普通字段修改 |
+
+<a id="链路2派生表自动重建已实现"></a>#### 2\.2 链路2：派生表自动重建（已实现 ✅）
+
+detectBomChanges 完成  
+    ↓  
+自动重建3个派生表  
+├── setAssemblyRowsByHarness    → buildAssemblyPartRows\(newBom\)  
+├── setSecondaryRowsByHarness   → buildSecondaryMaterialRows\(newBom\)  
+└── setKskRowsByHarness         → buildKskBomRows\(newBom\)  
+    ↓  
+React状态更新 → UniverSheet重新渲染
+
+__派生表构建规则__： | 派生表 | 构建规则 | 与BOM主表关联字段 | |——–|———|——————| | __总成散件清单__ \(assembly\) | 过滤 itemCategory === 'assembly' | sourceBomRowKey | | __二次物料明细__ \(secondary\) | 过滤 itemCategory === 'wire'\\|'terminal'\\|'connector'\\|'accessory' | sourceBomRowKey | | __KSK BOM明细__ \(ksk\) | 所有BOM行 \+ KSK特定字段 | sourceBomRowKey |
+
+<a id="链路3changebus发布-订阅已实现"></a>#### 2\.3 链路3：ChangeBus发布\-订阅（已实现 ✅）
+
+变更检测完成  
+    ↓  
+changeBus\.emit\(\{  
+  projectId, scenarioId, harnessId,  
+  sourceSheet: 'bom',  
+  sourceSheetId: 'bom\-PP3241182',  
+  detection: \{ changes: \[\.\.\.\] \}  
+\}\)  
+    ↓  
+changeBus\.rebuildIndex\(indexedRows\)  ← 建立全局索引  
+    ↓  
+查找受影响的其他Sheet行  
+├── 按 partNo 匹配  
+├── 排除source sheet本身  
+└── 生成 AffectedTarget\[\]  
+    ↓  
+subscriber callback\(event, targets\)  
+    ↓  
+存储到 incomingEvents 状态
+
+__索引结构__：
+
+scopeIndex: Map<string, IndexedSheetRow\[\]>  
+// key: "projectId::scenarioId::harnessId::sheetType::partNo"  
+// value: \[\{ sheetType, sheetId, sheetName, partNo, rowIndex \}, \.\.\.\]
+
+__受影响目标类型__： | targetSheet | 触发条件 | 联动方向 | |————\-|———|———| | assembly\_parts | BOM行category为assembly | BOM → 总成散件 | | secondary\_material | BOM行category为wire/terminal/connector | BOM → 二次物料 | | ksk\_bom | 所有BOM行 | BOM → KSK明细 |
+
+<a id="链路4级联影响计算已实现"></a>#### 2\.4 链路4：级联影响计算（已实现 ✅）
+
+用户点击"确认联动"  
+    ↓  
+handleCascadeConfirm\(actions\)  
+    ↓  
+【cascade\_impact\.ts 计算影响】  
+├── computeAssemblyPartsImpact\(changes, semanticChanges, rows\)  
+│   └── 处理 replace/split/merge/added/removed/modified  
+├── computeSecondaryMaterialImpact\(changes, semanticChanges, rows\)  
+│   └── 处理 wire\_spec\_replace → 重新核算辅材  
+└── computeKskImpact\(changes, semanticChanges, rows\)  
+    └── 处理 KSK 特定逻辑  
+    ↓  
+生成 CascadeAction\[\]  
+    ↓  
+applyCascadeAction\(rows, action\)  ← 逐行应用变更  
+    ↓  
+更新 React State → Univer 重新渲染  
+    ↓  
+添加变更履历到 historyRows
+
+__级联Action类型__： | actionType | targetSheet | 业务含义 | |———–|————\-|———| | add | assembly/secondary/ksk | 新增派生表行 | | remove | assembly/secondary/ksk | 删除派生表行 | | update | assembly/secondary/ksk | 修改派生表字段 | | update | change\_history | 记录变更履历 |
+
+<a id="链路5入站同步已实现"></a>#### 2\.5 链路5：入站同步（已实现 ✅）
+
+其他sheet发生变更（如assembly行单价修改）  
+    ↓  
+changeBus\.emit 发布事件  
+    ↓  
+当前sheet订阅到事件  
+    ↓  
+InboundSyncWizard 展示差异  
+    ↓  
+用户确认同步  
+    ↓  
+handleInboundSync\(rows\)  
+    ↓  
+applyRowFieldUpdates\(prev, updates\)  ← 字段级更新  
+    ↓  
+移除已处理事件
+
+<a id="三功能完整性评估"></a>### 三、功能完整性评估
+
+<a id="已实现功能清单"></a>#### 3\.1 已实现功能清单
+
+\#
+
+功能
+
+实现状态
+
+代码位置
+
+1
+
+BOM主表变更检测
+
+✅ 完整
+
+change\_detector\.ts
+
+2
+
+语义模式分类
+
+✅ 完整
+
+change\_pattern\_classifier\.ts
+
+3
+
+派生表自动重建
+
+✅ 完整
+
+bom\_workbook\_builders\.ts
+
+4
+
+ChangeBus发布\-订阅
+
+✅ 完整
+
+change\_bus\.ts
+
+5
+
+级联影响计算
+
+✅ 完整
+
+cascade\_impact\.ts
+
+6
+
+用户确认Wizard
+
+✅ 完整
+
+CascadeConfirmWizard\.tsx
+
+7
+
+入站同步
+
+✅ 完整
+
+InboundSyncWizard
+
+8
+
+变更履历记录
+
+✅ 完整
+
+historyRows
+
+9
+
+变更后成本重算
+
+✅ 完整
+
+workbookComputation
+
+__结论：核心联动功能已全部实现，但存在6个关键缺陷影响可用性。__
+
+<a id="四关键缺陷分析"></a>### 四、关键缺陷分析
+
+<a id="缺陷1联动是单向的bom主表派生表无反向联动"></a>#### 🔴 缺陷1：联动是单向的（BOM主表→派生表），无反向联动
+
+__现状__： \- 用户在BOM主表编辑 → 派生表自动更新 ✅ \- 用户在assembly表编辑 → BOM主表不更新 ❌ \- 用户在secondary表编辑 → BOM主表不更新 ❌
+
+__影响__： \- 如果用户在”总成散件清单”中修改了数量，BOM主表不会同步 \- 数据一致性风险：两个表的同一零件数量可能不一致
+
+__复现步骤__： 1\. 打开BOM工作簿 2\. 在”总成散件清单”sheet中修改某行的数量 3\. 切换到对应的BOM主表sheet → 数量未更新
+
+<a id="缺陷2每次变更需手动确认操作效率低"></a>#### 🔴 缺陷2：每次变更需手动确认，操作效率低
+
+__现状__：
+
+用户编辑BOM主表 → 检测变更 → 弹出CascadeConfirmWizard  
+    ↓  
+用户必须点击"确认" → 应用级联actions → 派生表更新
+
+__问题__： \- 编辑1个单元格 → 弹出Wizard → 确认 → 才能继续编辑 \- 批量编辑时，每改一行都要确认一次，严重影响效率 \- 没有”自动应用”或”批量确认”模式
+
+__用户场景__： > 工艺工程师需要一次性调整10个零件的工时，每次调整都要确认一次Wizard，操作繁琐。
+
+<a id="缺陷3univer层面无原生公式联动"></a>#### 🟠 缺陷3：Univer层面无原生公式联动
+
+__现状__： \- Sheet间联动通过__React状态管理__实现 \- Univer公式引擎__未启用__ \- 单元格之间没有公式引用关系
+
+__对比__： | 方式 | 当前实现 | 理想实现 | |——|———|———| | 派生表数量 | React状态重建 | =VLOOKUP\(bomRow, 'BOM主表'\!A:G, 3, 0\) | | 成本重算 | 调用computeHarnessCost | Univer公式自动计算 | | 变更联动 | changeBus发布\-订阅 | Univer跨sheet公式引用 |
+
+__影响__： \- 无法利用Univer的公式计算能力 \- 用户无法自定义公式 \- 跨sheet引用无法实时更新
+
+<a id="缺陷4派生表全量重建大数据量性能差"></a>#### 🟠 缺陷4：派生表全量重建，大数据量性能差
+
+__现状__：
+
+setAssemblyRowsByHarness\(\(prev\) =>  
+  new Map\(prev\)\.set\(harnessId, buildAssemblyPartRows\(harnessId, harnessName, nextBom\)\)  
+\);  
+setSecondaryRowsByHarness\(\(prev\) =>  
+  new Map\(prev\)\.set\(harnessId, buildSecondaryMaterialRows\(harnessId, harnessName, nextBom\)\)  
+\);  
+setKskRowsByHarness\(\(prev\) =>  
+  new Map\(prev\)\.set\(harnessId, buildKskBomRows\(harnessId, harnessName, nextBom\)\)  
+\);
+
+__问题__： \- 每次BOM变更，__全量重建__3个派生表 \- 1000行BOM → 重建耗时可能>500ms \- UI卡顿，影响用户体验
+
+<a id="缺陷5缺少实时影响预览"></a>#### 🟠 缺陷5：缺少实时影响预览
+
+__现状__： \- 变更影响只在CascadeConfirmWizard中展示 \- 用户必须打开Wizard才能看到影响 \- 没有侧边栏或浮动面板实时展示影响
+
+__对比__： | 场景 | 当前实现 | 理想实现 | |——|———|———| | 修改零件数量 | 打开Wizard查看影响 | 侧边栏实时显示：影响3个派生表行 | | 替换物料 | 打开Wizard查看影响 | 浮动提示：装配件表将更新零件号 | | 删除零件 | 打开Wizard查看影响 | 红色高亮：将删除2个派生表行 |
+
+<a id="缺陷6配置清单sheet是空的"></a>#### 🟡 缺陷6：配置清单sheet是空的
+
+__现状__：
+
+\{  
+  id: 'config',  
+  name: '配置清单',  
+  data: \[CONFIG\_HEADERS\],  // ← 只有表头，没有数据！  
+  columnWidths: \[45, 120, 160, 180, 100, 100, 100, 80, 80\],  
+  freezeRows: 1,  
+\}
+
+__问题__： \- “配置清单”sheet只有表头，没有实际数据 \- 与Excel的”配置清单”Sheet内容未同步 \- 用户打开此sheet看到空白表格
+
+<a id="五优化方案"></a>### 五、优化方案
+
+<a id="优化1双向联动p0"></a>#### 5\.1 优化1：双向联动（P0）
+
+__目标__：实现派生表→BOM主表的反向联动
+
+__方案__：
+
+// 在派生表sheet变更时，反向更新BOM主表  
+const handleDerivedSheetChange = \(sheetData, sheetId\) => \{  
+  if \(sheetId === 'assembly'\) \{  
+    // 1\. 检测assembly表变更  
+    const changes = detectAssemblyChanges\(before, after\);  
+    // 2\. 反向更新BOM主表对应行  
+    changes\.forEach\(change => \{  
+      const bomRow = findBomRowBySourceKey\(change\.sourceBomRowKey\);  
+      if \(bomRow\) \{  
+        bomRow\.qty = change\.qty;  // 数量同步  
+        // 单价从采购系统引用，不参与联动  
+      \}  
+    \}\);  
+  \}  
+  // 类似处理 secondary 和 ksk  
+\};
+
+__实施要点__： 1\. 为派生表增加 handleSheetChange 回调 2\. 通过 sourceBomRowKey 反向查找BOM主表行 3\. 字段映射：assembly\.qty → bom\.qty（unitPrice从采购系统引用，不参与联动） 4\. 需要处理冲突（如BOM和assembly同时修改同一字段）
+
+<a id="优化2自动联动模式p0"></a>#### 5\.2 优化2：自动联动模式（P0）
+
+__目标__：减少用户手动确认次数，提升操作效率
+
+__方案__：
+
+// 增加联动模式配置  
+enum CascadeMode \{  
+  MANUAL = 'manual',      // 每次变更都弹出Wizard（当前模式）  
+  AUTO = 'auto',          // 自动应用级联，只记录变更履历  
+  SEMI\_AUTO = 'semiAuto', // 自动应用简单变更，复杂变更弹出Wizard  
+\}  
+  
+// 自动模式逻辑  
+const shouldAutoApply = \(detection, semanticChanges\): boolean => \{  
+  // 只有字段修改（无增删）→ 自动应用  
+  if \(detection\.changes\.every\(c => c\.changeType === 'modified'\)\) return true;  
+  // 只有1个新增/删除 → 自动应用  
+  if \(detection\.changes\.length <= 1\) return true;  
+  // 有replace/wire\_spec\_replace语义 → 自动应用  
+  if \(semanticChanges\.some\(s => s\.pattern === 'replace' || s\.pattern === 'wire\_spec\_replace'\)\) return true;  
+  // 其他情况（split/merge/多个增删）→ 弹出Wizard  
+  return false;  
+\};
+
+__配置位置__： \- 在SettingsPage中增加”BOM联动模式”设置 \- 每个项目可独立配置联动模式
+
+<a id="优化3启用univer公式引擎p1"></a>#### 5\.3 优化3：启用Univer公式引擎（P1）
+
+__目标__：利用Univer原生公式能力实现sheet间联动
+
+__方案__：
+
+// 在bom\_workbook\_builders\.ts中，为派生表添加公式  
+function buildAssemblyPartRowsWithFormula\(harnessId, harnessName, bom\) \{  
+  const assemblyRows = buildAssemblyPartRows\(harnessId, harnessName, bom\);  
+    
+  // 为数量列添加公式引用BOM主表  
+  assemblyRows\.forEach\(row => \{  
+    row\.qty = \`=VLOOKUP\("$\{row\.sourceBomRowKey\}", 'bom\-$\{harnessId\}'\!A:G, 5, 0\)\`;  
+    row\.unitPrice = \`=VLOOKUP\("$\{row\.sourceBomRowKey\}", 'bom\-$\{harnessId\}'\!A:G, 7, 0\)\`;  
+  \}\);  
+    
+  return assemblyRows;  
+\}
+
+__技术要点__： 1\. 需要启用Univer的公式引擎（当前未启用） 2\. 公式引用需要跨sheet引用语法 3\. 公式计算结果需要同步回React状态 4\. 复杂逻辑（如split/merge）仍需程序处理
+
+<a id="优化4增量更新p1"></a>#### 5\.4 优化4：增量更新（P1）
+
+__目标__：避免全量重建派生表，提升性能
+
+__方案__：
+
+// 增量更新逻辑  
+const applyIncrementalUpdate = \(prevRows, changes, semanticChanges\) => \{  
+  const nextRows = \[\.\.\.prevRows\];  
+    
+  changes\.forEach\(change => \{  
+    const rowIndex = nextRows\.findIndex\(r => r\.sourceBomRowKey === change\.rowKey\);  
+      
+    if \(change\.changeType === 'added'\) \{  
+      // 只有新增行需要插入  
+      nextRows\.splice\(rowIndex >= 0 ? rowIndex : nextRows\.length, 0, buildRowFromChange\(change\)\);  
+    \} else if \(change\.changeType === 'removed' && rowIndex >= 0\) \{  
+      // 只有删除行需要移除  
+      nextRows\.splice\(rowIndex, 1\);  
+    \} else if \(change\.changeType === 'modified' && rowIndex >= 0\) \{  
+      // 只有修改行需要更新字段  
+      nextRows\[rowIndex\] = \{ \.\.\.nextRows\[rowIndex\], \.\.\.getChangedFields\(change\) \};  
+    \}  
+  \}\);  
+    
+  return nextRows;  
+\};
+
+__实施要点__： 1\. 对比变更前后的差异，只更新变化的行 2\. 保持未变化行的引用稳定（减少React重渲染） 3\. 需要维护行索引映射
+
+<a id="优化5实时影响预览面板p1"></a>#### 5\.5 优化5：实时影响预览面板（P1）
+
+__目标__：在编辑时实时展示变更影响
+
+__方案__：
+
+┌─────────────────────────────────────────────────────────────────┐  
+│  Univer BOM工作簿                                               │  
+│  ┌─────────────────────────┐  ┌───────────────────────────┐  │  
+│  │                         │  │  【实时影响预览】           │  │  
+│  │  BOM主表编辑区域         │  │  ─────────────────────    │  │  
+│  │                         │  │  当前变更: 数量 2→5       │  │  
+│  │  PP3241182 数量 \[5\]      │  │                           │  │  
+│  │                         │  │  受影响:                  │  │  
+│  │                         │  │  ├─ 总成散件清单          │  │  
+│  │                         │  │  │   数量: 2→5 ⚡         │  │  
+│  │                         │  │  ├─ 二次物料明细          │  │  
+│  │                         │  │  │   金额: ¥200→¥500 💰   │  │  
+│  │                         │  │  └─ KSK BOM明细           │  │  
+│  │                         │  │      数量: 2→5 ⚡         │  │  
+│  │                         │  │                           │  │  
+│  │                         │  │  \[应用变更\] \[取消\]        │  │  
+│  └─────────────────────────┘  └───────────────────────────┘  │  
+└─────────────────────────────────────────────────────────────────┘
+
+__实现方式__： 1\. 在BomWorkbookPage右侧增加可折叠面板 2\. 监听changeDetection状态，实时计算影响 3\. 展示受影响的sheet列表、具体字段变化、金额影响 4\. 提供”应用变更”和”取消”快捷按钮
+
+<a id="优化6填充配置清单数据p2"></a>#### 5\.6 优化6：填充配置清单数据（P2）
+
+__目标__：将Excel”配置清单”Sheet数据导入到Univer配置清单sheet
+
+__方案__：
+
+// 从项目/场景数据中提取配置清单  
+function buildConfigSheetData\(project, scenario\) \{  
+  const configs = scenario?\.configList || \[\];  
+    
+  return \[  
+    CONFIG\_HEADERS,  
+    \.\.\.configs\.map\(\(config, index\) => \[  
+      index \+ 1,                    // 序号  
+      config\.configCode,            // 配置代码  
+      config\.configName,            // 配置名称  
+      config\.description,           // 描述  
+      config\.standardQty,           // 标准数量  
+      config\.actualQty,            // 实际数量  
+      config\.vehicleModel,          // 车型  
+      config\.effectivityStart,      // 生效开始  
+      config\.effectivityEnd,        // 生效结束  
+    \]\)  
+  \];  
+\}
+
+<a id="六优化实施计划"></a>### 六、优化实施计划
+
+阶段
+
+周期
+
+优化项
+
+优先级
+
+预估工时
+
+__第一阶段__
+
+第1\-2周
+
+自动联动模式（优化2）
+
+P0
+
+3\-5天
+
+增量更新（优化4）
+
+P0
+
+3\-5天
+
+__第二阶段__
+
+第3\-4周
+
+双向联动（优化1）
+
+P0
+
+5\-7天
+
+实时影响预览面板（优化5）
+
+P1
+
+5\-7天
+
+__第三阶段__
+
+第5\-6周
+
+启用Univer公式引擎（优化3）
+
+P1
+
+7\-10天
+
+填充配置清单数据（优化6）
+
+P2
+
+2\-3天
+
+__第四阶段__
+
+第7\-8周
+
+性能测试与优化
+
+P1
+
+3\-5天
+
+用户体验测试
+
+P2
+
+3\-5天
+
+<a id="七技术风险与应对"></a>### 七、技术风险与应对
+
+风险
+
+影响
+
+应对方案
+
+双向联动导致循环更新
+
+🔴 高
+
+增加更新标记位，防止循环；只同步用户明确编辑的字段
+
+Univer公式引擎与React状态冲突
+
+🔴 高
+
+公式计算结果需同步回React；使用Univer的API读取计算值
+
+增量更新逻辑复杂
+
+🟠 中
+
+保留全量重建作为fallback；增量更新失败时自动降级
+
+自动联动模式误操作
+
+🟠 中
+
+增加撤销功能；重要变更仍需确认
+
+大数据量性能
+
+🟠 中
+
+虚拟滚动；分页加载；Web Worker计算
+
+<a id="第十部分页面功能模块归类优化方案"></a>## 第十部分：页面功能模块归类优化方案
+
+<a id="优化后的页面结构"></a>### 6\.1 优化后的页面结构
+
+/                                    ← 项目列表（ProjectListPage）  
+/manager                             ← 管理报表（ManagerDashboardPage）  
+  └── 利润瀑布图 / 异常分析 / 场景对比 / 回收进度  
+/settings                            ← 系统设置（SettingsPage）  
+/profile                             ← 个人中心（ProfilePage）  
+/alerts                              ← 预警中心（AlertsPage）  
+  └── 预警列表 / 规则配置  
+  
+/project/:id                         ← 项目概览（ProjectDashboardOverviewPage）  
+  ├── 项目信息 / 场景列表 / KPI卡片  
+  ├── BOM基线 / 版本历史  
+  └── 项目预警  
+  
+/project/:id/scenarios               ← 场景管理（ProjectScenariosPage）  
+/project/:id/compare                 ← 场景对比（ScenarioComparePage）  
+  
+/project/:id/s/:sid                  ← 场景总览（DashboardPage）← 精简  
+  ├── 场景信息 / 快捷入口  
+  └── 核心指标卡片  
+  
+/project/:id/s/:sid/pricing          ← 核价工作台（PricingWorkbenchPage）← 重构  
+  ├── 因素总览（16项因素状态）  
+  ├── 成本核算（自动计算\+结果展示）  
+  ├── 推演模拟（what\-if分析）  
+  └── 审批发布（状态流转）  
+  
+/project/:id/s/:sid/bom              ← BOM管理  
+  ├── /bom\-workbook → BomWorkbookPage（Univer编辑）  
+  └── /bom\-diff → BomDiffPage（差异对比）  
+  
+/project/:id/s/:sid/harness/:id     ← 线束详情（HarnessDetailPage）  
+  └── 成本分解 / 图表 / 编辑入口  
+  
+/project/:id/s/:sid/change          ← 设变中心（ChangeEnginePage）  
+  ├── /engine → 设变引擎（定价\+影响分析）  
+  └── /tracking → 设变跟踪（TrackingPage）  
+  
+/project/:id/s/:sid/pricing\-board    ← 统一定价看板（PricingDashboardPage）← 新增  
+  ├── 连接器定价 / 导线定价 / 同步开发件定价  
+  └── 定价差异检测 / 价格趋势  
+  
+/project/:id/s/:sid/alloc            ← 分摊管理（AllocManagerPage）  
+  └── 分摊项 / 回收进度 / 完成提醒  
+  
+/project/:id/s/:sid/resources        ← 资源投入（ResourceInvestmentPage）← 新增  
+  └── 设备投资 / 模具费用 / 工装投入  
+  
+/project/:id/s/:sid/packaging        ← 包装管理（PackagingPage）← 合并  
+  ├── 包装方案 / 物流费用 / 供应商  
+  
+/project/:id/s/:sid/config           ← 配置矩阵（ConfigMatrixPage）  
+/project/:id/s/:sid/simulation       ← 推演模拟（SimulationPage）  
+/project/:id/s/:sid/annual\-drop      ← 年降管理（AnnualDropPage）  
+/project/:id/s/:sid/gap              ← 差距分析（GapAnalysisPage）  
+/project/:id/s/:sid/versions         ← 版本管理（VersionManager）
+
+<a id="优化后导航结构"></a>### 6\.2 优化后导航结构
+
+侧边栏导航（简化）：  
+├── 项目 → / \(项目列表\)  
+├── 报表 → /manager \(管理报表\)  
+├── 预警 → /alerts \(预警中心\)  
+└── 我的 → /profile \(个人中心\)  
+  
+顶部导航（项目\+场景时）：  
+├── 总览 → /project/:id/s/:sid \(场景总览\)  
+├── 核价 → /project/:id/s/:sid/pricing \(核价工作台\)  
+│   ├── 因素 / 核算 / 推演 / 审批  
+├── BOM → /project/:id/s/:sid/bom \(BOM管理\)  
+│   ├── 工作簿 / 差异  
+├── 设变 → /project/:id/s/:sid/change \(设变中心\)  
+│   ├── 引擎 / 跟踪  
+├── 定价 → /project/:id/s/:sid/pricing\-board \(统一定价\)  
+│   ├── 连接器 / 导线 / 同步开发件  
+├── 分摊 → /project/:id/s/:sid/alloc \(分摊管理\)  
+├── 资源 → /project/:id/s/:sid/resources \(资源投入\) ← 新增  
+├── 包装 → /project/:id/s/:sid/packaging \(包装管理\)  
+├── 配置 → /project/:id/s/:sid/config \(配置矩阵\)  
+└── 更多 → 模拟 / 年降 / 差距 / 版本
+
+<a id="第十一部分部门工程师权限设计方案"></a>## 第十一部分：部门工程师权限设计方案
+
+<a id="当前权限模型分析"></a>### 7\.1 当前权限模型分析
+
+// authStore\.ts — 用户角色模型  
+interface AuthUser \{  
+  id: string;  
+  email: string;  
+  name: string;  
+  role: string;  // ← 简单字符串，如 'ENGINEER'  
+  // \.\.\.  
+\}  
+  
+// usePermission\.ts — 权限检查Hook  
+const \{ can, role \} = usePermission\(\);  
+can\('simulation'\);  // ← 检查特定权限点  
+  
+// RoleGuard\.tsx — 组件级权限控制  
+<RoleGuard field="bomEdit">          ← BOM编辑权限  
+<RoleGuard field="deleteHarness">     ← 删除线束权限  
+<RoleGuard field="costRates">         ← 成本费率权限
+
+__当前问题__： \- 角色只有简单字符串（‘ENGINEER’）→ 无法区分部门权限 \- 飞书登录默认赋予 ‘ENGINEER’ → 所有飞书用户权限相同 \- 权限点未与业务因素关联 → 无法按16项成本因素控制 \- 缺少审批流权限 → 无法区分编辑/提交/审批/发布 \- 缺少数据范围权限 → 无法区分项目级/场景级/全局权限
+
+<a id="角色体系设计共17个角色"></a>### 7\.2 角色体系设计（共17个角色）
+
+角色代码
+
+角色名称
+
+职责描述
+
+__ADMIN__
+
+系统管理员
+
+用户管理、角色分配、系统设置、全局配置
+
+__PM__
+
+项目经理
+
+项目创建、跨部门协调、最终审批、成本发布
+
+__SALES\_LEAD__
+
+销售负责人
+
+售价策略、年降/返点审核
+
+__SALES\_ENG__
+
+销售工程师
+
+生命周期录入、车型量纲、年降/返点配置、目标售价
+
+__DEV\_LEAD__
+
+开发负责人
+
+配置清单/BOM审核、开发团队管理
+
+__DEV\_ENG__
+
+开发工程师
+
+配置清单录入、BOM编制、设计变更
+
+__PROC\_LEAD__
+
+工艺负责人
+
+工艺方案审核、工时标准制定
+
+__PROC\_ENG__
+
+工艺工程师
+
+资源投入录入（设备/模具/工装）、工时录入、包装方案
+
+__PUR\_LEAD__
+
+采购负责人
+
+供应商定价审核、采购策略制定
+
+__PUR\_ENG__
+
+采购工程师
+
+连接器/导线/同步开发件定价录入、供应商管理
+
+__PACK\_LEAD__
+
+包装物流负责人
+
+包装物流方案审核
+
+__PACK\_ENG__
+
+包装物流工程师
+
+包装方案、物流费用录入
+
+__FIN\_LEAD__
+
+财务负责人
+
+费率审核、成本基准审核、报表审批
+
+__COST\_ACCT__
+
+成本会计
+
+营运费率维护、成本核算、利润分析、返点计算
+
+__QA\_LEAD__
+
+质量负责人
+
+质量标准审核、材料损耗率审核
+
+__QA\_ENG__
+
+质量工程师
+
+材料损耗率维护、质量标准录入
+
+__VIEWER__
+
+访客
+
+查看报表、查看成本结果（只读）
+
+<a id="成本因素权限点17个"></a>### 7\.3 成本因素权限点（17个）
+
+权限点代码
+
+权限名称
+
+对应业务因素
+
+__F01\_LIFECYCLE\_EDIT__
+
+生命周期编辑
+
+F01 生命周期
+
+__F02\_VOLUME\_EDIT__
+
+量纲编辑
+
+F02 车型量纲
+
+__F03\_ANNUAL\_DROP\_EDIT__
+
+年降编辑
+
+F03 年降
+
+__F04\_REBATE\_EDIT__
+
+返点编辑
+
+F04 返点
+
+__F05\_PRICE\_EDIT__
+
+售价编辑
+
+F05 线束售价
+
+__F06\_CONFIG\_EDIT__
+
+配置清单编辑
+
+F06 配置清单
+
+__F07\_BOM\_EDIT__
+
+BOM编辑
+
+F07 BOM
+
+__F08\_RESOURCE\_EDIT__
+
+资源投入编辑
+
+F08 资源投入
+
+__F09\_PACKAGING\_SCHEME\_EDIT__
+
+包装方案编辑
+
+F09 包装方案
+
+__F10\_LOGISTICS\_EDIT__
+
+物流费用编辑
+
+F10 包装物流费用
+
+__F11\_CONNECTOR\_PRICE\_EDIT__
+
+连接器定价编辑
+
+F11/F13 连接器
+
+__F12\_WIRE\_PRICE\_EDIT__
+
+导线定价编辑
+
+F12 导线价格
+
+__F14\_DEVPART\_PRICE\_EDIT__
+
+同步开发件定价编辑
+
+F14 同步开发件批量价
+
+__F15\_ALLOCATION\_EDIT__
+
+分摊费编辑
+
+F15 同步开发件分摊费
+
+__F16\_RATE\_EDIT__
+
+营运费率编辑
+
+F16 营运费率
+
+__F30\_MATERIAL\_WASTE\_EDIT__
+
+材料损耗率编辑
+
+—（Excel F30=材料×0\.5%）
+
+__F31\_RND\_EDIT__
+
+研发费用编辑
+
+—
+
+__术语说明__：F30使用”材料损耗率”（materialWasteRate），对应Excel核算表F30=F15×0\.5%。此概念属于__内部实绩核算（模型B）__，与报价模型中的”废品率”（scrap rate/wasteRate，0\.9%~1%）是完全不同的概念。
+
+<a id="流程权限点10个"></a>### 7\.4 流程权限点（10个）
+
+权限点代码
+
+权限名称
+
+__WF\_SAVE\_DRAFT__
+
+保存草稿
+
+__WF\_ARCHIVE__
+
+存档
+
+__WF\_SUBMIT__
+
+提交审批
+
+__WF\_APPROVE__
+
+审批通过
+
+__WF\_REJECT__
+
+审批驳回
+
+__WF\_PUBLISH__
+
+发布
+
+__WF\_UNLOCK__
+
+解锁
+
+__WF\_SIMULATE__
+
+推演模拟
+
+__WF\_EXPORT__
+
+导出报表
+
+__WF\_IMPORT__
+
+导入数据
+
+<a id="页面权限点18个"></a>### 7\.5 页面权限点（18个）
+
+权限点代码
+
+对应页面
+
+PAGE\_PROJECT\_LIST
+
+ProjectListPage
+
+PAGE\_PROJECT\_CREATE
+
+NewProjectWizard
+
+PAGE\_PROJECT\_DELETE
+
+—
+
+PAGE\_SCENARIO\_MANAGE
+
+ProjectScenariosPage
+
+PAGE\_BOM\_WORKBOOK
+
+BomWorkbookPage
+
+PAGE\_BOM\_DIFF
+
+BomDiffPage
+
+PAGE\_PRICING\_WORKBENCH
+
+QuotePage（重构后）
+
+PAGE\_CHANGE\_ENGINE
+
+ChangeEnginePage
+
+PAGE\_TRACKING
+
+TrackingPage
+
+PAGE\_ALLOC\_MANAGER
+
+AllocManagerPage
+
+PAGE\_SIMULATION
+
+SimulationPage
+
+PAGE\_ANNUAL\_DROP
+
+AnnualDropPage
+
+PAGE\_GAP\_ANALYSIS
+
+GapAnalysisPage
+
+PAGE\_CONFIG\_MATRIX
+
+ConfigMatrixPage
+
+PAGE\_MANAGER\_DASHBOARD
+
+ManagerDashboardPage
+
+PAGE\_SETTINGS
+
+SettingsPage
+
+PAGE\_ALERTS
+
+AlertsPage
+
+PAGE\_VERSIONS
+
+VersionManager
+
+<a id="成本因素编辑权限矩阵"></a>### 7\.6 成本因素编辑权限矩阵
+
+角色
+
+F01生命周期
+
+F02量纲
+
+F03年降
+
+F04返点
+
+F05售价
+
+F06配置
+
+F07BOM
+
+F08资源
+
+F09包装
+
+F10物流
+
+F11连接器
+
+F12导线
+
+F14同步件
+
+F15分摊
+
+F16费率
+
+F30材料损耗
+
+F31研发
+
+__ADMIN__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+__PM__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+__SALES\_LEAD__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+__SALES\_ENG__
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+__DEV\_LEAD__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+__DEV\_ENG__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+__PROC\_LEAD__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+__PROC\_ENG__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+__PUR\_LEAD__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+__PUR\_ENG__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+__PACK\_LEAD__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+__PACK\_ENG__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+__FIN\_LEAD__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+✅
+
+__COST\_ACCT__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+✅
+
+__QA\_LEAD__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+❌
+
+__QA\_ENG__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+❌
+
+__VIEWER__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+<a id="流程权限矩阵"></a>### 7\.7 流程权限矩阵
+
+角色
+
+保存草稿
+
+存档
+
+提交审批
+
+审批通过
+
+审批驳回
+
+发布
+
+解锁
+
+推演模拟
+
+导出报表
+
+导入数据
+
+__ADMIN__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+__PM__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+__SALES\_LEAD__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+✅
+
+✅
+
+❌
+
+__SALES\_ENG__
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+❌
+
+❌
+
+__DEV\_LEAD__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+__DEV\_ENG__
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+__PROC\_LEAD__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+__PROC\_ENG__
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+__PUR\_LEAD__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+__PUR\_ENG__
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+__PACK\_LEAD__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+__PACK\_ENG__
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+__FIN\_LEAD__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+✅
+
+✅
+
+✅
+
+__COST\_ACCT__
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+✅
+
+✅
+
+__QA\_LEAD__
+
+✅
+
+✅
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+✅
+
+❌
+
+__QA\_ENG__
+
+✅
+
+✅
+
+✅
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+__VIEWER__
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+❌
+
+✅
+
+❌
+
+<a id="核价工作台字段级权限控制"></a>### 7\.8 核价工作台字段级权限控制
+
+以 __F07 BOM编辑__ 为例：
+
+字段
+
+DEV\_ENG
+
+PUR\_ENG
+
+PROC\_ENG
+
+QA\_ENG
+
+VIEWER
+
+零件号
+
+✅编辑
+
+❌只读
+
+❌只读
+
+❌只读
+
+❌只读
+
+零件名称
+
+✅编辑
+
+❌只读
+
+❌只读
+
+❌只读
+
+❌只读
+
+数量
+
+✅编辑
+
+❌只读
+
+❌只读
+
+❌只读
+
+❌只读
+
+单位
+
+✅编辑
+
+❌只读
+
+❌只读
+
+❌只读
+
+❌只读
+
+供应商
+
+❌只读
+
+✅编辑
+
+❌只读
+
+❌只读
+
+❌只读
+
+单价（采购引用）
+
+❌只读
+
+❌只读
+
+❌只读
+
+❌只读
+
+❌只读
+
+工时
+
+❌只读
+
+❌只读
+
+✅编辑
+
+❌只读
+
+❌只读
+
+材料损耗率
+
+❌只读
+
+❌只读
+
+❌只读
+
+✅编辑
+
+❌只读
+
+材料类型
+
+✅编辑
+
+❌只读
+
+❌只读
+
+❌只读
+
+❌只读
+
+回路数
+
+✅编辑
+
+❌只读
+
+❌只读
+
+❌只读
+
+❌只读
+
+<a id="审批流权限"></a>### 7\.9 审批流权限
+
+【草稿】 ──保存草稿──→ 【已存档】 ──提交审批──→ 【审批中】 ──审批通过──→ 【已发布】  
+    ↑                      │                        │  
+    └──────────────────────┘                        └──审批驳回──→ 【草稿】  
+  
+状态流转权限：  
+\- 草稿 → 已存档: 所有工程师  
+\- 已存档 → 审批中: 部门工程师（只能提交自己负责的因素）  
+\- 审批中 → 已发布: 部门负责人/PM  
+\- 审批中 → 草稿: 部门负责人/PM（驳回）  
+\- 已发布 → 草稿: 仅限PM/ADMIN（解锁，需理由）
+
+<a id="第十二部分整合开发计划12周路线图"></a>## 第十二部分：整合开发计划（12周路线图）
+
+<a id="实施原则"></a>### 12\.1 实施原则
+
+原则
+
+说明
+
+__先对齐后增强__
+
+先确保代码与Excel核算表一致，再进行功能增强
+
+__核心优先__
+
+优先完成BOM工作簿和核价工作台，再处理外围功能
+
+__逐步替换__
+
+UI改造采用渐进式策略，先全局样式再逐个页面
+
+__测试驱动__
+
+每完成一个模块即进行Excel基准对齐测试
+
+<a id="phase-1-引擎对齐与数据补全第1-2周"></a>### 12\.2 Phase 1: 引擎对齐与数据补全（第1\-2周）
+
+周次
+
+任务
+
+负责人
+
+验收标准
+
+__W1__
+
+补全设备成本计算（F08）
+
+后端开发
+
+computeInternalHarnessCost输出包含equipmentCost
+
+__W1__
+
+补全研发费用计算
+
+后端开发
+
+输出包含rndCost，与Excel F31=15\.45一致
+
+__W1__
+
+补全返点计算（F04）
+
+后端开发
+
+项目级汇总包含rebate扣除，毛利率公式正确
+
+__W1__
+
+修正DEFAULT\_COST\_STRUCTURE
+
+前端开发
+
+删除mgmtFee和profit项，Schema纯净
+
+__W2__
+
+统一前后端引擎为ES Module
+
+架构师
+
+前端可import后端所有功能模块
+
+__W2__
+
+验证K3费率=Excel昆山90%费率
+
+数据分析师
+
+程序输出与Excel结果误差<0\.1%
+
+__W2__
+
+确认效率系数处理方式
+
+项目经理\+工艺
+
+与工艺部门确认E8是否含效率系数
+
+__W2__
+
+建立Excel基准对齐测试套件
+
+QA工程师
+
+自动化对比程序输出与Excel公式结果
+
+<a id="phase-2-ui设计系统搭建第3-4周"></a>### 12\.3 Phase 2: UI设计系统搭建（第3\-4周）
+
+周次
+
+任务
+
+负责人
+
+验收标准
+
+__W3__
+
+CSS变量系统（色彩/字号/间距）
+
+前端开发
+
+design\-system\.css完整，覆盖全部变量
+
+__W3__
+
+基础组件库（Button/Input/Select/Modal/Dropdown）
+
+前端开发
+
+5个组件可用，视觉符合Linear Light风格
+
+__W3__
+
+字体加载（Inter \+ JetBrains Mono）
+
+前端开发
+
+字体正确显示，等宽数字对齐
+
+__W4__
+
+全局布局（Topbar\+Sidebar\+Content）
+
+前端开发
+
+布局稳定，侧边栏220px，内容区自适应
+
+__W4__
+
+导航组件（侧边栏\+面包屑）
+
+前端开发
+
+导航可用，激活状态正确
+
+__W4__
+
+动画系统（微交互\+页面切换）
+
+前端开发
+
+动画流畅，无卡顿
+
+<a id="phase-3-bom工作簿核心改造第5-7周"></a>### 12\.4 Phase 3: BOM工作簿核心改造（第5\-7周）
+
+周次
+
+任务
+
+负责人
+
+验收标准
+
+__W5__
+
+Univer样式覆盖（去网页化）
+
+前端开发
+
+直角边框、纯白背景、无阴影、Excel风格网格线
+
+__W5__
+
+启用右键菜单\+状态栏
+
+前端开发
+
+右键弹出Excel风格菜单，底部显示求和/计数
+
+__W5__
+
+键盘快捷键全面绑定
+
+前端开发
+
+25个快捷键可用，阻止浏览器抢占
+
+__W6__
+
+表格组件（表头\+行选择\+排序\+筛选）
+
+前端开发
+
+1000行BOM筛选<100ms，列头可拖拽调整列宽
+
+__W6__
+
+行内编辑\+Tab导航
+
+前端开发
+
+双击编辑，Tab向右，Enter向下，Esc取消
+
+__W6__
+
+智能补全UI（零件号/SAP号/总成号）
+
+前端开发
+
+输入2字符后提示，响应<50ms
+
+__W7__
+
+连接器信息库数据库搭建
+
+后端开发
+
+4张表创建，E281数据导入完整
+
+__W7__
+
+三维度智能补全后端API
+
+后端开发
+
+搜索API响应<50ms，准确率>95%
+
+__W7__
+
+BOM新建/派生流程
+
+前后端联调
+
+新建可选模板，派生可选版本，流程完整
+
+<a id="phase-4-核价工作台与权限第8-9周"></a>### 12\.5 Phase 4: 核价工作台与权限（第8\-9周）
+
+周次
+
+任务
+
+负责人
+
+验收标准
+
+__W8__
+
+核价工作台页面重构
+
+前端开发
+
+因素总览\+成本核算\+推演\+审批，布局完整
+
+__W8__
+
+角色/权限数据库表
+
+后端开发
+
+roles/permissions/role\_permissions表创建
+
+__W8__
+
+改造usePermission/RoleGuard
+
+前端开发
+
+支持factorCode和requireStatus
+
+__W9__
+
+核价工作台字段级权限
+
+前后端联调
+
+不同角色看到不同的编辑/只读字段
+
+__W9__
+
+审批流权限控制
+
+前后端联调
+
+草稿→存档→审批→发布状态流转正确
+
+__W9__
+
+页面级权限控制
+
+前端开发
+
+无权限页面隐藏或显示403
+
+<a id="phase-5-功能闭环与sheet联动第10周"></a>### 12\.6 Phase 5: 功能闭环与Sheet联动（第10周）
+
+周次
+
+任务
+
+负责人
+
+验收标准
+
+__W10__
+
+语义diff接入BomWorkbookPage
+
+前端开发
+
+编辑BOM后自动检测变更，预览级联影响
+
+__W10__
+
+自动联动模式（简单变更自动应用）
+
+前端开发
+
+只有字段修改时自动应用，复杂变更弹出Wizard
+
+__W10__
+
+增量更新（不全量重建派生表）
+
+前端开发
+
+1000行BOM修改1行<200ms
+
+__W10__
+
+配置清单Sheet数据填充
+
+前端开发
+
+从项目数据导入，不再空白
+
+<a id="phase-6-测试验收与文档第11-12周"></a>### 12\.7 Phase 6: 测试验收与文档（第11\-12周）
+
+周次
+
+任务
+
+负责人
+
+验收标准
+
+__W11__
+
+Excel基准对齐测试
+
+QA工程师
+
+程序输出与Excel公式结果误差<0\.1%
+
+__W11__
+
+权限矩阵测试（17角色×47权限点）
+
+QA工程师
+
+每个角色的权限验证通过
+
+__W11__
+
+越权测试
+
+QA工程师
+
+尝试越权操作均被正确拦截
+
+__W12__
+
+性能测试
+
+QA工程师
+
+首屏<1s，1000行BOM编辑流畅
+
+__W12__
+
+用户验收测试
+
+项目经理\+开发工程师
+
+开发工程师确认体验优于Excel
+
+__W12__
+
+操作手册
+
+项目经理
+
+权限矩阵操作手册\+BOM编辑指南
+
+<a id="关键里程碑"></a>### 12\.7 关键里程碑
+
+里程碑
+
+时间
+
+交付物
+
+验收人
+
+M1: 引擎与Excel对齐
+
+W2结束
+
+成本计算与Excel误差<0\.1%
+
+项目经理
+
+M2: UI设计系统就绪
+
+W4结束
+
+全局样式\+基础组件\+布局框架
+
+技术负责人
+
+M3: BOM工作簿可用
+
+W7结束
+
+开发工程师可用BOM编辑\+智能补全
+
+开发工程师代表
+
+M4: 核价工作台闭环
+
+W9结束
+
+16项因素可录入\+审批\+成本核算
+
+项目经理
+
+M5: 全功能联调
+
+W10结束
+
+BOM编辑→联动→成本→审批完整链路
+
+技术负责人
+
+M6: 系统验收
+
+W12结束
+
+测试报告\+用户签字\+操作手册
+
+项目经理\+开发工程师
+
+<a id="资源需求"></a>### 12\.8 资源需求
+
+角色
+
+人数
+
+投入周期
+
+主要职责
+
+前端开发工程师
+
+2人
+
+W1\-W12
+
+UI组件、页面开发、Univer集成
+
+后端开发工程师
+
+1人
+
+W1\-W10
+
+引擎补全、API开发、数据库
+
+架构师
+
+1人
+
+W1\-W4（兼职）
+
+技术方案、代码审查
+
+QA工程师
+
+1人
+
+W8\-W12
+
+测试用例、自动化测试
+
+项目经理
+
+1人
+
+全程
+
+协调、验收、文档
+
+开发工程师代表（用户）
+
+1\-2人
+
+W7、W12
+
+需求确认、UAT验收
+
+<a id="风险与应对"></a>### 12\.9 风险与应对
+
+风险
+
+概率
+
+影响
+
+应对方案
+
+Univer表格深度定制困难
+
+中
+
+高
+
+保留Semi UI表格作为fallback方案
+
+连接器信息库数据不完整
+
+高
+
+中
+
+先导入E281数据，其他项目逐步补充
+
+开发工程师抵触新工具
+
+中
+
+高
+
+W7即邀请参与试用，及时收集反馈调整
+
+多AI接力导致代码再次混乱
+
+中
+
+高
+
+建立代码Owner机制，每次提交需人工Review
+
+性能不达预期（大数据量）
+
+低
+
+中
+
+虚拟滚动\+Web Worker计算\+增量更新
+
+<a id="附录e组件归属优化对照表"></a>## 附录E：组件归属优化对照表
+
+当前组件
+
+当前归属
+
+建议归属
+
+原因
+
+LifecyclePnLTable
+
+DashboardPage
+
+PricingWorkbenchPage
+
+生命周期损益是核价结果
+
+AllocationProgress
+
+DashboardPage
+
+AllocManagerPage
+
+分摊进度应在分摊页面
+
+MetalImpactSummary
+
+DashboardPage
+
+PricingWorkbenchPage 或 AlertsPage
+
+金属联动影响应在核价或预警
+
+HarnessProfitTable
+
+DashboardPage
+
+PricingWorkbenchPage
+
+线束利润表是核价结果
+
+EngineSelector
+
+EngineerWorkbench
+
+SettingsPage
+
+引擎选择是系统设置
+
+HarnessCompareView
+
+EngineerWorkbench
+
+PricingWorkbenchPage
+
+线束对比应在核价工作台
+
+QuoteGapEntry
+
+QuotePage
+
+PricingWorkbenchPage
+
+报价差距分析是核价功能
+
+QuoteParamChecklist
+
+QuotePage
+
+PricingWorkbenchPage
+
+参数检查清单是核价功能
+
+StagnantReportPanel
+
+ChangeEnginePage/TrackingPage
+
+TrackingPage
+
+呆滞报告属于跟踪
+
+PricingDiscrepancyPanel
+
+ConnectorPricingPage
+
+PricingDashboardPage
+
+定价差异检测应在统一定价
+
+<a id="附录f角色-因素对照速查表"></a>## 附录F：角色\-因素对照速查表
+
+部门
+
+角色
+
+负责因素
+
+销售
+
+SALES\_LEAD / SALES\_ENG
+
+F01生命周期、F02车型量纲、F03年降、F04返点、F05线束售价
+
+开发
+
+DEV\_LEAD / DEV\_ENG
+
+F06配置清单、F07 BOM
+
+工艺
+
+PROC\_LEAD / PROC\_ENG
+
+F08资源投入、F09包装方案、F16营运费率\(工时部分\)
+
+采购
+
+PUR\_LEAD / PUR\_ENG
+
+F11连接器协议价、F12导线价格、F13连接器供应商报价、F14同步开发件批量价
+
+包装物流
+
+PACK\_LEAD / PACK\_ENG
+
+F09包装方案、F10包装物流费用
+
+财务
+
+FIN\_LEAD / COST\_ACCT
+
+F04返点\(审核\)、F16营运费率、F30材料损耗率、F31研发费用
+
+质量
+
+QA\_LEAD / QA\_ENG
+
+F30材料损耗率、F07 BOM\(质量相关字段\)
+
+项目经理
+
+PM
+
+全部因素（协调\+审批）
+
+<a id="附录g术语严格对照表"></a>## 附录G：术语严格对照表
+
+中文
+
+英文
+
+所属模型
+
+Excel位置
+
+代码变量
+
+数值
+
+__材料损耗率__
+
+material waste rate
+
+模型B（内部实绩核算）
+
+F30=F15×0\.5%
+
+materialWasteRate
+
+0\.5%（基准）
+
+__废品率__
+
+scrap rate
+
+模型A（客户报价）
+
+客户报价逻辑\!H4=G4×0\.9%
+
+wasteRate
+
+0\.9%~1%
+
+__管理费__
+
+management fee
+
+模型A（客户报价）
+
+不存在于模型B
+
+mgmtRate
+
+6%（后端引擎自创）
+
+__利润__
+
+profit
+
+模型A（客户报价）
+
+不存在于模型B
+
+profitRate
+
+5\.66%（后端引擎自创）
+
+__设备成本__
+
+equipment cost
+
+模型B（内部实绩核算）
+
+F20=F21\+F22
+
+未实现
+
+—
+
+__研发费用__
+
+R&D expense
+
+模型B（内部实绩核算）
+
+F31=15\.45
+
+未实现
+
+—
+
+__返点__
+
+rebate
+
+模型B（内部实绩核算）
+
+F13=10000000
+
+未闭环
+
+—
+
+__重要说明__：本系统仅使用模型B（内部实绩核算），因此只存在__材料损耗率__、__设备成本__、__研发费用__、__返点__等概念。报价模型中的”废品率”、“管理费”、“利润”等概念不应在本系统中使用。
+
+*报告结束。本报告由5个AGENT并行分析后整合生成，包含权限设计方案与术语修正。*
+

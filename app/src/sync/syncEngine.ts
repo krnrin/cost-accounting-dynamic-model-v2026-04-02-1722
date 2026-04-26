@@ -100,6 +100,7 @@ class SyncEngine {
     const pending = await getPending();
 
     if (pending.length > 0) {
+      // [PR-009] push 返回冲突信息
       const result = await bitableSync.push(pending);
 
       if (result.accepted.length > 0) {
@@ -109,10 +110,37 @@ class SyncEngine {
       for (const err of result.errors) {
         await markFailed(err.id, err.error);
       }
+
+      // [PR-009] 上报冲突到 store
+      for (const conflict of result.conflicts) {
+        store.addConflict({
+          id: `${conflict.entity}:${conflict.entityId}`,
+          entity: conflict.entity,
+          entityId: conflict.entityId,
+          localVersion: conflict.localUpdatedAt,
+          remoteVersion: conflict.remoteUpdatedAt,
+          message: `冲突：本地 ${conflict.localUpdatedAt} vs 远程 ${conflict.remoteUpdatedAt}`,
+        });
+      }
     }
 
-    // Note: Bitable pull is done via fullSync() on login, not on every cycle
-    // This avoids excessive API calls. Incremental pull can be added later.
+    // [PR-009] 使用增量 pull 替代注释
+    const lastSync = store.lastSyncAt;
+    if (lastSync) {
+      const pullResult = await bitableSync.incrementalPull(lastSync);
+      // 上报增量 pull 发现的冲突
+      for (const conflict of pullResult.conflicts) {
+        store.addConflict({
+          id: `${conflict.entity}:${conflict.entityId}`,
+          entity: conflict.entity,
+          entityId: conflict.entityId,
+          localVersion: conflict.localUpdatedAt,
+          remoteVersion: conflict.remoteUpdatedAt,
+          message: `增量同步冲突：本地 ${conflict.localUpdatedAt} vs 远程 ${conflict.remoteUpdatedAt}`,
+        });
+      }
+    }
+
     store.setLastSync(new Date().toISOString());
   }
 

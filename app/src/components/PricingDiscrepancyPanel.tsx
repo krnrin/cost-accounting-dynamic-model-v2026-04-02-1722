@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Card, Empty, Input, Space, Table, Tag, Toast, Typography } from '@douyinfe/semi-ui';
+import { Button, Card, Empty, Input, Modal, Space, Table, Tag, Toast, Typography } from '@douyinfe/semi-ui';
 import type { PriceDiscrepancyRecord, PricePartCategory } from '@/types/pricing';
 import { usePricingStore } from '@/store/pricingStore';
+import { useAuthStore } from '@/store/authStore';
 
 const { Text } = Typography;
 
@@ -30,7 +31,11 @@ type Props = {
 export default function PricingDiscrepancyPanel({ category, projectId, scenarioId }: Props) {
   const navigate = useNavigate();
   const { priceDiscrepancies, assignDiscrepancy, resolveDiscrepancy } = usePricingStore();
+  const { user } = useAuthStore();
   const [assigneeDraft, setAssigneeDraft] = useState<Record<string, string>>({});
+
+  // 权限检查：只有 ENGINEER 及以上角色可以关闭差异
+  const canCloseDiscrepancy = user?.role && ['ENGINEER', 'MANAGER', 'ADMIN'].includes(user.role);
 
   const allCategoryRows = useMemo(
     () => priceDiscrepancies.filter((row) => row.partCategory === category),
@@ -59,15 +64,27 @@ export default function PricingDiscrepancyPanel({ category, projectId, scenarioI
   };
 
   const onClose = async (row: PriceDiscrepancyRecord) => {
-    try {
-      await resolveDiscrepancy(row.id, {
-        type: 'accepted_loss',
-        note: '从价格页快速关闭',
-      });
-      Toast.success('差异已关闭。');
-    } catch (error) {
-      Toast.error(error instanceof Error ? error.message : '差异关闭失败。');
+    // 权限检查
+    if (!canCloseDiscrepancy) {
+      Toast.error('您没有权限关闭价格差异。');
+      return;
     }
+    // 二次确认
+    Modal.confirm({
+      title: '确认关闭差异',
+      content: `确定要关闭料号 ${row.partNo} 的价格差异吗？此操作将标记为"已接受损失"。`,
+      onOk: async () => {
+        try {
+          await resolveDiscrepancy(row.id, {
+            type: 'accepted_loss',
+            note: '从价格页快速关闭',
+          });
+          Toast.success('差异已关闭。');
+        } catch (error) {
+          Toast.error(error instanceof Error ? error.message : '差异关闭失败。');
+        }
+      },
+    });
   };
 
   const columns = [
@@ -88,14 +105,14 @@ export default function PricingDiscrepancyPanel({ category, projectId, scenarioI
       dataIndex: 'referencePrice',
       width: 96,
       align: 'right' as const,
-      render: (value: number) => <span className="ledger-number">楼{value.toFixed(2)}</span>,
+      render: (value: number) => <span className="ledger-number">¥{value.toFixed(2)}</span>,
     },
     {
       title: '实际价',
       dataIndex: 'actualPrice',
       width: 96,
       align: 'right' as const,
-      render: (value: number) => <span className="ledger-number">楼{value.toFixed(2)}</span>,
+      render: (value: number) => <span className="ledger-number">¥{value.toFixed(2)}</span>,
     },
     {
       title: '差异率',
@@ -137,7 +154,13 @@ export default function PricingDiscrepancyPanel({ category, projectId, scenarioI
       width: 90,
       fixed: 'right' as const,
       render: (_: unknown, row: PriceDiscrepancyRecord) => (
-        <Button size="small" theme="solid" type="danger" onClick={() => void onClose(row)}>
+        <Button
+          size="small"
+          theme="solid"
+          type="danger"
+          disabled={!canCloseDiscrepancy}
+          onClick={() => void onClose(row)}
+        >
           关闭
         </Button>
       ),

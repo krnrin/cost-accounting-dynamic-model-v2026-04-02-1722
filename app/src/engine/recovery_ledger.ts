@@ -1,11 +1,17 @@
 /**
  * Recovery Ledger (C19 — Issue #70)
- * 
+ *
  * 回收记录明细台账 + 模块联动
  * - 每批次回收的时间/金额/产量
  * - 回收进度超100%自动预警
  * - 超期自动生成严重预警
  * - 与TrackingPage联动创建调价建议
+ *
+ * [PR-112] 调价联动说明：
+ * 本模块仅生成 alerts，不直接创建调价建议。
+ * 调价建议由 TrackingPage 或 change_pricing 模块根据 alerts 创建。
+ * 联动方式：调用方订阅 generateRecoveryAlerts() 返回的 alerts，
+ * 并根据 type='adjustment_needed' 或 type='over_recovery' 创建跟踪项。
  */
 
 // ─── Types ───
@@ -62,6 +68,25 @@ export interface RecoveryLedgerSummary {
   alerts: RecoveryAlert[];
 }
 
+// ─── Helpers ───
+
+/**
+ * [PR-111] 计算两个日期之间的自然月数
+ * 替代 30.44 天估算，使用精确的自然月计算
+ */
+function differenceInMonths(dateLeft: Date, dateRight: Date): number {
+  const yearDiff = dateLeft.getFullYear() - dateRight.getFullYear();
+  const monthDiff = dateLeft.getMonth() - dateRight.getMonth();
+  const dayDiff = dateLeft.getDate() - dateRight.getDate();
+
+  // 如果左边的日期小于右边的日期，需要减一个月
+  let months = yearDiff * 12 + monthDiff;
+  if (dayDiff < 0) {
+    months -= 1;
+  }
+  return Math.max(0, months);
+}
+
 // ─── Core Functions ───
 
 /** Add a recovery record to an alloc item */
@@ -104,9 +129,8 @@ export function computeAllocItemSummary(
 ): AllocItemSummary {
   const totalRecovered = records.reduce((sum, r) => sum + r.recoveryAmount, 0);
   const recoveryRate = totalNre > 0 ? totalRecovered / totalNre : 0;
-  const monthsElapsed = Math.floor(
-    (Date.now() - new Date(startDate).getTime()) / (30.44 * 24 * 60 * 60 * 1000)
-  );
+  // [PR-111] 使用自然月计算替代 30.44 天估算
+  const monthsElapsed = differenceInMonths(new Date(), new Date(startDate));
 
   return {
     allocItemId,

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbac.js';
 import { AlertRuleService } from '../services/alertRuleService.js';
+import { AuditService } from '../services/auditService.js'; // [PR-040]
 
 const router = Router();
 router.use(authMiddleware);
@@ -43,6 +44,15 @@ router.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: Requ
   try {
     const input = createSchema.parse(req.body);
     const data = await AlertRuleService.create({ ...input, createdBy: req.user?.id });
+    // [PR-040] 添加审计日志
+    await AuditService.log({
+      userId: req.user!.id,
+      projectId: '', // alert rules are global
+      action: 'CREATE',
+      entity: 'alertRule',
+      entityId: data.id,
+      details: { name: input.name, category: input.category },
+    });
     res.status(201).json({ data });
   } catch (error) {
     next(error);
@@ -53,6 +63,15 @@ router.put('/:rid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: R
   try {
     const input = updateSchema.parse(req.body);
     const data = await AlertRuleService.update(req.params.rid as string, input);
+    // [PR-040] 添加审计日志
+    await AuditService.log({
+      userId: req.user!.id,
+      projectId: '',
+      action: 'UPDATE',
+      entity: 'alertRule',
+      entityId: req.params.rid as string,
+      details: { updatedFields: Object.keys(input) },
+    });
     res.json({ data });
   } catch (error) {
     next(error);
@@ -62,6 +81,15 @@ router.put('/:rid', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req: R
 router.delete('/:rid', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
   try {
     await AlertRuleService.remove(req.params.rid as string);
+    // [PR-040] 添加审计日志
+    await AuditService.log({
+      userId: req.user!.id,
+      projectId: '',
+      action: 'DELETE',
+      entity: 'alertRule',
+      entityId: req.params.rid as string,
+      details: {},
+    });
     res.status(204).end();
   } catch (error) {
     next(error);

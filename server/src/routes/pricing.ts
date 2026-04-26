@@ -329,6 +329,71 @@ projectPricingRouter.put('/auxiliary/:pricingId', requireRole(['ADMIN', 'MANAGER
   }
 });
 
+// [PR-040] DELETE endpoints for pricing resources
+projectPricingRouter.delete('/connectors/:pricingId', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const projectId = projectIdFromReq(req);
+    await PricingService.deleteConnector(projectId, req.params.pricingId as string);
+    await logPricingAudit(req, {
+      projectId,
+      entityId: req.params.pricingId as string,
+      action: 'DELETE',
+      pricingType: 'connector',
+    });
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+projectPricingRouter.delete('/wires/:pricingId', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const projectId = projectIdFromReq(req);
+    await PricingService.deleteWire(projectId, req.params.pricingId as string);
+    await logPricingAudit(req, {
+      projectId,
+      entityId: req.params.pricingId as string,
+      action: 'DELETE',
+      pricingType: 'wire',
+    });
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+projectPricingRouter.delete('/devparts/:pricingId', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const projectId = projectIdFromReq(req);
+    await PricingService.deleteDevPart(projectId, req.params.pricingId as string);
+    await logPricingAudit(req, {
+      projectId,
+      entityId: req.params.pricingId as string,
+      action: 'DELETE',
+      pricingType: 'dev_part',
+    });
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
+projectPricingRouter.delete('/auxiliary/:pricingId', requireRole(['ADMIN', 'MANAGER']), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const projectId = projectIdFromReq(req);
+    await PricingService.deleteAuxiliary(projectId, req.params.pricingId as string);
+    await logPricingAudit(req, {
+      projectId,
+      entityId: req.params.pricingId as string,
+      action: 'DELETE',
+      pricingType: 'auxiliary',
+    });
+    res.status(204).send();
+  } catch (error) {
+    next(error);
+  }
+});
+
 scenarioPricingRouter.get('/discrepancies', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const projectId = projectIdFromReq(req);

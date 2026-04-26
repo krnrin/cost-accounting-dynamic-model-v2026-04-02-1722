@@ -6,6 +6,41 @@
 import type { BomItem, WireItem } from '@/types/harness';
 import { diffBom } from './bom_diff';
 
+/**
+ * 深度比较两个值是否相等
+ * 处理对象、数组、原始类型，忽略键序
+ */
+function deepEqual(a: unknown, b: unknown): boolean {
+  // 快速路径：严格相等
+  if (a === b) return true;
+
+  // null/undefined 检查
+  if (a == null || b == null) return a === b;
+
+  // 类型检查
+  if (typeof a !== typeof b) return false;
+
+  // 数组比较
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    return a.every((item, idx) => deepEqual(item, b[idx]));
+  }
+
+  // 对象比较
+  if (typeof a === 'object' && typeof b === 'object') {
+    const aObj = a as Record<string, unknown>;
+    const bObj = b as Record<string, unknown>;
+    const aKeys = Object.keys(aObj).sort();
+    const bKeys = Object.keys(bObj).sort();
+    if (aKeys.length !== bKeys.length) return false;
+    if (aKeys.join(',') !== bKeys.join(',')) return false;
+    return aKeys.every(key => deepEqual(aObj[key], bObj[key]));
+  }
+
+  // 原始类型
+  return a === b;
+}
+
 export interface ChangeOrder {
   id: string;
   changeNo: string;
@@ -75,7 +110,7 @@ export function verifyChangeOrder(
 
     const fieldChange = diffRow.fieldChanges.find(fc => fc.field === expected.field);
     if (fieldChange) {
-      const actualMatches = JSON.stringify(fieldChange.newValue) === JSON.stringify(expected.newValue);
+      const actualMatches = deepEqual(fieldChange.newValue, expected.newValue);
       matches.push({
         partNo: expected.partNo, field: expected.field,
         expected: expected.newValue, actual: fieldChange.newValue,

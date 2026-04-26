@@ -2,13 +2,14 @@
  * Excel 导出模块 (SheetJS)
  *
  * 功能:
- *   1. 导出内部核算明细 Excel
- *   2. 导出设变报价对比 Excel
- *   3. 导出年降分析 Excel
+ *   1. 导出内部核算明细 Excel (模型B: 无管理费/利润列)
+ *   2. 导出客户报价明细 Excel (模型A: 含管理费/利润列)
+ *   3. 导出设变报价对比 Excel
+ *   4. 导出年降分析 Excel
  */
 
 import * as XLSX from 'xlsx';
-import type { HarnessResult, ProjectHarnessResult } from '@/types/harness';
+import type { HarnessResult, ProjectHarnessResult, InternalHarnessResult, InternalProjectResult } from '@/types/harness';
 import type {
   ChangePricingResult,
   AnnualDropResult,
@@ -42,22 +43,24 @@ function downloadWorkbook(wb: XLSX.WorkBook, filename: string): void {
   }, 200);
 }
 
-// ── 1. 内部核算明细导出 ──
+// ── 1. 内部核算明细导出 (模型B: 无管理费/利润) ──
 
-const INTERNAL_HEADERS = [
+/** 内部核算表头 (模型B: 无管理费/利润列) */
+const INTERNAL_HEADERS_MODEL_B = [
   '零件号', '名称', '装车比',
   '铜重(kg)', '铝重(kg)', '工时(h)',
-  '材料成本', '废品', '直接人工', '制造费',
-  '管理费', '利润', '出厂价',
-  '包装费', '运输费', '到厂价',
+  '材料成本', '材料损耗', '直接人工',
+  '间接人工', '低值易耗', '机物料', '厂房分摊', '自动化分摊', '其他制造',
+  '制造费小计', '包装运输', '内部成本',
 ];
 
 /**
- * 导出内部核算明细 Excel
+ * 导出内部核算明细 Excel (模型B)
+ * 内部核算不包含管理费和利润列
  */
 export function exportInternalCostExcel(
-  harnessResults: HarnessResult[],
-  projectSummary: ProjectHarnessResult,
+  harnessResults: InternalHarnessResult[],
+  projectSummary: InternalProjectResult,
   projectName: string,
 ): void {
   const rows: (string | number)[][] = [];
@@ -69,13 +72,111 @@ export function exportInternalCostExcel(
   // KPI
   rows.push([
     '单车成本:', fmtCurrency(projectSummary.vehicleCost),
+    '', '线束数:', projectSummary.harnesses.length,
+  ]);
+  rows.push([]);
+
+  // 表头
+  rows.push(INTERNAL_HEADERS_MODEL_B);
+
+  // 数据行
+  for (const h of harnessResults) {
+    rows.push([
+      h.harnessId,
+      h.harnessName,
+      h.vehicleRatio,
+      toFixed2(h.copperWeight),
+      toFixed2(h.aluminumWeight),
+      toFixed2(h.processHours),
+      toFixed2(h.materialCost),
+      toFixed2(h.materialWaste),
+      toFixed2(h.directLabor),
+      toFixed2(h.indirectLabor),
+      toFixed2(h.lowValueConsumables),
+      toFixed2(h.materialConsumption),
+      toFixed2(h.factoryAmortization),
+      toFixed2(h.automationAmortization),
+      toFixed2(h.otherOverhead),
+      toFixed2(h.mfgOverheadTotal),
+      toFixed2(h.packTotal),
+      toFixed2(h.internalCost),
+    ]);
+  }
+
+  // 合计行
+  rows.push([
+    '加权合计', '', '—',
+    '', '', '',
+    toFixed2(projectSummary.weightedMaterial),
+    toFixed2(projectSummary.weightedMaterialWaste),
+    toFixed2(projectSummary.weightedDirectLabor),
+    toFixed2(projectSummary.weightedIndirectLabor),
+    toFixed2(projectSummary.weightedLowValueConsumables),
+    toFixed2(projectSummary.weightedMaterialConsumption),
+    toFixed2(projectSummary.weightedFactoryAmortization),
+    toFixed2(projectSummary.weightedAutomationAmortization),
+    toFixed2(projectSummary.weightedOtherOverhead),
+    toFixed2(projectSummary.weightedMfgOverheadTotal),
+    toFixed2(projectSummary.weightedPack),
+    toFixed2(projectSummary.vehicleCost),
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 14 }, { wch: 24 }, { wch: 8 },
+    { wch: 10 }, { wch: 10 }, { wch: 10 },
+    { wch: 12 }, { wch: 10 }, { wch: 10 },
+    { wch: 10 }, { wch: 10 }, { wch: 10 },
+    { wch: 10 }, { wch: 10 }, { wch: 10 },
+    { wch: 12 }, { wch: 10 }, { wch: 12 },
+  ];
+  ws['!merges'] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: INTERNAL_HEADERS_MODEL_B.length - 1 } },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '内部核算');
+
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  downloadWorkbook(wb, `${projectName}_内部核算_${date}.xlsx`);
+}
+
+// ── 2. 客户报价明细导出 (模型A: 含管理费/利润) ──
+
+/** 客户报价表头 (模型A: 含管理费/利润列) */
+const CUSTOMER_QUOTE_HEADERS = [
+  '零件号', '名称', '装车比',
+  '铜重(kg)', '铝重(kg)', '工时(h)',
+  '材料成本', '废品', '直接人工', '制造费',
+  '管理费', '利润', '出厂价',
+  '包装费', '运输费', '到厂价',
+];
+
+/**
+ * 导出客户报价明细 Excel (模型A)
+ * 客户报价包含管理费和利润列
+ */
+export function exportCustomerQuoteExcel(
+  harnessResults: HarnessResult[],
+  projectSummary: ProjectHarnessResult,
+  projectName: string,
+): void {
+  const rows: (string | number)[][] = [];
+
+  // 标题
+  rows.push([`${projectName} — 客户报价明细`]);
+  rows.push([]);
+
+  // KPI
+  rows.push([
+    '单车成本:', fmtCurrency(projectSummary.vehicleCost),
     '', '线束数:', projectSummary.harnessCount,
     '', '总铜重:', `${projectSummary.totalCopperWeight.toFixed(4)} kg`,
   ]);
   rows.push([]);
 
   // 表头
-  rows.push(INTERNAL_HEADERS);
+  rows.push(CUSTOMER_QUOTE_HEADERS);
 
   // 数据行
   for (const h of harnessResults) {
@@ -124,17 +225,22 @@ export function exportInternalCostExcel(
     { wch: 10 }, { wch: 10 }, { wch: 12 },
   ];
   ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: INTERNAL_HEADERS.length - 1 } },
+    { s: { r: 0, c: 0 }, e: { r: 0, c: CUSTOMER_QUOTE_HEADERS.length - 1 } },
   ];
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, '核算明细');
+  XLSX.utils.book_append_sheet(wb, ws, '客户报价');
 
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-  downloadWorkbook(wb, `${projectName}_核算明细_${date}.xlsx`);
+  downloadWorkbook(wb, `${projectName}_客户报价_${date}.xlsx`);
 }
 
-// ── 2. 设变报价对比导出 ──
+// ── 兼容旧API (已废弃，请使用 exportCustomerQuoteExcel) ──
+
+// 保留旧常量名以兼容外部引用 [PR-078]
+export const INTERNAL_HEADERS = CUSTOMER_QUOTE_HEADERS;
+
+// ── 3. 设变报价对比导出 ──
 
 const CHANGE_HEADERS = [
   '零件号', '名称', '变更类型',

@@ -351,6 +351,10 @@ export function computeHarnessAllocationFromItems(
     if (item.feeCategory === 'tooling') toolingCost += amount;
     else if (item.feeCategory === 'testing') testingCost += amount;
     else if (item.feeCategory === 'rnd') rndCost += amount;
+    else {
+      // 未知类别处理：记录日志并跳过
+      console.warn(`[onetime_alloc] Unknown feeCategory "${item.feeCategory}" for item ${item.feeId} (${item.feeName}). Expected one of: tooling, testing, rnd. Item skipped.`);
+    }
   }
 
   return computeOnetimeAlloc({
@@ -456,7 +460,8 @@ export function computeOnetimeAlloc(input: OnetimeCostInput): OnetimeCostAllocat
     testingPerUnit,
     rndPerUnit,
     totalPerUnit,
-    priceAddon: totalPerUnit,
+    // lumpsum项不进入到厂价，只有参与分摊的费用才计入
+    priceAddon: participates ? totalPerUnit : 0,
     paymentMode,
   };
 }

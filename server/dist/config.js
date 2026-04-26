@@ -9,13 +9,12 @@ export const config = {
     DATABASE_URL: process.env.DATABASE_URL || 'file:./data/harness_cost.db',
     JWT_SECRET: (() => {
         const secret = process.env.JWT_SECRET;
-        if (secret)
+        if (secret && secret.length >= 32 && secret !== 'fallback-secret-change-me') {
             return secret;
-        if ((process.env.NODE_ENV || 'development') === 'production') {
-            throw new Error('[FATAL] JWT_SECRET environment variable MUST be set in production!');
         }
-        console.warn('\n⚠️  JWT_SECRET not set — using insecure fallback.\n⚠️  Set JWT_SECRET env var before deploying to production.\n');
-        return 'fallback-secret-change-me';
+        throw new Error('[FATAL] JWT_SECRET must be set to a strong random value (>=32 chars). ' +
+            'Run: node -e "console.log(require(\'crypto\').randomBytes(64).toString(\'hex\'))" ' +
+            'and set JWT_SECRET in server/.env');
     })(),
     JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN || '7d',
     CORS_ORIGIN: process.env.CORS_ORIGIN || 'http://localhost:5173',

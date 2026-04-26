@@ -3,6 +3,9 @@ import type { WorkbookSheetType } from '@/types/bomWorkbook';
 
 export type SheetType = Exclude<WorkbookSheetType, 'change_history'>;
 
+// [PR-104] 集中维护所有支持的 SheetType，避免硬编码
+export const ALL_SHEET_TYPES: SheetType[] = ['bom', 'assembly_parts', 'secondary_material', 'ksk_bom'];
+
 export interface ChangeBusScope {
   projectId: string;
   scenarioId: string;
@@ -109,6 +112,47 @@ export class ChangeBus {
     }
   }
 
+  // [PR-103] 增量索引API — 避免全量重建
+  /** 添加单行到索引 */
+  addRow(row: IndexedSheetRow): void {
+    if (!row.partNo) return;
+    const key = toScopeKey({
+      projectId: row.projectId,
+      scenarioId: row.scenarioId,
+      harnessId: row.harnessId,
+      sheetType: row.sheetType,
+      partNo: row.partNo,
+    });
+    const bucket = this.scopeIndex.get(key);
+    if (bucket) bucket.push(row);
+    else this.scopeIndex.set(key, [row]);
+  }
+
+  /** 从索引移除单行 */
+  removeRow(row: IndexedSheetRow): void {
+    if (!row.partNo) return;
+    const key = toScopeKey({
+      projectId: row.projectId,
+      scenarioId: row.scenarioId,
+      harnessId: row.harnessId,
+      sheetType: row.sheetType,
+      partNo: row.partNo,
+    });
+    const bucket = this.scopeIndex.get(key);
+    if (!bucket) return;
+    const idx = bucket.findIndex(r =>
+      r.sheetId === row.sheetId && r.rowIndex === row.rowIndex
+    );
+    if (idx >= 0) bucket.splice(idx, 1);
+    if (bucket.length === 0) this.scopeIndex.delete(key);
+  }
+
+  /** 更新索引中的行（先删后增） */
+  updateRow(oldRow: IndexedSheetRow, newRow: IndexedSheetRow): void {
+    this.removeRow(oldRow);
+    this.addRow(newRow);
+  }
+
   emit(source: {
     projectId: string;
     scenarioId: string;
@@ -134,7 +178,8 @@ export class ChangeBus {
 
     const targetMap = new Map<string, AffectedTarget>();
     for (const partNo of affectedPartNos) {
-      const scopeCandidates: ChangeBusScope[] = (['bom', 'assembly_parts', 'secondary_material', 'ksk_bom'] as SheetType[]).map(
+      // [PR-104] 使用集中维护的 ALL_SHEET_TYPES
+      const scopeCandidates: ChangeBusScope[] = ALL_SHEET_TYPES.map(
         sheetType => ({
           projectId: source.projectId,
           scenarioId: source.scenarioId,
@@ -181,6 +226,27 @@ export class ChangeBus {
 
 export const changeBus = new ChangeBus();
 
+// [PR-114] 数值比较辅助函数
+const EPSILON = 0.0001;
+function valuesEqual(a: unknown, b: unknown): boolean {
+  // 数值比较：使用 epsilon 容差
+  if (typeof a === 'number' && typeof b === 'number') {
+    return Math.abs(a - b) < EPSILON;
+  }
+  // 字符串数值比较：'0.10' vs '0.1' 应视为相等
+  if (typeof a === 'string' && typeof b === 'string') {
+    const numA = parseFloat(a.trim());
+    const numB = parseFloat(b.trim());
+    if (!isNaN(numA) && !isNaN(numB)) {
+      return Math.abs(numA - numB) < EPSILON;
+    }
+    // 非数值字符串：trim 后比较
+    return a.trim() === b.trim();
+  }
+  // 混合类型：转字符串比较
+  return String(a ?? '').trim() === String(b ?? '').trim();
+}
+
 export function buildInboundSyncPreviewRows(
   event: SheetChangeEvent,
   target: AffectedTarget,
@@ -195,7 +261,8 @@ export function buildInboundSyncPreviewRows(
     for (const field of change.fieldChanges) {
       if (field.after === null) continue;
       const localValue = (localRow?.[field.field] ?? null) as string | number | null;
-      if (String(localValue ?? '') === String(field.after ?? '')) continue;
+      // [PR-114] 使用 valuesEqual 进行语义正确的比较
+      if (valuesEqual(localValue, field.after)) continue;
       rows.push({
         partNo: change.partNo,
         partName: change.partName,

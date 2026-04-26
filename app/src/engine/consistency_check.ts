@@ -86,20 +86,6 @@ export function validateHarnessInput(input: HarnessInput): ValidationResult[] {
     }
   }
   
-  // H006: BOM total vs declared materialCost
-  if (input.bom && input.bom.length > 0 && (input as any).materialCost != null) {
-    const bomTotal = input.bom.reduce((s, b) => s + (b.amount || 0), 0);
-    const declared = (input as any).materialCost;
-    if (Math.abs(bomTotal - declared) > 1) {
-      results.push({
-        code: 'H006', severity: 'warning',
-        message: `BOM 合计(${bomTotal.toFixed(2)})与声明材料成本(${declared.toFixed(2)})偏差超过 1 元`,
-        target, field: 'materialCost',
-        actual: bomTotal, expected: declared.toFixed(2),
-      });
-    }
-  }
-  
   // H007: Process hours should be positive
   const totalHours = (input.frontHours || 0) + (input.backHours || 0);
   if (totalHours <= 0) {

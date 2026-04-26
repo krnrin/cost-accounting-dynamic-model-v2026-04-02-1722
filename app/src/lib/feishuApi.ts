@@ -1,21 +1,13 @@
 /**
  * 飞书 API 客户端
- * 
+ *
+ * 安全设计: 所有飞书 API 调用通过后端代理，前端不持有 APP_SECRET
  * 提供:
- * - tenant_access_token 获取 (用于 Bitable API)
- * - user_access_token 获取 (用于用户信息)
- * - 用户信息获取
+ * - 用户信息获取 (通过后端代理)
+ * - 飞书 API 代理调用
  */
 
-const FEISHU_APP_ID = import.meta.env.VITE_FEISHU_APP_ID || '';
-const FEISHU_APP_SECRET = import.meta.env.VITE_FEISHU_APP_SECRET || '';
-
-const FEISHU_API_BASE = import.meta.env.DEV
-  ? '/feishu-api'
-  : 'https://open.feishu.cn/open-apis';
-
-/** Cached tenant_access_token */
-let cachedTenantToken: { token: string; expiresAt: number } | null = null;
+const FEISHU_API_BASE = '/api/feishu';
 
 export interface FeishuUserInfo {
   openId: string;
@@ -28,168 +20,78 @@ export interface FeishuUserInfo {
 }
 
 /**
- * Get tenant_access_token (app-level token for API calls)
+ * Check if Feishu is configured on the backend
  */
-export async function getTenantAccessToken(): Promise<string> {
-  if (cachedTenantToken && Date.now() < cachedTenantToken.expiresAt - 300000) {
-    return cachedTenantToken.token;
+export async function isFeishuConfigured(): Promise<boolean> {
+  try {
+    const res = await fetch(`${FEISHU_API_BASE}/status`);
+    const data = await res.json();
+    return data.configured === true;
+  } catch {
+    return false;
   }
+}
 
-  if (!FEISHU_APP_ID || !FEISHU_APP_SECRET) {
-    throw new Error('飞书 App ID 或 App Secret 未配置');
-  }
-
-  const res = await fetch(`${FEISHU_API_BASE}/auth/v3/tenant_access_token/internal`, {
+/**
+ * Exchange auth code for user info via backend proxy
+ */
+export async function exchangeFeishuCode(code: string): Promise<FeishuUserInfo> {
+  const res = await fetch(`${FEISHU_API_BASE}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      app_id: FEISHU_APP_ID,
-      app_secret: FEISHU_APP_SECRET,
-    }),
+    body: JSON.stringify({ code }),
   });
 
   const data = await res.json();
-  if (data.code !== 0) {
-    throw new Error(`获取 tenant_access_token 失败: ${data.msg}`);
+  if (!res.ok) {
+    throw new Error(data.error || '飞书登录失败');
   }
 
-  cachedTenantToken = {
-    token: data.tenant_access_token,
-    expiresAt: Date.now() + data.expire * 1000,
-  };
-
-  return cachedTenantToken.token;
-}
-
-/**
- * Exchange auth code for user_access_token
- */
-export async function getUserAccessToken(code: string): Promise<{
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}> {
-  const tenantToken = await getTenantAccessToken();
-
-  const res = await fetch(`${FEISHU_API_BASE}/authen/v1/oidc/access_token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${tenantToken}`,
-    },
-    body: JSON.stringify({
-      grant_type: 'authorization_code',
-      code,
-    }),
-  });
-
-  const data = await res.json();
-  if (data.code !== 0) {
-    throw new Error(`获取 user_access_token 失败: ${data.msg}`);
-  }
-
+  const userInfo = data.data;
   return {
-    accessToken: data.data.access_token,
-    refreshToken: data.data.refresh_token,
-    expiresIn: data.data.expires_in,
+    openId: userInfo.openId || '',
+    unionId: userInfo.unionId || '',
+    userId: userInfo.userId || '',
+    name: userInfo.name || '',
+    avatarUrl: userInfo.avatarUrl || '',
+    email: userInfo.email || '',
+    mobile: userInfo.mobile || '',
   };
 }
 
 /**
- * Get user info using user_access_token
+ * Make an authenticated API call to Feishu via backend proxy
+ * Requires user to be logged in (JWT token in Authorization header)
  */
-export async function getFeishuUserInfo(userAccessToken: string): Promise<FeishuUserInfo> {
-  const res = await fetch(`${FEISHU_API_BASE}/authen/v1/user_info`, {
-    headers: {
-      'Authorization': `Bearer ${userAccessToken}`,
-    },
-  });
-
-  const data = await res.json();
-  if (data.code !== 0) {
-    throw new Error(`获取用户信息失败: ${data.msg}`);
-  }
-
-  return {
-    openId: data.data.open_id || '',
-    unionId: data.data.union_id || '',
-    userId: data.data.user_id || '',
-    name: data.data.name || '',
-    avatarUrl: data.data.avatar_url || '',
-    email: data.data.email || '',
-    mobile: data.data.mobile || '',
-  };
-}
-
-/**
- * Refresh user_access_token
- */
-export async function refreshUserAccessToken(refreshToken: string): Promise<{
-  accessToken: string;
-  refreshToken: string;
-  expiresIn: number;
-}> {
-  const tenantToken = await getTenantAccessToken();
-
-  const res = await fetch(`${FEISHU_API_BASE}/authen/v1/oidc/refresh_access_token`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${tenantToken}`,
-    },
-    body: JSON.stringify({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-    }),
-  });
-
-  const data = await res.json();
-  if (data.code !== 0) {
-    throw new Error(`刷新 token 失败: ${data.msg}`);
-  }
-
-  return {
-    accessToken: data.data.access_token,
-    refreshToken: data.data.refresh_token,
-    expiresIn: data.data.expires_in,
-  };
-}
-
-/**
- * Make an authenticated API call to Feishu
- */
-export async function feishuApiCall<T = any>(
+export async function feishuApiCall<T = unknown>(
   path: string,
   options: {
     method?: string;
-    body?: any;
-    useUserToken?: string;
+    body?: unknown;
   } = {}
 ): Promise<T> {
-  const { method = 'GET', body, useUserToken } = options;
-  
-  const token = useUserToken || await getTenantAccessToken();
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('未登录，无法调用飞书 API');
+  }
 
-  const headers: Record<string, string> = {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  };
-
-  const res = await fetch(`${FEISHU_API_BASE}${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
+  const res = await fetch(`${FEISHU_API_BASE}/proxy`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      path,
+      method: options.method || 'GET',
+      body: options.body,
+    }),
   });
 
   const data = await res.json();
-  if (data.code !== 0) {
-    throw new Error(`飞书 API 调用失败 [${path}]: ${data.msg} (code: ${data.code})`);
+  if (!res.ok) {
+    throw new Error(data.error || '飞书 API 调用失败');
   }
 
   return data.data as T;
-}
-
-/** Clear cached tokens (for logout) */
-export function clearFeishuTokenCache(): void {
-  cachedTenantToken = null;
 }

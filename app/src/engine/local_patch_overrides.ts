@@ -293,11 +293,53 @@ export function markCacheInvalid(
 
 // ─── 14. Concurrent Edit Conflict Detection ───
 
+import { db } from '@/data/db';
+
+/** EditLock 表结构 (IndexedDB) */
+export interface EditLockRecord {
+  id?: number;
+  scenarioId: string;
+  userId: string;
+  acquiredAt: string;
+  expiresAt: string;
+}
+
+const EDIT_LOCK_TABLE = 'editLocks' as const;
+
 export interface EditLock {
   scenarioId: string;
   userId: string;
   acquiredAt: string;
   expiresAt: string;
+}
+
+/**
+ * 获取指定场景的所有活跃锁
+ * [PR-084] 从IndexedDB读取持久化的锁记录
+ */
+async function getActiveLocks(scenarioId: string): Promise<EditLock[]> {
+  try {
+    // 检查表是否存在
+    if (!db[EDIT_LOCK_TABLE]) {
+      console.warn('[local_patch_overrides] editLocks table not in Dexie schema, falling back to in-memory');
+      return [];
+    }
+    const now = new Date();
+    const records = await (db as any)[EDIT_LOCK_TABLE]
+      .where('scenarioId')
+      .equals(scenarioId)
+      .filter((r: EditLockRecord) => new Date(r.expiresAt) > now)
+      .toArray();
+    return records.map((r: EditLockRecord) => ({
+      scenarioId: r.scenarioId,
+      userId: r.userId,
+      acquiredAt: r.acquiredAt,
+      expiresAt: r.expiresAt,
+    }));
+  } catch (err) {
+    console.error('[local_patch_overrides] getActiveLocks failed:', err);
+    return [];
+  }
 }
 
 export function checkEditConflict(
@@ -313,6 +355,88 @@ export function checkEditConflict(
   return lock ? { conflict: true, holder: lock.userId } : { conflict: false };
 }
 
+/**
+ * 异步版本：从IndexedDB读取锁并检测冲突
+ * [PR-084] 接入IndexedDB持久化
+ */
+export async function checkEditConflictAsync(
+  scenarioId: string,
+  userId: string,
+): Promise<{ conflict: boolean; holder?: string }> {
+  const activeLocks = await getActiveLocks(scenarioId);
+  return checkEditConflict(scenarioId, userId, activeLocks);
+}
+
+/**
+ * 获取编辑锁并持久化到IndexedDB
+ * [PR-084] 接入IndexedDB持久化
+ */
+export async function acquireEditLockAsync(
+  scenarioId: string,
+  userId: string,
+  durationMinutes: number = 30,
+): Promise<EditLock | null> {
+  try {
+    // 先检查是否有冲突
+    const conflictCheck = await checkEditConflictAsync(scenarioId, userId);
+    if (conflictCheck.conflict) {
+      console.warn(`[local_patch_overrides] Cannot acquire lock: held by ${conflictCheck.holder}`);
+      return null;
+    }
+
+    const now = new Date();
+    const lock: EditLock = {
+      scenarioId,
+      userId,
+      acquiredAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + durationMinutes * 60 * 1000).toISOString(),
+    };
+
+    // 检查表是否存在
+    if (!db[EDIT_LOCK_TABLE]) {
+      console.warn('[local_patch_overrides] editLocks table not in Dexie schema, lock not persisted');
+      return lock;
+    }
+
+    // 持久化到IndexedDB
+    await (db as any)[EDIT_LOCK_TABLE].add({
+      ...lock,
+    });
+    return lock;
+  } catch (err) {
+    console.error('[local_patch_overrides] acquireEditLockAsync failed:', err);
+    return null;
+  }
+}
+
+/**
+ * 释放编辑锁
+ * [PR-084] 接入IndexedDB持久化
+ */
+export async function releaseEditLockAsync(
+  scenarioId: string,
+  userId: string,
+): Promise<boolean> {
+  try {
+    if (!db[EDIT_LOCK_TABLE]) {
+      return true;
+    }
+    await (db as any)[EDIT_LOCK_TABLE]
+      .where('scenarioId')
+      .equals(scenarioId)
+      .and((r: EditLockRecord) => r.userId === userId)
+      .delete();
+    return true;
+  } catch (err) {
+    console.error('[local_patch_overrides] releaseEditLockAsync failed:', err);
+    return false;
+  }
+}
+
+/**
+ * 同步版本（向后兼容，但不持久化）
+ * @deprecated 使用 acquireEditLockAsync 代替
+ */
 export function acquireEditLock(
   scenarioId: string,
   userId: string,

@@ -2,6 +2,47 @@ import type { HarnessInput, PrecisionLevel, PrecisionMeta } from '@/types/harnes
 import type { CostRates, Level1Coefficients } from '@/types/project';
 import { numberOr } from './shared_utils';
 
+/** 浮点精度 epsilon */
+export const EPSILON = 1e-10;
+
+/**
+ * 精确加法：避免浮点累加误差
+ * 使用整数运算后还原
+ */
+export function add(a: number, b: number): number {
+  return Math.round((a + b) * 1e10) / 1e10;
+}
+
+/**
+ * 精确乘法：避免浮点乘法误差
+ */
+export function multiply(a: number, b: number): number {
+  return Math.round(a * b * 1e10) / 1e10;
+}
+
+/**
+ * 精确除法
+ */
+export function divide(a: number, b: number): number {
+  if (b === 0) return 0;
+  return Math.round((a / b) * 1e10) / 1e10;
+}
+
+/**
+ * 精确求和
+ */
+export function sum(values: number[]): number {
+  return values.reduce((acc, val) => add(acc, val), 0);
+}
+
+/**
+ * 四舍五入到指定小数位
+ */
+export function round(value: number, decimals: number = 4): number {
+  const factor = Math.pow(10, decimals);
+  return Math.round(value * factor) / factor;
+}
+
 /** 检测可用精度等级 */
 export function detectPrecisionLevel(input: HarnessInput): PrecisionLevel {
   // Level 3: has BOM with at least 1 item
@@ -56,11 +97,12 @@ export const LEVEL1_COEFFICIENTS: Level1Coefficients = {
   freightRatio: 0.006,
 };
 
-/** 
- * Level 1 系数近似计算 
+/**
+ * Level 1 系数近似计算
  * @param totalPrice - 已知的到厂价或参考总价
  * @param rates - 费率配置
  * @param coefficients - 系数 (可选, 默认使用 LEVEL1_COEFFICIENTS)
+ * @returns 计算结果，profit可能为负值（表示亏损），由上游业务层决定如何处理
  */
 export function estimateByCoefficients(
   totalPrice: number,
@@ -77,6 +119,8 @@ export function estimateByCoefficients(
   freight: number;
   exFactoryPrice: number;
   deliveredPrice: number;
+  /** 利润为负时为true，供上游业务校验 */
+  isLoss: boolean;
 } {
   const material = totalPrice * coefficients.materialRatio;
   const waste = material * numberOr(rates.wasteRate, 0.01);
@@ -87,17 +131,20 @@ export function estimateByCoefficients(
   const freight = totalPrice * coefficients.freightRatio;
   const exFactory = material + waste + labor + mfg + mgmt;
   const profit = totalPrice - exFactory - packaging - freight;
-  
+  // 不再静默截断负值，让上游业务层决定如何处理亏损情况
+  const isLoss = profit < 0;
+
   return {
     materialCost: material,
     waste,
     directLabor: labor,
     manufacturing: mfg,
     mgmtFee: mgmt,
-    profit: Math.max(0, profit),
+    profit,
     packaging,
     freight,
-    exFactoryPrice: exFactory + Math.max(0, profit),
+    exFactoryPrice: exFactory + profit,
     deliveredPrice: totalPrice,
+    isLoss,
   };
 }

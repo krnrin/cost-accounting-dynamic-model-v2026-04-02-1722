@@ -42,6 +42,7 @@ export interface SnapshotDiff {
   oldValue: unknown;
   newValue: unknown;
   label: string;
+  section?: string;  // [PR-065] 用于复合 rowKey
 }
 
 interface SettingsSnapshotState {

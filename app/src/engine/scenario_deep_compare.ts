@@ -1,9 +1,16 @@
 /**
  * Scenario Deep Compare (C17 — Issue #65)
- * 
+ *
  * 场景对比深度增强 + 场景与版本关联
  * - 扩展对比维度：成本结构、利润率、分摊回收进度
  * - 场景关联版本号和快照状态
+ *
+ * [PR-108] deltaPercent 计算说明：
+ * - 公式：deltaPercent = delta / |baseVal| × 100
+ * - 当 baseVal 为负数时，使用绝对值作为分母，确保百分比方向正确
+ * - 例如：baseVal = -100, compVal = -80 → delta = 20, deltaPercent = 20%
+ * - 例如：baseVal = -100, compVal = -120 → delta = -20, deltaPercent = -20%
+ * - 注意：当 baseVal = 0 时，deltaPercent 为 null（无法计算百分比变化）
  */
 
 // ─── Types ───

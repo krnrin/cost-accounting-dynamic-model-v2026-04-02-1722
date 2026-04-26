@@ -6,13 +6,16 @@ export class AuditService {
     userId: string;
     projectId?: string;
     action: 'CREATE' | 'UPDATE' | 'DELETE' | 'STATUS_CHANGE';
-    entity: 'project' | 'harness' | 'bom' | 'quote' | 'version' | 'scenario' | 'change' | 'tracking' | 'pricing' | 'setting' | 'alert';
+    // [PR-040] 扩展 entity 类型支持更多实体
+    entity: 'project' | 'harness' | 'bom' | 'quote' | 'version' | 'scenario' | 'change' | 'tracking' | 'pricing' | 'setting' | 'alert' | 'alertRule' | 'simulation' | 'annualDrop' | 'recovery';
     entityId: string;
     details?: any;
   }) {
     return prisma.auditLog.create({
       data: {
         ...params,
+        // [PR-040] 将扩展的 entity 类型转换为数据库支持的类型
+        entity: params.entity as 'project' | 'harness' | 'bom' | 'quote' | 'version' | 'scenario' | 'change' | 'tracking' | 'pricing' | 'setting' | 'alert',
         details: params.details ? toJson(params.details) : null,
       },
     });

@@ -22,6 +22,26 @@ import type {
   ScenarioVerificationReportCheck,
 } from '@/data/seeds/e281ScenarioPayload';
 
+/** 验证阈值配置 */
+export interface VerificationThresholds {
+  /** 绝对差值失败阈值 (默认 0.1) */
+  absDeltaFail: number;
+  /** 绝对差值警告阈值 (默认 0.01) */
+  absDeltaWarn: number;
+  /** 百分比差值失败阈值 (默认 5%) */
+  absDeltaPercentFail: number;
+  /** 百分比差值警告阈值 (默认 0.5%) */
+  absDeltaPercentWarn: number;
+}
+
+/** 默认验证阈值 */
+export const DEFAULT_VERIFICATION_THRESHOLDS: VerificationThresholds = {
+  absDeltaFail: 0.1,
+  absDeltaWarn: 0.01,
+  absDeltaPercentFail: 5,
+  absDeltaPercentWarn: 0.5,
+};
+
 export interface E281ScenarioComputation {
   payload: E281ScenarioPayload;
   inputs: HarnessInput[];
@@ -56,16 +76,22 @@ function toDeltaPercent(actual: number, expected: number): number {
   return ((actual - expected) / Math.abs(expected)) * 100;
 }
 
-function classifyCheck(actual: number, expected: number, label: string, key: string): ScenarioVerificationReportCheck {
+function classifyCheck(
+  actual: number,
+  expected: number,
+  label: string,
+  key: string,
+  thresholds: VerificationThresholds = DEFAULT_VERIFICATION_THRESHOLDS,
+): ScenarioVerificationReportCheck {
   const delta = actual - expected;
   const deltaPercent = toDeltaPercent(actual, expected);
   const absDelta = Math.abs(delta);
   const absDeltaPercent = Math.abs(deltaPercent);
 
   let status: ScenarioVerificationReportCheck['status'] = 'pass';
-  if (absDelta > 0.1 || absDeltaPercent > 5) {
+  if (absDelta > thresholds.absDeltaFail || absDeltaPercent > thresholds.absDeltaPercentFail) {
     status = 'fail';
-  } else if (absDelta > 0.01 || absDeltaPercent > 0.5) {
+  } else if (absDelta > thresholds.absDeltaWarn || absDeltaPercent > thresholds.absDeltaPercentWarn) {
     status = 'warn';
   }
 
@@ -96,15 +122,56 @@ function buildCostBreakdown(project: ProjectHarnessResult) {
 function buildScenarioCompareInput(payload: E281ScenarioPayload, project: ProjectHarnessResult): ScenarioCompareInput {
   const costBreakdown = buildCostBreakdown(project);
 
+  // Calculate total annual volume for lifecycle calculations
+  const totalVolume = payload.project.config.volumes.reduce((sum, v) => sum + v.volume, 0);
+  // lifecycleYears used for future extension; currently not needed in baseline
+  // const lifecycleYears = payload.project.meta.lifecycleYears || 6;
+
+  // Get selling price from customerQuoteSnapshots if available
+  // customerQuoteSnapshots is keyed by harnessId, we need weighted average
+  const snapshots = payload.project.config.customerQuoteSnapshots || {};
+  const snapshotEntries = Object.entries(snapshots);
+
+  let sellingPricePerSet = project.vehicleCost; // fallback to cost
+
+  if (snapshotEntries.length > 0) {
+    // Calculate weighted average selling price from customer quote snapshots
+    // Use deliveredPrice as the primary selling price reference
+    let totalWeightedPrice = 0;
+    let totalRatio = 0;
+
+    for (const [harnessId, snapshot] of snapshotEntries) {
+      const harness = payload.harnesses.find(h => h.harnessId === harnessId);
+      const ratio = harness?.input?.vehicleRatio || 0;
+      const price = snapshot.deliveredPrice || snapshot.exFactoryPrice || 0;
+      if (price > 0 && ratio > 0) {
+        totalWeightedPrice += price * ratio;
+        totalRatio += ratio;
+      }
+    }
+
+    if (totalRatio > 0 && totalWeightedPrice > 0) {
+      sellingPricePerSet = totalWeightedPrice / totalRatio;
+    }
+  }
+
+  // Calculate margin rate: (sellingPrice - cost) / sellingPrice
+  const marginRate = sellingPricePerSet > 0
+    ? (sellingPricePerSet - project.vehicleCost) / sellingPricePerSet
+    : 0;
+
+  // Calculate lifecycle profit: (sellingPrice - cost) * total volume
+  const lifecycleProfit = (sellingPricePerSet - project.vehicleCost) * totalVolume;
+
   return {
     scenarioId: payload.mode,
     scenarioName: payload.scenario.scenarioName,
     status: payload.scenario.scenarioType,
     kpis: {
       totalCostPerSet: project.vehicleCost,
-      sellingPricePerSet: project.vehicleCost,
-      marginRate: 0,
-      lifecycleProfit: 0,
+      sellingPricePerSet,
+      marginRate,
+      lifecycleProfit,
       vehicleCostPerSet: project.vehicleCost,
       totalHarnesses: project.harnessCount,
     },
@@ -169,6 +236,7 @@ function buildInputChecks(payload: E281ScenarioPayload): ScenarioVerificationRep
 function buildHarnessChecks(
   payload: E281ScenarioPayload,
   actualResults: HarnessResult[],
+  thresholds?: VerificationThresholds,
 ): ScenarioVerificationReportCheck[] {
   if (payload.expectedHarnessResults.length === 0) {
     return [];
@@ -189,9 +257,9 @@ function buildHarnessChecks(
       continue;
     }
 
-    checks.push(classifyCheck(actual.materialCost, expected.materialCost, `${expected.harnessId} materialCost`, `${expected.harnessId}:materialCost`));
-    checks.push(classifyCheck(actual.exFactoryPrice, expected.exFactoryPrice, `${expected.harnessId} exFactoryPrice`, `${expected.harnessId}:exFactoryPrice`));
-    checks.push(classifyCheck(actual.deliveredPrice, expected.deliveredPrice, `${expected.harnessId} deliveredPrice`, `${expected.harnessId}:deliveredPrice`));
+    checks.push(classifyCheck(actual.materialCost, expected.materialCost, `${expected.harnessId} materialCost`, `${expected.harnessId}:materialCost`, thresholds));
+    checks.push(classifyCheck(actual.exFactoryPrice, expected.exFactoryPrice, `${expected.harnessId} exFactoryPrice`, `${expected.harnessId}:exFactoryPrice`, thresholds));
+    checks.push(classifyCheck(actual.deliveredPrice, expected.deliveredPrice, `${expected.harnessId} deliveredPrice`, `${expected.harnessId}:deliveredPrice`, thresholds));
   }
 
   return checks;
@@ -200,15 +268,16 @@ function buildHarnessChecks(
 function buildProjectChecks(
   payload: E281ScenarioPayload,
   projectResult: ProjectHarnessResult,
+  thresholds?: VerificationThresholds,
 ): ScenarioVerificationReportCheck[] {
   if (!payload.expectedProjectResults) {
     return [];
   }
 
   return [
-    classifyCheck(projectResult.vehicleCost, payload.expectedProjectResults.vehicleCost, 'project vehicleCost', 'project:vehicleCost'),
-    classifyCheck(projectResult.weightedMaterial, payload.expectedProjectResults.weightedMaterial, 'project weightedMaterial', 'project:weightedMaterial'),
-    classifyCheck(projectResult.weightedExFactory, payload.expectedProjectResults.weightedExFactory, 'project weightedExFactory', 'project:weightedExFactory'),
+    classifyCheck(projectResult.vehicleCost, payload.expectedProjectResults.vehicleCost, 'project vehicleCost', 'project:vehicleCost', thresholds),
+    classifyCheck(projectResult.weightedMaterial, payload.expectedProjectResults.weightedMaterial, 'project weightedMaterial', 'project:weightedMaterial', thresholds),
+    classifyCheck(projectResult.weightedExFactory, payload.expectedProjectResults.weightedExFactory, 'project weightedExFactory', 'project:weightedExFactory', thresholds),
   ];
 }
 

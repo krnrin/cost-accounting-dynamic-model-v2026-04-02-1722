@@ -17,11 +17,22 @@ export interface FeishuUser {
   department?: string;
 }
 
+/**
+ * 生成加密安全的随机 state 字符串
+ */
+function generateSecureState(length: number = 16): string {
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 export function getLoginUrl(config: FeishuSSOConfig, state?: string): string {
   const params = new URLSearchParams({
     app_id: config.appId,
     redirect_uri: config.redirectUri,
-    state: state || Math.random().toString(36).substring(2),
+    state: state || generateSecureState(),
   });
   return `${config.baseUrl}/open-apis/authen/v1/authorize?${params.toString()}`;
 }

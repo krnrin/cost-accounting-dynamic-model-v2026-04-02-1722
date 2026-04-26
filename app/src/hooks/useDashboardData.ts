@@ -1,6 +1,8 @@
 /**
  * Custom hook: all Dashboard state, data-loading, and derived computations.
  * Extracted from DashboardPage.tsx to reduce the 57 KB monolith.
+ *
+ * [成本核算数据原则] 必须传入 internalRates，禁止回退到硬编码默认值
  */
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
@@ -15,7 +17,6 @@ import {
   computeInternalHarnessCost,
   computeInternalProjectFromHarnesses,
   mapInternalProjectToProjectHarnessResult,
-  INTERNAL_DEFAULTS,
 } from '@/engine/harness_costing';
 import type {
   HarnessResult,
@@ -207,7 +208,15 @@ export function useDashboardData() {
         : hRecords;
 
       const metalPrices = sc?.config?.metalPrices ?? defaultMetalPrices;
-      const internalRates = sc?.config?.internalRates ?? INTERNAL_DEFAULTS;
+
+      // [成本核算数据原则] 必须传入 internalRates，禁止回退
+      if (!sc?.config?.internalRates) {
+        throw new Error(
+          '[成本核算] 场景缺少 internalRates 配置。' +
+          '请在系统设置中配置真实费率，禁止使用硬编码默认值。'
+        );
+      }
+      const internalRates = sc.config.internalRates;
 
       const internalResults: InternalHarnessResult[] = effectiveRecords.map((rec) =>
         computeInternalHarnessCost(rec.input, internalRates, metalPrices),

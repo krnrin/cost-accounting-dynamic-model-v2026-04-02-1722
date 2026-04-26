@@ -115,16 +115,32 @@ function toQuoteParamRef(snapshot: QuoteSnapshotRecord) {
     metalPrices?: Record<string, unknown>;
     annualDropRate?: unknown;
     lifecycleYears?: unknown;
+    volumes?: Array<{ volume: number }>;
     factoryRateSource?: Record<string, unknown>;
   };
   const results = snapshot.results as {
     totalMaterialCost?: unknown;
     totalDeliveredPrice?: unknown;
+    totalCostPerSet?: unknown;
     harnessResults?: Array<{ harnessId?: string; harnessName?: string; result?: HarnessResult }>;
   };
   const costRates = params.costRates ?? {};
   const metalPrices = params.metalPrices ?? {};
   const factoryRateSource = params.factoryRateSource ?? {};
+
+  // Calculate selling price and margin
+  const totalCostPerSet = Number(results.totalCostPerSet ?? results.totalMaterialCost ?? 0);
+  const sellingPricePerSet = Number(results.totalDeliveredPrice ?? 0);
+
+  // Calculate margin rate: (sellingPrice - cost) / sellingPrice
+  const marginRate = sellingPricePerSet > 0
+    ? (sellingPricePerSet - totalCostPerSet) / sellingPricePerSet
+    : 0;
+
+  // Calculate lifecycle profit: (sellingPrice - cost) * total volume
+  const volumes = params.volumes || [];
+  const totalVolume = volumes.reduce((sum, v) => sum + (v.volume || 0), 0);
+  const lifecycleProfit = (sellingPricePerSet - totalCostPerSet) * totalVolume;
 
   return captureQuoteParamRef(snapshot.quoteId, snapshot.scenarioId, {
     rateSnapshotVersion: `quote-snapshot-v${snapshot.version}`,
@@ -132,7 +148,7 @@ function toQuoteParamRef(snapshot: QuoteSnapshotRecord) {
     metalPrices: {
       copper: Number(metalPrices.copper ?? 0),
       aluminum: Number(metalPrices.aluminum ?? 0),
-      source: 'manual',
+      source: (metalPrices.source as 'benchmark' | 'shfe' | 'smm' | 'manual') ?? 'manual',
     },
     rates: {
       managementFeeRate: Number(costRates.mgmtRate ?? costRates.managementFeeRate ?? 0),
@@ -151,10 +167,10 @@ function toQuoteParamRef(snapshot: QuoteSnapshotRecord) {
       sourceNote: factoryRateSource.sourceNote != null ? String(factoryRateSource.sourceNote) : factoryRateSource.note != null ? String(factoryRateSource.note) : null,
     },
     output: {
-      totalCostPerSet: Number(results.totalMaterialCost ?? 0),
-      sellingPricePerSet: Number(results.totalDeliveredPrice ?? 0),
-      marginRate: 0,
-      lifecycleProfit: 0,
+      totalCostPerSet,
+      sellingPricePerSet,
+      marginRate,
+      lifecycleProfit,
     },
   });
 }

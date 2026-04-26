@@ -4,6 +4,22 @@ import type { VersionRecord } from '@/types/version';
 
 const { Text } = Typography;
 
+// i18n 状态文案映射
+const APPROVAL_STATUS_LABELS: Record<string, string> = {
+  not_submitted: '未提交',
+  pending: '待审批',
+  approved: '已通过',
+  rejected: '已驳回',
+};
+
+const VERSION_STATUS_LABELS: Record<string, string> = {
+  draft: '草稿',
+  reviewed: '已审核',
+  published: '已发布',
+  locked: '已锁定',
+  archived: '已归档',
+};
+
 interface VersionLockPanelProps {
   version: VersionRecord | null;
   loading?: boolean;
@@ -49,8 +65,8 @@ export default function VersionLockPanel({
       <Space vertical align="start" style={{ width: '100%' }}>
         <Space wrap>
           <Tag color={isLocked ? 'red' : 'green'}>{isLocked ? '已锁定' : '可编辑'}</Tag>
-          <Tag color={approvalColor(approvalStatus)}>审批: {approvalStatus}</Tag>
-          <Tag>{version.status}</Tag>
+          <Tag color={approvalColor(approvalStatus)}>审批: {APPROVAL_STATUS_LABELS[approvalStatus] ?? approvalStatus}</Tag>
+          <Tag>{VERSION_STATUS_LABELS[version.status] ?? version.status}</Tag>
         </Space>
 
         <div>
@@ -71,13 +87,18 @@ export default function VersionLockPanel({
           </Text>
         ) : null}
 
+        {!isLocked && (
+          <Input
+            placeholder="锁定原因（可选）"
+            value={lockReason}
+            onChange={(value) => setLockReason(value)}
+          />
+        )}
+
         <Input
-          placeholder="锁定原因 / 审批意见"
-          value={approvalComment || lockReason}
-          onChange={(value) => {
-            setApprovalComment(value);
-            setLockReason(value);
-          }}
+          placeholder="审批意见（可选）"
+          value={approvalComment}
+          onChange={(value) => setApprovalComment(value)}
         />
 
         <Space wrap>

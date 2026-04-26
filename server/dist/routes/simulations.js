@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/auth.js';
 import { requireRole } from '../middleware/rbac.js';
 import { SimulationService } from '../services/simulationService.js';
+import { AuditService } from '../services/auditService.js'; // [PR-040]
 const scenarioSimulationRouter = Router({ mergeParams: true });
 const simulationRouter = Router();
 const simulationSchema = z.object({
@@ -42,6 +43,15 @@ scenarioSimulationRouter.post('/', requireRole(['ADMIN', 'MANAGER', 'ENGINEER'])
             ...input,
             projectId: undefined,
         });
+        // [PR-040] 添加审计日志
+        await AuditService.log({
+            userId: req.user.id,
+            projectId,
+            action: 'CREATE',
+            entity: 'simulation',
+            entityId: created.id,
+            details: { scenarioId: req.params.sid, name: input.name },
+        });
         res.status(201).json({ data: created });
     }
     catch (error) {
@@ -70,6 +80,15 @@ simulationRouter.put('/:simId', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), a
 simulationRouter.post('/:simId/run', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, res, next) => {
     try {
         const data = await SimulationService.run(req.params.simId);
+        // [PR-040] 添加审计日志
+        await AuditService.log({
+            userId: req.user.id,
+            projectId: data.projectId,
+            action: 'UPDATE',
+            entity: 'simulation',
+            entityId: req.params.simId,
+            details: { action: 'run', status: data.status },
+        });
         res.json({ data });
     }
     catch (error) {
@@ -79,6 +98,15 @@ simulationRouter.post('/:simId/run', requireRole(['ADMIN', 'MANAGER', 'ENGINEER'
 simulationRouter.post('/:simId/convert-to-scenario', requireRole(['ADMIN', 'MANAGER', 'ENGINEER']), async (req, res, next) => {
     try {
         const data = await SimulationService.convertToScenario(req.params.simId);
+        // [PR-040] 添加审计日志
+        await AuditService.log({
+            userId: req.user.id,
+            projectId: data.scenario.projectId,
+            action: 'CREATE',
+            entity: 'scenario',
+            entityId: data.scenario.id,
+            details: { action: 'convert_from_simulation', simulationId: req.params.simId },
+        });
         res.json({ data });
     }
     catch (error) {
